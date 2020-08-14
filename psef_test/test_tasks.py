@@ -10,14 +10,8 @@ import requests_stubs
 from psef import tasks as t
 from psef import models as m
 from helpers import create_auto_test, create_assignment, create_submission
-from cg_celery import TaskStatus
 from cg_dt_utils import DatetimeWithTimezone
 from cg_flask_helpers import callback_after_this_request
-
-
-def flush_callbacks():
-    t.celery._call_callbacks(TaskStatus.success)
-    t.celery._after_task_callbacks = []
 
 
 @pytest.mark.parametrize(
@@ -78,8 +72,7 @@ def test_check_heartbeat(
         session.commit()
 
     with describe('not expired'):
-        t._check_heartbeat_stop_test_runner_1(runner.id.hex)
-        flush_callbacks()
+        t._check_heartbeat_stop_test_runner_1.delay(runner.id.hex)
         now = DatetimeWithTimezone.utcnow()
 
         # As the heartbeats have not expired yet a new check should be
@@ -98,8 +91,7 @@ def test_check_heartbeat(
         old_job_id = run.get_job_id()
         session.commit()
         run = runner.run
-        t._check_heartbeat_stop_test_runner_1(runner.id.hex)
-        flush_callbacks()
+        t._check_heartbeat_stop_test_runner_1.delay(runner.id.hex)
 
         assert not stub_heart.called
         assert len(stub_notify_new.all_args) == 0
@@ -117,8 +109,7 @@ def test_check_heartbeat(
         ), 'Passed results should not be cleared'
 
     with describe('With non existing runner'):
-        t._check_heartbeat_stop_test_runner_1(uuid.uuid4().hex)
-        flush_callbacks()
+        t._check_heartbeat_stop_test_runner_1.delay(uuid.uuid4().hex)
 
         assert not stub_heart.called
         assert not stub_notify_new.called
@@ -126,19 +117,21 @@ def test_check_heartbeat(
         assert not stub_notify_kill_single.called
 
 
-def test_after_this_request_in_celery(monkeypatch_celery):
+def test_after_this_request_in_celery():
     res = []
     amount = -1
 
     @t.celery.task
     def test_task():
         nonlocal amount
+        print('CALL', amount)
         if amount == -1:
             amount += 2
             test_task()
 
         @callback_after_this_request
         def after():
+            print('AFTER')
             res.append(3)
 
         res.append(amount)
@@ -146,6 +139,9 @@ def test_after_this_request_in_celery(monkeypatch_celery):
 
     test_task.delay()
     assert res == [1, 2, 3, 3]
+    amount = -1
+    test_task.delay()
+    assert res == [1, 2, 3, 3, 1, 2, 3, 3]
 
 
 @pytest.mark.parametrize(

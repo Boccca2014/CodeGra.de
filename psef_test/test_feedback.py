@@ -820,8 +820,8 @@ def test_get_all_feedback(
         res = test_client.req(
             'get',
             f'/api/v1/submissions/{work["id"]}/feedbacks/',
-            200,
-            result=out,
+            code,
+            result=out if code == 200 else error_template,
         )
 
         if not perm_err:
@@ -954,7 +954,8 @@ def test_get_assignment_all_feedback(
 
     with logged_in(
         helpers.create_user_with_perms(
-            session, [CPerm.can_see_others_work], assig.course
+            session, [CPerm.can_see_others_work, CPerm.can_see_assignments],
+            assig.course
         )
     ):
         res = test_client.req(

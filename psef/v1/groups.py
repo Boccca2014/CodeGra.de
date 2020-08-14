@@ -82,7 +82,6 @@ def add_member_to_group(group_id: int) -> ExtendedJSONResponse[models.Group]:
     :returns: The group with the newly added user.
     """
     group = get_or_404(models.Group, group_id)
-    auth.GroupPermissions(group).ensure_may_see()
 
     with get_from_request_transaction() as [get, _]:
         username = get('username', str)

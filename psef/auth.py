@@ -857,7 +857,6 @@ def ensure_can_view_files(
     """
     cur_user = _get_cur_user()
     course_id = work.assignment.course_id
-    _ensure_course_visible_for_current_user(course_id)
 
     if teacher_files:
         if work.has_as_author(cur_user) and work.assignment.is_done:
@@ -868,6 +867,7 @@ def ensure_can_view_files(
             ensure_permission(CPerm.can_edit_others_work, course_id)
 
     try:
+        _ensure_course_visible_for_current_user(course_id)
         if not work.has_as_author(cur_user):
             try:
                 ensure_any_of_permissions(
@@ -1000,7 +1000,7 @@ class WorkPermissions(CoursePermissionChecker):
         """Ensure the current user may see this work.
         """
         self.ensure_may_see()
-        self._ensure(CPerm.can_assign_graders)
+        self._ensure(CPerm.can_see_grade_history)
 
     @CoursePermissionChecker.as_ensure_function
     def ensure_may_edit(self) -> None:
@@ -1091,10 +1091,14 @@ class CodePermisisons(CoursePermissionChecker):
         self.code: Final = code
 
     def ensure_may_see(self) -> None:
+        # The ``as_ensure_function`` decorator always checks if we enrolled in
+        # the course, which is something we do not want for this method. So
+        # don't decorate it.
         ensure_can_view_files(
             self.code.work, teacher_files=self.code.fileowner.is_teacher
         )
 
+    @CoursePermissionChecker.as_ensure_function
     def ensure_may_edit(self) -> None:
         WorkPermissions(self.code.work).ensure_may_edit()
 
@@ -1142,7 +1146,7 @@ class FeedbackReplyPermissions(CoursePermissionChecker):
         """
         if self._is_own_reply and self.reply.comment_type.is_peer_feedback:
             self.ensure_may_add_as_peer()
-        else:
+        elif not self._is_own_reply:
             self._ensure(CPerm.can_edit_others_comments)
 
     @CoursePermissionChecker.as_ensure_function
@@ -1544,10 +1548,8 @@ class GroupPermissions(CoursePermissionChecker):
 
     @CoursePermissionChecker.as_ensure_function
     def ensure_may_edit(self) -> None:
-        self.ensure_may_see()
-
         perms = [CPerm.can_edit_others_groups]
-        if not (self.group.is_empty or self._is_my_group):
+        if self.group.is_empty or self._is_my_group:
             perms.append(CPerm.can_edit_own_groups)
 
         self._ensure_any(perms)

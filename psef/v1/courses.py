@@ -681,6 +681,20 @@ def create_group_set(course_id: int) -> JSONResponse[models.GroupSet]:
         max_size = get('maximum_size', int)
         old_id = opt_get('id', int)
 
+    if min_size <= 0:
+        raise APIException(
+            'Minimum size should be larger than 0',
+            f'Minimum size "{min_size}" is <= than 0', APICodes.INVALID_PARAM,
+            400
+        )
+    elif max_size < min_size:
+        raise APIException(
+            'Maximum size is smaller than minimum size', (
+                f'Maximum size "{max_size}" is smaller '
+                f'than minimum size "{min_size}"'
+            ), APICodes.INVALID_PARAM, 400
+        )
+
     if old_id is helpers.MISSING:
         group_set = models.GroupSet(course_id=course.id)
         models.db.session.add(group_set)
@@ -697,20 +711,7 @@ def create_group_set(course_id: int) -> JSONResponse[models.GroupSet]:
                 ), APICodes.INVALID_PARAM, 400
             )
 
-    if min_size <= 0:
-        raise APIException(
-            'Minimum size should be larger than 0',
-            f'Minimum size "{min_size}" is <= than 0', APICodes.INVALID_PARAM,
-            400
-        )
-    elif max_size < min_size:
-        raise APIException(
-            'Maximum size is smaller than minimum size', (
-                f'Maximum size "{max_size}" is smaller '
-                f'than minimum size "{min_size}"'
-            ), APICodes.INVALID_PARAM, 400
-        )
-    elif group_set.largest_group_size > max_size:
+    if group_set.largest_group_size > max_size:
         raise APIException(
             'There are groups larger than the new maximum size',
             f'Some groups have more than {max_size} members',

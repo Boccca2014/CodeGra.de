@@ -947,8 +947,7 @@ def test_run_auto_test(
             test_client.req(
                 'get',
                 f'{url}/runs/{run.id}/users/{student1.id}/results/',
-                200,
-                result=[]
+                403,
             )
 
         with logged_in(teacher):

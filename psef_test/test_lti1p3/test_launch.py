@@ -17,6 +17,7 @@ import pylti1p3.assignments_grades
 import pylti1p3.message_validators
 from defusedxml.ElementTree import fromstring as defused_xml_fromstring
 
+import psef
 import helpers
 import psef.models as m
 import psef.signals as signals
@@ -26,6 +27,10 @@ from cg_dt_utils import DatetimeWithTimezone
 LTI_JWT_SECRET = str(uuid.uuid4())
 
 DEEP_LINK = '__CG_EXPECT_DEEP_LINK__'
+
+@pytest.fixture
+def monkeypatched_open_at(stub_function):
+    yield stub_function(psef.tasks, 'maybe_open_assignment_at')
 
 
 @pytest.fixture
@@ -305,7 +310,7 @@ def do_oidc_and_lti_launch(
 def test_do_simple_launch(
     test_client, describe, logged_in, admin_user, watch_signal, launch_data,
     lms, iss, monkeypatched_validate_jwt, monkeypatched_passback, yesterday,
-    tomorrow
+    tomorrow, monkeypatched_open_at
 ):
     with describe('setup'), logged_in(admin_user):
         provider = helpers.create_lti1p3_provider(
@@ -335,6 +340,7 @@ def test_do_simple_launch(
                 {
                     'Assignment.id': lti_assig_id,
                     'Course.id': lti_course_id,
+
                     'cg_deadline': deadline.isoformat(),
                     'cg_available_at': tomorrow.isoformat(),
                     'User.id': lti_user_id,
@@ -342,6 +348,7 @@ def test_do_simple_launch(
             ),
         )
         assert monkeypatched_validate_jwt.called_amount == 1
+        assert monkeypatched_open_at.called_amount == 1
 
         assert user_added.was_send_once
         assert monkeypatched_passback.called_amount == 1
@@ -381,6 +388,7 @@ def test_do_simple_launch(
             ),
         )
         assert monkeypatched_validate_jwt.called_amount == 1
+        assert monkeypatched_open_at.called_amount == 0
 
         assert user_added.was_not_send
 

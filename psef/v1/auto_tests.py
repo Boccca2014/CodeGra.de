@@ -724,14 +724,10 @@ def get_auto_test_results_for_user(
     results = []
     for result in models.AutoTestResult.get_results_by_user(
         user.id
-    ).filter_by(auto_test_run_id=run.id).order_by(
+    ).filter(models.AutoTestResult.run == run).order_by(
         models.AutoTestResult.created_at
     ):
-        try:
-            auth.ensure_can_view_autotest_result(result)
-        except exceptions.PermissionException:
-            continue
-        else:
+        if auth.AutoTestResultPermissions(result).ensure_may_see.as_bool():
             results.append(result)
 
     return jsonify(results)

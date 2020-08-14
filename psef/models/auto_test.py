@@ -549,12 +549,10 @@ class AutoTestResult(Base, TimestampMixin, IdMixin, NotEqualMixin):
         :returns: A query that gets all results by the given user. Notice that
             these results are for all :class:`.AutoTestRun` s.
         """
-        return cls.query.filter(
-            t.cast(DbColumn[int], cls.work_id).in_(
-                db.session.query(t.cast(DbColumn[int], work_models.Work.id)
-                                 ).filter_by(user_id=student_id)
-            )
-        )
+        work_ids = db.session.query(
+            work_models.Work.id,
+        ).filter(work_models.Work.user_id == student_id)
+        return cls.query.filter(cls.work_id.in_(work_ids))
 
 
 class AutoTestRunner(Base, TimestampMixin, UUIDMixin, NotEqualMixin):

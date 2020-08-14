@@ -261,7 +261,7 @@ class PlagiarismCase(Base):
 
         # Make sure we may actually see this file.
         if not perm_checker.ensure_may_see_other_submission.as_bool():
-            data['submissions'][PlagiarismWorks.get_other_index()] = None
+            data['submissions'] = None
 
         return data
 
