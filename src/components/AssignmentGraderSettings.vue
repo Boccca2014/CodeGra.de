@@ -1,6 +1,11 @@
 <template>
 <div class="row">
-    <div class="col-xl-6">
+    <div class="col-xl-6" v-if="error != null">
+        <b-alert show variant="danger">
+            {{ $utils.getErrorMessage(error) }}
+        </b-alert>
+    </div>
+    <div class="col-xl-6" v-else>
         <b-card v-if="canAssignGraders" no-body>
             <template #header>
                 Divide submissions
@@ -96,6 +101,8 @@ export default class AssignmentGraderSettings extends Vue {
     @Prop({ required: true })
     assignment!: models.Assignment;
 
+    error: Error | null = null;
+
     gradersLoading: boolean = true;
 
     gradersLoadedOnce: boolean = false;
@@ -131,11 +138,17 @@ export default class AssignmentGraderSettings extends Vue {
     }
 
     async loadGraders() {
+        this.error = null;
         this.gradersLoading = true;
 
-        await GradersStore.loadGraders({
-            assignmentId: this.assignmentId,
-        });
+        try {
+            await GradersStore.loadGraders({
+                assignmentId: this.assignmentId,
+            });
+        } catch (e) {
+            this.error = e;
+            return;
+        }
 
         this.gradersLoading = false;
         this.gradersLoadedOnce = true;

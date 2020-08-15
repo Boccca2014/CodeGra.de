@@ -302,7 +302,11 @@ const actions = {
                 GradersStore.loadGraders({
                     assignmentId,
                     force: true,
-                }),
+                }).catch(
+                    utils.makeHttpErrorHandler({
+                        403: () => null,
+                    }),
+                ),
             ]).then(([submissions]) => {
                 context.commit(types.UPDATE_SUBMISSIONS, {
                     assignmentId,

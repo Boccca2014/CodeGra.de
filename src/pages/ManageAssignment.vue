@@ -351,7 +351,7 @@ export default {
         },
 
         canUseRubrics() {
-            return UserConfig.features.rubric &&
+            return UserConfig.features.rubrics &&
                 this.assignment.hasPermission(CPerm.manageRubrics);
         },
 

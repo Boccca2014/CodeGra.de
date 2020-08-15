@@ -335,8 +335,6 @@
                  class="overflow-hidden"
                  style="max-height: 100%;">
                 <peer-feedback-overview :assignment="assignment"
-                                        :rubric="rubric"
-                                        :graders="graders"
                                         class="mb-3" />
             </div>
         </template>
