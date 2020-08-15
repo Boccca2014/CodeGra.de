@@ -616,6 +616,8 @@ import { NONEXISTENT } from '@/constants';
 import decodeBuffer from '@/utils/decode';
 import { visualizeWhitespace } from '@/utils/visualize';
 
+import { CoursePermission as CPerm } from '@/permissions';
+
 import Toggle from './Toggle';
 import Collapse from './Collapse';
 import AutoTestRun from './AutoTestRun';
@@ -852,9 +854,14 @@ export default {
                         return this.singleResult ? this.loadSingleResult() : this.loadAutoTestRun();
                     },
                     this.$utils.makeHttpErrorHandler({
-                        403: () => {
+                        403: err => {
+                            const missingPerms = this.$utils.getProps(err, [], 'response', 'data', 'missing_permissions');
+                            let extraText = '';
+                            if (missingPerms.includes(CPerm.canViewAutotestBeforeDone.value)) {
+                                extraText = ' The AutoTest will probably be available at the same time as your grade.';
+                            }
                             this.message = {
-                                text: 'The AutoTest results are not yet available.',
+                                text: `The AutoTest results are not yet available.${extraText}`,
                                 isError: false,
                             };
                         },

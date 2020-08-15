@@ -446,7 +446,7 @@ def create_group(test_client, group_set_id, member_ids):
 
 
 def create_error_template():
-    return {'code': str, 'message': str, 'description': str}
+    return {'code': str, 'message': str, 'description': str, '?missing_permissions?': list}
 
 
 def get_newest_submissions(test_client, assignment):
