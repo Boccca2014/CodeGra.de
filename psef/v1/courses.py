@@ -915,7 +915,6 @@ def delete_course_snippets(course_id: int, snippet_id: int) -> EmptyResponse:
 
 
 @api.route('/courses/<int:course_id>/registration_links/', methods=['GET'])
-@features.feature_required(features.Feature.COURSE_REGISTER)
 def get_registration_links(
     course_id: int
 ) -> JSONResponse[t.Sequence[models.CourseRegistrationLink]]:
@@ -937,7 +936,6 @@ def get_registration_links(
     '/courses/<int:course_id>/registration_links/<uuid:link_id>',
     methods=['DELETE']
 )
-@features.feature_required(features.Feature.COURSE_REGISTER)
 def delete_registration_link(
     course_id: int, link_id: uuid.UUID
 ) -> EmptyResponse:
