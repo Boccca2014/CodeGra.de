@@ -86,7 +86,7 @@ class TaskResult(Base, UUIDMixin, TimestampMixin):
             produces and storing them in this task result.
         :returns: ``True`` if the task ran, otherwise ``False``.
         """
-        if not self.state.is_not_started:
+        if not self.state.is_not_started:  # pragma: no cover
             raise AssertionError(
                 f'Cannot start task that has already started, state was in'
                 f' {self.state}'

@@ -404,19 +404,16 @@ def _ensure_course_visible_for_current_user(course_id: int) -> None:
     if user.is_enrolled(course_id):
         for_course = flask_jwt.get_jwt_claims().get('for_course')
         if for_course is not None and for_course != course_id:
-            err_msg = 'not allowed to see this course with the provided token'
+            err_msg = (
+                'You are not allowed to see this course with the provided'
+                ' token'
+            )
     else:
-        err_msg = 'not enrolled in this course'
+        err_msg = 'You are not enrolled in this course'
 
     if err_msg is not None:
-        current_user = _get_cur_user(allow_none=True)
-        if current_user is not None and current_user.id == user:
-            you_are = 'You are'
-        else:
-            you_are = f'The user "{user.name}" is'
-
         raise PermissionException(
-            f'{you_are} {err_msg}.',
+            err_msg,
             f'The user "{user.id}" is not enrolled in course "{course_id}"',
             APICodes.INCORRECT_PERMISSION, 403
         )

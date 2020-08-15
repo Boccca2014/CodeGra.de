@@ -55,6 +55,7 @@ pytest --cov cg_worker_pool \
        --cov cg_cache \
        --cov cg_helpers \
        --cov cg_enum \
+       --cov cg_sqlalchemy_helpers \
        --cov-report term-missing \
        "$(pwd)/cg_worker_pool/tests/" \
        "$(pwd)/cg_threading_utils/tests/" \
@@ -69,7 +70,12 @@ if [[ "$res1" -ne 0 ]]; then
 fi
 
 timeout -k 900 900 \
-        pytest --cov psef --cov cg_signals --cov cg_cache --cov cg_enum \
+        pytest \
+        --cov psef \
+        --cov cg_signals \
+        --cov cg_cache \
+        --cov cg_enum \
+        --cov cg_sqlalchemy_helpers \
         --cov-append -x \
         --postgresql="GENERATE" \
         --cov-report term-missing \
