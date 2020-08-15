@@ -30,6 +30,7 @@ _T_BASE = t.TypeVar('_T_BASE', bound=types.Base)  # pylint: disable=invalid-name
 _CG_VALIDATOR_SET: Final = '_CG_VALIDATOR_SET'
 _CG_VALIDATOR: Final = '_CG_VALIDATOR'
 
+
 class Validator:
     """This class can do validation for database objects.
 
@@ -47,6 +48,10 @@ class Validator:
                                         ],
                                 ] = []
         self.__finalized = False
+        self._update_session(session)
+
+    def _update_session(self, session: types.MySession) -> None:
+        self.__session = session
 
         @event.listens_for(session, 'before_commit')
         def _before_commit(_: object) -> None:

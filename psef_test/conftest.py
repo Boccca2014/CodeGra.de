@@ -583,6 +583,7 @@ def session(app, db, fresh_db, monkeypatch):
         manage.test_data(psef.models.db)
 
     try:
+        psef.models.validator._update_session(session)
         with monkeypatch.context() as context:
             context.setattr(psef.models.db, 'session', session)
             if not fresh_db:
