@@ -17,14 +17,10 @@ if t.TYPE_CHECKING:  # pragma: ignore
 def size(_size: 'psef.archive.FileSize') -> str:
     """Get a human readable size.
 
-    >>> human_readable_size(512)
+    >>> size(512)
     '512B'
-    >>> human_readable_size(1024)
+    >>> size(1024)
     '1KB'
-    >>> human_readable_size(2.4 * 2 ** 20)
-    '2.40MB'
-    >>> human_readable_size(2.4444444 * 2 ** 20)
-    '2.44MB'
 
     :param size: The size in bytes.
     :returns: A string that is the amount of bytes which is human readable.
