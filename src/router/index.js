@@ -18,6 +18,8 @@ import {
     LoginAndRedirect,
     UnsubscribePage,
     LTIProviderSetup,
+    CourseEnroll,
+    SsoLogin,
 } from '@/pages';
 
 import { PlagiarismOverview, PlagiarismDetail } from '@/components';
@@ -121,6 +123,16 @@ const router = new Router({
             path: '/lti_providers/:ltiProviderId/setup',
             name: 'lti_provider_setup',
             component: LTIProviderSetup,
+        },
+        {
+            path: '/courses/:courseId/enroll/:linkId',
+            name: 'course_enroll',
+            component: CourseEnroll,
+        },
+        {
+            path: '/sso_login/:blobId',
+            name: 'sso_login',
+            component: SsoLogin,
         },
     ],
 });

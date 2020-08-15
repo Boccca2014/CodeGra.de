@@ -19,9 +19,15 @@
             </b-card>
         </div>
 
-        <div class="col-12" v-if="providers">
+        <div class="col-12" v-if="manageLtiproviders">
             <b-card header="LTI 1.3 providers">
                 <lti-providers />
+            </b-card>
+        </div>
+
+        <div class="col-12" v-if="manageSsoproviders">
+            <b-card header="SSO Providers">
+                <sso-providers admin-mode />
             </b-card>
         </div>
     </div>
@@ -30,7 +36,7 @@
 
 <script>
 import { mapGetters } from 'vuex';
-import { LocalHeader, PermissionsManager, Loader, ImpersonateUser, LtiProviders } from '@/components';
+import { LocalHeader, PermissionsManager, Loader, ImpersonateUser, LtiProviders, SsoProviders } from '@/components';
 
 import { setPageTitle } from './title';
 
@@ -43,13 +49,15 @@ export default {
         LocalHeader,
         ImpersonateUser,
         LtiProviders,
+        SsoProviders,
     },
 
     data() {
         return {
             manage: false,
             impersonate: false,
-            providers: false,
+            manageLtiproviders: false,
+            manageSsoproviders: false,
             loading: true,
         };
     },
@@ -57,11 +65,12 @@ export default {
     mounted() {
         setPageTitle('Admin page');
         // Do not forget to add new permissions to constants file
-        this.$hasPermission(['can_manage_site_users', 'can_impersonate_users', 'can_manage_lti_providers']).then(
-            ([manage, impersonate, providers]) => {
+        this.$hasPermission(['can_manage_site_users', 'can_impersonate_users', 'can_manage_lti_providers', 'can_manage_sso_providers']).then(
+            ([manage, impersonate, ltiProviders, ssoProviders]) => {
                 this.manage = manage;
                 this.impersonate = impersonate;
-                this.providers = providers;
+                this.manageLtiproviders = ltiProviders;
+                this.manageSsoproviders = ssoProviders;
                 this.loading = false;
             },
         );

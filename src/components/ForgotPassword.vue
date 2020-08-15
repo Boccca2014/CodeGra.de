@@ -1,15 +1,15 @@
 <!-- SPDX-License-Identifier: AGPL-3.0-only -->
 <template>
 <div class="forgot-password">
-    <b-form-fieldset>
+    <b-form-group label="Username">
         <input type="text"
                class="form-control"
                name="username"
-               placeholder="Username"
+               placeholder="Enter your username"
                v-model="username"
                ref="username"
                @keyup.enter="$refs.btn.onClick"/>
-    </b-form-fieldset>
+    </b-form-group>
 
     <p>
         A link to reset your password will be sent to your e-mail shortly. This
@@ -17,18 +17,16 @@
         folder if you did not receive the e-mail shortly after requesting it.
     </p>
 
-    <b-form-fieldset class="text-center">
+    <div class="d-flex justify-content-between align-items-center">
+        <!-- This happens when a logged in user wants to reset its password -->
+        <router-link :to="{ name: 'login' }" v-show="!loggedIn">
+            Login
+        </router-link>
+
         <submit-button label="Request email"
                        ref="btn"
                        :submit="submit"/>
-
-        <!-- This happens when a logged in user wants to reset its password -->
-        <div class="login-links" v-if="!loggedIn">
-            <router-link :to="{ name: 'login' }">
-                Login
-            </router-link>
-        </div>
-    </b-form-fieldset>
+    </div>
 </div>
 </template>
 
@@ -76,12 +74,7 @@ export default {
 <style lang="less" scoped>
 @link-margin: 2em;
 
-.login-links {
-    margin-top: 15px;
-    text-align: center;
-
-    a.login {
-        text-decoration: underline !important;
-    }
+a.login {
+    text-decoration: underline !important;
 }
 </style>

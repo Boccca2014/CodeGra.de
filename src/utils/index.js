@@ -91,8 +91,10 @@ export class WarningHeader {
             other = obj;
         } else if (obj.headers) {
             other = WarningHeader.fromResponse(obj);
-        } else {
+        } else if (obj) {
             other = WarningHeader.fromWarningStr(obj);
+        } else {
+            return new WarningHeader(this.messages);
         }
         return new WarningHeader(this.messages.concat(other.messages));
     }

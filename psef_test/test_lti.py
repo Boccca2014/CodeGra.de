@@ -2153,6 +2153,7 @@ def test_lti_roles(
             'blackboard_lti',
             'brightspace_lti',
             'moodle_lti',
+            'sakai_lti',
         ]:
             do_lti_launch(
                 'INVALID_ROLE,urn:lti:instrole:ims/lis/Administrator,urn:lti:instrole:ims/lis/Instructor',
@@ -2161,19 +2162,21 @@ def test_lti_roles(
             )
 
     with describe(
-        'it interprets Moodle\'s roles without a urn: prefix correctly',
+        "it interprets Moodle's and Sakai's roles without a urn: prefix"
+        " correctly"
     ):
-        for srole in lti.LTIGlobalRole._LOOKUP:
-            do_lti_launch(
-                f'urn:lti:instrole:ims/lis/{srole},Learner',
-                crole='Student',
-                oauth_key='moodle_lti',
-            )
-            do_lti_launch(
-                f'urn:lti:instrole:ims/lis/{srole},Instructor',
-                crole='Teacher',
-                oauth_key='moodle_lti',
-            )
+        for lms in ['moodle', 'sakai']:
+            for srole in lti.LTIGlobalRole._LOOKUP:
+                do_lti_launch(
+                    f'urn:lti:instrole:ims/lis/{srole},Learner',
+                    crole='Student',
+                    oauth_key=f'{lms}_lti',
+                )
+                do_lti_launch(
+                    f'urn:lti:instrole:ims/lis/{srole},Instructor',
+                    crole='Teacher',
+                    oauth_key=f'{lms}_lti',
+                )
 
     with describe(
         'it interprets Brightspace roles as both sysroles and course roles '

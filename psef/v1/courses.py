@@ -18,7 +18,6 @@ import psef.auth as auth
 import psef.models as models
 import psef.helpers as helpers
 from psef import limiter, current_user
-from psef.errors import APICodes, APIWarnings, APIException
 from psef.models import db
 from psef.helpers import (
     JSONResponse, EmptyResponse, ExtendedJSONResponse, jsonify,
@@ -29,6 +28,9 @@ from psef.helpers import (
 from . import api
 from .. import limiter, parsers, features
 from ..lti.v1_1 import LTICourseRole
+from ..exceptions import (
+    APICodes, APIWarnings, APIException, PermissionException
+)
 from ..permissions import CoursePermMap
 from ..permissions import CoursePermission as CPerm
 from ..permissions import GlobalPermission as GPerm
@@ -977,7 +979,6 @@ def delete_registration_link(
 
 
 @api.route('/courses/<int:course_id>/registration_links/', methods=['PUT'])
-@features.feature_required(features.Feature.COURSE_REGISTER)
 def create_or_edit_registration_link(
     course_id: int
 ) -> JSONResponse[models.CourseRegistrationLink]:
@@ -998,6 +999,12 @@ def create_or_edit_registration_link(
     course = helpers.get_or_404(
         models.Course, course_id, also_error=lambda c: c.virtual
     )
+    if course.is_lti:
+        raise APIException(
+            'You cannot create course enroll links in LTI courses',
+            f'The course {course.id} is an LTI course', APICodes.INVALID_PARAM,
+            400
+        )
     auth.ensure_permission(CPerm.can_edit_course_users, course_id)
 
     with get_from_map_transaction(get_json_dict_from_request()) as [
@@ -1006,6 +1013,7 @@ def create_or_edit_registration_link(
         expiration_date = get('expiration_date', str)
         role_id = get('role_id', int)
         link_id = opt_get('id', str, default=None)
+        allow_register = opt_get('allow_register', bool, default=None)
 
     if link_id is None:
         link = models.CourseRegistrationLink(course=course)
@@ -1022,6 +1030,8 @@ def create_or_edit_registration_link(
         role_id,
         also_error=lambda r: r.course_id != course.id
     )
+    if allow_register is not None:
+        link.allow_register = allow_register
     link.expiration_date = parsers.parse_datetime(expiration_date)
     if link.expiration_date < helpers.get_request_start_time():
         helpers.add_warning(
@@ -1038,6 +1048,89 @@ def create_or_edit_registration_link(
 
     db.session.commit()
     return jsonify(link)
+
+
+def _get_non_expired_link(
+    course_id: int, link_id: uuid.UUID
+) -> models.CourseRegistrationLink:
+    link = helpers.get_or_404(
+        models.CourseRegistrationLink,
+        link_id,
+        also_error=lambda l: l.course_id != course_id or l.course.is_lti,
+    )
+
+    if link.expiration_date < helpers.get_request_start_time():
+        raise APIException(
+            'This registration link has expired.',
+            f'The registration link {link.id} has expired',
+            APICodes.OBJECT_EXPIRED, 409
+        )
+
+    return link
+
+
+@api.route(
+    '/courses/<int:course_id>/registration_links/<uuid:link_id>/join',
+    methods=['POST']
+)
+@auth.login_required
+def register_current_user_in_course(
+    course_id: int, link_id: uuid.UUID
+) -> EmptyResponse:
+    """Join a course as the currently logged in user using a registration link.
+
+    .. :quickref: Course; Enroll in this course.
+
+    :param course_id: The id of the course in which you want to enroll.
+    :param link_id: The id of the link you want to use to enroll.
+
+    :returns: Nothing.
+    """
+
+    link = _get_non_expired_link(course_id, link_id)
+    if current_user.is_enrolled(link.course):
+        current_role = current_user.courses[link.course_id]
+        if current_role.id == link.course_role_id:
+            return EmptyResponse.make()
+
+        raise APIException(
+            'You are already enrolled in this course with a different role', (
+                f'The user {current_user.id} is already enrolled in'
+                f' {link.course_id}'
+            ), APICodes.INVALID_STATE, 409
+        )
+    current_user.courses[link.course_id] = link.course_role
+    db.session.commit()
+    return EmptyResponse.make()
+
+
+@api.route(
+    '/courses/<int:course_id>/registration_links/<uuid:link_id>',
+    methods=['GET']
+)
+def get_register_link(course_id: int, link_id: uuid.UUID
+                      ) -> ExtendedJSONResponse[models.CourseRegistrationLink]:
+    """Get a registration link.
+
+    .. :quickref: Course; Get the data in a registration link.
+
+    :param course_id: The id of the course to which the registration link is
+        connected.
+    :param link_id: The id of the registration link.
+
+    :returns: The specified registration link.
+
+    .. note::
+
+        This route can be used without logging in, i.e. you don't have to be
+        enrolled in the course to use this route. This route will not work for
+        expired registration links.
+    """
+    link = _get_non_expired_link(course_id, link_id)
+
+    return ExtendedJSONResponse.make(
+        link, use_extended=models.CourseRegistrationLink
+    )
 
 
 @api.route(
@@ -1058,16 +1151,13 @@ def register_user_in_course(course_id: int, link_id: uuid.UUID
     :>json access_token: The access token that the created user can use to
         login.
     """
-    link = helpers.get_or_404(
-        models.CourseRegistrationLink,
-        link_id,
-        also_error=lambda l: l.course_id != course_id
-    )
-    if link.expiration_date < helpers.get_request_start_time():
-        raise APIException(
-            'This registration link has expired.',
-            f'The registration link {link.id} has expired',
-            APICodes.OBJECT_EXPIRED, 409
+    link = _get_non_expired_link(course_id, link_id)
+
+    if not link.allow_register:
+        raise PermissionException(
+            'You are not allowed to register using this link',
+            'This link does not support registration',
+            APICodes.INCORRECT_PERMISSION, 403
         )
 
     with get_from_map_transaction(get_json_dict_from_request()) as [get, _]:
@@ -1091,6 +1181,7 @@ def register_user_in_course(course_id: int, link_id: uuid.UUID
 
 @api.route('/courses/<int:course_id>/email', methods=['POST'])
 @limiter.limit('10 per 10 minutes', key_func=lambda: current_user.id)
+@auth.login_required
 @features.feature_required(features.Feature.EMAIL_STUDENTS)
 def send_students_an_email(course_id: int) -> JSONResponse[models.TaskResult]:
     """Sent the authors in this course an email.

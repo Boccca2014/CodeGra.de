@@ -19,6 +19,7 @@ __all__ = [
     'remove_duplicates',
     'on_not_none',
     'flatten',
+    'maybe_wrap_in_list',
 ]
 
 

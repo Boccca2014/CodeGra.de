@@ -2,14 +2,16 @@
 export const pageTitleSep = '»';
 let changed = false;
 
-export function setPageTitle(title = '') {
+export function setPageTitle(title: string = ''): void {
     changed = true;
-    let s = title;
-    if (s) s += ` ${pageTitleSep} `;
-    document.title = `${s}CodeGrade`;
+    if (!title) {
+        document.title = 'CodeGrade';
+    } else {
+        document.title = `${title} ${pageTitleSep} CodeGrade`;
+    }
 }
 
-export function resetPageTitle() {
+export function resetPageTitle(): void {
     changed = false;
     setTimeout(() => {
         if (!changed) {

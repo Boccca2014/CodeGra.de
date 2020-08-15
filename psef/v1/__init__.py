@@ -21,6 +21,6 @@ def init_app(app: t.Any) -> None:
         code, login, courses, linters, snippets, assignments, permissions,
         submissions, files, about, roles, lti, users, plagiarism, groups,
         group_sets, auto_tests, webhooks, proxies, analytics, comments,
-        notifications, user_settings, task_results
+        notifications, user_settings, task_results, sso_providers
     )
     app.register_blueprint(api, url_prefix='/api/v1')

@@ -8,7 +8,8 @@ import { getStoreBuilder } from 'vuex-typex';
 
 import user from './modules/user';
 import pref from './modules/preference';
-import courses from './modules/courses';
+// @ts-ignore
+import courses, { onDone as coursesOnDone } from './modules/courses';
 import rubrics from './modules/rubrics';
 import autotest from './modules/autotest';
 import analytics from './modules/analytics';
@@ -97,3 +98,5 @@ export function onVueCreated($root: Vue) {
         });
     }
 }
+
+coursesOnDone(store);

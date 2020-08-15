@@ -411,5 +411,11 @@
     "course_permission": true,
     "short_description": "Edit peer feedback settings",
     "long_description": "Users with this permission can edit the peer feedback status of an assignment."
+  },
+  "can_manage_sso_providers": {
+    "default_value": false,
+    "course_permission": false,
+    "short_description": "Manage SSO Providers",
+    "long_description": "Users with this permission can connect new SSO Identity Providers."
   }
 }
