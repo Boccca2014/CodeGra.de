@@ -88,7 +88,6 @@ def monkeypatch_for_run(
     poll_after_done
 ):
     old_run_command = psef.auto_test.StartedContainer._run_command
-    psef.auto_test._STOP_RUNNING.clear()
 
     monkeypatch.setattr(
         psef.auto_test, '_SYSTEMD_WAIT_CMD',
@@ -107,7 +106,9 @@ def monkeypatch_for_run(
         signal_start = psef.auto_test.StartedContainer._signal_start
         cmd, user = cmd_user
 
-        cmd[0] = re.sub('(/bin/)?bash', bash_path, cmd[0])
+        if cmd[0] in ('/bin/bash', 'bash'):
+            cmd[0] = bash_path
+            cmd_user = (cmd, user)
 
         if cmd[0] in {'adduser', 'usermod', 'deluser', 'sudo', 'apt'}:
             signal_start()
@@ -2643,9 +2644,11 @@ def test_prefer_teacher_revision_option(
             )
 
             if with_teacher_revision:
-                file_id = test_client.get(
+                file_id = test_client.req(
+                    'get',
                     f'/api/v1/submissions/{work["id"]}/files/',
-                ).json['entries'][0]['id']
+                    200,
+                )['entries'][0]['id']
                 test_client.req(
                     'patch',
                     f'/api/v1/code/{file_id}',
@@ -2668,6 +2671,7 @@ def test_prefer_teacher_revision_option(
                                                         ).one()
 
     with describe('should run the correct code'):
+        assert res.is_finished
         step_result = res.step_results[0]
         print(step_result.log)
 
