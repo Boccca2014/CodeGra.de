@@ -2885,18 +2885,21 @@ def test_submission_info_env_vars(
 
 def test_broker_extra_env_vars(describe):
     cur_user = getpass.getuser()
-    cont = psef.auto_test.StartedContainer(None, '', {})
+    cont = psef.auto_test.StartedContainer(None, '', {}, lambda: None)
 
     # Ensure initial conditions are as expected.
     with describe('env vars "a" and "b" should not exist by default'):
         env = cont._create_env(cur_user)
-        assert env.get('a') == None
-        assert env.get('b') == None
+        assert 'a' not in env
+        assert 'b' not in env
+        assert env.get('a') is None
+        assert env.get('b') is None
 
     with describe('should include variables in the extra env'):
         with cont.extra_env({'a': 'a'}):
             env = cont._create_env(cur_user)
             assert env.get('a') == 'a'
+            assert 'b' not in env
 
     with describe('should support nesting'):
         with cont.extra_env({'a': 'a'}):
@@ -2907,7 +2910,8 @@ def test_broker_extra_env_vars(describe):
 
             env = cont._create_env(cur_user)
             assert env.get('a') == 'a'
-            assert env.get('b') == None
+            assert env.get('b') is None
+            assert 'b' not in env
 
     with describe('inner envs should override outer envs'):
         with cont.extra_env({'a': 'a'}):
