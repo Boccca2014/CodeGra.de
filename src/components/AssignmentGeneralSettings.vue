@@ -75,7 +75,15 @@
         </template>
 
         <template #invalid-feedback>
-            The "Available at" date must be set in exam mode.
+            The available at date
+
+            <template v-if="isExam">
+                must be set in exam mode.
+            </template>
+
+            <template v-else-if="availableAt != null">
+                must be before the deadline.
+            </template>
         </template>
 
         <b-input-group v-b-popover.top.hover="availableAtPopover">
@@ -112,13 +120,15 @@
         </template>
 
         <template #invalid-feedback>
-            <div v-if="examDuration == null">
-                The exam duration must be set in exam mode.
+            <div v-if="examDuration.isLeft()">
+                {{ $utils.getErrorMessage(examDuration.extract()) }}
             </div>
 
-            <div v-else-if="sendLoginLinks && examDuration > maxExamDuration">
-                With "Send login mails" enabled, exams can take at most {{
-                maxExamDuration }} hours.
+            <!-- We can always extract twice because the cg-number-input has the
+                 required attribute and as such the Maybe is always a Just. -->
+            <div v-if="sendLoginLinks && examDuration.extract().extract() > maxExamDuration">
+                With "Send login mails" enabled, exams can take at most
+                {{ maxExamDuration }} hours.
 
                 <cg-description-popover hug-text>
                     This is because the login links allow anyone with the link
@@ -132,6 +142,8 @@
         <b-input-group append="hours">
             <cg-number-input
                 :id="`assignment-deadline-${uniqueId}-input`"
+                name="Exam duration"
+                :required="true"
                 :min="0"
                 :step="1"
                 v-model="examDuration"
@@ -141,7 +153,7 @@
 
     <b-form-group
         v-else
-        :state="assignment.hasDeadline"
+        :state="deadlineValid"
         :id="`assignment-deadline-${uniqueId}`"
         :label-for="`assignment-deadline-${uniqueId}-input`">
         <template #label>
@@ -159,7 +171,12 @@
         </template>
 
         <template #invalid-feedback>
-            The deadline has not been set yet!
+            <template v-if="deadline == null">
+                The deadline has not been set yet!
+            </template>
+            <template v-else>
+                The deadline must be after the available at date.
+            </template>
         </template>
 
         <b-input-group v-b-popover.top.hover="deadlinePopover">
@@ -194,18 +211,18 @@
 
         <b-input-group class="maximum-grade">
             <cg-number-input
+                :id="`assignment-max-points-${uniqueId}-input`"
                 :min="0"
                 :step="1"
-                :id="`assignment-max-points-${uniqueId}-input`"
                 placeholder="10"
                 v-model="maxGrade" />
 
             <b-input-group-append
-                v-b-popover.hover.top="maxGrade == null ? '' : 'Reset to the default value.'">
+                v-b-popover.hover.top="maxGradeEmpty ? '' : 'Reset to the default value.'">
                 <b-button
                     variant="warning"
-                    @click="maxGrade = null"
-                    :disabled="maxGrade == null">
+                    @click="resetMaxGrade"
+                    :disabled="maxGradeEmpty">
                     <fa-icon name="reply"/>
                 </b-button>
             </b-input-group-append>
@@ -230,9 +247,11 @@ import { AxiosResponse } from 'axios';
 import moment from 'moment';
 
 import * as models from '@/models';
+import { Nothing } from '@/utils';
 
 // @ts-ignore
 import DatetimePicker from './DatetimePicker';
+import { NumberInputValue, numberInputValue } from './NumberInput';
 
 function optionalText(cond: boolean, text: string) {
     return cond ? text : '';
@@ -260,9 +279,9 @@ export default class AssignmentGeneralSettings extends Vue {
 
     deadline: string | null = null;
 
-    examDuration: number | null = null;
+    examDuration: NumberInputValue = numberInputValue(null);
 
-    maxGrade: number | null = null;
+    maxGrade: NumberInputValue = numberInputValue(null);
 
     sendLoginLinks: boolean = true;
 
@@ -314,7 +333,7 @@ export default class AssignmentGeneralSettings extends Vue {
             true,
         );
         this.examDuration = this.calcExamDuration();
-        this.maxGrade = this.assignment.max_grade;
+        this.maxGrade = numberInputValue(this.assignment.max_grade);
         this.sendLoginLinks = this.assignment.send_login_links;
     }
 
@@ -322,47 +341,55 @@ export default class AssignmentGeneralSettings extends Vue {
         return new models.AssignmentCapabilities(this.assignment);
     }
 
-    get nothingChanged() {
-        if (this.kind !== this.assignment.kind) {
-            return false;
-        }
-
-        if (this.name !== this.assignment.name) {
-            return false;
-        }
-
-        if (this.sendLoginLinks !== this.assignment.send_login_links) {
-            return false;
-        }
-
-        if (this.assignment.availableAt == null) {
-            if (this.availableAt != null) {
-                return false;
-            }
-        } else if (!this.assignment.availableAt.isSame(this.availableAt)) {
-            return false;
-        }
-
-        if (this.isExam) {
-            if (this.examDuration !== this.calcExamDuration()) {
-                return false;
-            }
-        } else if (this.assignment.deadline == null) {
-            if (this.deadline != null) {
-                return false;
-            }
-        } else if (!this.assignment.deadline.isSame(this.deadline)) {
-            return false;
-        }
-
-        if (this.maxGrade !== this.assignment.max_grade) {
-            return false;
-        }
-
-        return true;
+    get kindChanged() {
+        return this.kind !== this.assignment.kind;
     }
 
-    get allDataValid() {
+    get nameChanged() {
+        return this.name !== this.assignment.name;
+    }
+
+    get sendLoginLinksChanged() {
+        return this.sendLoginLinks !== this.assignment.send_login_links;
+    }
+
+    get availableAtChanged() {
+        if (this.assignment.availableAt == null) {
+            return this.availableAt != null;
+        } else {
+            return !this.assignment.availableAt.isSame(this.availableAt);
+        }
+    }
+
+    get deadlineChanged() {
+        if (this.isExam) {
+            return !this.assignment.deadline.isSame(this.examDeadline);
+        } else if (this.assignment.deadline.isValid()) {
+            return !this.assignment.deadline.isSame(this.deadline);
+        } else {
+            return this.deadline != null;
+        }
+    }
+
+    get maxGradeChanged() {
+        return this.maxGrade.either(
+            () => false,
+            maybeMaxGrade => maybeMaxGrade.extractNullable() !== this.assignment.max_grade,
+        );
+    }
+
+    get nothingChanged() {
+        return !(
+            this.kindChanged ||
+            this.nameChanged ||
+            this.sendLoginLinksChanged ||
+            this.availableAtChanged ||
+            this.deadlineChanged ||
+            this.maxGradeChanged
+        );
+    }
+
+    get dataValidForSubmission() {
         if (this.name == null || this.name === '') {
             return false;
         }
@@ -371,7 +398,11 @@ export default class AssignmentGeneralSettings extends Vue {
             return false;
         }
 
-        if (this.isExam && !this.examDurationValid) {
+        if (this.deadline != null && !this.deadlineValid) {
+            return false;
+        }
+
+        if (!this.examDurationValid) {
             return false;
         }
 
@@ -379,11 +410,37 @@ export default class AssignmentGeneralSettings extends Vue {
     }
 
     get availableAtValid() {
-        if (!this.isExam) {
-            return true;
+        const availableAt = this.$utils.toMomentNullable(this.availableAt);
+
+        if (this.isExam) {
+            if (availableAt == null) {
+                return false;
+            }
+        } else {
+            if (availableAt == null || this.deadline == null) {
+                return true;
+            }
+
+            if (availableAt.isAfter(this.deadline)) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    get deadlineValid() {
+        const deadline = this.$utils.toMomentNullable(this.deadline);
+
+        if (deadline == null) {
+            return false;
         }
 
         if (this.availableAt == null) {
+            return true;
+        }
+
+        if (deadline.isBefore(this.availableAt)) {
             return false;
         }
 
@@ -391,19 +448,20 @@ export default class AssignmentGeneralSettings extends Vue {
     }
 
     get examDurationValid() {
-        if (this.examDuration == null) {
-            return false;
-        }
-
-        if (!this.sendLoginLinks) {
+        if (!this.isExam) {
             return true;
         }
 
-        if (this.examDuration > this.maxExamDuration) {
-            return false;
-        }
-
-        return true;
+        return this.examDuration.orDefault(Nothing).mapOrDefault(
+            examDuration => {
+                if (this.sendLoginLinks) {
+                    return examDuration <= this.maxExamDuration;
+                } else {
+                    return true;
+                }
+            },
+            false,
+        );
     }
 
     get maxExamDuration() {
@@ -425,7 +483,7 @@ export default class AssignmentGeneralSettings extends Vue {
         );
     }
 
-    deadlinePopover() {
+    get deadlinePopover() {
         return optionalText(
             !(this.permissions.canEditDeadline || this.lmsName.isNothing()),
             `The deadline is managed by ${this.lmsName.extract()}`,
@@ -435,14 +493,17 @@ export default class AssignmentGeneralSettings extends Vue {
     get examDeadline() {
         const { availableAt, examDuration } = this;
 
-        if (availableAt == null || examDuration == null) {
+        if (availableAt == null) {
             return null;
-        } else {
-            return this.$utils.formatDate(
-                this.$utils.toMoment(availableAt).add(examDuration, 'hour'),
-                true,
-            );
         }
+
+        return examDuration.orDefault(Nothing).mapOrDefault(
+            duration => this.$utils.formatDate(
+                this.$utils.toMoment(availableAt).add(duration, 'hour'),
+                true,
+            ),
+            null,
+        );
     }
 
 
@@ -452,22 +513,33 @@ export default class AssignmentGeneralSettings extends Vue {
         return `${prefix}${this.$utils.readableJoin(extra)}`;
     }
 
+    get maxGradeEmpty() {
+        return this.maxGrade.either(
+            () => false,
+            maybeMaxGrade => maybeMaxGrade.isNothing(),
+        );
+    }
+
+    resetMaxGrade() {
+        this.maxGrade = numberInputValue(null);
+    }
+
     calcExamDuration() {
         const { assignment, availableAt } = this;
 
         if (assignment.deadline == null || availableAt == null) {
-            return null;
+            return numberInputValue(null);
         } else {
             const d = assignment.deadline.diff(availableAt);
-            return moment.duration(d).asHours();
+            return numberInputValue(moment.duration(d).asHours());
         }
     }
 
     get submitGeneralSettingsPopover() {
         if (this.nothingChanged) {
             return 'Nothing has changed.';
-        } else if (!this.allDataValid) {
-            return 'Cannot submit while some data is invalid.';
+        } else if (!this.dataValidForSubmission) {
+            return 'Some data is invalid.';
         } else {
             return '';
         }

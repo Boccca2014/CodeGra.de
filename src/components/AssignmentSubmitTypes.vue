@@ -31,16 +31,17 @@
 
 <script lang="ts">
 import { Vue, Component, Prop, Watch } from 'vue-property-decorator';
+import { Either, Left, Right } from '@/utils';
 
-interface AssignmentSubmitTypesValue {
+export type AssignmentSubmitTypesValue = Either<Error, {
     files: boolean;
     webhook: boolean;
-}
+}>;
 
 @Component({})
 export default class AssignmentSubmitTypes extends Vue {
     @Prop({ required: true })
-    value!: AssignmentSubmitTypesValue | null;
+    value!: AssignmentSubmitTypesValue;
 
     @Prop({ default: 'assignment-submit-types' })
     inputId!: string;
@@ -51,18 +52,22 @@ export default class AssignmentSubmitTypes extends Vue {
 
     @Watch('value', { immediate: true })
     onValueChanged() {
-        if (this.value != null) {
-            this.webhook = this.value.webhook;
-            this.files = this.value.files;
-        } else {
-            this.emitValue();
-        }
+        this.value.ifRight(value => {
+            this.webhook = value.webhook;
+            this.files = value.files;
+        });
     }
 
     @Watch('files')
     @Watch('webhook')
     emitValue() {
-        this.$emit('input', { webhook: this.webhook, files: this.files });
+        let value: AssignmentSubmitTypesValue;
+        if (this.webhook || this.files) {
+            value = Right({ webhook: this.webhook, files: this.files });
+        } else {
+            value = Left(new Error('Enable at least one way of uploading.'));
+        }
+        this.$emit('input', value);
     }
 }
 </script>

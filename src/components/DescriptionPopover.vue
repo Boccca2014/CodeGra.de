@@ -20,6 +20,14 @@
              :style="{ width: width }">
             <slot name="description">{{ description }}</slot>
             <slot v-if="!!$slots.default"/>
+
+            <div v-if="docsPath"
+                 class="mt-2">
+                See <a :href="`https://docs.codegra.de/${docsPath}`"
+                       target="_blank">
+                    our documentation
+                </a> for more details.
+            </div>
         </div>
     </b-popover>
     <component :is="hugText ? 'sup' : 'span'"
@@ -96,6 +104,10 @@ export default {
         width: {
             type: String,
             default: undefined,
+        },
+        docsPath: {
+            type: String,
+            default: '',
         },
     },
 

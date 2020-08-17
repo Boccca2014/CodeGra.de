@@ -1,17 +1,25 @@
 <template>
 <div class="peer-feedback-settings">
     <div v-if="!enabled"
-         class="d-flex flex-row justify-content-center">
+         class="d-flex flex-column align-items-center">
         <b-button style="height: 12rem; width: 12rem;"
-                  @click="enable">
+                  @click="enable"
+                  :disabled="hasGroupSet">
             <fa-icon name="comments-o" :scale="6" />
             <p>Enable peer feedback</p>
         </b-button>
+
+        <div v-if="hasGroupSet"
+             class="mt-3">
+            This is a group assignment, but peer feedback is not yet supported
+            for group assignments.
+        </div>
     </div>
 
     <template v-else>
         <b-form-group :id="`peer-feedback-amount-${uniqueId}`"
-                      :label-for="`peer-feedback-amount-${uniqueId}-input`">
+                      :label-for="`peer-feedback-amount-${uniqueId}-input`"
+                      :state="amount.isRight()">
             <template #label>
                 Amount of students
             </template>
@@ -20,16 +28,23 @@
                 The amount of students that each student must review.
             </template>
 
+            <template #invalid-feedback>
+                {{ $utils.getErrorMessage(amount.extract()) }}
+            </template>
+
             <b-input-group>
                 <cg-number-input :id="`peer-feedback-amount-${uniqueId}-input`"
                                  v-model="amount"
+                                 name="Amount of students"
+                                 :required="true"
                                  :min="1"
                                  @keyup.ctrl.enter.native="doSubmit"/>
             </b-input-group>
         </b-form-group>
 
         <b-form-group :id="`peer-feedback-time-${uniqueId}`"
-                      :label-for="`peer-feedback-time-${uniqueId}-days-input`">
+                      :label-for="`peer-feedback-time-${uniqueId}-days-input`"
+                      :state="days.isRight() && hours.isRight()">
             <template #label>
                 Time to give peer feedback
             </template>
@@ -40,10 +55,20 @@
                 this assignment has passed.
             </template>
 
+            <template #invalid-feedback>
+                <div v-if="days.isLeft()">
+                    {{ $utils.getErrorMessage(days.extract()) }}
+                </div>
+                <div v-if="hours.isLeft()">
+                    {{ $utils.getErrorMessage(hours.extract()) }}
+                </div>
+            </template>
+
             <b-input-group>
                 <cg-number-input :id="`peer-feedback-time-${uniqueId}-days-input`"
                                  v-model="days"
-                                 name="days"
+                                 name="Days"
+                                 :required="true"
                                  :min="0"
                                  @keyup.ctrl.enter.native="doSubmit"/>
 
@@ -53,7 +78,8 @@
 
                 <cg-number-input :id="`peer-feedback-time-${uniqueId}-hours-input`"
                                  v-model="hours"
-                                 name="hours"
+                                 name="Hours"
+                                 :required="true"
                                  :min="0"
                                  :max="24"
                                  @keyup.ctrl.enter.native="doSubmit"/>
@@ -94,10 +120,21 @@
                               variant="danger"
                               label="Disable"
                               class="mr-2"/>
-            <cg-submit-button :submit="submit"
-                              @after-success="afterSubmit"
-                              :confirm="submitConfirmationMessage"
-                              ref="submitButton"/>
+            <div v-b-popover.top.hover="submitButtonPopover">
+                <cg-submit-button :submit="submit"
+                                  @after-success="afterSubmit"
+                                  :disabled="!!submitButtonPopover"
+                                  :confirm="shouldConfirmOnSubmit"
+                                  ref="submitButton">
+                    <template #confirm>
+                        Changing the amount of students will redistribute all
+                        students. If some students have already given peer feedback
+                        to other students they will not be able to see their own
+                        given feedback again, although it is not deleted from the
+                        server either. Are you sure you want to change it?
+                    </template>
+                </cg-submit-button>
+            </div>
         </b-button-toolbar>
     </template>
 </div>
@@ -109,9 +146,10 @@ import { mapActions } from 'vuex';
 
 import 'vue-awesome/icons/comments-o';
 
-import * as utils from '@/utils';
 import * as models from '@/models';
+import { Either, Right, Maybe, Nothing } from '@/utils';
 
+import { NumberInputValue, numberInputValue } from './NumberInput';
 // @ts-ignore
 import Toggle from './Toggle';
 
@@ -123,12 +161,12 @@ function daysToSeconds(days: number): number {
     return hoursToSeconds(days * 24);
 }
 
-function secondsToDays(secs?: number | null): number | null {
-    return secs == null ? null : Math.floor(secs / daysToSeconds(1));
+function secondsToDays(secs?: number | null): NumberInputValue {
+    return Right(Maybe.fromNullable(secs).map(x => Math.floor(x / daysToSeconds(1))));
 }
 
-function secondsToHours(secs?: number | null): number | null {
-    return secs == null ? null : (secs % daysToSeconds(1)) / 60 / 60;
+function secondsToHours(secs?: number | null): NumberInputValue {
+    return Right(Maybe.fromNullable(secs).map(x => Math.floor((x % daysToSeconds(1)) / 60 / 60)));
 }
 
 @Component({
@@ -148,11 +186,11 @@ export default class PeerFeedbackSettings extends Vue {
 
     enabled: boolean = false;
 
-    amount: number | null = this.peerFeedbackSettings?.amount ?? 0;
+    amount: NumberInputValue = numberInputValue(this.peerFeedbackSettings?.amount ?? 0);
 
-    days: number | null = secondsToDays(this.peerFeedbackSettings?.time);
+    days: NumberInputValue = secondsToDays(this.peerFeedbackSettings?.time);
 
-    hours: number | null = secondsToHours(this.peerFeedbackSettings?.time);
+    hours: NumberInputValue = secondsToHours(this.peerFeedbackSettings?.time);
 
     readonly uniqueId: number = this.$utils.getUniqueId();
 
@@ -165,9 +203,9 @@ export default class PeerFeedbackSettings extends Vue {
     }
 
     get totalTime() {
-        const days = this.$utils.getProps(this, 0, 'days');
-        const hours = this.$utils.getProps(this, 0, 'hours');
-        return daysToSeconds(days) + hoursToSeconds(hours);
+        const days = this.days.orDefault(Nothing).map(daysToSeconds);
+        const hours = this.hours.orDefault(Nothing).map(hoursToSeconds);
+        return days.chain(x => hours.map(y => x + y));
     }
 
     updateAssignment!: (data: {
@@ -188,17 +226,17 @@ export default class PeerFeedbackSettings extends Vue {
 
     enable() {
         this.enabled = true;
-        this.days = 7;
-        this.hours = 0;
-        this.amount = 1;
+        this.days = numberInputValue(7);
+        this.hours = numberInputValue(0);
+        this.amount = numberInputValue(1);
         this.autoApproved = false;
     }
 
     submit() {
         this.validateSettings();
         return this.$http.put(this.url, {
-            time: this.totalTime,
-            amount: this.amount,
+            time: this.totalTime.extractNullable(),
+            amount: this.amount.orDefault(Nothing).extractNullable(),
             auto_approved: this.autoApproved,
         });
     }
@@ -212,6 +250,7 @@ export default class PeerFeedbackSettings extends Vue {
     }
 
     afterDisable() {
+        this.enabled = false;
         this.updatePeerFeedbackSettings(null);
     }
 
@@ -222,51 +261,60 @@ export default class PeerFeedbackSettings extends Vue {
         }
     }
 
-    get submitDisabledMessage() {
-        if (this.assignment.group_set == null) {
-            return '';
-        }
-        return `This is a group assignment, but peer feedback is not yet
-            supported for group assignments.`;
+    get hasGroupSet() {
+        // eslint-disable-next-line camelcase
+        return this.assignment?.group_set != null;
     }
 
-    get submitConfirmationMessage() {
-        if (this.amount != null && this.peerFeedbackSettings?.amount !== this.amount) {
-            return `Changing the amount of students will redistribute all
-                students. If some students have already given peer feedback to
-                other students they will not be able to see their own given
-                feedback again, although it is not deleted from the server
-                either. Are you sure you want to change it?`;
+    get nothingChanged() {
+        // eslint-disable-next-line camelcase
+        if (this.autoApproved !== this.peerFeedbackSettings?.auto_approved) {
+            return false;
+        }
+
+        const amountChanged = this.amount.orDefault(Nothing).mapOrDefault(
+            amount => amount !== this.peerFeedbackSettings?.amount,
+            true,
+        );
+
+        const timeChanged = this.totalTime.mapOrDefault(
+            time => time !== this.peerFeedbackSettings?.time,
+            true,
+        );
+
+        return !(amountChanged || timeChanged);
+    }
+
+    get submitButtonPopover() {
+        if (this.nothingChanged) {
+            return 'Nothing has changed.';
+        } else if (this.errorMessages.length > 0) {
+            return 'Some data is invalid.';
         } else {
             return '';
         }
     }
 
-    validateSettings(): void {
-        const errs = utils.mapFilterObject({
-            amount: this.ensurePositive(this.amount),
-            days: this.ensurePositive(this.days),
-            hours: this.ensurePositive(this.hours),
-        }, (v: string, k: string) => {
-            if (!v) {
-                return utils.Nothing;
-            } else {
-                return utils.Just(`${k} ${v}`);
-            }
-        });
-
-        if (!utils.isEmpty(errs)) {
-            const msgs = Object.values(errs).join(', ');
-            throw new Error(`The peer feedback settings are not valid because: ${msgs}.`);
-        }
+    get shouldConfirmOnSubmit() {
+        return this.amount.orDefault(Nothing).mapOrDefault(
+            amount => (this.peerFeedbackSettings?.amount !== amount ? 'true' : ''),
+            '',
+        );
     }
 
-    // eslint-disable-next-line class-methods-use-this
-    ensurePositive(value: number | null): string {
-        if (typeof value !== 'number' || value < 0) {
-            return 'is not a positive number';
+    get errorMessages() {
+        return Either.lefts([
+            this.amount,
+            this.days,
+            this.hours,
+        ]).map(err => this.$utils.getErrorMessage(err));
+    }
+
+    validateSettings(): void {
+        if (this.errorMessages.length > 0) {
+            const msgs = this.$utils.readableJoin(this.errorMessages);
+            throw new Error(`The peer feedback settings are not valid because: ${msgs}.`);
         }
-        return '';
     }
 }
 </script>

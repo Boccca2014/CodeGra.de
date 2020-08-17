@@ -40,6 +40,7 @@ import { mapActions } from 'vuex';
 import { AxiosResponse } from 'axios';
 
 import * as models from '@/models';
+import { Right } from '@/utils';
 
 // @ts-ignore
 import AssignmentSubmitTypes, { AssignmentSubmitTypesValue } from './AssignmentSubmitTypes';
@@ -61,9 +62,9 @@ export default class AssignmentSubmissionSettings extends Vue {
     @Prop({ required: true })
     assignment!: models.Assignment
 
-    submitTypes: AssignmentSubmitTypesValue | null = null;
+    submitTypes: AssignmentSubmitTypesValue = Right(this.assigSubmitTypes);
 
-    submissionLimits: SubmissionLimitValue | null = null;
+    submissionLimits: SubmissionLimitValue = Right(this.assigSubmissionLimits);
 
     readonly uniqueId: number = this.$utils.getUniqueId();
 
@@ -76,11 +77,19 @@ export default class AssignmentSubmissionSettings extends Vue {
 
     @Watch('assignmentId', { immediate: true })
     onAssignmentChanged() {
-        this.submitTypes = {
+        this.submitTypes = Right(this.assigSubmitTypes);
+        this.submissionLimits = Right(this.assigSubmissionLimits);
+    }
+
+    get assigSubmitTypes() {
+        return {
             files: this.assignment.files_upload_enabled,
             webhook: this.assignment.webhook_upload_enabled,
         };
-        this.submissionLimits = {
+    }
+
+    get assigSubmissionLimits() {
+        return {
             maxSubmissions: this.assignment.max_submissions,
             coolOff: {
                 period: this.assignment.coolOffPeriod.asMinutes(),
@@ -93,41 +102,30 @@ export default class AssignmentSubmissionSettings extends Vue {
         return new models.AssignmentCapabilities(this.assignment);
     }
 
+    get submitTypesChanged() {
+        return this.submitTypes.either(
+            () => false,
+            types => !this.$utils.deepEquals(types, this.assigSubmitTypes),
+        );
+    }
+
+    get submissionLimitsChanged() {
+        return this.submissionLimits.either(
+            () => false,
+            limits => !this.$utils.deepEquals(limits, this.assigSubmissionLimits),
+        );
+    }
+
     get nothingChanged() {
-        const st = this.submitTypes;
-        const sl = this.submissionLimits;
-
-        if (st != null) {
-            if (st.files !== this.assignment.files_upload_enabled) {
-                return false;
-            }
-            if (st.webhook !== this.assignment.webhook_upload_enabled) {
-                return false;
-            }
-        }
-        if (sl != null) {
-            if (sl.maxSubmissions !== this.assignment.max_submissions) {
-                return false;
-            }
-            if (sl.coolOff.period !== this.assignment.coolOffPeriod.asMinutes()) {
-                return false;
-            }
-            if (sl.coolOff.amount !== this.assignment.amount_in_cool_off_period) {
-                return false;
-            }
-        }
-
-        return true;
+        return !this.submitTypesChanged && !this.submissionLimitsChanged;
     }
 
     get submitTypesValid() {
-        const st = this.submitTypes;
-        return st.files || st.webhook;
+        return this.submitTypes.isRight();
     }
 
     get submissionLimitsValid() {
-        const sl = this.submissionLimits;
-        return sl != null && sl.coolOff.amount != null;
+        return this.submissionLimits.isRight();
     }
 
     get allDataValid() {
@@ -138,25 +136,28 @@ export default class AssignmentSubmissionSettings extends Vue {
         if (this.nothingChanged) {
             return 'Nothing has changed.';
         } else if (!this.allDataValid) {
-            return 'Cannot submit while some data is invalid.';
+            return 'Some data is invalid.';
         } else {
             return '';
         }
     }
 
     submitSubmissionSettings() {
-        if (this.submitTypes == null || this.submissionLimits == null) {
+        if (!this.allDataValid) {
             return Promise.reject();
         }
+
+        const types = this.submitTypes.unsafeCoerce();
+        const limits = this.submissionLimits.unsafeCoerce();
 
         return this.patchAssignment({
             assignmentId: this.assignment.id,
             assignmentProps: {
-                files_upload_enabled: this.submitTypes.files,
-                webhook_upload_enabled: this.submitTypes.webhook,
-                max_submissions: this.submissionLimits.maxSubmissions,
-                cool_off_period: 60 * this.submissionLimits.coolOff.period,
-                amount_in_cool_off_period: this.submissionLimits.coolOff.amount,
+                files_upload_enabled: types.files,
+                webhook_upload_enabled: types.webhook,
+                max_submissions: limits.maxSubmissions,
+                cool_off_period: limits.coolOff.period ? 60 * limits.coolOff.period : 0,
+                amount_in_cool_off_period: limits.coolOff.amount,
             },
         });
     }

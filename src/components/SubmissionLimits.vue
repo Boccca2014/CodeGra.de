@@ -1,9 +1,14 @@
 <template>
 <div class="submission-limits" v-if="value != null">
     <b-form-fieldset :id="`assignment-max-submissions-${uniqueId}`"
-                     :label-for="`assignment-max-submissions-${uniqueId}-input`">
+                     :label-for="`assignment-max-submissions-${uniqueId}-input`"
+                     :state="maxSubmissions.isRight()">
         <template #label>
             Maximum total amount of submissions
+        </template>
+
+        <template #invalid-feedback>
+            {{ $utils.getErrorMessage(maxSubmissions.extract()) }}
         </template>
 
         <template #description>
@@ -18,23 +23,22 @@
         <cg-number-input
             :id="`assignment-max-submissions-${uniqueId}-input`"
             :min="0"
-            @keyup.ctrl.enter="$emit('update-max-submissions')"
-            :value="maxSubmissions"
-            @input="maxSubmissions = $event"
+            @input="emitValue"
+            v-model="maxSubmissions"
             placeholder="Infinite"/>
     </b-form-fieldset>
 
     <b-form-fieldset :id="`assignment-cool-off-${uniqueId}`"
                      :label-for="`assignment-cool-off-${uniqueId}-amount-input`"
-                     :state="coolOffAmount != null && coolOffPeriod != null">
+                     :state="coolOffValid">
         <template #label>
             Cool off period
         </template>
 
         <template #description>
-            The minimum amount of time there should be between submissions.
+            The frequency students can make submissions.
 
-            <cg-description-popover hug-text>
+            <cg-description-popover hug-text docs-path="user/management.html#cool-off-period">
                 The first input determines the amount of submissions, and the
                 second the time in minutes. You can set the time to zero to
                 disable this limit.
@@ -42,11 +46,8 @@
         </template>
 
         <template #invalid-feedback>
-            <div v-if="coolOffAmount == null">
-                The amount of submissions must be a positive number.
-            </div>
-            <div v-if="coolOffPeriod == null">
-                The period must be a number greater than or equal to 0.
+            <div v-for="err in coolOffErrors">
+                {{ $utils.getErrorMessage(err) }}
             </div>
         </template>
 
@@ -54,10 +55,11 @@
             <cg-number-input
                 :id="`assignment-cool-off-${uniqueId}-amount-input`"
                 class="amount-in-cool-off-period"
+                name="Cool off amount"
                 :min="1"
-                @keyup.ctrl.enter="$emit('update-cool-off')"
-                :value="coolOffAmount"
-                @input="coolOffAmount = $event"/>
+                :required="true"
+                v-model="coolOffAmount"
+                @input="emitValue"/>
 
             <b-input-group-prepend is-text>
                 <template v-if="parseFloat(coolOffAmount) === 1">
@@ -72,11 +74,11 @@
             <cg-number-input
                 :id="`assignment-cool-off-${uniqueId}-period-input`"
                 class="cool-off-period"
+                name="Cool off period"
                 :min="0"
                 :step="1"
-                @keyup.ctrl.enter="$emit('update-cool-off')"
-                :value="coolOffPeriod"
-                @input="coolOffPeriod = $event"
+                v-model="coolOffPeriod"
+                @input="emitValue"
                 placeholder="0"/>
 
             <b-input-group-append is-text>
@@ -95,56 +97,70 @@
 <script lang="ts">
 import { Vue, Component, Prop, Watch } from 'vue-property-decorator';
 
+import { Either, Left, Right, Nothing } from '@/utils';
+import { NumberInputValue, numberInputValue } from './NumberInput';
+
 type MaxSubmissions = number | null;
 type CoolOff = {
-    period: number,
-    amount: number;
+    period: number | null,
+    amount: number | null;
 };
 
-export type SubmissionLimitValue = {
+export type SubmissionLimitValue = Either<Error, {
     maxSubmissions: MaxSubmissions,
     coolOff: CoolOff,
-};
+}>;
 
 @Component
 export default class SubmissionLimits extends Vue {
     @Prop({ required: true })
     value!: SubmissionLimitValue;
 
-    maxSubmissions: number | null = null;
+    maxSubmissions: NumberInputValue = numberInputValue(null);
 
-    coolOffPeriod: number | null = 0;
+    coolOffPeriod: NumberInputValue = numberInputValue(0);
 
-    coolOffAmount: number | null = 1;
+    coolOffAmount: NumberInputValue = numberInputValue(1);
 
     readonly uniqueId: number = this.$utils.getUniqueId();
 
+    get coolOffErrors() {
+        return Either.lefts([this.coolOffAmount, this.coolOffPeriod]);
+    }
+
     get coolOffValid() {
-        return this.coolOffPeriod != null && this.coolOffAmount != null;
+        return this.coolOffErrors.length === 0;
     }
 
     @Watch('value', { immediate: true })
     onValueChanged() {
-        if (this.value != null) {
-            this.maxSubmissions = this.value.maxSubmissions;
-            this.coolOffPeriod = this.value.coolOff.period;
-            this.coolOffAmount = this.value.coolOff.amount;
-        } else {
-            this.emitValue();
-        }
+        this.value.ifRight(value => {
+            this.maxSubmissions = numberInputValue(value.maxSubmissions);
+            this.coolOffPeriod = numberInputValue(value.coolOff.period);
+            this.coolOffAmount = numberInputValue(value.coolOff.amount);
+        });
     }
 
-    @Watch('maxSubmissions')
-    @Watch('coolOffPeriod')
-    @Watch('coolOffAmount')
     emitValue() {
-        this.$emit('input', {
-            maxSubmissions: this.maxSubmissions,
-            coolOff: {
-                period: this.coolOffPeriod,
-                amount: this.coolOffAmount,
-            },
-        });
+        const errors = Either.lefts([
+            this.maxSubmissions,
+            this.coolOffPeriod,
+            this.coolOffAmount,
+        ]);
+
+        const { maxSubmissions, coolOffPeriod, coolOffAmount } = this;
+
+        if (errors.length) {
+            this.$emit('input', Left(new Error(errors.map(this.$utils.getErrorMessage).join('\n'))));
+        } else {
+            this.$emit('input', Right({
+                maxSubmissions: maxSubmissions.orDefault(Nothing).extractNullable(),
+                coolOff: {
+                    period: coolOffPeriod.orDefault(Nothing).extractNullable(),
+                    amount: coolOffAmount.orDefault(Nothing).extractNullable(),
+                },
+            }));
+        }
     }
 }
 </script>
