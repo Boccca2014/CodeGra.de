@@ -10,6 +10,7 @@ import typing as t
 import logging as system_logging
 import functools
 import threading
+import traceback
 import contextlib
 import multiprocessing
 
@@ -231,6 +232,11 @@ def _add_log_as_breadcrumb(
     })
     return event_dict
 
+def _maybe_add_stacktrace(_: object, __: object, event_dict: dict) -> dict:
+    if event_dict.pop('with_stacktrace', None):
+        event_dict['stacktrace'] = traceback.format_stack()
+    return event_dict
+
 
 def _add_thread_name(_: object, __: object, event_dict: dict) -> dict:
     event_dict['thread_id'] = threading.current_thread().name
@@ -328,6 +334,7 @@ def configure_logging(
         structlog.stdlib.add_logger_name,
         _add_log_level,
         _add_thread_name,
+        _maybe_add_stacktrace,
         structlog.stdlib.PositionalArgumentsFormatter(),
         structlog.processors.format_exc_info,
         structlog.processors.TimeStamper(fmt="iso"),

@@ -7,13 +7,13 @@ from sys import maxsize as _maxsize
 from functools import wraps
 
 import coolname
-from werkzeug.utils import cached_property
 from sqlalchemy.sql.expression import or_ as sql_or
 from sqlalchemy.sql.expression import func as sql_func
 
 import psef
 import cg_cache.intra_request
 from cg_dt_utils import DatetimeWithTimezone
+from cg_cache.intra_request import cached_property
 from cg_sqlalchemy_helpers.types import MyQueryTuple, hybrid_property
 
 from . import Base, DbColumn, db

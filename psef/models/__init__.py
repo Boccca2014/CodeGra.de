@@ -157,12 +157,10 @@ if t.TYPE_CHECKING and getattr(
     t, 'SPHINX', False
 ) is not True:  # pragma: no cover
     from cg_sqlalchemy_helpers.types import Base, Comparator
-    cached_property = property  # pylint: disable=invalid-name
     hybrid_property = property  # pylint: disable=invalid-name
 else:
     from sqlalchemy.ext.hybrid import hybrid_property, Comparator  # type: ignore
     Base = db.Model  # type: ignore # pylint: disable=invalid-name
-    from werkzeug.utils import cached_property  # type: ignore
 
 # Sphinx has problems with resolving types when this decorator is used, we
 # simply remove it in the case of Sphinx.

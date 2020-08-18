@@ -9,8 +9,6 @@ from collections import defaultdict
 
 import sqlalchemy
 from sqlalchemy.orm import contains_eager, column_property
-from werkzeug.utils import invalidate_cached_property  # type: ignore
-from werkzeug.utils import cached_property
 from typing_extensions import Literal, TypedDict
 
 import psef
@@ -18,6 +16,7 @@ from cg_enum import CGEnum
 from cg_dt_utils import DatetimeWithTimezone
 from cg_flask_helpers import callback_after_this_request
 from cg_typing_extensions import make_typed_dict_extender
+from cg_cache.intra_request import cached_property
 from cg_sqlalchemy_helpers.types import MyQuery, ImmutableColumnProxy
 from cg_sqlalchemy_helpers.mixins import IdMixin, TimestampMixin
 
@@ -536,7 +535,7 @@ class CommentBase(IdMixin, Base):
             in_reply_to=in_reply_to,
             comment_base=self,
         )
-        invalidate_cached_property(self, 'user_visible_replies')
+        self.__class__.user_visible_replies.invalidate_cache(self)
         return reply
 
     @classmethod
@@ -584,9 +583,9 @@ class CommentBase(IdMixin, Base):
         """Get the replies of this comment base that the currently logged in
             user may see.
         """
-        return [
+        return tuple(
             r for r in self.replies if r.perm_checker.ensure_may_see.as_bool()
-        ]
+        )
 
     @classmethod
     def get_base_comments_query(cls) -> MyQuery['CommentBase']:

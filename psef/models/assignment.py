@@ -34,6 +34,7 @@ from cg_dt_utils import DatetimeWithTimezone
 from cg_flask_helpers import callback_after_this_request
 from cg_sqlalchemy_helpers import UUIDType
 from cg_sqlalchemy_helpers import expression as sql_expression
+from cg_cache.intra_request import cached_property
 from cg_sqlalchemy_helpers.types import (
     _T_BASE, MyQuery, DbColumn, ColumnProxy, MyNonOrderableQuery,
     hybrid_property
@@ -64,10 +65,6 @@ if t.TYPE_CHECKING:  # pragma: no cover
     # pylint: disable=unused-import
     from pylti1p3.assignments_grades import _AssignmentsGradersData
     from . import group as group_models
-    cached_property = property  # pylint: disable=invalid-name
-else:
-    # pylint: disable=unused-import
-    from werkzeug.utils import cached_property
 
 T = t.TypeVar('T')
 Y = t.TypeVar('Y')
