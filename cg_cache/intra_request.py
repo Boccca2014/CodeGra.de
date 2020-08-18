@@ -204,6 +204,12 @@ class cached_property(t.Generic[Y, Z]):
         self._master_key = object()
 
     def clear_cache(self, obj: Y) -> None:
+        """Clear the cache for the given object.
+
+        :param obj: The object to clear the cache for.
+
+        :returns: Nothing.
+        """
         key = obj.__dict__.get(self._master_key, _MISSING)  # type: ignore
         if key is not _MISSING:
             _clear_cache(self._master_key, key)
