@@ -17,6 +17,17 @@ logger = structlog.get_logger()
 
 
 def _hashable(item: object) -> bool:
+    """Check if an object is hashable.
+
+    >>> _hashable(5)
+    True
+    >>> _hashable((1, 2))
+    True
+    >>> _hashable({1: 2})
+    False
+
+    :param item: The object to check.
+    """
     try:
         hash(item)
     except TypeError:
@@ -55,7 +66,7 @@ class Validator:
 
         @event.listens_for(session, 'before_commit')
         def _before_commit(_: object) -> None:
-            if not self.__finalized:
+            if not self.__finalized:  # pragma: no cover
                 logger.error(
                     'Got commit before finalize was called',
                     report_to_sentry=True

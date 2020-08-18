@@ -205,9 +205,9 @@ class PlagiarismCase(Base):
 
     @property
     def works(self) -> PlagiarismWorks:
-        if self.work1.assignment_id == self.plagiarism_run.assignment_id:
-            return PlagiarismWorks(own_work=self.work1, other_work=self.work2)
-        return PlagiarismWorks(own_work=self.work2, other_work=self.work1)
+        if self.work2.assignment_id == self.plagiarism_run.assignment_id:
+            return PlagiarismWorks(own_work=self.work2, other_work=self.work1)
+        return PlagiarismWorks(own_work=self.work1, other_work=self.work2)
 
     @property
     def any_work_deleted(self) -> bool:

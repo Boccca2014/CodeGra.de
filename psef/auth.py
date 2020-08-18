@@ -820,16 +820,6 @@ def ensure_can_view_autotest_step_details(
 
 
 @login_required
-def ensure_can_view_autotest(auto_test: 'psef.models.AutoTest') -> None:
-    """Make sure the current user may see the given AutoTest.
-
-    :param auto_test: The AutoTest to check for.
-    :returns: Nothing.
-    """
-    AutoTestPermissions(auto_test).ensure_may_see()
-
-
-@login_required
 def ensure_can_view_autotest_result(
     result: 'psef.models.AutoTestResult'
 ) -> None:
@@ -1486,10 +1476,6 @@ class LinterPermissions(CoursePermissionChecker):
 
     @CoursePermissionChecker.as_ensure_function
     def ensure_may_delete(self) -> None:
-        self._ensure(CPerm.can_use_linter)
-
-    @CoursePermissionChecker.as_ensure_function
-    def ensure_may_add(self) -> None:
         self._ensure(CPerm.can_use_linter)
 
     @CoursePermissionChecker.as_ensure_function

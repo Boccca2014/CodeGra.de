@@ -10,7 +10,7 @@ import datetime as dt
 
 from typing_extensions import Literal
 
-if t.TYPE_CHECKING:  # pragma: ignore
+if t.TYPE_CHECKING:  # pragma: no cover
     import psef.archive  # pylint: disable=unused-import
 
 
