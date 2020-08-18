@@ -2,8 +2,8 @@
 <template>
 <b-card header="General"
         class="assignment-general-settings">
-    <b-form-group :id="`assignment-type-${uniqueId}`"
-                  :label-for="`assignment-type-${uniqueId}-toggle`">
+    <b-form-group :id="`assignment-kind-${uniqueId}`"
+                  :label-for="`assignment-kind-${uniqueId}-toggle`">
         <template #label>
             Assignment type
         </template>
@@ -17,7 +17,7 @@
         </template>
 
         <b-form-select
-            :id="`assignment-type-${uniqueId}-toggle`"
+            :id="`assignment-kind-${uniqueId}-toggle`"
             v-model="kind"
             :options="kindOptions"
             :disabled="isLTI"/>
@@ -97,6 +97,7 @@
                 v-b-popover.top.hover="availableAt == null ? '' : 'Revert to manual mode.'">
 
                 <b-button
+                    :id="`assignment-available-at-${uniqueId}-reset`"
                     @click="availableAt = null"
                     :disabled="!permissions.canEditAvailableAt || availableAt == null"
                     variant="warning">
@@ -147,7 +148,8 @@
                 :min="0"
                 :step="1"
                 v-model="examDuration"
-                @input="deadline = examDeadline" />
+                @input="deadline = examDeadline"
+                @keydown.native.ctrl.enter="$refs.submitGeneralSettings.onClick"/>
         </b-input-group>
     </b-form-group>
 
@@ -215,7 +217,8 @@
                 :min="0"
                 :step="1"
                 placeholder="10"
-                v-model="maxGrade" />
+                v-model="maxGrade"
+                @keydown.native.ctrl.enter="$refs.submitGeneralSettings.onClick"/>
 
             <b-input-group-append
                 v-b-popover.hover.top="maxGradeEmpty ? '' : 'Reset to the default value.'">
@@ -286,6 +289,15 @@ export default class AssignmentGeneralSettings extends Vue {
     sendLoginLinks: boolean = true;
 
     readonly uniqueId: number = this.$utils.getUniqueId();
+
+    @Watch('availableAt')
+    onAvailableAtChanged() {
+        if (this.isExam) {
+            this.deadline = this.examDeadline;
+        } else {
+            this.examDuration = this.calcExamDuration();
+        }
+    }
 
     patchAssignment!:
         (args: any) => Promise<AxiosResponse<void>>;
@@ -525,12 +537,12 @@ export default class AssignmentGeneralSettings extends Vue {
     }
 
     calcExamDuration() {
-        const { assignment, availableAt } = this;
+        const { deadline, availableAt } = this;
 
-        if (assignment.deadline == null || availableAt == null) {
+        if (deadline == null || availableAt == null) {
             return numberInputValue(null);
         } else {
-            const d = assignment.deadline.diff(availableAt);
+            const d = this.$utils.toMoment(deadline).diff(availableAt);
             return numberInputValue(moment.duration(d).asHours());
         }
     }
@@ -578,7 +590,7 @@ export default class AssignmentGeneralSettings extends Vue {
                 kind: this.kind,
                 available_at: this.$utils.formatNullableDate(this.availableAt, true),
                 deadline: this.$utils.formatNullableDate(deadline, true) || undefined,
-                maximumGrade: this.maxGrade,
+                max_grade: this.maxGrade.orDefault(Nothing).extractNullable(),
                 send_login_links: this.isExam && this.sendLoginLinks,
             },
         });
