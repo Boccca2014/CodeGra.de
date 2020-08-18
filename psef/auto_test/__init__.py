@@ -2548,14 +2548,6 @@ class AutoTestRunner:
                 ],
             )
 
-            print()
-            print()
-            print()
-            print('STOP?', self._stop_running, self._stop_running_is_set())
-            print()
-            print()
-            print()
-
             cont.run_command(['usermod', '-aG', 'sudo', CODEGRADE_USER])
 
             cont.run_command(
