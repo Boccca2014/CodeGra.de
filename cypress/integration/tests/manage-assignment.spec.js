@@ -25,13 +25,13 @@ context('Manage Assignment', () => {
                 .find('.local-header h4.title span')
                 .as('header');
             cy.get('.page.manage-assignment')
-                .contains('.input-group', 'Name')
+                .contains('.form-group', 'Assignment name')
                 .as('group');
 
             cy.get('@header').text().then((headerText) => {
                 cy.get('@group').find('input').type('abc');
                 cy.get('@header').text().should('not.contain', headerText + 'abc');
-                cy.get('@group').find('.submit-button').submit('success');
+                cy.get('.assignment-general-settings').find('.submit-button').submit('success');
                 cy.get('@header').text().should('contain', headerText + 'abc');
             });
         });
@@ -57,7 +57,7 @@ context('Manage Assignment', () => {
                 .setText('23');
             cy.get('.flatpickr-calendar:visible input.flatpickr-minute:visible')
                 .setText('59{enter}');
-            cy.get('.assignment-deadline ~ .input-group-append .submit-button')
+            cy.get('.assignment-general-settings .submit-button')
                 .submit('success');
             cy.reload();
 
@@ -75,84 +75,134 @@ context('Manage Assignment', () => {
         });
 
         it('should be possible to set the max amount of submissions', () => {
-            cy.get('.max-submissions input').type('5');
-            cy.get('.max-submissions .submit-button').submit('success');
-            cy.get('.max-submissions input').should('have.value', '5');
+            function setAliases() {
+                cy.get('.form-group[id^="assignment-max-submissions-"]').as('maxSubs');
+                cy.get('@maxSubs').find('input').as('input');
+                cy.get('.assignment-submission-settings .submit-button').as('submit');
+            }
+
+            setAliases();
+
+            cy.get('@input').type('5');
+            cy.get('@submit').submit('success');
+            cy.get('@input').should('have.value', '5');
+
+            cy.get('.submission-uploader .submission-limiting').as('uploaderLimits');
 
             for (let i = 0; i < 2; ++i) {
-                cy.get('.submission-uploader .submission-limiting')
-                    .find('.loader')
-                    .should('not.exist');
-                cy.get('.submission-uploader .submission-limiting')
-                    .text()
-                    .should('contain', '5 submissions left out of 5.');
+                cy.get('@uploaderLimits').find('.loader').should('not.exist');
+                cy.get('@uploaderLimits').text().should('contain', '5 submissions left out of 5.');
 
                 // Should be the same after a reload
                 if (i == 0) {
                     cy.reload();
+                    setAliases();
                 }
             }
 
-            cy.get('.max-submissions input').should('have.value', '5');
-            cy.get('.max-submissions input').clear();
-            cy.get('.max-submissions input').should('have.value', '');
-            cy.get('.max-submissions .submit-button').submit('success');
-            cy.get('.submission-uploader')
-                .find('.submission-limiting')
-                .should('not.exist');
+            cy.get('@input').should('have.value', '5');
+            cy.get('@input').clear();
+            cy.get('@input').should('have.value', '');
+            cy.get('@submit').submit('success');
+            cy.get('.submission-uploader .submission-limiting').should('not.exist');
 
-            cy.get('.max-submissions input').clear().type('-10');
-            cy.get('.max-submissions .submit-button').submit('error', {
-                popoverMsg: 'higher than or equal to 0',
-            });
+            cy.get('@input').clear().type('-10');
+            cy.get('@maxSubs').find('.invalid-feedback').as('feedback');
+
+            cy.get('@feedback')
+                .should('be.visible')
+                .should('contain', 'should be greater than or equal to 0');
+            cy.get('@submit').should('be.disabled');
+
+            cy.get('@input').clear();
+            cy.get('@feedback').should('not.be.visible');
         });
 
         it('should be possible to update the cool off period', () => {
-            cy.get('input.amount-in-cool-off-period').clear().type('5');
-            cy.get('input.cool-off-period').clear().type('2');
-            cy.get('.cool-off-period-wrapper .submit-button').submit('success');
+            function setAliases() {
+                cy.get('.form-group[id^="assignment-cool-off-"]').as('coolOff');
+                cy.get('@coolOff').find('input.amount-in-cool-off-period').as('amount');
+                cy.get('@coolOff').find('input.cool-off-period').as('period');
+                cy.get('.assignment-submission-settings .submit-button').as('submit');
+            }
+
+            setAliases();
+
+            cy.get('@amount').clear().type('5');
+            cy.get('@period').clear().type('2');
+            cy.get('@submit').submit('success');
+
+            cy.get('.submission-uploader .submission-limiting').as('uploaderLimits');
 
             for (let i = 0; i < 2; ++i) {
-                cy.get('.submission-uploader .submission-limiting')
-                    .find('.loader')
-                    .should('not.exist');
-                cy.get('.submission-uploader .submission-limiting')
-                    .text()
-                    .should('contain', '5 times every 2 minutes');
+                cy.get('@uploaderLimits').find('.loader').should('not.exist');
+                cy.get('@uploaderLimits').text().should('contain', '5 times every 2 minutes');
 
                 // Should be the same after a reload
                 if (i == 0) {
                     cy.reload();
+                    setAliases();
                 }
             }
 
-            cy.get('input.cool-off-period').clear().type('0{ctrl}{enter}');
-            cy.get('.submission-uploader')
-                .find('.submission-limiting')
-                .should('not.exist');
-            cy.get('input.cool-off-period').should('have.value', '0');
+            cy.get('@period').clear().type('0{ctrl}{enter}');
+            cy.get('@period').should('have.value', '0');
+            cy.get('.submission-uploader .submission-limiting').should('not.exist');
 
-            cy.get('input.cool-off-period').clear().type('-1')
-            cy.get('.cool-off-period-wrapper .submit-button').submit('error', {
-                popoverMsg: 'higher or equal to 0',
-            });
+            cy.get('@period').clear().type('-1')
+            cy.get('@coolOff').find('.invalid-feedback').as('feedback');
 
-            cy.get('input.cool-off-period').clear().type('1')
-            cy.get('input.amount-in-cool-off-period').clear().type('0')
-            cy.get('.cool-off-period-wrapper .submit-button').submit('error', {
-                popoverMsg: 'higher or equal to 1',
-            });
+            cy.get('@feedback')
+                .should('be.visible')
+                .should('contain', 'should be greater than or equal to 0.');
+            cy.get('@submit').should('be.disabled');
+
+            cy.get('@amount').clear().type('0');
+            cy.get('@period').clear().type('1');
+
+            cy.get('@feedback')
+                .should('be.visible')
+                .should('contain', 'should be greater than or equal to 1.');
+            cy.get('@submit').should('be.disabled');
+
+            cy.get('@amount').clear().type('1')
+            cy.get('@period').clear().type('0')
+            cy.get('@submit').submit('success');
+
+            cy.get('@feedback').should('not.be.visible');
+            cy.get('@submit').should('be.disabled');
         });
     });
 
     context('Peer feedback', () => {
         it('should be disabled by default', () => {
             cy.get('.peer-feedback-settings')
-                .should('contain', 'Enable peer feedback')
-                .contains('.submit-button', 'Enable')
-                .submit('success', {
-                    waitForDefault: false,
-                });
+                .contains('.btn', 'Enable peer feedback')
+                .should('be.visible')
+                .should('not.be.disabled');
+        });
+
+        it('should only save after clicking the submit button', () => {
+            function setAliases() {
+                cy.get('.peer-feedback-settings')
+                    .contains('.btn', 'Enable peer feedback')
+                    .as('enableBtn');
+            }
+
+            setAliases();
+
+            cy.get('@enableBtn').click();
+            cy.get('@enableBtn').should('not.exist');
+
+            cy.reload();
+            cy.login('admin', 'admin');
+            setAliases();
+
+            cy.get('@enableBtn')
+                .should('be.visible')
+                .click();
+            cy.get('@enableBtn')
+                .should('not.exist');
 
             cy.get('.peer-feedback-settings')
                 .contains('.form-group', 'Amount of students')
@@ -167,9 +217,13 @@ context('Manage Assignment', () => {
             cy.get('.peer-feedback-settings')
                 .contains('.submit-button', 'Submit')
                 .should('be.visible')
-                .should('have.class', 'btn-primary');
+                .should('have.class', 'btn-primary')
+                .submit('success', { hasConfirm: true });
+
+            cy.reload();
+
             cy.get('.peer-feedback-settings')
-                .contains('.submit-button', 'Enable')
+                .contains('.btn', 'Enable peer feedback')
                 .should('not.exist');
         });
 
@@ -194,11 +248,11 @@ context('Manage Assignment', () => {
         it('should be possible to change the time to give feedback', () => {
             cy.get('.peer-feedback-settings')
                 .contains('.form-group', 'Time to give peer feedback')
-                .find('input[name="days"]')
+                .find('input[name="Days"]')
                 .setText('10')
             cy.get('.peer-feedback-settings')
                 .contains('.form-group', 'Time to give peer feedback')
-                .find('input[name="hours"]')
+                .find('input[name="Hours"]')
                 .setText('0')
             cy.get('.peer-feedback-settings')
                 .contains('.submit-button', 'Submit')
@@ -207,76 +261,84 @@ context('Manage Assignment', () => {
 
             cy.get('.peer-feedback-settings')
                 .contains('.form-group', 'Time to give peer feedback')
-                .find('input[name="days"]')
+                .find('input[name="Days"]')
                 .should('have.value', '10');
             cy.get('.peer-feedback-settings')
                 .contains('.form-group', 'Time to give peer feedback')
-                .find('input[name="hours"]')
+                .find('input[name="Hours"]')
                 .should('have.value', '0');
         });
 
         it('should not be possible to set an invalid amount of students', () => {
             cy.get('.peer-feedback-settings')
                 .contains('.form-group', 'Amount of students')
+                .as('group');
+            cy.get('.peer-feedback-settings')
+                .contains('.submit-button', 'Submit')
+                .as('submit');
+
+            cy.get('@group')
                 .find('input')
                 .setText('abc');
-            cy.get('.peer-feedback-settings')
-                .contains('.submit-button', 'Submit')
-                .submit('error', {
-                    popoverMsg: 'amount is not a positive number',
-                });
+            cy.get('@group')
+                .find('.invalid-feedback')
+                .should('contain', 'is not a number');
+            cy.get('@submit')
+                .should('be.disabled');
 
-            cy.get('.peer-feedback-settings')
-                .contains('.form-group', 'Amount of students')
+            cy.get('@group')
                 .find('input')
                 .clear();
-            cy.get('.peer-feedback-settings')
-                .contains('.submit-button', 'Submit')
-                .submit('error', {
-                    popoverMsg: 'amount is not a positive number',
-                });
+            cy.get('@group')
+                .find('.invalid-feedback')
+                .should('contain', 'may not be empty');
+            cy.get('@submit')
+                .should('be.disabled');
         });
 
         it('should not be possible to set an invalid time to give feedback', () => {
             cy.get('.peer-feedback-settings')
                 .contains('.form-group', 'Time to give peer feedback')
-                .find('input[name="days"]')
+                .as('group');
+            cy.get('.peer-feedback-settings')
+                .contains('.submit-button', 'Submit')
+                .as('submit');
+
+            cy.get('@group')
+                .find('input[name="Days"]')
                 .setText('abc');
-            cy.get('.peer-feedback-settings')
-                .contains('.submit-button', 'Submit')
-                .submit('error', {
-                    popoverMsg: 'days is not a positive number',
-                });
+            cy.get('@group')
+                .find('.invalid-feedback')
+                .should('contain', 'Days is not a number');
+            cy.get('@submit')
+                .should('be.disabled');
 
-            cy.get('.peer-feedback-settings')
-                .contains('.form-group', 'Time to give peer feedback')
-                .find('input[name="hours"]')
+            cy.get('@group')
+                .find('input[name="Hours"]')
                 .setText('abc');
-            cy.get('.peer-feedback-settings')
-                .contains('.submit-button', 'Submit')
-                .submit('error', {
-                    popoverMsg: 'hours is not a positive number',
-                });
+            cy.get('@group')
+                .find('.invalid-feedback')
+                .should('contain', 'Hours is not a number');
+            cy.get('@submit')
+                .should('be.disabled');
 
-            cy.get('.peer-feedback-settings')
-                .contains('.form-group', 'Time to give peer feedback')
-                .find('input[name="days"]')
+            cy.get('@group')
+                .find('input[name="Days"]')
                 .clear();
-            cy.get('.peer-feedback-settings')
-                .contains('.submit-button', 'Submit')
-                .submit('error', {
-                    popoverMsg: 'days is not a positive number',
-                });
+            cy.get('@group')
+                .find('.invalid-feedback')
+                .should('contain', 'Days may not be empty');
+            cy.get('@submit')
+                .should('be.disabled');
 
-            cy.get('.peer-feedback-settings')
-                .contains('.form-group', 'Time to give peer feedback')
-                .find('input[name="hours"]')
+            cy.get('@group')
+                .find('input[name="Hours"]')
                 .clear();
-            cy.get('.peer-feedback-settings')
-                .contains('.submit-button', 'Submit')
-                .submit('error', {
-                    popoverMsg: 'hours is not a positive number',
-                });
+            cy.get('@group')
+                .find('.invalid-feedback')
+                .should('contain', 'Hours may not be empty');
+            cy.get('@submit')
+                .should('be.disabled');
         });
 
         it('should be possible to disable peer feedback', () => {
@@ -300,7 +362,7 @@ context('Manage Assignment', () => {
                 .contains('.submit-button', 'Submit')
                 .should('not.exist');
             cy.get('.peer-feedback-settings')
-                .contains('.submit-button', 'Enable')
+                .contains('.btn', 'Enable peer feedback')
                 .should('be.visible');
         });
 
@@ -316,7 +378,7 @@ context('Manage Assignment', () => {
                 .submit('success');
 
             cy.get('.peer-feedback-settings')
-                .contains('.submit-button', 'Enable')
+                .contains('.btn', 'Enable peer feedback')
                 .should('be.visible')
                 .should('be.disabled');
 
@@ -328,15 +390,18 @@ context('Manage Assignment', () => {
                 .submit('success');
 
             cy.get('.peer-feedback-settings')
-                .contains('.submit-button', 'Enable')
+                .contains('.btn', 'Enable peer feedback')
                 .should('be.visible')
                 .should('not.be.disabled');
         });
 
         it('should not be possible to connect a group set for peer feedback assignments', () => {
             cy.get('.peer-feedback-settings')
-                .contains('.submit-button', 'Enable')
-                .submit('success', { waitForDefault: false });
+                .contains('.btn', 'Enable peer feedback')
+                .click();
+            cy.get('.peer-feedback-settings')
+                .contains('.submit-button', 'Submit')
+                .submit('success', { hasConfirm: true });
 
             cy.get('.assignment-group')
                 .contains('.submit-button', 'Submit')
