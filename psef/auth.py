@@ -353,25 +353,16 @@ def login_required(fun: T) -> T:
     return t.cast(T, __wrapper)
 
 
-@t.overload
-def _get_cur_user(*,
-                  allow_none: Literal[True]) -> t.Optional['psef.models.User']:
-    # pylint: disable=missing-docstring
-    ...
-
-
-@t.overload
-def _get_cur_user(*, allow_none: Literal[False] = False) -> 'psef.models.User':
-    # pylint: disable=missing-docstring
-    ...
+@cache_within_request
+def _get_cur_user_nullable() -> t.Optional['psef.models.User']:
+    return _resolve_user(psef.current_user)
 
 
 @cache_within_request
-def _get_cur_user(allow_none: bool = False) -> t.Optional['psef.models.User']:
+def _get_cur_user() -> 'psef.models.User':
     user = _resolve_user(psef.current_user)
-    if not allow_none:
-        ensure_logged_in()
-        assert user is not None
+    ensure_logged_in()
+    assert user is not None
     return user
 
 
@@ -426,7 +417,7 @@ def as_current_user(user: t.Union['psef.models.User', LocalProxy]
 
     After the contextmanager exists the original logged in user is restored.
     """
-    old_user = _get_cur_user(allow_none=True)
+    old_user = _get_cur_user_nullable()
     old_claims = copy.copy(flask_jwt.get_jwt_claims())
     try:
         _ensure_course_visible_for_current_user.clear_cache()  # type: ignore
@@ -1877,7 +1868,7 @@ def ensure_permission(  # pylint: disable=function-redefined
     :raises PermissionException: If the permission is not enabled for the
                                  current user. (INCORRECT_PERMISSION)
     """
-    user = _get_cur_user(allow_none=True) if user is None else user
+    user = _get_cur_user_nullable() if user is None else user
 
     if user is not None and user_active(user):
         if (
@@ -1890,7 +1881,7 @@ def ensure_permission(  # pylint: disable=function-redefined
         ) and course_id is None and user.has_permission(permission):
             return
         else:
-            if _get_cur_user(allow_none=True) == user:
+            if _get_cur_user_nullable() == user:
                 you_do = 'You do'
             else:
                 you_do = f'{user.name} does'

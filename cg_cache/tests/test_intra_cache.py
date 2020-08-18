@@ -157,7 +157,7 @@ def test_cached_property(app):
     assert obj1.prop == 1
     assert calls == [1, 1]
     calls.clear()
-    obj1.__class__.prop.invalidate_cache(obj1)
+    obj1.__class__.prop.clear_cache(obj1)
 
     with app.app_context():
         assert obj1.prop == 1
@@ -169,7 +169,7 @@ def test_cached_property(app):
 
         assert calls == [1, 2]
 
-        obj2.__class__.prop.invalidate_cache(obj2)
+        obj2.__class__.prop.clear_cache(obj2)
 
         for _ in range(100):
             assert obj1.prop == 1
@@ -178,6 +178,6 @@ def test_cached_property(app):
         # Should only clear cache for obj2
         assert calls == [1, 2, 2]
 
-        # Can call invalidate while it is not in the cache
-        obj2.__class__.prop.invalidate_cache(obj2)
-        obj2.__class__.prop.invalidate_cache(obj2)
+        # Can call ``clear_cache`` while it is not in the cache
+        obj2.__class__.prop.clear_cache(obj2)
+        obj2.__class__.prop.clear_cache(obj2)

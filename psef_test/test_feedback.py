@@ -844,17 +844,17 @@ def test_get_all_feedback(
         )
 
     with logged_in(student_user):
-        # TODO: Fix this test
-        if False:
-            assig = session.query(m.Assignment).get(assig_id)
-            assig.state = m.AssignmentStateEnum.open
-            session.commit()
-            res = test_client.req(
-                'get',
-                f'/api/v1/submissions/{work["id"]}/feedbacks/',
-                200,
-                result=no_perm_err_out,
-            )
+        assig = session.query(m.Assignment).get(assig_id)
+        assig.state = m.AssignmentStateEnum.open
+        session.commit()
+        assert not assig.is_done
+
+        res = test_client.req(
+            'get',
+            f'/api/v1/submissions/{work["id"]}/feedbacks/',
+            200,
+            result=perm_err_out,
+        )
 
 
 @pytest.mark.parametrize('filename', ['test_flake8.tar.gz'], indirect=True)

@@ -535,7 +535,7 @@ class CommentBase(IdMixin, Base):
             in_reply_to=in_reply_to,
             comment_base=self,
         )
-        self.__class__.user_visible_replies.invalidate_cache(self)
+        self.__class__.user_visible_replies.clear_cache(self)
         return reply
 
     @classmethod

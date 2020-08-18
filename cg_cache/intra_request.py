@@ -203,7 +203,7 @@ class cached_property(t.Generic[Y, Z]):
         self.func = func
         self._master_key = object()
 
-    def invalidate_cache(self, obj: Y) -> None:
+    def clear_cache(self, obj: Y) -> None:
         key = obj.__dict__.get(self._master_key, _MISSING)  # type: ignore
         if key is not _MISSING:
             _clear_cache(self._master_key, key)
