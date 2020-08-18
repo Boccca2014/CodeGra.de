@@ -126,7 +126,7 @@
 
             <!-- We can always extract twice because the cg-number-input has the
                  required attribute and as such the Maybe is always a Just. -->
-            <div v-if="sendLoginLinks && examDuration.extract().extract() > maxExamDuration">
+            <div v-else-if="sendLoginLinks && examDuration.extract().extract() > maxExamDuration">
                 With "Send login mails" enabled, exams can take at most
                 {{ maxExamDuration }} hours.
 
