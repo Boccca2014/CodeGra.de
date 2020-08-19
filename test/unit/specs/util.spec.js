@@ -1400,6 +1400,8 @@ describe('utils.js', () => {
 
         it.each([
             ['0', 0],
+            ['+0', 0],
+            ['-0', -0],
             ['1', 1],
             ['+1', 1],
             ['-1', -1],
@@ -1414,19 +1416,22 @@ describe('utils.js', () => {
             ['-3.', -3],
             ['5e2', 5e2],
             ['5E2', 5E2],
-        ])('should accept correctly formatted strings', (x, expected) => {
+        ])('should accept correctly formatted string "%s" with value "%f"', (x, expected) => {
             expect(parseOrKeepFloat(x)).toBe(expected);
         });
 
         it.each([
             '',
+            '-',
             'abc',
             '5a',
             '-5a',
             '5a2',
             'a5',
             'e52',
-        ])('should return NaN when input is not formatted correctly', (x) => {
+            '..3',
+            '3.4.5',
+        ])('should return NaN when input is not formatted correctly: "%s"', (x) => {
             expect(parseOrKeepFloat(x)).toBeNaN();
         });
 
@@ -1440,7 +1445,7 @@ describe('utils.js', () => {
             [{}],
             {key: null},
             [null],
-        ])('should return NaN when the input is not a number or a string', (x) => {
+        ])('should return NaN when the input is not a number or a string: "%p"', (x) => {
             expect(parseOrKeepFloat(x)).toBeNaN();
         });
     });
