@@ -1,3 +1,5 @@
+import moment from 'moment';
+
 context('Manage Assignment', () => {
     const unique = `ManageAssignment ${Math.floor(Math.random() * 10000)}`;
     let course;
@@ -31,9 +33,16 @@ context('Manage Assignment', () => {
             cy.get('@header').text().then((headerText) => {
                 cy.get('@group').find('input').type('abc');
                 cy.get('@header').text().should('not.contain', headerText + 'abc');
-                cy.get('.assignment-general-settings').find('.submit-button').submit('success');
+                cy.get('.assignment-general-settings')
+                    .contains('.submit-button', 'Submit')
+                    .submit('success');
                 cy.get('@header').text().should('contain', headerText + 'abc');
             });
+
+            cy.get('@group').find('input').clear().type(assignment.name);
+            cy.get('.assignment-general-settings')
+                .contains('.submit-button', 'Submit')
+                .submit('success');
         });
 
         it('should be possible to change the state', () => {
@@ -50,7 +59,7 @@ context('Manage Assignment', () => {
         it('should use the correct deadline after updating it', () => {
             cy.get('.assignment-deadline')
                 .click({ force: true });
-            cy.get('.flatpickr-calendar:visible .flatpickr-day:not(.prevMonthDay):not(.nextMonthDay).today')
+            cy.get('.flatpickr-calendar:visible .flatpickr-day:not(.prevMonthDay):not(.nextMonthDay).today + .flatpickr-day + .flatpickr-day')
                 .click();
             cy.get('.flatpickr-calendar:visible input.flatpickr-hour:visible')
                 .should('have.focus')
@@ -62,7 +71,7 @@ context('Manage Assignment', () => {
             cy.reload();
 
             cy.get('.local-header h4')
-                .should('contain', (new Date()).toISOString().slice(0, 10))
+                .should('contain', moment().add(2, 'day').format('YYYY-MM-DD'))
                 .should('contain', '23:59');
         });
 
@@ -74,6 +83,335 @@ context('Manage Assignment', () => {
             });
         });
 
+        it('should disable the submit button when nothing was changed', () => {
+            cy.reload();
+            cy.login('admin', 'admin');
+
+            cy.get('.assignment-general-settings')
+                .should('be.visible')
+                .as('settings');
+            cy.get('@settings')
+                .contains('.submit-button', 'Submit')
+                .should('be.visible')
+                .should('be.disabled')
+                .as('submit');
+
+            // Should be disabled as we have just reloaded.
+            cy.get('@submit').should('be.disabled');
+
+            // Set available at date, otherwise exam mode is invalid and the
+            // button will still be disabled if we change the assignment kind.
+            cy.get('@settings')
+                .find('input[id^="assignment-available-at-"]')
+                .click();
+            cy.get('.flatpickr-calendar:visible')
+                .find('.flatpickr-day.today')
+                .click();
+            cy.get('.flatpickr-calendar:visible')
+                .find('.flatpickr-confirm')
+                .click();
+            cy.get('@submit').submit('success');
+
+            // Should be disabled as we have just submitted.
+            cy.get('@submit').should('be.disabled');
+
+            // Should not be disabled if we change to exam mode.
+            cy.get('@settings')
+                .find('select[id^="assignment-kind-"]')
+                .select('exam');
+            cy.get('@submit').should('not.be.disabled');
+
+            // Should be disabled after changing back.
+            cy.get('@settings')
+                .find('select[id^="assignment-kind-"]')
+                .select('normal');
+            cy.get('@submit').should('be.disabled');
+
+            // Should not be disabled after changing the assignment name.
+            cy.get('@settings')
+                .find('input[id^="assignment-name-"]')
+                .setText('abc');
+            cy.get('@submit').should('not.be.disabled');
+
+            // Should be disabled after changing back.
+            cy.get('@settings')
+                .find('input[id^="assignment-name-"]')
+                .setText(assignment.name);
+            cy.get('@submit').should('be.disabled');
+
+            // Should not be disabled after changing available at.
+            cy.get('@settings')
+                .find('input[id^="assignment-available-at-"]')
+                .click();
+            cy.get('.flatpickr-calendar:visible')
+                .find('.flatpickr-day.today + .flatpickr-day')
+                .click();
+            cy.get('.flatpickr-calendar:visible')
+                .find('.flatpickr-confirm')
+                .click();
+            cy.get('@submit').should('not.be.disabled');
+
+            // Should be disabled after changing back.
+            cy.get('@settings')
+                .find('input[id^="assignment-available-at-"]')
+                .click();
+            cy.get('.flatpickr-calendar:visible')
+                .find('.flatpickr-day.today')
+                .click();
+            cy.get('.flatpickr-calendar:visible')
+                .find('.flatpickr-confirm')
+                .click();
+            cy.get('@submit').should('be.disabled');
+
+            // Should not be disabled after changing deadline.
+            cy.get('@settings')
+                .find('input[id^="assignment-deadline-"]')
+                .click();
+            cy.get('.flatpickr-calendar:visible')
+                .find('.flatpickr-day.today + .flatpickr-day')
+                .click();
+            cy.get('.flatpickr-calendar:visible')
+                .find('.flatpickr-confirm')
+                .click();
+            cy.get('@submit').should('not.be.disabled');
+
+            // Should be disabled after changing back.
+            cy.get('@settings')
+                .find('input[id^="assignment-deadline-"]')
+                .click();
+            cy.get('.flatpickr-calendar:visible')
+                .find('.flatpickr-day.today + .flatpickr-day + .flatpickr-day')
+                .click();
+            cy.get('.flatpickr-calendar:visible')
+                .find('.flatpickr-confirm')
+                .click();
+            cy.get('@submit').should('be.disabled');
+
+            // Should not be disabled after changing max points.
+            cy.get('@settings')
+                .find('input[id^="assignment-max-points-"]')
+                .setText('10');
+            cy.get('@submit').should('not.be.disabled');
+
+            // Should be disabled after changing back.
+            cy.get('@settings')
+                .find('input[id^="assignment-max-points-"]')
+                .clear();
+            cy.get('@submit').should('be.disabled');
+
+            // Enable exam mode.
+            cy.get('@settings')
+                .find('select[id^="assignment-kind-"]')
+                .select('exam');
+            cy.get('@submit').submit('success');
+
+            cy.get('@settings')
+                .find('input[id^="assignment-deadline-"]')
+                .invoke('val')
+                .then(oldValue => {
+                    // Should not be disabled after changing the duration.
+                    cy.get('@settings')
+                        .find('input[id^="assignment-deadline-"]')
+                        .setText('10');
+                    cy.get('@submit').should('not.be.disabled');
+
+                    // Should be disabled after changing back.
+                    cy.get('@settings')
+                        .find('input[id^="assignment-deadline-"]')
+                        .setText(oldValue);
+                    cy.get('@submit').should('be.disabled');
+                });
+
+            // Set deadline early enough that it is accepted in combination
+            // with the send login mails option.
+            cy.get('@settings')
+                .find('input[id^="assignment-deadline-"]')
+                .setText('3');
+            cy.get('@submit').submit('success');
+
+            // Should not be disabled after changing login links.
+            cy.get('@settings')
+                .find('.toggle-container[id^="assignment-login-mail-"]')
+                .find('.label-on')
+                .click();
+            cy.get('@submit').should('not.be.disabled');
+
+            // Should be disabled after changing back.
+            cy.get('@settings')
+                .find('.toggle-container[id^="assignment-login-mail-"]')
+                .find('.label-off')
+                .click();
+            cy.get('@submit').should('be.disabled');
+        });
+
+        it('should show errors and disable submit for invalid input', () => {
+            cy.reload();
+            cy.login('admin', 'admin');
+
+            cy.get('.assignment-general-settings')
+                .should('be.visible')
+                .as('settings');
+            cy.get('@settings')
+                .contains('.submit-button', 'Submit')
+                .should('be.visible')
+                .should('be.disabled')
+                .as('submit');
+
+            // Empty name is an error.
+            cy.get('@settings')
+                .find('input[id^="assignment-name-"]')
+                .clear();
+            cy.get('@settings')
+                .contains('.form-group', 'Assignment name')
+                .find('.invalid-feedback')
+                .should('be.visible')
+                .should('contain', 'not be empty');
+            cy.get('@submit').should('be.disabled');
+
+            // Error should be hidden when name is set. We choose a name
+            // different from the actual assignment name so that the submit
+            // button is not disabled.
+            cy.get('@settings')
+                .find('input[id^="assignment-name-"]')
+                .type('xyz');
+            cy.get('@settings')
+                .contains('.form-group', 'Assignment name')
+                .find('.invalid-feedback')
+                .should('not.be.visible');
+            cy.get('@submit').should('not.be.disabled');
+
+            // Long exam duration with login mails is an error.
+            cy.get('@settings')
+                .find('.toggle-container[id^="assignment-login-mail-"]')
+                .find('.label-on')
+                .click();
+            cy.get('@settings')
+                .find('input[id^="assignment-deadline-"]')
+                .setText('1000');
+            cy.get('@settings')
+                .contains('.form-group', 'Duration')
+                .find('.invalid-feedback')
+                .should('be.visible')
+                .should('contain', 'With "Send login mails" enabled, exams can take at most');
+            cy.get('@submit').should('be.disabled');
+
+            // Error should be hidden when login links are turned off.
+            cy.get('@settings')
+                .find('.toggle-container[id^="assignment-login-mail-"]')
+                .find('.label-off')
+                .click();
+            cy.get('@settings')
+                .contains('.form-group', 'Duration')
+                .find('.invalid-feedback')
+                .should('not.be.visible');
+            cy.get('@submit').should('not.be.disabled');
+
+            // Error should be hidden when duration is set correctly.
+            cy.get('@settings')
+                .find('.toggle-container[id^="assignment-login-mail-"]')
+                .find('.label-on')
+                .click();
+            cy.get('@settings')
+                .find('input[id^="assignment-deadline-"]')
+                .setText('3');
+            cy.get('@settings')
+                .contains('.form-group', 'Duration')
+                .find('.invalid-feedback')
+                .should('not.be.visible');
+            cy.get('@submit').should('not.be.disabled');
+
+            // Restore the login mail setting.
+            cy.get('@settings')
+                .find('.toggle-container[id^="assignment-login-mail-"]')
+                .find('.label-off')
+                .click();
+            cy.get('@submit').should('not.be.disabled');
+
+            // Disable exam mode.
+            cy.get('@settings')
+                .find('select[id^="assignment-kind-"]')
+                .select('normal');
+            cy.get('@submit').submit('success');
+
+            // Change assignment name again to enable submit button.
+            cy.get('@settings')
+                .find('input[id^="assignment-name-"]')
+                .setText(assignment.name);
+            cy.get('@submit').should('not.be.disabled');
+
+            // Available-at may not be after deadline.
+            cy.get('@settings')
+                .find('input[id^="assignment-available-at-"]')
+                .click();
+            cy.get('.flatpickr-calendar:visible').within(() => {
+                cy.get('.flatpickr-next-month').click();
+                cy.get('.dayContainer')
+                    .contains('.flatpickr-day:not(.prevMonthDay)', '10')
+                    .click();
+                cy.get('.flatpickr-confirm').click();
+            });
+            cy.get('@settings')
+                .contains('.form-group', 'Available at')
+                .find('.invalid-feedback')
+                .should('be.visible')
+                .text()
+                .should('contain', 'available at date must be before the deadline');
+            cy.get('@settings')
+                .contains('.form-group', 'Deadline')
+                .find('.invalid-feedback')
+                .should('be.visible')
+                .text()
+                .should('contain', 'deadline must be after the available at date');
+            cy.get('@submit').should('be.disabled');
+
+            // Error should be hidden when deadline is changed
+            cy.get('@settings')
+                .find('input[id^="assignment-deadline-"]')
+                .click();
+            cy.get('.flatpickr-calendar:visible').within(() => {
+                cy.get('.flatpickr-next-month').click();
+                cy.get('.dayContainer')
+                    .contains('.flatpickr-day:not(.prevMonthDay)', '20')
+                    .click();
+                cy.get('.flatpickr-confirm').click();
+            });
+            cy.get('@settings')
+                .contains('.form-group', 'Available at')
+                .find('.invalid-feedback')
+                .should('not.be.visible');
+            cy.get('@settings')
+                .contains('.form-group', 'Deadline')
+                .find('.invalid-feedback')
+                .should('not.be.visible');
+            cy.get('@submit').should('not.be.disabled');
+
+            // Error should be hidden when available at is reset
+            cy.get('@settings')
+                .find('input[id^="assignment-available-at-"]')
+                .click();
+            cy.get('.flatpickr-calendar:visible').within(() => {
+                cy.get('.flatpickr-next-month').click();
+                cy.get('.dayContainer')
+                    .contains('.flatpickr-day:not(.prevMonthDay)', '25')
+                    .click();
+                cy.get('.flatpickr-confirm').click();
+            });
+            cy.get('@settings')
+                .contains('.form-group', 'Available at')
+                .find('.invalid-feedback')
+                .should('be.visible');
+            cy.get('@settings')
+                .find('button[id^="assignment-available-at-"][id$="-reset"]')
+                .click();
+            cy.get('@settings')
+                .contains('.form-group', 'Available at')
+                .find('.invalid-feedback')
+                .should('not.be.visible');
+            cy.get('@submit').should('not.be.disabled');
+        });
+    });
+
+    context('Submission settings', () => {
         it('should be possible to set the max amount of submissions', () => {
             function setAliases() {
                 cy.get('.form-group[id^="assignment-max-submissions-"]').as('maxSubs');
@@ -106,13 +444,18 @@ context('Manage Assignment', () => {
             cy.get('@submit').submit('success');
             cy.get('.submission-uploader .submission-limiting').should('not.exist');
 
-            cy.get('@input').clear().type('-10');
-            cy.get('@maxSubs').find('.invalid-feedback').as('feedback');
+            cy.wrap([
+                ['-10', 'should be greater than or equal to 0'],
+                ['abcd', 'is not a number'],
+            ]).each(([value, error]) => {
+                cy.get('@input').clear().type(value);
+                cy.get('@maxSubs').find('.invalid-feedback').as('feedback');
 
-            cy.get('@feedback')
-                .should('be.visible')
-                .should('contain', 'should be greater than or equal to 0');
-            cy.get('@submit').should('be.disabled');
+                cy.get('@feedback')
+                    .should('be.visible')
+                    .should('contain', error);
+                cy.get('@submit').should('be.disabled');
+            });
 
             cy.get('@input').clear();
             cy.get('@feedback').should('not.be.visible');
@@ -165,11 +508,135 @@ context('Manage Assignment', () => {
                 .should('contain', 'should be greater than or equal to 1.');
             cy.get('@submit').should('be.disabled');
 
-            cy.get('@amount').clear().type('1')
-            cy.get('@period').clear().type('0')
+            cy.get('@amount').clear().type('1');
+            cy.get('@period').clear().type('0');
             cy.get('@submit').submit('success');
 
             cy.get('@feedback').should('not.be.visible');
+            cy.get('@submit').should('be.disabled');
+        });
+
+        it('should show errors and disable submit when no submit type is selected', () => {
+            cy.reload();
+            cy.login('admin', 'admin');
+
+            cy.get('.assignment-submission-settings')
+                .should('be.visible')
+                .as('settings');
+            cy.get('@settings')
+                .contains('.submit-button', 'Submit')
+                .should('be.visible')
+                .should('be.disabled')
+                .as('submit');
+
+            // Disabling all submit types is an error.
+            cy.get('@settings')
+                .find('input[id^="assignment-submit-files-"]')
+                .click({ force: true });
+            cy.get('@settings')
+                .contains('.form-group', 'Allowed upload types')
+                .find('.invalid-feedback')
+                .should('be.visible')
+                .should('contain', 'at least one way of uploading');
+            cy.get('@submit').should('be.disabled');
+
+            // Enabling webhook should hide the error, and enable the submit
+            // button which we check for in the rest of the test.
+            cy.get('@settings')
+                .find('input[id^="assignment-submit-webhook-"]')
+                .click({ force: true });
+        });
+
+        it('should disable the submit button when nothing was changed', () => {
+            cy.reload();
+            cy.login('admin', 'admin');
+
+            cy.get('.assignment-submission-settings')
+                .should('be.visible')
+                .as('settings');
+            cy.get('@settings')
+                .contains('.submit-button', 'Submit')
+                .should('be.visible')
+                .should('be.disabled')
+                .as('submit');
+
+            // Changing allowed upload types should enable submit.
+            cy.get('@settings')
+                .find('input[id^="assignment-submit-webhook-"]')
+                .click({ force: true });
+            cy.get('@submit').should('not.be.disabled');
+
+            cy.get('@settings')
+                .find('input[id^="assignment-submit-files-"]')
+                .click({ force: true });
+            cy.get('@submit').should('not.be.disabled');
+
+            // Changing back should disable submit.
+            cy.get('@settings')
+                .find('input[id^="assignment-submit-files-"]')
+                .click({ force: true });
+            cy.get('@settings')
+                .find('input[id^="assignment-submit-webhook-"]')
+                .click({ force: true });
+            cy.get('@submit').should('be.disabled');
+
+            // Changing max submissions should enable submit.
+            cy.get('@settings')
+                .find('input[id^="assignment-max-submissions-"]')
+                .type('1000');
+            cy.get('@submit').should('not.be.disabled');
+
+            // Resetting should disable the button again.
+            cy.get('@settings')
+                .find('input[id^="assignment-max-submissions-"]')
+                .clear();
+            cy.get('@submit').should('be.disabled')
+
+            // Store a value to check that clearing enables submit.
+            cy.get('@settings')
+                .find('input[id^="assignment-max-submissions-"]')
+                .type('1000');
+            cy.get('@submit').submit('success');
+
+            // Changing max submissions should enable submit.
+            cy.get('@settings')
+                .find('input[id^="assignment-max-submissions-"]')
+                .clear();
+            cy.get('@submit').should('not.be.disabled');
+
+            // Resetting should disable the button again.
+            cy.get('@settings')
+                .find('input[id^="assignment-max-submissions-"]')
+                .type('1000');
+            cy.get('@submit').should('be.disabled')
+
+            // Changing cool off amount should enable submit.
+            cy.get('@settings')
+                .find('input[id^="assignment-cool-off-"][id$="-amount-input"]')
+                .setText('1000');
+            cy.get('@submit').should('not.be.disabled');
+
+            // Resetting should disable the button again.
+            cy.get('@settings')
+                .find('input[id^="assignment-cool-off-"][id$="-amount-input"]')
+                .setText('1');
+            cy.get('@submit').should('be.disabled');
+
+            // Changing cool off period should enable submit.
+            cy.get('@settings')
+                .find('input[id^="assignment-cool-off-"][id$="-period-input"]')
+                .clear();
+            cy.get('@submit').should('not.be.disabled');
+
+            cy.get('@settings')
+                .find('input[id^="assignment-cool-off-"][id$="-period-input"]')
+                .type('1000');
+            cy.get('@submit').should('not.be.disabled');
+
+            // Resetting should disable the button again.
+            cy.get('@settings')
+                .find('input[id^="assignment-cool-off-"][id$="-period-input"]')
+                .setText('0');
             cy.get('@submit').should('be.disabled');
         });
     });

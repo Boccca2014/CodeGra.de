@@ -3,7 +3,7 @@
 <b-card header="General"
         class="assignment-general-settings">
     <b-form-group :id="`assignment-kind-${uniqueId}`"
-                  :label-for="`assignment-kind-${uniqueId}-toggle`">
+                  :label-for="`assignment-kind-${uniqueId}-select`">
         <template #label>
             Assignment type
         </template>
@@ -17,7 +17,7 @@
         </template>
 
         <b-form-select
-            :id="`assignment-kind-${uniqueId}-toggle`"
+            :id="`assignment-kind-${uniqueId}-select`"
             v-model="kind"
             :options="kindOptions"
             :disabled="isLTI"/>
@@ -46,14 +46,14 @@
 
     <b-form-group v-if="isExam"
                   :id="`assignment-login-mail-${uniqueId}`"
-                  :label-for="`assignment-login-mail-${uniqueId}-input`"
+                  :label-for="`assignment-login-mail-${uniqueId}-toggle`"
                   :description="loginLinksDescription"
                   :state="!!name">
         <template #label>
             Send login mails
         </template>
 
-        <cg-toggle :id="`assignment-login-mail-${uniqueId}-input`"
+        <cg-toggle :id="`assignment-login-mail-${uniqueId}-toggle`"
                    v-model="sendLoginLinks"
                    class="float-right"
                    style="margin-top: -2rem" />

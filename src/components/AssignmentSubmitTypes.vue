@@ -2,7 +2,8 @@
 <template>
 <b-list-group class="assignment-submit-types">
     <b-list-group-item>
-        <b-form-checkbox v-model="files">
+        <b-form-checkbox v-model="files"
+                         :id="`assignment-submit-files-${uniqueId}-checkbox`">
             File uploader
 
             <cg-description-popover hug-text>
@@ -15,7 +16,8 @@
     </b-list-group-item>
 
     <b-list-group-item>
-        <b-form-checkbox v-model="webhook">
+        <b-form-checkbox v-model="webhook"
+                         :id="`assignment-submit-webhook-${uniqueId}-checkbox`">
             GitHub/GitLab
 
             <cg-description-popover hug-text>
@@ -49,6 +51,8 @@ export default class AssignmentSubmitTypes extends Vue {
     files: boolean = true;
 
     webhook: boolean = true;
+
+    readonly uniqueId: number = this.$utils.getUniqueId();
 
     @Watch('value', { immediate: true })
     onValueChanged() {
