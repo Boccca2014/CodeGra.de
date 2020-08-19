@@ -505,7 +505,17 @@ export function parseOrKeepFloat(num: string | number | null | undefined): numbe
     } else if (num == null) {
         return NaN;
     }
-    return parseFloat(num);
+
+    // We need to parse with both parseFloat and Number because:
+    // * parseFloat('5a') -> 5  while  Number('5a') -> NaN
+    // * parseFloat('') -> NaN  while  Number('') -> 0
+    const fromParseFloat = parseFloat(num);
+    const fromNumber = Number(num);
+    if (fromParseFloat === fromNumber) {
+        return fromParseFloat;
+    } else {
+        return NaN;
+    }
 }
 
 export function mapToObject<T extends Object, Y, KK extends keyof T = keyof T>(

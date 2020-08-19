@@ -11,7 +11,7 @@
 <script lang="ts">
 import { Vue, Component, Prop, Watch } from 'vue-property-decorator';
 
-import { Either, Left, Right, Maybe } from '@/utils';
+import { Either, Left, Right, Maybe, Nothing } from '@/utils';
 
 export type NumberInputValue = Either<Error, Maybe<number>>
 
@@ -24,7 +24,7 @@ export default class NumberInput extends Vue {
     @Prop({ required: true })
     value!: NumberInputValue;
 
-    // The <input>'s "type" attribute _must_ be "number", so we have a prop named
+    // The <input>'s "type" attribute _must_ be "tel", so we have a prop named
     // "type" to prevent the <input>'s "type" attribute to be overridden, while
     // still allowing to set other <input> attributes on the component.
     @Prop({ type: String, default: 'tel' })
@@ -50,7 +50,12 @@ export default class NumberInput extends Vue {
     @Watch('value', { immediate: true })
     onValueChanged() {
         this.value.ifRight(maybeValue => {
-            this.userInput = maybeValue.mapOrDefault(value => value.toString(10), '');
+            const value = maybeValue.extractNullable();
+            if (value == null) {
+                this.userInput = '';
+            } else if (value !== this.internalValue.orDefault(Nothing).extractNullable()) {
+                this.userInput = value.toString(10);
+            }
         });
     }
 
@@ -59,9 +64,8 @@ export default class NumberInput extends Vue {
         this.$emit('input', this.internalValue);
     }
 
-    get internalValue() {
-        const value = this.userInput;
-        const parsed = parseFloat(value);
+    get internalValue(): NumberInputValue {
+        const parsed = this.$utils.parseOrKeepFloat(this.userInput);
 
         if (!this.userInput) {
             if (this.required) {
