@@ -64,6 +64,8 @@ describe('SubmissionList.vue', () => {
                 res = courses;
             } else if (/^.api.v1.permissions.*type=course/.test(path)) {
                 res = {};
+            } else if (/^.api.v1.assignments.([0-9]+|NaN).graders./.test(path)) {
+                res = [];
             } else {
                 return reject({ status: 403 });
             }
