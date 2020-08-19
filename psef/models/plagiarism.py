@@ -5,7 +5,6 @@ SPDX-License-Identifier: AGPL-3.0-only
 import enum
 import json
 import typing as t
-from dataclasses import dataclass
 
 from typing_extensions import Literal
 
@@ -16,7 +15,6 @@ from cg_sqlalchemy_helpers.types import ColumnProxy
 from . import Base, db
 from .. import auth
 from .assignment import Assignment
-from ..exceptions import PermissionException
 
 
 class PlagiarismMatch(Base):
@@ -115,11 +113,19 @@ class PlagiarismMatch(Base):
 
 
 class PlagiarismWorks(t.NamedTuple):
+    """The works connected to a plagiarism case.
+    """
+    #: For this work is guaranteed that it was submitted to the assignment on
+    #: which the plagiarism run was done.
     own_work: 'psef.models.Work'
+    #: The assignment for this work might be different.
     other_work: 'psef.models.Work'
 
     @staticmethod
     def get_other_index() -> Literal[1]:
+        """Get the index for the work that might not have been submitted to the
+        assignment on which the run was done.
+        """
         return 1
 
 
@@ -205,6 +211,8 @@ class PlagiarismCase(Base):
 
     @property
     def works(self) -> PlagiarismWorks:
+        """Get the works connected to this case.
+        """
         if self.work2.assignment_id == self.plagiarism_run.assignment_id:
             return PlagiarismWorks(own_work=self.work2, other_work=self.work1)
         return PlagiarismWorks(own_work=self.work1, other_work=self.work2)

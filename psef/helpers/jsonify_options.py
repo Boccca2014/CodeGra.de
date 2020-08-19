@@ -9,7 +9,7 @@ import dataclasses
 import flask
 
 if t.TYPE_CHECKING:  # pragma: no cover
-    from .. import models
+    from .. import models  # pylint: disable=unused-import
 
 
 @dataclasses.dataclass

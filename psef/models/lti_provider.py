@@ -15,7 +15,6 @@ import structlog
 import sqlalchemy
 import jwcrypto.jwk
 import pylti1p3.grade
-import flask_jwt_extended as flask_jwt
 import pylti1p3.exception
 import pylti1p3.names_roles
 import pylti1p3.service_connector

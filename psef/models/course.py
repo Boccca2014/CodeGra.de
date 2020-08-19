@@ -12,7 +12,7 @@ import psef
 from cg_dt_utils import DatetimeWithTimezone
 from cg_sqlalchemy_helpers import mixins, expression
 
-from . import Base, MyQuery, DbColumn, db
+from . import Base, MyQuery, db
 from .. import auth
 from .role import CourseRole
 from .user import User
@@ -20,7 +20,6 @@ from .work import Work
 from ..helpers import NotEqualMixin
 from .assignment import Assignment
 from .link_tables import user_course
-from ..permissions import CoursePermission
 
 logger = structlog.get_logger()
 

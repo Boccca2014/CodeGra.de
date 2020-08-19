@@ -31,7 +31,6 @@ import psef as p
 import cg_celery
 import cg_logger
 from cg_dt_utils import DatetimeWithTimezone
-from cg_sqlalchemy_helpers.types import DbColumn
 
 logger = structlog.get_logger()
 
@@ -889,7 +888,7 @@ def _send_login_links_to_users_1(
                     p.mail.send_login_link_mail(
                         mailer, link, mail_idx=mail_idx
                     )
-                except:
+                except:  # pylint: disable=bare-except
                     logger.warning(
                         'Could not send email',
                         receiving_user_id=user.id,

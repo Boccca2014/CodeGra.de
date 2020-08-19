@@ -2489,7 +2489,7 @@ class AutoTestRunner:
                 with timed_code('run_complete_auto_test') as get_time_taken:
                     self._run_test(cont)
                 time_taken = get_time_taken()
-            except:
+            except:  # pylint: disable=bare-except
                 logger.error('Error when running tests', exc_info=True)
             finally:
                 self._set_stop_running()

@@ -1011,6 +1011,9 @@ signals.WORK_CREATED.connect_immediate(
 
 
 class AssignmentLoginLink(Base, UUIDMixin, TimestampMixin):
+    """This class represents a link that a user can use to login for a specific
+    assignment between the ``available_at`` and the ``deadline``.
+    """
     user_id = db.Column(
         'user_id',
         db.Integer,
@@ -1537,6 +1540,14 @@ class Assignment(helpers.NotEqualMixin, Base):  # pylint: disable=too-many-publi
 
     @property
     def send_login_links_token(self) -> t.Optional[uuid.UUID]:
+        """The login links token.
+
+        This parameter is updated every time we reschedule the tasks to send
+        the login links, and the token is also passed to the task. This makes
+        it possible for the task to see if it should actually execute or not.
+        Do not use a ``is None`` check to see if login tokens are enabled, but
+        use ``send_login_links``.
+        """
         return self._send_login_links_token
 
     @validates('group_set')
@@ -1754,6 +1765,9 @@ class Assignment(helpers.NotEqualMixin, Base):  # pylint: disable=too-many-publi
 
     @property
     def send_login_links(self) -> bool:
+        """Should we send login links to the users with permissions to receive
+        one.
+        """
         return self.send_login_links_token is not None
 
     @send_login_links.setter
@@ -1771,24 +1785,27 @@ class Assignment(helpers.NotEqualMixin, Base):  # pylint: disable=too-many-publi
 
     @property
     def available_at(self) -> t.Optional[DatetimeWithTimezone]:
+        """At what time should this assignment become available.
+        """
         return self._available_at
 
     @available_at.setter
     def available_at(
         self, new_value: t.Optional[DatetimeWithTimezone]
     ) -> None:
-        if self._available_at == new_value:
-            return
-
+        old_value = self._available_at
         self._available_at = new_value
 
         if new_value is None:
             return
 
-        # The state setter sets this to the correct value based on the expired
-        # state.
+        # The state setter sets this to the correct value based on the
+        # expiration state.
         if not self.state.is_done:
             self.state = AssignmentStateEnum.open
+
+        if old_value == new_value:
+            return
 
         now = helpers.get_request_start_time()
         expired = now >= new_value

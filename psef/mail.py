@@ -4,7 +4,6 @@ This module is used for all mailing related tasks.
 SPDX-License-Identifier: AGPL-3.0-only
 """
 import html
-import uuid
 import typing as t
 
 import html2text
@@ -355,6 +354,15 @@ def send_student_mail(
 def send_login_link_mail(
     mailer: Mail, link: models.AssignmentLoginLink, mail_idx: int
 ) -> None:
+    """Send a login link email with a given ``mailer``.
+
+    :param mailer: The mailer to use to send the login link.
+    :param link: The link for which you want to send the email.
+    :param mail_idx: How many emails were already sent to the user about this
+        link? This is used to change the body of the mail.
+
+    :param returns: Nothing.
+    """
     receiver = link.user
     subject = current_app.jinja_mail_env.from_string(
         current_app.config['EXAM_LOGIN_SUBJECT']

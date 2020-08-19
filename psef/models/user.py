@@ -9,7 +9,6 @@ from datetime import timedelta
 from collections import defaultdict
 
 import structlog
-import sqlalchemy
 import flask_jwt_extended
 from flask import current_app
 from itsdangerous import BadSignature, URLSafeTimedSerializer
@@ -98,6 +97,17 @@ class User(NotEqualMixin, Base):
         expires_in: t.Optional[timedelta] = None,
         for_course: t.Optional['course_models.Course'] = None
     ) -> str:
+        """Make an access token for this user.
+
+        :param expires_at: The date when this token expires. Cannot be given
+            when ``expires_in`` is not ``None``.
+        :param expires_in: The amount of time after which the token should
+            expire. Cannot be given when ``expires_at`` is not ``None``.
+        :param for_course: If given the token can only be used for requests in
+            this course.
+
+        :returns: A JWT token encoded as a string.
+        """
         assert self.id is not None
         if expires_at is not None:
             assert expires_in is None, (
