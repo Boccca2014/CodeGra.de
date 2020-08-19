@@ -30,6 +30,7 @@ import {
     safeDivide,
     sortBy,
     toMoment,
+    parseOrKeepFloat,
 } from '@/utils/typed';
 
 import {
@@ -1386,6 +1387,63 @@ describe('utils.js', () => {
             }
         });
     })
+
+    describe('parseOrKeepFloat', () => {
+        it('should return its argument if it is a number', () => {
+            const x = Math.random();
+            const y = 1000000 * Math.random();
+
+            expect(parseOrKeepFloat(x)).toBe(x);
+            expect(parseOrKeepFloat(y)).toBe(y);
+            expect(parseOrKeepFloat(x * y)).toBe(x * y);
+        });
+
+        it.each([
+            ['0', 0],
+            ['1', 1],
+            ['+1', 1],
+            ['-1', -1],
+            ['0.1', 0.1],
+            ['+0.1', 0.1],
+            ['-0.1', -0.1],
+            ['.25', 0.25],
+            ['+.25', 0.25],
+            ['-.25', -0.25],
+            ['3.', 3],
+            ['+3.', 3],
+            ['-3.', -3],
+            ['5e2', 5e2],
+            ['5E2', 5E2],
+        ])('should accept correctly formatted strings', (x, expected) => {
+            expect(parseOrKeepFloat(x)).toBe(expected);
+        });
+
+        it.each([
+            '',
+            'abc',
+            '5a',
+            '-5a',
+            '5a2',
+            'a5',
+            'e52',
+        ])('should return NaN when input is not formatted correctly', (x) => {
+            expect(parseOrKeepFloat(x)).toBeNaN();
+        });
+
+        it.each([
+            null,
+            true,
+            false,
+            {},
+            [],
+            {a: []},
+            [{}],
+            {key: null},
+            [null],
+        ])('should return NaN when the input is not a number or a string', (x) => {
+            expect(parseOrKeepFloat(x)).toBeNaN();
+        });
+    });
 });
 
 describe('cache.js', () => {
