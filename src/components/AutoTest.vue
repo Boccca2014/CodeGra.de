@@ -858,7 +858,7 @@ export default {
                             const missingPerms = this.$utils.getProps(err, [], 'response', 'data', 'missing_permissions');
                             let extraText = '';
                             if (missingPerms.includes(CPerm.canViewAutotestBeforeDone.value)) {
-                                extraText = ' The AutoTest will probably be available at the same time as your grade.';
+                                extraText = ' They will probably be available at the same time as your grade.';
                             }
                             this.message = {
                                 text: `The AutoTest results are not yet available.${extraText}`,
