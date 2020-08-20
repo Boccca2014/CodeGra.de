@@ -1686,7 +1686,10 @@
         <span class="s1">&#39;None of the permissions &quot;</span><span class="si">{}</span><span class="s1">&quot; are enabled for user &quot;</span><span class="si">{}</span><span class="s1">&quot;&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
             <span class="n">readable_join</span><span class="p">([</span><span class="n">p</span><span class="o">.</span><span class="n">name</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">permissions</span><span class="p">]),</span>
             <span class="n">_get_cur_user</span><span class="p">()</span><span class="o">.</span><span class="n">id</span><span class="p">,</span>
-        <span class="p">),</span> <span class="n">APICodes</span><span class="o">.</span><span class="n">INCORRECT_PERMISSION</span><span class="p">,</span> <span class="mi">403</span>
+        <span class="p">),</span>
+        <span class="n">APICodes</span><span class="o">.</span><span class="n">INCORRECT_PERMISSION</span><span class="p">,</span>
+        <span class="mi">403</span><span class="p">,</span>
+        <span class="n">missing_permissions</span><span class="o">=</span><span class="p">[</span><span class="n">permissions</span><span class="p">],</span>
     <span class="p">)</span></div>
 
 
@@ -1771,6 +1774,7 @@
                 <span class="p">),</span>
                 <span class="n">APICodes</span><span class="o">.</span><span class="n">INCORRECT_PERMISSION</span><span class="p">,</span>
                 <span class="mi">403</span><span class="p">,</span>
+                <span class="n">missing_permissions</span><span class="o">=</span><span class="p">[</span><span class="n">permission</span><span class="p">],</span>
             <span class="p">)</span>
     <span class="k">else</span><span class="p">:</span>
         <span class="n">_raise_login_exception</span><span class="p">(</span>
