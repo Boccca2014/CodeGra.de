@@ -128,21 +128,31 @@
                              :class="{ disabled: latestSubmissionDisabled }"
                              @click.prevent="latestSubmissionDisabled || openLatestUserSubmission()">
                             <div class="icon-wrapper mb-2">
-                                <icon name="file-o" :scale="actionIconFactor * 6" />
-                                <icon name="history" :scale="actionIconFactor * 2" class="center" />
+                                <icon name="file-o"
+                                      :scale="actionIconFactor * 6" />
+                                <icon name="history"
+                                      :scale="actionIconFactor * 2"
+                                      class="center in-file"
+                                      v-if="latestSubmissionGrade == null" />
+                                <b-badge class="center in-file"
+                                         :variant="latestSubmissionAfterDeadline ? 'danger' : 'dark'"
+                                         style="font-size: 112.5%;"
+                                         title="Your grade for this assignment"
+                                         v-else>
+                                    {{ latestSubmissionGrade }}
+                                </b-badge>
                             </div>
 
-                            <p class="mb-0">
+                            <div>
                                 Latest submission
                                 <late-submission-icon v-if="latestSubmission"
                                                       :submission="latestSubmission"
                                                       :assignment="assignment" />
-                            </p>
+                            </div>
 
-                            <p class="mb-0"
-                               v-if="latestSubmission">
+                            <div v-if="latestSubmission">
                                 Submitted <cg-relative-time :date="latestSubmission.createdAt" />
-                            </p>
+                            </div>
                         </div>
                     </div>
 
@@ -152,8 +162,11 @@
                              :class="{ disabled: uploadDisabledMessage }"
                              @click.prevent="uploadDisabledMessage || openCategory('hand-in')">
                             <div class="icon-wrapper mb-2">
-                                <icon name="file-o" :scale="actionIconFactor * 6" />
-                                <icon name="plus" :scale="actionIconFactor * 2" class="center" />
+                                <icon name="file-o"
+                                      :scale="actionIconFactor * 6" />
+                                <icon name="plus"
+                                      :scale="actionIconFactor * 2"
+                                      class="center in-file" />
                             </div>
                             <p class="mb-0">Upload files</p>
                         </div>
@@ -1028,6 +1041,10 @@ export default {
         top: 50%;
         left: 50%;
         transform: translate(-50%, -50%);
+
+        &.in-file {
+            top: 60%;
+        }
     }
 
     &.git {
