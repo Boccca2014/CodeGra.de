@@ -120,9 +120,8 @@ class Permission(Base, t.Generic[_T]):  # pylint: disable=unsubscriptable-object
         )
 
     @classmethod
-    def query_permission(
-        cls: 't.Type[Permission[_T]]', perm: '_T'
-    ) -> MyQuery['Permission[_T]']:
+    def query_permission(cls: 't.Type[Permission[_T]]',
+                         perm: '_T') -> MyQuery['Permission[_T]']:
         """Get a database permission from a permission.
 
         :param perm: The permission to get the database permission of.

@@ -72,6 +72,7 @@ class User(NotEqualMixin, Base):
     :ivar reset_email_on_lti: Determines if the email should be reset on the
         next LTI launch.
     """
+
     class LoginResponse(TypedDict):
         """When logging this object will be given.
         """
@@ -79,7 +80,6 @@ class User(NotEqualMixin, Base):
         user: 'User'
         #: A JWT token that can be used to do authenticated requests.
         access_token: str
-
 
     @t.overload
     def make_access_token(

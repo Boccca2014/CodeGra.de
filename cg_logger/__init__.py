@@ -232,6 +232,7 @@ def _add_log_as_breadcrumb(
     })
     return event_dict
 
+
 def _maybe_add_stacktrace(_: object, __: object, event_dict: dict) -> dict:
     if event_dict.pop('with_stacktrace', None):
         event_dict['stacktrace'] = traceback.format_stack()

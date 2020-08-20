@@ -10,7 +10,7 @@ from psef.permissions import CoursePermission as CPerm
     'perm', [CPerm.can_delete_assignments, CPerm.can_submit_own_work]
 )
 def test_has_permission_filter(
-        describe, test_client, session, admin_user, logged_in, perm
+    describe, test_client, session, admin_user, logged_in, perm
 ):
     with describe('setup'), logged_in(admin_user):
         course = helpers.to_db_object(

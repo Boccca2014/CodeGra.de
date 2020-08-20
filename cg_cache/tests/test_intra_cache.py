@@ -136,7 +136,6 @@ def test_with_object_id(app):
         assert amount_called == 4
 
 
-
 def test_cached_property(app):
     calls = []
 
