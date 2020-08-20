@@ -266,3 +266,16 @@ export default {
     actions,
     mutations,
 };
+
+export function onDone(store) {
+    store.watch(
+        (_, allGetters) => allGetters['user/loggedIn'],
+        loggedIn => {
+            if (loggedIn) {
+                store.dispatch('courses/loadCourses');
+            } else {
+                store.commit(`courses/${types.CLEAR_COURSES}`, null, { root: true });
+            }
+        },
+    );
+}

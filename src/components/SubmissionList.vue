@@ -430,10 +430,15 @@ export default {
                         submissionProps: { assignee: newAssignee },
                     });
                 },
-                ({ response }) => {
-                    // TODO: visual feedback
-                    // eslint-disable-next-line
-                    console.log(response);
+                err => {
+                    this.$set(this.assigneeUpdating, submission.id, false);
+                    this.$bvToast.toast(err.response.data.message, {
+                        title: 'Error',
+                        toaster: 'b-toaster-top-right',
+                        variant: 'danger',
+                        noAutoHide: true,
+                        solid: true,
+                    });
                 },
             );
         },

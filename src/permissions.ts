@@ -18,7 +18,8 @@ export type GlobalPermissionOptions =
     | 'can_manage_site_users'
     | 'can_search_users'
     | 'can_impersonate_users'
-    | 'can_manage_lti_providers';
+    | 'can_manage_lti_providers'
+    | 'can_manage_sso_providers';
 const makeGPerm = (value: GlobalPermissionOptions, name: string, description: string, warning: string | null) => ({ value, name, description, warning });
 export const GlobalPermission = {
     canAddUsers: makeGPerm('can_add_users', 'Add users', 'Users with this permission can add other users to the website.', null),
@@ -30,6 +31,7 @@ export const GlobalPermission = {
     canSearchUsers: makeGPerm('can_search_users', 'Search users', 'Users with this permission can search for users on the side, this means they can see all other users on the site.', null),
     canImpersonateUsers: makeGPerm('can_impersonate_users', 'Impersonate users', 'Users with this permission can impersonate users, i.e. they can login as other users.', null),
     canManageLtiProviders: makeGPerm('can_manage_lti_providers', 'Manage LTI providers', 'Users with this permission can edit and list existing, and create new LTI providers.', 'This is a really powerful permission, only give to users you trust completely.'),
+    canManageSsoProviders: makeGPerm('can_manage_sso_providers', 'Manage SSO Providers', 'Users with this permission can connect new SSO Identity Providers.', null),
 };
 export type GlobalPermission = typeof GlobalPermission[keyof typeof GlobalPermission];
 

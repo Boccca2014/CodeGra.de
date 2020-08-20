@@ -114,6 +114,7 @@ class GlobalPermission(BasePermission):
     :ivar can_search_users: Users with this permission can search for users on the side, this means they can see all other users on the site.
     :ivar can_impersonate_users: Users with this permission can impersonate users, i.e. they can login as other users.
     :ivar can_manage_lti_providers: Users with this permission can edit and list existing, and create new LTI providers.
+    :ivar can_manage_sso_providers: Users with this permission can connect new SSO Identity Providers.
     """
 
     @staticmethod
@@ -129,6 +130,7 @@ class GlobalPermission(BasePermission):
     can_search_users = _PermissionValue(item=6, default_value=True)
     can_impersonate_users = _PermissionValue(item=7, default_value=False)
     can_manage_lti_providers = _PermissionValue(item=8, default_value=False)
+    can_manage_sso_providers = _PermissionValue(item=9, default_value=False)
 
 
 @enum.unique

@@ -43,9 +43,7 @@ const config = Object.assign({}, {
 config.maxLines = parseInt(config.maxLines, 10);
 config.notificationPollTime = parseInt(config.notificationPollTime, 10);
 
-let version = execFileSync('git', ['describe', '--abbrev=0', '--tags']).toString().trim();
 const branch = execFileSync('git', ['rev-parse', '--abbrev-ref', 'HEAD']).toString().trim();
-const tagMsg = execFileSync('git', ['tag', '-l', '-n400', version]).toString().split('\n');
 const gitCommit = execFileSync('git', ['rev-parse', '--short', 'HEAD']).toString().trim();
 const gitCommitLong = execFileSync('git', ['rev-parse', 'HEAD']).toString().trim();
 let inCorrectPart = false;
@@ -57,8 +55,14 @@ let skip = false;
 // show the commit hash but show the version instead) over a false positive (we
 // show a commit hash instead of a version) as this would mean we would show a
 // commit hash on a production server which looks bad.
-if (version.match(/^[^A-Z]/) && branch.indexOf('stable') < 0) {
-    version = '#' + gitCommit;
+let tagMsg = '';
+let version = '#' + gitCommit;
+if (branch.indexOf('stable') < 0) {
+    tagMsg = execFileSync('git', ['tag', '-l', '-n400', version]).toString().split('\n');
+    const foundVersion = execFileSync('git', ['describe', '--abbrev=0', '--tags']).toString().trim();
+    if (version.match(/^[A-Z]/)) {
+        version = foundVersion;
+    }
 }
 
 config.release = {

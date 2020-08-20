@@ -36,6 +36,19 @@ export POSTGRES_PORT=5432
 export POSTGRES_USERNAME=postgres
 export PGPASSWORD=postgres
 
+if [[ "$RUN_AT_ONLY" = "yes" ]]; then
+    timeout -k 900 900 \
+            pytest --cov psef --cov cg_signals --cov cg_cache --cov cg_enum \
+            --cov-append -x \
+            --postgresql="GENERATE" \
+            --cov-report term-missing \
+            "$(pwd)/psef_test/test_auto_test.py" \
+            -vvvv
+    exit "$?"
+else
+    rm "$(pwd)/psef_test/test_auto_test.py"
+fi
+
 pytest --cov cg_worker_pool \
        --cov cg_threading_utils \
        --cov cg_signals \
@@ -57,34 +70,19 @@ fi
 
 timeout -k 900 900 \
         pytest --cov psef --cov cg_signals --cov cg_cache --cov cg_enum \
-        --cov-append -x -s \
-        --postgresql="GENERATE" \
-        --cov-report term-missing \
-        "$(pwd)/psef_test/test_auto_test.py" \
-        -n 2 \
-        -vvvv
-res2="$?"
-if [[ "$res2" -ne 0 ]]; then
-    exit "$res2";
-fi
-
-rm "$(pwd)/psef_test/test_auto_test.py"
-
-timeout -k 900 900 \
-        pytest --cov psef --cov cg_signals --cov cg_cache --cov cg_enum \
         --cov-append -x \
         --postgresql="GENERATE" \
         --cov-report term-missing \
         "$(pwd)/psef_test/" \
         -n 4 \
         -vvvv
-res3="$?"
-if [[ "$res3" -ne 0 ]]; then
-    exit "$res3";
+res2="$?"
+if [[ "$res2" -ne 0 ]]; then
+    exit "$res2";
 fi
 
 make doctest
-res4="$?"
+res3="$?"
 
-[[ $(( res1 + res2 + res3 + res4 )) = 0 ]]
+[[ $(( res1 + res2 + res3 )) = 0 ]]
 exit "$?"

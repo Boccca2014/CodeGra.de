@@ -352,7 +352,7 @@ Promise.all([
                             config.url.match(/\/api\/v1\/login/) ||
                             NO_LOGIN_REQUIRED_ROUTES.has(router.currentRoute.name)
                         ) {
-                            return;
+                            throw err;
                         }
 
                         if (store.store.getters['user/dangerousJwtToken'] == null) {
@@ -423,8 +423,16 @@ Promise.all([
             },
 
             async _checkForUpdates() {
-                const res = await this.$http.get('/api/v1/about').catch(() => ({ data: {} }));
-                if (UserConfig.isProduction && res.data.commit !== UserConfig.release.commitHash) {
+                const res = await this.$http
+                    .get(
+                        utils.buildUrl(['static', 'commitHash'], {
+                            query: { cacheBuster: Math.random() },
+                        }),
+                    )
+                    .catch(() => null);
+                const ourCommit = UserConfig.release.commitHash;
+                const remoteCommit = utils.getProps(res, ourCommit, 'data');
+                if (UserConfig.isProduction && ourCommit !== remoteCommit) {
                     this.$emit('cg::app::toast', {
                         tag: 'UpdateAvailable',
                         title: 'CodeGrade update available!',

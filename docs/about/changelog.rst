@@ -6,6 +6,36 @@ Version *Next*
 
 **Released**: TBD
 
+**Features**
+
+- Add Sakai support `(#1408)
+  <https://github.com/CodeGra-de/CodeGra.de/pull/1408>`__. Full LTI integration
+  with Sakai.
+- Add support for SSO `(#1414)
+  <https://github.com/CodeGra-de/CodeGra.de/pull/1414>`__. CodeGrade now supports
+  SSO leveraging the SAML2.0 protocol, allowing even better integration.
+
+**Updates**
+
+- Use the same icons from the "Capture Points" AutoTest step for the "Unit
+  Test" step `(#1403) <https://github.com/CodeGra-de/CodeGra.de/pull/1403>`__.
+  The "Unit Test" step would always use the green checkmark if the step did not
+  crash, but now the icon depends on the score achieved.
+- Make the peer feedback counters for students more clear `(#1406)
+  <https://github.com/CodeGra-de/CodeGra.de/pull 1406>`__. This changes the
+  counters with the number of comments students have given to their peirs to be
+  clearer and give more detailed information.
+- Remove bin size "year" for the "Students submitted on" graph in the analytics
+  dashboard `(#1407) <https://github.com/CodeGra-de/CodeGra.de/pull/1407>`__.
+  The years option did not work very nicely because it didn't use the correct
+  labels, and it is unclear what the start of a bin should be, so it has been
+  removed as it isn't really useful in a context where an assignment takes less
+  than a year.
+- Add rate limiting to login route `(#1410)
+  <https://github.com/CodeGra-de/CodeGra.de>`__. Make it impossible to
+  bruteforce someone's password by sending infinite requests to the login
+  route.
+
 Version Mosaic
 ---------------
 

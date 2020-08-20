@@ -8,7 +8,8 @@
 
         <div class="search-logo-wrapper">
             <input class="search form-control mr-3"
-                   v-model="searchString"
+                   :value="searchString"
+                   v-debounce="newSearchString => { searchString = newSearchString }"
                    ref="searchInput"
                    placeholder="Type to search"/>
             <cg-logo :small="$root.$isSmallWindow" :inverted="!darkMode" />
@@ -182,7 +183,7 @@ export default {
             loadingCourses: true,
             UserConfig,
             amountCoursesToShow: EXTRA_COURSES_AMOUNT,
-            searchString: '',
+            searchString: this.$route.query.filter || '',
             renderingMoreCourses: 0,
         };
     },
@@ -256,6 +257,18 @@ export default {
         if (searchInput != null) {
             searchInput.focus();
         }
+    },
+
+    watch: {
+        searchString() {
+            const newQuery = Object.assign({}, this.$route.query);
+            newQuery.filter = this.searchString || undefined;
+
+            this.$router.replace({
+                query: newQuery,
+                hash: this.$route.hash,
+            });
+        },
     },
 
     methods: {
