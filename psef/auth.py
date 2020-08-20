@@ -1483,7 +1483,9 @@ def ensure_any_of_permissions(
         'None of the permissions "{}" are enabled for user "{}"'.format(
             readable_join([p.name for p in permissions]),
             _get_cur_user().id,
-        ), APICodes.INCORRECT_PERMISSION, 403,
+        ),
+        APICodes.INCORRECT_PERMISSION,
+        403,
         missing_permissions=[permissions],
     )
 
