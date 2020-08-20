@@ -1060,8 +1060,19 @@ class AssignmentLoginLink(Base, UUIDMixin, TimestampMixin):
             domain=psef.current_app.config['EXTERNAL_DOMAIN'],
         )
 
-    def __to_json__(self) -> t.Any:
+    class AsJSON(TypedDict):
+        """The way this class will be represented in JSON.
+        """
+        #: The id of this link.
+        id: uuid.UUID
+        #: The assignment connected to this login link.
+        assignment: 'Assignment'
+        #: The user that is link will login.
+        user: 'user_models.User'
+
+    def __to_json__(self) -> AsJSON:
         return {
+            'id': self.id,
             'assignment': self.assignment,
             'user': self.user,
         }

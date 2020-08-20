@@ -8,7 +8,6 @@ SPDX-License-Identifier: AGPL-3.0-only
 import typing as t
 
 from flask import request
-from typing_extensions import TypedDict
 from flask_limiter.util import get_remote_address
 
 from psef.exceptions import (
@@ -27,11 +26,6 @@ from ..helpers import (
 from ..permissions import GlobalPermission as GPerm
 
 
-class LoginResponse(TypedDict):
-    user: models.User
-    access_token: str
-
-
 def _login_rate_limit() -> t.Tuple[str, str]:
     try:
         username = request.get_json()['username'].lower()
@@ -45,7 +39,7 @@ def _login_rate_limit() -> t.Tuple[str, str]:
 @limiter.limit(
     '5 per minute', key_func=_login_rate_limit, deduct_on_err_only=True
 )
-def login() -> ExtendedJSONResponse[LoginResponse]:
+def login() -> ExtendedJSONResponse[models.User.LoginResponse]:
     """Login a :class:`.models.User` if the request is valid.
 
     .. :quickref: User; Login a given user.

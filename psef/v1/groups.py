@@ -8,7 +8,7 @@ import typing as t
 from flask import request
 
 from . import api
-from .. import auth, models, db_locks, features, current_user
+from .. import auth, models, db_locks, features
 from ..helpers import (
     EmptyResponse, ExtendedJSONResponse, get_or_404, add_warning,
     readable_join, ensure_json_dict, extended_jsonify, ensure_keys_in_dict,
@@ -17,7 +17,6 @@ from ..helpers import (
 from ..exceptions import (
     APICodes, APIWarnings, APIException, ValidationException
 )
-from ..permissions import CoursePermission as CPerm
 
 
 @api.route('/groups/<int:group_id>', methods=['GET'])

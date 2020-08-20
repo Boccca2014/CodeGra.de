@@ -28,9 +28,7 @@ from .. import auth, signals
 from .. import auto_test as auto_test_module
 from ..helpers import NotEqualMixin
 from ..registry import auto_test_handlers, auto_test_grade_calculators
-from ..exceptions import (
-    APICodes, APIException, PermissionException, InvalidStateException
-)
+from ..exceptions import APICodes, APIException, InvalidStateException
 from ..permissions import CoursePermission as CPerm
 
 logger = structlog.get_logger()
@@ -1061,21 +1059,16 @@ class AutoTestRun(Base, TimestampMixin, IdMixin):
         }
 
     def __extended_to_json__(self) -> t.Mapping[str, object]:
-        results = []
-
         all_results: t.Iterable[AutoTestResult]
         if psef.helpers.jsonify_options.get_options().latest_only:
             all_results = self.get_results_latest_submissions()
         else:
             all_results = [r for r in self.results if not r.work.deleted]
 
-        for result in all_results:
-            try:
-                auth.ensure_can_view_autotest_result(result)
-            except PermissionException:
-                continue
-            else:
-                results.append(result)
+        results = [
+            result for result in all_results
+            if auth.AutoTestResultPermissions(result).ensure_may_see.as_bool()
+        ]
 
         # TODO: Check permissions for setup_stdout/setup_stderr
         return {

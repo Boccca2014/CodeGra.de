@@ -8,7 +8,6 @@ SPDX-License-Identifier: AGPL-3.0-only
 """
 import typing as t
 
-import flask_jwt_extended as flask_jwt
 from flask import request
 from sqlalchemy import case, func
 from flask_limiter.util import get_remote_address

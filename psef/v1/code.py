@@ -247,7 +247,7 @@ def get_feedback(file: models.File, linter: bool = False) -> _FeedbackMapping:
     res: _FeedbackMapping = {}
     try:
         if linter:
-            auth.ensure_can_see_linter_feedback(file.work)
+            auth.WorkPermissions(file.work).ensure_may_see_linter_feedback()
 
             for linter_comment in db.session.query(
                 models.LinterComment,

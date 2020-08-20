@@ -3,7 +3,6 @@ This module contains code to humanize various numbers.
 
 SPDX-License-Identifier: AGPL-3.0-only
 """
-import sys
 import math
 import typing as t
 import datetime as dt
@@ -12,6 +11,8 @@ from typing_extensions import Literal
 
 if t.TYPE_CHECKING:  # pragma: no cover
     import psef.archive  # pylint: disable=unused-import
+
+__all__ = ['size', 'timedelta']
 
 
 def size(_size: 'psef.archive.FileSize') -> str:
@@ -40,44 +41,47 @@ def size(_size: 'psef.archive.FileSize') -> str:
 _POSSIBLE_TIMES = Literal['s', 'm', 'h', 'd', 'M', 'y']
 
 
-def _timedelta_to(delta: dt.timedelta, to: _POSSIBLE_TIMES) -> int:
+def _timedelta_to(delta: dt.timedelta, wanted_unit: _POSSIBLE_TIMES) -> int:
     opts = [('s', 1), ('m', 60), ('h', 60), ('d', 24), ('m', 30.5), ('y', 12)]
     cur = abs(delta.total_seconds())
     for opt, amount in opts:
         cur /= amount
-        if opt == to:
+        if opt == wanted_unit:
             return round(cur)
 
     assert False
 
 
-_TIMEDELTA_MAPPING: t.List[t.Union[t.Tuple[t.Tuple[_POSSIBLE_TIMES, float],
-                                           t.Callable[[dt.timedelta], str],
-                                           t.Callable[[dt.timedelta], str],
-                                           t.Callable[[dt.timedelta], str],
-                                           ],
-                                   t.Tuple[t.Tuple[_POSSIBLE_TIMES, float],
-                                           t.Callable[[dt.timedelta], str],
-                                           ],
-                                   ]]
+_TIMEDELTA_MAPPING: t.List[
+    t.Tuple[t.Tuple[_POSSIBLE_TIMES, float],
+            t.Union[t.Tuple[t.Callable[[dt.timedelta], str],
+                            t.Callable[[dt.timedelta], str],
+                            t.Callable[[dt.timedelta], str],
+                            ],
+                    t.Tuple[t.Callable[[dt.timedelta], str]],
+                    ],
+            ],
+]
 
 _TIMEDELTA_MAPPING = [
     (
         ('s', 45),
-        lambda _: 'a few seconds',
-        lambda _: 'just now',
-        lambda t: f'{_timedelta_to(t, "s")} seconds ago',
+        (
+            lambda _: 'a few seconds',
+            lambda _: 'just now',
+            lambda t: f'{_timedelta_to(t, "s")} seconds ago',
+        ),
     ),
-    (('s', 46), lambda t: f'{_timedelta_to(t, "s")} seconds'),
-    (('m', 2), lambda _: 'a minute'),
-    (('m', 50), lambda t: f'{_timedelta_to(t, "m")} minutes'),
-    (('h', 2), lambda _: 'an hour'),
-    (('h', 48), lambda t: f'{_timedelta_to(t, "h")} hours'),
-    (('d', 26), lambda t: f'{_timedelta_to(t, "d")} days'),
-    (('m', 2), lambda _: 'a month'),
-    (('m', 12), lambda t: f'{_timedelta_to(t, "M")} months'),
-    (('y', 2), lambda _: 'a year'),
-    (('y', math.inf), lambda t: f'{_timedelta_to(t, "y")} years'),
+    (('s', 46), (lambda t: f'{_timedelta_to(t, "s")} seconds', )),
+    (('m', 2), (lambda _: 'a minute', )),
+    (('m', 50), (lambda t: f'{_timedelta_to(t, "m")} minutes', )),
+    (('h', 2), (lambda _: 'an hour', )),
+    (('h', 48), (lambda t: f'{_timedelta_to(t, "h")} hours', )),
+    (('d', 26), (lambda t: f'{_timedelta_to(t, "d")} days', )),
+    (('m', 2), (lambda _: 'a month', )),
+    (('m', 12), (lambda t: f'{_timedelta_to(t, "M")} months', )),
+    (('y', 2), (lambda _: 'a year', )),
+    (('y', math.inf), (lambda t: f'{_timedelta_to(t, "y")} years', )),
 ]
 
 
@@ -89,7 +93,7 @@ def timedelta(delta: dt.timedelta, *, no_prefix: bool = False) -> str:
 
     :returns: A human readable format of the delta.
     """
-    for (unit, time), *formatters in _TIMEDELTA_MAPPING:
+    for (unit, time), formatters in _TIMEDELTA_MAPPING:
         if time == math.inf or _timedelta_to(delta, unit) < time:
             past = delta.total_seconds() < 0
             if len(formatters) == 1 or no_prefix:
@@ -101,7 +105,6 @@ def timedelta(delta: dt.timedelta, *, no_prefix: bool = False) -> str:
                 else:
                     return f'in {base}'
             else:
-                assert len(formatters) == 3
                 return formatters[2 if past else 1](delta)
 
     assert False

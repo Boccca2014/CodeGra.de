@@ -16,7 +16,6 @@ from ..helpers import (
     JSONResponse, EmptyResponse, ExtendedJSONResponse, jsonify,
     make_empty_response
 )
-from ..permissions import CoursePermission as CPerm
 
 
 @api.route('/linters/<linter_id>', methods=['DELETE'])

@@ -153,14 +153,10 @@ def init_app(app: PsefFlask) -> None:
     cg_sqlalchemy_helpers.init_app(db, app)
 
 
-if t.TYPE_CHECKING and getattr(
-    t, 'SPHINX', False
-) is not True:  # pragma: no cover
-    from cg_sqlalchemy_helpers.types import Base, Comparator
-    hybrid_property = property  # pylint: disable=invalid-name
+if t.TYPE_CHECKING:  # pragma: no cover
+    from cg_sqlalchemy_helpers.types import Base
 else:
-    from sqlalchemy.ext.hybrid import hybrid_property, Comparator  # type: ignore
-    Base = db.Model  # type: ignore # pylint: disable=invalid-name
+    Base = db.Model  # pylint: disable=invalid-name
 
 if True:  # pylint: disable=using-constant-test
     from .course import Course, CourseSnippet, CourseRegistrationLink

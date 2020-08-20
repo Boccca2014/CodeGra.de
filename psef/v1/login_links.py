@@ -1,3 +1,7 @@
+"""This module defines all routes for login links.
+
+SPDX-License-Identifier: AGPL-3.0-only
+"""
 import uuid
 from datetime import timedelta
 
@@ -7,9 +11,8 @@ from cg_json import JSONResponse, ExtendedJSONResponse
 
 from . import api
 from .. import auth, models, helpers
-from .login import LoginResponse
 from ..models import db
-from ..helpers import jsonify_options, get_request_start_time
+from ..helpers import jsonify_options
 from ..exceptions import APICodes, APIException
 
 logger = structlog.get_logger()
@@ -18,6 +21,15 @@ logger = structlog.get_logger()
 @api.route('/login_links/<uuid:login_link_id>')
 def get_login_link(login_link_id: uuid.UUID
                    ) -> JSONResponse[models.AssignmentLoginLink]:
+    """Get a login link and the connected assignment.
+
+    .. :quickref: Login link; Get a login link and its connected assignment.
+
+    :param login_link_id: The id of the login link you want to get.
+
+    :returns: The requested login link, which will also contain information
+              about the connected assignment.
+    """
     login_link = helpers.get_or_404(
         models.AssignmentLoginLink,
         login_link_id,
@@ -31,7 +43,25 @@ def get_login_link(login_link_id: uuid.UUID
 
 @api.route('/login_links/<uuid:login_link_id>/login', methods=['POST'])
 def login_with_link(login_link_id: uuid.UUID
-                    ) -> ExtendedJSONResponse[LoginResponse]:
+                    ) -> ExtendedJSONResponse[models.User.LoginResponse]:
+    """Login with the given login link.
+
+    .. :quickref: Login link; Login with a login link.
+
+    This will only work when the assignment connected to this link is
+    available, and the deadline has not expired. The received JWT token will
+    only be valid until the 30 minutes after the deadline, and only in the
+    course connected to this link.
+
+    .. note::
+
+        The scope of the returned token will change in the future, this will
+        not be considered a breaking change.
+
+    :param login_link_id: The id of the login link you want to use to login.
+
+    :returns: The logged in user and an access token.
+    """
     login_link = helpers.get_or_404(
         models.AssignmentLoginLink,
         login_link_id,

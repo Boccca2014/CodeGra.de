@@ -7,7 +7,6 @@ SPDX-License-Identifier: AGPL-3.0-only
 import uuid
 import typing as t
 
-import flask_jwt_extended as flask_jwt
 from flask import request
 from sqlalchemy.orm import selectinload
 from mypy_extensions import TypedDict

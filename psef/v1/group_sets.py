@@ -8,14 +8,11 @@ SPDX-License-Identifier: AGPL-3.0-only
 
 import typing as t
 
-from flask import request
-
 from . import api
 from .. import auth, models, helpers, features, current_user
 from ..helpers import (
     JSONResponse, EmptyResponse, ExtendedJSONResponse, jsonify, get_or_404,
-    get_in_or_error, ensure_json_dict, extended_jsonify, ensure_keys_in_dict,
-    make_empty_response
+    get_in_or_error, extended_jsonify, make_empty_response
 )
 from ..exceptions import APICodes, APIException
 from ..permissions import CoursePermission as CPerm

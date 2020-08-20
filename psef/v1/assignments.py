@@ -102,8 +102,7 @@ def delete_assignment(assignment_id: int) -> EmptyResponse:
         also_error=lambda a: not a.is_visible
     )
 
-    auth.ensure_can_see_assignment(assignment)
-    auth.ensure_permission(CPerm.can_delete_assignments, assignment.course_id)
+    auth.AssignmentPermissions(assignment).ensure_may_delete()
 
     assignment.mark_as_deleted()
     assignment.group_set = None
@@ -133,9 +132,7 @@ def get_assignment(assignment_id: int) -> JSONResponse[models.Assignment]:
         assignment_id,
         also_error=lambda a: not a.is_visible
     )
-
-    auth.ensure_can_see_assignment(assignment)
-
+    auth.AssignmentPermissions(assignment).ensure_may_see()
     return jsonify(assignment)
 
 

@@ -187,7 +187,7 @@ def cache_for_object_id(f: t.Callable[[T_OBJECT_WITH_ID], Y]
     return cache_within_request_make_key(_get_id_of_object)(f)
 
 
-class cached_property(t.Generic[Y, Z]):
+class cached_property(t.Generic[Y, Z]):  # pylint: disable=invalid-name
     """A decorator that converts a method into a cached property.
 
     This class was inspired by werkzeugs ``cached_property``.

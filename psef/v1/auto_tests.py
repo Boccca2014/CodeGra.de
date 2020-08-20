@@ -946,7 +946,7 @@ def get_auto_test_step_result_attachment(
         also_error=also_error,
     )
 
-    auth.ensure_can_view_autotest_result(step_result.result)
+    auth.AutoTestResultPermissions(step_result.result).ensure_may_see()
     auth.ensure_can_view_autotest_step_details(step_result.step)
 
     if step_result.attachment_filename is None:

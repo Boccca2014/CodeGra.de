@@ -14,7 +14,7 @@ from flask import current_app
 from itsdangerous import BadSignature, URLSafeTimedSerializer
 from werkzeug.local import LocalProxy
 from sqlalchemy_utils import PasswordType
-from typing_extensions import Literal
+from typing_extensions import Literal, TypedDict
 from sqlalchemy.sql.expression import false
 from sqlalchemy.orm.collections import attribute_mapped_collection
 
@@ -72,6 +72,14 @@ class User(NotEqualMixin, Base):
     :ivar reset_email_on_lti: Determines if the email should be reset on the
         next LTI launch.
     """
+    class LoginResponse(TypedDict):
+        """When logging this object will be given.
+        """
+        #: The user that was logged in.
+        user: 'User'
+        #: A JWT token that can be used to do authenticated requests.
+        access_token: str
+
 
     @t.overload
     def make_access_token(
