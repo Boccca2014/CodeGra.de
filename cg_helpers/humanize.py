@@ -38,7 +38,7 @@ def size(_size: 'psef.archive.FileSize') -> str:
     return f"{size_f:.2f}{unit}"
 
 
-_POSSIBLE_TIMES = Literal['s', 'm', 'h', 'd', 'M', 'y']
+_POSSIBLE_TIMES = Literal['s', 'm', 'h', 'd', 'M', 'y']  # pylint: disable=invalid-name
 
 
 def _timedelta_to(delta: dt.timedelta, wanted_unit: _POSSIBLE_TIMES) -> int:
