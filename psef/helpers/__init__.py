@@ -1000,8 +1000,11 @@ def get_from_map_transaction(
 
         if isinstance(typ, type) and issubclass(typ, list):
             assert list_el is not None
-            assert isinstance(mapping, MultiDict)
-            items: t.List[TT] = mapping.getlist(key)
+            items: t.List[t.Union[TT, MissingType]]
+            if isinstance(mapping, MultiDict):
+                items = mapping.getlist(key)
+            else:
+                items = [mapping.get(key, MISSING)]
             return t.cast(TTT, [transform_value(x, list_el, transform) for x in items])
         else:
             keys.append((key, typ))
