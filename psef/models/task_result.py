@@ -77,7 +77,9 @@ class TaskResult(Base, UUIDMixin, TimestampMixin):
     def __init__(self, user: t.Optional['user_models.User']) -> None:
         super().__init__(user=on_not_none(user, user_models.User.resolve))
 
-    def as_task(self, fun: t.Callable[[], t.Optional[TaskResultState]]) -> bool:
+    def as_task(
+        self, fun: t.Callable[[], t.Optional[TaskResultState]]
+    ) -> bool:
         """Run the given ``fun`` as the task.
 
         .. warning::
