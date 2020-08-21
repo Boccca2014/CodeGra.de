@@ -103,9 +103,7 @@ export default Vue.component('wizard-button', {
                 attrs: ctx.data.attrs,
                 class: {
                     'wizard-button': true,
-                    small: ctx.props.size === 'small',
-                    medium: ctx.props.size === 'medium',
-                    large: ctx.props.size === 'large',
+                    [ctx.props.size]: true,
                 },
                 // Pass all event listeners on to the button, not the wrapper div.
                 on: ctx.listeners,
