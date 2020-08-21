@@ -10,11 +10,11 @@
                 <pre>{{ oldCgignore }}</pre>
             </div>
         </b-alert>
-        <submit-button :submit="deleteIgnore"
-                       @after-success="afterUpdateIgnore"
-                       variant="danger"
-                       confirm="Are you sure you want to delete this old validator?"
-                       label="Clear and use new version"/>
+        <cg-submit-button :submit="deleteIgnore"
+                          @after-success="afterUpdateIgnore"
+                          variant="danger"
+                          confirm="Are you sure you want to delete this old validator?"
+                          label="Clear and use new version"/>
     </div>
     <div v-else-if="oldRemoteVersion">
         <pre>{{ oldCgignore }}</pre>
@@ -23,44 +23,100 @@
          class="font-italic text-muted">
         No validation set.
     </div>
-    <b-form-group v-else-if="!summaryMode"
-                  class="policy-form"
-                  :class="policy ? '' : 'policy-form-only'"
-                  label-class="font-weight-bold pt-0 policy-form-label"
-                  label-cols="9"
-                  horizontal>
-        <template slot="label">
-            By default
-            <description-popover hug-text>
-                <p class="mb-1">
-                    This determines what happens to files by default.  With
-                    both options you can specify required files, that students
-                    must upload.
-                </p>
+    <div v-else-if="!assignmentHasInstructions && showImporter">
+        <h4 class="text-center mb-3">
+            Select an assignment to copy from
+        </h4>
 
-                <p class="mb-1">
-                    <b>Deny all files</b> denies all files by default, which
-                    determines exactly which files a student is allowed to
-                    upload.
-                </p>
+        <b-input-group class="mb-3">
+            <multiselect
+                class="assignment-selector"
+                v-model="importAssignment"
+                :options="otherAssignmentsWithInstructions || []"
+                :searchable="true"
+                :custom-label="a => `${courses[a.courseId].name} - ${a.name}`"
+                :multiple="false"
+                track-by="id"
+                label="label"
+                :close-on-select="true"
+                :hide-selected="false"
+                placeholder="Type to search an assignment"
+                :internal-search="true">
+                <span slot="noResult">
+                    No results were found.
+                </span>
+            </multiselect>
+        </b-input-group>
 
-                <p class="mb-1">
-                    <b>Allow all files</b> allows all files by default, which
-                    allows you to specify which files a student is not allowed
-                    to upload.
-                </p>
-            </description-popover>
-        </template>
-        <b-form-radio-group
-            class="option-button"
-            :disabled="!editable || policyDisabled"
-            v-b-popover.top.hover="policyDisabled && editable ? 'You cannot change the policy after you have created rules.' : ''"
-            v-model="policy"
-            size="sm"
-            :options="policyOptions"
-            button-variant="primary"
-            buttons />
-    </b-form-group>
+        <b-button-toolbar justify>
+            <b-button @click="showImporter = false">
+                Go back
+            </b-button>
+
+            <cg-submit-button :disabled="!importAssignment"
+                              label="Import"
+                              :submit="copyIgnore"
+                              @after-success="afterUpdateIgnore"/>
+        </b-button-toolbar>
+    </div>
+    <div v-else-if="!rules"
+         class="d-flex flex-row justify-content-center">
+        <cg-wizard-button
+            class="mr-3"
+            label="Create new hand-in instructions"
+            icon="plus"
+            @click="createInstructions" />
+
+        <cg-wizard-button
+            label="Copy instructions"
+            icon="copy"
+            @click="showImporter = true" />
+    </div>
+    <template v-else-if="!summaryMode">
+        <b-form-group class="policy-form"
+                      :class="policy ? '' : 'policy-form-only'"
+                      label-class="font-weight-bold pt-0 policy-form-label"
+                      label-cols="9"
+                      horizontal>
+            <template slot="label">
+                By default
+                <cg-description-popover hug-text>
+                    <p class="mb-1">
+                        This determines what happens to files by default.  With
+                        both options you can specify required files, that students
+                        must upload.
+                    </p>
+
+                    <p class="mb-1">
+                        <b>Deny all files</b> denies all files by default, which
+                        determines exactly which files a student is allowed to
+                        upload.
+                    </p>
+
+                    <p class="mb-1">
+                        <b>Allow all files</b> allows all files by default, which
+                        allows you to specify which files a student is not allowed
+                        to upload.
+                    </p>
+                </cg-description-popover>
+            </template>
+            <b-form-radio-group
+                class="option-button"
+                :disabled="!editable || policyDisabled"
+                v-b-popover.top.hover="policyDisabled && editable ? 'You cannot change the policy after you have created rules.' : ''"
+                v-model="policy"
+                size="sm"
+                :options="policyOptions"
+                button-variant="primary"
+                buttons />
+        </b-form-group>
+
+        <b-button v-if="!assignmentHasInstructions && !policy"
+                  @click="resetValues"
+                  class="mt-3">
+            Go back
+        </b-button>
+    </template>
 
     <transition :name="disabledAnimations ? '' : 'collapse'">
         <div v-if="policy" class="collapse-entry">
@@ -73,7 +129,8 @@
                 <tbody>
                     <tr v-for="option in options">
                         <td>
-                            {{ option.name }} <description-popover hug-text :description="option.description"/>
+                            {{ option.name }}
+                            <cg-description-popover hug-text :description="option.description"/>
                         </td>
                         <td>
                             <b-form-group horizontal
@@ -118,19 +175,20 @@
                                            @file-sep-click="addNewRule"
                                            @done-editing="$set(rules[ruleIndex], 'editing', false)"/>
                                 <b-button-group v-if="editable && !rules[ruleIndex].editing">
-                                    <submit-button confirm="Are you sure you want to delete this rule?"
-                                                   v-b-popover.top.hover="'Delete this rule'"
-                                                   :submit="() => deleteRule(ruleIndex)"
-                                                   :duration="0"
-                                                   :wait-at-least="0"
-                                                   variant="danger">
-                                        <icon name="times"/>
-                                    </submit-button>
+                                    <cg-submit-button
+                                                      confirm="Are you sure you want to delete this rule?"
+                                                      v-b-popover.top.hover="'Delete this rule'"
+                                                      :submit="() => deleteRule(ruleIndex)"
+                                                      :duration="0"
+                                                      :wait-at-least="0"
+                                                      variant="danger">
+                                        <fa-icon name="times"/>
+                                    </cg-submit-button>
                                     <b-btn variant="primary"
                                            class="edit-rule-btn"
                                            v-b-popover.top.hover="'Edit this rule'"
                                            @click="$set(rules[ruleIndex], 'editing', true)">
-                                        <icon name="pencil"/>
+                                        <fa-icon name="pencil"/>
                                     </b-btn>
                                 </b-button-group>
                             </div>
@@ -145,41 +203,44 @@
                     </li>
                 </ul>
             </div>
-            <div v-if="editable"
-                 class="help-text">
-                <p>
-                    Add rules by specifying the required, allowed or denied path
-                    in the text area above. Use <code>/</code> or <code>\</code>
-                    as a directory separator to specify that certain files are
-                    required, allowed or denied in a directory. Start the rule
-                    with a directory separator (<code>/</code>
-                    or <code>\</code>) to specify that a file is required,
-                    allowed or denied in the top level directory.
-                </p>
 
-                <p class="mb-0">
-                    To match more than one file, you can use a single wildcard
-                    for the name of the file, by using a <code>*</code>. For
-                    example <code>/src/*.py</code> matches any file ending
-                    with <code>.py</code> in the directory <code>src</code> that
-                    is directly in the top level directory of the submission.
-                </p>
+            <template v-if="editable">
+                <div class="help-text">
+                    <p>
+                        Add rules by specifying the required, allowed or denied path
+                        in the text area above. Use <code>/</code> or <code>\</code>
+                        as a directory separator to specify that certain files are
+                        required, allowed or denied in a directory. Start the rule
+                        with a directory separator (<code>/</code>
+                        or <code>\</code>) to specify that a file is required,
+                        allowed or denied in the top level directory.
+                    </p>
 
-            </div>
+                    <p class="mb-0">
+                        To match more than one file, you can use a single wildcard
+                        for the name of the file, by using a <code>*</code>. For
+                        example <code>/src/*.py</code> matches any file ending
+                        with <code>.py</code> in the directory <code>src</code> that
+                        is directly in the top level directory of the submission.
+                    </p>
+                </div>
 
-            <div v-if="editable">
-                <hr/>
-                <b-button-toolbar justify>
-                    <submit-button :submit="deleteIgnore"
-                                   @after-success="afterUpdateIgnore"
-                                   variant="danger"
-                                   confirm="Are you sure you want to delete this validator?"
-                                   label="Delete"/>
+                <b-button-toolbar justify class="pt-3 border-top">
+                    <cg-submit-button v-if="assignmentHasInstructions"
+                                      :submit="deleteIgnore"
+                                      @after-success="afterUpdateIgnore"
+                                      variant="danger"
+                                      confirm="Are you sure you want to delete this validator?"
+                                      label="Delete"/>
 
-                    <submit-button :submit="submitIgnore"
-                                   @success="afterUpdateIgnore"
-                                   class="submit-ignore"
-                                   :disabled="!configurationValid">
+                    <b-button v-else @click="resetValues">
+                        Go back
+                    </b-button>
+
+                    <cg-submit-button :submit="submitIgnore"
+                                      @success="afterUpdateIgnore"
+                                      class="submit-ignore"
+                                      :disabled="!configurationValid">
                         <template slot="error" slot-scope="e">
                             <span v-if="getProps(e, null, 'error', 'response', 'data', 'code') === 'PARSING_FAILED'">
                                 {{ e.error.response.data.message }}: {{ e.error.response.data.description }}
@@ -191,26 +252,26 @@
                                 Something unknown went wrong!
                             </span>
                         </template>
-                    </submit-button>
+                    </cg-submit-button>
                 </b-button-toolbar>
-            </div>
+            </template>
         </div>
     </transition>
 </div>
 </template>
 
 <script>
-import Icon from 'vue-awesome/components/Icon';
+import Multiselect from 'vue-multiselect';
+
 import 'vue-awesome/icons/times';
+import 'vue-awesome/icons/copy';
+import 'vue-awesome/icons/plus';
 
 import { mapGetters, mapActions } from 'vuex';
 
 import { range, getProps } from '@/utils';
 
-import SubmitButton from './SubmitButton';
 import FileRule from './FileRule';
-import Loader from './Loader';
-import DescriptionPopover from './DescriptionPopover';
 
 let optionId = 0;
 function getOptionId() {
@@ -225,12 +286,10 @@ export default {
             type: Number,
             required: true,
         },
-
         editable: {
             type: Boolean,
             default: true,
         },
-
         summaryMode: {
             type: Boolean,
             default: false,
@@ -238,7 +297,7 @@ export default {
     },
 
     computed: {
-        ...mapGetters('courses', ['assignments']),
+        ...mapGetters('courses', ['courses', 'assignments']),
 
         remoteIgnoreFile() {
             return [
@@ -308,6 +367,16 @@ export default {
                 },
             ];
         },
+
+        assignmentHasInstructions() {
+            return !!this.assignment.cgignore;
+        },
+
+        otherAssignmentsWithInstructions() {
+            return Object.values(this.assignments).filter(assig =>
+                assig.cgignore_version === 'SubmissionValidator' && assig.id !== this.assignmentId,
+            );
+        },
     },
 
     watch: {
@@ -340,15 +409,22 @@ export default {
             policy: null,
             loadingRules: false,
             content: '',
-            rules: [],
+            rules: null,
             options: this.getDefaultOptions(),
             oldRemoteVersion: false,
             oldCgignore: '',
+
+            showImporter: false,
+            importAssignment: null,
         };
     },
 
     methods: {
         ...mapActions('courses', ['updateAssignment']),
+
+        createInstructions() {
+            this.rules = [];
+        },
 
         copyRemoteValues(ignore, version) {
             if (version === 'IgnoreFilterManager' || (version == null && ignore != null)) {
@@ -374,7 +450,7 @@ export default {
 
         resetValues() {
             this.policy = null;
-            this.rules = [];
+            this.rules = null;
             this.options = this.getDefaultOptions();
         },
 
@@ -464,6 +540,7 @@ export default {
             // rules without having any issue with animations.
             this.loadingRules = true;
             await this.$nextTick();
+            this.showImporter = false;
             this.copyRemoteValues(cgignore, cgignore_version);
             this.loadingRules = false;
         },
@@ -483,14 +560,18 @@ export default {
                 name: '',
             };
         },
+
+        copyIgnore() {
+            return this.updateIgnore(
+                this.importAssignment.cgignore,
+                this.importAssignment.cgignore_version,
+            );
+        },
     },
 
     components: {
-        SubmitButton,
         FileRule,
-        Icon,
-        Loader,
-        DescriptionPopover,
+        Multiselect,
     },
 };
 </script>
