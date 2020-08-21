@@ -738,9 +738,6 @@ def _send_email_as_user_1(
     if task_result is None:
         logger.error('Could not find task result')
         return
-    if task_result.state != p.models.TaskResultState.not_started:
-        logger.error('Task already started or done', task_result=task_result)
-        return
 
     def __task() -> None:
         receivers = p.helpers.get_in_or_error(
@@ -787,8 +784,8 @@ def _send_email_as_user_1(
                 failed_users=failed_receivers,
             )
 
-    task_result.as_task(__task)
-    p.models.db.session.commit()
+    if task_result.as_task(__task):
+        p.models.db.session.commit()
 
 
 @celery.task
@@ -821,19 +818,14 @@ def _send_login_links_to_users_1(
     reset_token_hex: str, mail_idx: int
 ) -> None:
     task_id = uuid.UUID(hex=task_id_hex)
-    _task_result = p.models.TaskResult.query.filter(
+    task_result = p.models.TaskResult.query.filter(
         p.models.TaskResult.id == task_id,
         p.models.TaskResult.state == p.models.TaskResultState.not_started
     ).with_for_update(of=p.models.TaskResult).one_or_none()
-    if _task_result is None:
+    eta = DatetimeWithTimezone.fromisoformat(scheduled_time)
+    if task_result is None:
         logger.error('Could not find task')
         return
-    elif current_task.maybe_delay_task(
-        DatetimeWithTimezone.fromisoformat(scheduled_time)
-    ):
-        return
-
-    task_result = _task_result
 
     def __task() -> p.models.TaskReturnType:
         reset_token = uuid.UUID(hex=reset_token_hex)
@@ -841,19 +833,19 @@ def _send_login_links_to_users_1(
             p.models.Assignment.id == assignment_id,
         ).with_for_update(of=p.models.Assignment).one_or_none()
 
-        if assignment is None:
-            logger.error('Could not find assignment or task')
-            return p.models.TaskResultState.skipped
-
-        if assignment.deadline_expired:
-            logger.info('Deadline of assignment already expired')
+        if assignment is None or assignment.deadline_expired:
+            logger.error(
+                'Could not find assignment or deadline expired',
+                assignment_id=assignment_id,
+                assignment=assignment,
+            )
             return p.models.TaskResultState.skipped
         elif reset_token != assignment.send_login_links_token:
             logger.info('Tokens did not match')
             return p.models.TaskResultState.skipped
 
         login_link_map = {
-            link.user_id: link
+            link.user: link
             for link in p.models.AssignmentLoginLink.query.filter(
                 p.models.AssignmentLoginLink.assignment == assignment
             )
@@ -869,13 +861,12 @@ def _send_login_links_to_users_1(
         ]
 
         for user in users:
-            if user.id in login_link_map:
-                continue
-            link = p.models.AssignmentLoginLink(
-                user_id=user.id, assignment_id=assignment.id
-            )
-            p.models.db.session.add(link)
-            login_link_map[user.id] = link
+            if user not in login_link_map:
+                link = p.models.AssignmentLoginLink(
+                    user_id=user.id, assignment_id=assignment.id
+                )
+                p.models.db.session.add(link)
+                login_link_map[user] = link
 
         # We commit here to release the locks on all tables before we start
         # emailing.
@@ -883,12 +874,13 @@ def _send_login_links_to_users_1(
 
         with p.mail.mail.connect() as mailer:
             for user in users:
-                link = login_link_map[user.id]
+                link = login_link_map[user]
                 try:
                     p.mail.send_login_link_mail(
                         mailer, link, mail_idx=mail_idx
                     )
-                except:  # pylint: disable=bare-except
+                # pylint: disable=bare-except
+                except:  # pragma: no cover
                     logger.warning(
                         'Could not send email',
                         receiving_user_id=user.id,
@@ -898,8 +890,8 @@ def _send_login_links_to_users_1(
 
         return p.models.TaskResultState.finished
 
-    task_result.as_task(__task)
-    p.models.db.session.commit()
+    if task_result.as_task(__task, eta=eta):
+        p.models.db.session.commit()
 
 
 lint_instances = _lint_instances_1.delay  # pylint: disable=invalid-name

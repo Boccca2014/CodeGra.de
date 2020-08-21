@@ -7,7 +7,9 @@ from datetime import timedelta
 
 import structlog
 
+import cg_helpers
 from cg_json import JSONResponse, ExtendedJSONResponse
+from cg_helpers import humanize
 
 from . import api
 from .. import auth, models, helpers
@@ -70,15 +72,8 @@ def login_with_link(login_link_id: uuid.UUID
     )
     assignment = login_link.assignment
     deadline = assignment.deadline
-    if deadline is None or assignment.deadline_expired:
-        raise APIException(
-            (
-                'The deadline for this assignment has already expired, so you'
-                ' can no longer use this link.'
-            ), f'The deadline for the assignment {assignment.id} has expired',
-            APICodes.OBJECT_EXPIRED, 400
-        )
-    elif assignment.state.is_hidden:
+
+    if assignment.state.is_hidden:
         assignment_id = assignment.id
         db.session.expire(assignment)
 
@@ -92,6 +87,8 @@ def login_with_link(login_link_id: uuid.UUID
             available_at=assignment.available_at,
         )
 
+        # We reload the assignment from the database, so we have to check again
+        # if it really still is hidden.
         if assignment.state.is_hidden:
             now = helpers.get_request_start_time()
             if (
@@ -101,7 +98,33 @@ def login_with_link(login_link_id: uuid.UUID
                 assignment.state = models.AssignmentStateEnum.open
                 db.session.commit()
             else:
-                raise APIException
+                time_left = cg_helpers.handle_none(
+                    cg_helpers.on_not_none(
+                        assignment.available_at,
+                        lambda avail: humanize.timedelta(
+                            avail - now,
+                            no_prefix=True,
+                        ),
+                    ), 'an infinite amount'
+                )
+                raise APIException(
+                    (
+                        'The assignment connected to this login link is still'
+                        ' not available, please wait for {} for it to become'
+                        ' available.'
+                    ).format(time_left),
+                    f'The assignment {assignment.id} is not available yet',
+                    APICodes.INVALID_STATE, 409
+                )
+
+    if deadline is None or assignment.deadline_expired:
+        raise APIException(
+            (
+                'The deadline for this assignment has already expired, so you'
+                ' can no longer use this link.'
+            ), f'The deadline for the assignment {assignment.id} has expired',
+            APICodes.OBJECT_EXPIRED, 400
+        )
 
     logger.info(
         'Logging in user with login link', user_to_login=login_link.user

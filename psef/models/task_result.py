@@ -7,11 +7,13 @@ import enum
 import typing as t
 
 import structlog
+from celery import current_task
 from typing_extensions import Literal, TypedDict
 
 import cg_enum
 from cg_json import JSONResponse
 from cg_helpers import handle_none, on_not_none
+from cg_dt_utils import DatetimeWithTimezone
 from cg_sqlalchemy_helpers import JSONB
 from cg_sqlalchemy_helpers.mixins import UUIDMixin, TimestampMixin
 
@@ -78,7 +80,10 @@ class TaskResult(Base, UUIDMixin, TimestampMixin):
         super().__init__(user=on_not_none(user, user_models.User.resolve))
 
     def as_task(
-        self, fun: t.Callable[[], t.Optional[TaskResultState]]
+        self,
+        fun: t.Callable[[], t.Optional[TaskResultState]],
+        *,
+        eta: t.Optional[DatetimeWithTimezone] = None,
     ) -> bool:
         """Run the given ``fun`` as the task.
 
@@ -89,13 +94,19 @@ class TaskResult(Base, UUIDMixin, TimestampMixin):
 
         :param fun: The function to run as the task, catching the exceptions it
             produces and storing them in this task result.
+        :param eta: The time the task should run, if the current time is before
+            this ETA the current celery task will be scheduled again and
+            ``fun`` will not be called.
+
         :returns: ``True`` if the task ran, otherwise ``False``.
         """
         if not self.state.is_not_started:  # pragma: no cover
-            raise AssertionError(
-                f'Cannot start task that has already started, state was in'
-                f' {self.state}'
+            logger.error(
+                'Cannot start task that has already started', task_result=self
             )
+            return False
+        elif eta and current_task.maybe_delay_task(eta):
+            return False
 
         self.state = TaskResultState.started
         db.session.commit()

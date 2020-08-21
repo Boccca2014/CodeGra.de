@@ -602,7 +602,7 @@ if login_before_str:
 else:
     # This default is also hard coded in `build/userConfig.js`
     login_before = [datetime.timedelta(days=2), datetime.timedelta(minutes=30)]
-CONFIG['LOGIN_TOKEN_BEFORE_TIME'] = login_before
+CONFIG['LOGIN_TOKEN_BEFORE_TIME'] = sorted(login_before, reverse=True)
 
 max_login_length = backend_ops.getfloat(
     'EXAM_LOGIN_MAX_LENGTH',

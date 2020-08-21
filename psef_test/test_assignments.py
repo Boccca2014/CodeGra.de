@@ -5376,3 +5376,41 @@ def test_available_at(
                 'state': 'done',
             }
         )
+
+
+def test_changing_kind_of_assignment(
+    describe, test_client, logged_in, admin_user, tomorrow, yesterday, session
+):
+    with describe('setup'), logged_in(admin_user):
+        assig = helpers.create_assignment(test_client)
+        student = helpers.create_user_with_role(
+            session, 'Student', assig['course']
+        )
+        url = f'/api/v1/assignments/{helpers.get_id(assig)}'
+
+    with describe('cannot change to exam without deadline and available at'
+                  ), logged_in(admin_user):
+        test_client.req('patch', url, 409, data={'kind': 'exam'})
+        test_client.req(
+            'patch', url, 200, data={'deadline': tomorrow.isoformat()}
+        )
+        test_client.req('patch', url, 409, data={'kind': 'exam'})
+        test_client.req(
+            'patch',
+            url,
+            200,
+            data={'available_at': yesterday.isoformat(), 'kind': 'exam'},
+            result={'__allow_extra__': True, 'kind': 'exam'}
+        )
+
+    with describe('students cannot change'), logged_in(student):
+        test_client.req('patch', url, 200, data={'kind': 'normal'})
+
+    with describe('can change back to normal'), logged_in(admin_user):
+        test_client.req(
+            'patch',
+            url,
+            200,
+            data={'kind': 'normal'},
+            result={'__allow_extra__': True, 'kind': 'normal'}
+        )

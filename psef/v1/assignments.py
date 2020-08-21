@@ -327,10 +327,6 @@ def update_assignment(assignment_id: int) -> JSONResponse[models.Assignment]:
         perm_checker.ensure_may_edit_info()
         assig.available_at = new_available_at
 
-    if new_send_login_links is not MISSING:
-        perm_checker.ensure_may_edit_info()
-        assig.send_login_links = new_send_login_links
-
     if new_state is not MISSING:
         perm_checker.ensure_may_edit_info()
         assig.set_state_with_string(new_state)
@@ -456,6 +452,10 @@ def update_assignment(assignment_id: int) -> JSONResponse[models.Assignment]:
     if new_amount_cool_off is not MISSING:
         perm_checker.ensure_may_edit_info()
         assig.amount_in_cool_off_period = new_amount_cool_off
+
+    if new_send_login_links is not MISSING:
+        perm_checker.ensure_may_edit_info()
+        assig.send_login_links = new_send_login_links
 
     for warning in assig.get_changed_ambiguous_combinations():
         helpers.add_warning(warning.message, APIWarnings.AMBIGUOUS_COMBINATION)
