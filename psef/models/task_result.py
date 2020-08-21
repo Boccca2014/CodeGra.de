@@ -7,7 +7,7 @@ import enum
 import typing as t
 
 import structlog
-from typing_extensions import TypedDict
+from typing_extensions import Literal, TypedDict
 
 import cg_enum
 from cg_json import JSONResponse
@@ -48,7 +48,7 @@ class TaskResultJSON(TypedDict):
     result: t.Optional[t.Mapping[str, object]]
 
 
-TaskReturnType = t.Literal[TaskResultState.skipped, TaskResultState.finished]
+TaskReturnType = Literal[TaskResultState.skipped, TaskResultState.finished]
 
 
 class TaskResult(Base, UUIDMixin, TimestampMixin):
