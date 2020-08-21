@@ -93,7 +93,7 @@ def get_all_assignments() -> JSONResponse[t.Sequence[models.Assignment]]:
     if AssignmentFilter.rubric in only_with:
         query = query.filter(
             t.cast(models.DbColumn[object],
-                    models.Assignment.rubric_rows).any()
+                   models.Assignment.rubric_rows).any()
         )
 
     if AssignmentFilter.handin_requirements in only_with:

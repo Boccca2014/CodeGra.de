@@ -943,7 +943,8 @@ def get_from_map_transaction(
     mapping: t.Mapping[T, TT],
     *,
     ensure_empty: bool = False,
-) -> t.Generator[t.Tuple[TransactionGet[T], TransactionOptionalGet[T]], None, None]:
+) -> t.Generator[t.Tuple[TransactionGet[T], TransactionOptionalGet[T]], None,
+                 None]:
     """Get from the given map in a transaction like style.
 
     If all gets and optional gets succeed at the end of the ``with`` block no
@@ -1005,7 +1006,9 @@ def get_from_map_transaction(
                 items = mapping.getlist(key)
             else:
                 items = [mapping.get(key, MISSING)]
-            return t.cast(TTT, [transform_value(x, list_el, transform) for x in items])
+            return t.cast(
+                TTT, [transform_value(x, list_el, transform) for x in items]
+            )
         else:
             keys.append((key, typ))
             value: t.Union[TT, MissingType] = mapping.get(key, MISSING)
