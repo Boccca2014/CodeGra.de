@@ -11,7 +11,7 @@ from typing_extensions import TypedDict
 
 import cg_enum
 from cg_json import JSONResponse
-from cg_helpers import on_not_none
+from cg_helpers import handle_none, on_not_none
 from cg_sqlalchemy_helpers import JSONB
 from cg_sqlalchemy_helpers.mixins import UUIDMixin, TimestampMixin
 
@@ -48,6 +48,9 @@ class TaskResultJSON(TypedDict):
     result: t.Optional[t.Mapping[str, object]]
 
 
+TaskReturnType = t.Literal[TaskResultState.skipped, TaskResultState.finished]
+
+
 class TaskResult(Base, UUIDMixin, TimestampMixin):
     """This class represents the state and result of a celery task.
 
@@ -74,7 +77,7 @@ class TaskResult(Base, UUIDMixin, TimestampMixin):
     def __init__(self, user: t.Optional['user_models.User']) -> None:
         super().__init__(user=on_not_none(user, user_models.User.resolve))
 
-    def as_task(self, fun: t.Callable[[], None]) -> bool:
+    def as_task(self, fun: t.Callable[[], t.Optional[TaskResultState]]) -> bool:
         """Run the given ``fun`` as the task.
 
         .. warning::
@@ -96,7 +99,7 @@ class TaskResult(Base, UUIDMixin, TimestampMixin):
         db.session.commit()
 
         try:
-            self.result = fun()
+            result_code = fun()
         except APIException as exc:
             self.state = TaskResultState.failed
             self.result = JSONResponse.dump_to_object(exc)
@@ -111,7 +114,8 @@ class TaskResult(Base, UUIDMixin, TimestampMixin):
                 )
             )
         else:
-            self.state = TaskResultState.finished
+            self.result = None
+            self.state = handle_none(result_code, TaskResultState.finished)
 
         return True
 

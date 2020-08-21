@@ -172,7 +172,7 @@ def create_auto_test() -> JSONResponse[models.AutoTest]:
     db.session.add(auto_test)
     db.session.flush()
 
-    auth.AutoTestPermissions(auto_test).ensure_may_edit()
+    auth.AutoTestPermissions(auto_test).ensure_may_add()
 
     if already_has:
         raise APIException(

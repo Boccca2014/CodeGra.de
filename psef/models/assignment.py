@@ -199,7 +199,6 @@ class AssignmentAmbiguousSettingTag(enum.Enum):
     max_submissions = enum.auto()
     cool_off = enum.auto()
     deadline = enum.auto()
-    send_login_links = enum.auto()
 
 
 @dataclasses.dataclass(frozen=True)
@@ -1786,9 +1785,6 @@ class Assignment(helpers.NotEqualMixin, Base):  # pylint: disable=too-many-publi
         if new_value == self.send_login_links:
             return
 
-        self._changed_ambiguous_settings.add(
-            AssignmentAmbiguousSettingTag.send_login_links
-        )
         if new_value:
             self._schedule_send_login_links()
         else:
@@ -2972,20 +2968,6 @@ class Assignment(helpers.NotEqualMixin, Base):  # pylint: disable=too-many-publi
                         ' might not check if a push results in a new'
                         ' submission.'
                     )
-                )
-            )
-
-        if self.deadline is None and self.send_login_links:
-            res.append(
-                _AssignmentAmbiguousSetting(
-                    tags={
-                        AssignmentAmbiguousSettingTag.deadline,
-                        AssignmentAmbiguousSettingTag.send_login_links,
-                    },
-                    message=(
-                        'The deadline for this assignment is not yet set, this'
-                        ' means the login links will not work.'
-                    ),
                 )
             )
 
