@@ -797,11 +797,12 @@ def _maybe_open_assignment_at_1(assignment_id: int) -> None:
         p.models.Assignment.id == assignment_id,
     ).with_for_update(of=p.models.Assignment).one_or_none()
 
-    if assignment is None:
-        logger.error('Could not find assignment')
-        return
-    if assignment.available_at is None:
-        logger.info('Assignment does not have an available_at defined')
+    if assignment is None or assignment.available_at is None:
+        logger.error(
+            'Could not find assignment with available_at',
+            assignment=assignment,
+            assignment_id=assignment_id
+        )
         return
     if not assignment.state.is_hidden:
         logger.info('State already set to not hidden')

@@ -428,3 +428,32 @@ def test_send_email_as_user(describe, session, stubmailer):
         assert m.TaskResult.query.get(
             task_result2.id
         ).state == m.TaskResultState.crashed
+
+
+def test_maybe_open_assignment(
+    describe, session, test_client, logged_in, admin_user, tomorrow,
+    stub_function
+):
+    with describe('setup'), logged_in(admin_user):
+        assig = helpers.create_assignment(test_client)
+        stub_apply = stub_function(
+            psef.tasks._maybe_open_assignment_at_1, 'apply_async'
+        )
+        assig_id = helpers.get_id(assig)
+
+    with describe('Can call without available_at set'):
+        psef.tasks._maybe_open_assignment_at_1(assig_id)
+        assert m.Assignment.query.get(assig_id).state.is_hidden
+        assert not stub_apply.called
+
+    with describe('Can call with non existant id'):
+        psef.tasks._maybe_open_assignment_at_1(1000000000)
+        assert not stub_apply.called
+
+    with describe('Can call with non existant id'):
+        m.Assignment.query.filter_by(id=assig_id).update({
+            'available_at': tomorrow.isoformat()
+        })
+        psef.tasks._maybe_open_assignment_at_1(assig_id)
+        assert stub_apply.called_amount == 1
+        assert stub_apply.kwargs[0]['eta'] == tomorrow.isoformat()

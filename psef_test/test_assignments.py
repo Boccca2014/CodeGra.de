@@ -11,6 +11,7 @@ import tempfile
 import dataclasses
 from collections import defaultdict
 
+import flask
 import pytest
 from freezegun import freeze_time
 from sqlalchemy.sql import func as sql_func
@@ -5243,4 +5244,135 @@ def test_get_assigned_grader_ids(
         assert None not in grader_ids
         assert sorted(grader_ids) == sorted(
             ta.id for ta in tas[:len(subs_to_assign)]
+        )
+
+
+def test_available_at(
+    describe, admin_user, logged_in, test_client, session, yesterday, tomorrow,
+    stub_function
+):
+    with describe('setup'), logged_in(admin_user):
+        orig_open_at = psef.tasks.maybe_open_assignment_at
+        open_at = stub_function(psef.tasks, 'maybe_open_assignment_at')
+        course = helpers.create_course(test_client)
+        assig = helpers.create_assignment(
+            test_client,
+            course,
+            deadline=(tomorrow + datetime.timedelta(days=1))
+        )
+        teacher = helpers.create_user_with_perms(
+            session, [
+                CPerm.can_see_assignments,
+                CPerm.can_see_hidden_assignments,
+                CPerm.can_view_analytics,
+                CPerm.can_edit_assignment_info,
+            ], course
+        )
+        no_perm = helpers.create_user_with_perms(
+            session, [
+                CPerm.can_see_assignments,
+                CPerm.can_see_hidden_assignments,
+                CPerm.can_view_analytics,
+            ], course
+        )
+        url = f'/api/v1/assignments/{helpers.get_id(assig)}'
+
+    with describe('cannot set garbage data'), logged_in(teacher):
+        test_client.req('patch', url, 400, data={'available_at': 'NOT A DATE'})
+        assert not open_at.called
+
+    with describe('cannot set after (or equal) deadline'), logged_in(teacher):
+        test_client.req(
+            'patch',
+            url,
+            409,
+            data={
+                'available_at':
+                    (tomorrow + datetime.timedelta(days=1)).isoformat()
+            }
+        )
+        assert not open_at.called
+
+    with describe('permissions are checker'), logged_in(no_perm):
+        test_client.req(
+            'patch', url, 403, data={'available_at': yesterday.isoformat()}
+        )
+        assert not open_at.called
+
+    with describe('can set available_at in the past'), logged_in(teacher):
+        test_client.req(
+            'patch',
+            url,
+            200,
+            data={'available_at': yesterday.isoformat()},
+            result={
+                **assig,
+                'available_at': yesterday.isoformat(),
+                'state': 'submitting',
+            }
+        )
+        # Don't schedule a task, as the available_at has already passed
+        assert not open_at.called
+
+    with describe('can set available_at in the future'), logged_in(teacher):
+        test_client.req(
+            'patch',
+            url,
+            200,
+            data={'available_at': tomorrow.isoformat()},
+            result={
+                **assig,
+                'available_at': tomorrow.isoformat(),
+                'state': 'hidden',
+            }
+        )
+        assert open_at.called
+        assert open_at.called_amount == 1
+
+        with freeze_time(tomorrow):
+            del flask.g.request_start_time
+            orig_open_at(*open_at.args[0], **open_at.kwargs[0])
+
+        test_client.req(
+            'get',
+            url,
+            200,
+            result={
+                **assig,
+                'available_at': tomorrow.isoformat(),
+                'state': 'submitting',
+            }
+        )
+
+    with describe(
+        'setting available_at when assignment is done has no effect'
+    ), logged_in(teacher):
+        test_client.req(
+            'patch', url, 200, data={'state': 'done', 'available_at': None}
+        )
+        test_client.req(
+            'patch',
+            url,
+            200,
+            data={'available_at': tomorrow.isoformat()},
+            result={
+                **assig, 'state': 'done', 'available_at': tomorrow.isoformat()
+            }
+        )
+        assert open_at.called
+        assert open_at.called_amount == 1
+
+        with freeze_time(tomorrow):
+            del flask.g.request_start_time
+            orig_open_at(*open_at.args[0], **open_at.kwargs[0])
+
+        test_client.req(
+            'get',
+            url,
+            200,
+            result={
+                **assig,
+                'available_at': tomorrow.isoformat(),
+                'state': 'done',
+            }
         )

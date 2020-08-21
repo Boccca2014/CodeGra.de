@@ -411,6 +411,8 @@ def get_request_start_time() -> DatetimeWithTimezone:
     :returns: The time as returned by the python time module.
     :rtype: float
     """
+    if not hasattr(flask.g, 'request_start_time'):
+        flask.g.request_start_time = DatetimeWithTimezone.utcnow()
     return flask.g.request_start_time
 
 
