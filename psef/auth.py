@@ -1234,26 +1234,11 @@ class CoursePermissions(CoursePermissionChecker):
         super().__init__(course_id)
         self._course = course
 
-    @property
-    def course(self) -> 'psef.models.Course':
-        """The course connected to this checker.
-        """
-        if self._course is None:
-            self._course = psef.models.Course.query.get(self.course_id)
-            assert self._course is not None
-        return self._course
-
     @CoursePermissionChecker.as_ensure_function
     def ensure_may_see(self) -> None:
         """Make sure the current user may edit the peer feedback settings of
         this course.
         """
-
-    @CoursePermissionChecker.as_ensure_function
-    def ensure_may_edit_group_sets(self) -> None:
-        """Ensure the current user may edit group sets in this course.
-        """
-        self._ensure(CPerm.can_edit_group_set)
 
     @CoursePermissionChecker.as_ensure_function
     def ensure_may_see_roles(self) -> None:

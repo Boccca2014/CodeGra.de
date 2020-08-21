@@ -18,8 +18,9 @@ def test_enabling_login_links(
     with describe('setup'), logged_in(admin_user):
         send_mail_stub = stub_function(psef.mail, 'send_login_link_mail')
         assig = helpers.create_assignment(test_client)
+        assig_id = helpers.get_id(assig)
         course = helpers.get_id(assig['course'])
-        url = f'/api/v1/assignments/{helpers.get_id(assig)}'
+        url = f'/api/v1/assignments/{assig_id}'
         teacher = helpers.create_user_with_perms(
             session, [
                 CPerm.can_see_assignments,
@@ -70,6 +71,19 @@ def test_enabling_login_links(
     with describe('cannot change login links with incorrect perms'
                   ), logged_in(no_perm):
         test_client.req('patch', url, 403, data={'send_login_links': False})
+        assert not send_mail_stub.called
+
+    with describe('Setting again does nothing'), logged_in(teacher):
+        old_token = m.Assignment.query.get(assig_id).send_login_links_token
+        test_client.req('patch', url, 200, data={'send_login_links': True})
+        new_token = m.Assignment.query.get(assig_id).send_login_links_token
+        assert new_token == old_token
+        assert not send_mail_stub.called
+
+    with describe('Disabling clears token'), logged_in(teacher):
+        test_client.req('patch', url, 200, data={'send_login_links': False})
+        new_token = m.Assignment.query.get(assig_id).send_login_links_token
+        assert new_token is None
         assert not send_mail_stub.called
 
 

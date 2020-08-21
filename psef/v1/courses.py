@@ -697,6 +697,7 @@ def create_group_set(course_id: int) -> JSONResponse[models.GroupSet]:
     if old_id is helpers.MISSING:
         group_set = models.GroupSet(course_id=course.id)
         models.db.session.add(group_set)
+        models.db.session.flush()
         auth.GroupSetPermissions(group_set).ensure_may_add()
     else:
         group_set = helpers.get_or_404(models.GroupSet, old_id)
