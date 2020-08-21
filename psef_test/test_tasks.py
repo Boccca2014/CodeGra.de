@@ -452,8 +452,8 @@ def test_maybe_open_assignment(
 
     with describe('Can call with non existant id'):
         m.Assignment.query.filter_by(id=assig_id).update({
-            'available_at': tomorrow.isoformat()
+            '_available_at': tomorrow.isoformat()
         })
         psef.tasks._maybe_open_assignment_at_1(assig_id)
         assert stub_apply.called_amount == 1
-        assert stub_apply.kwargs[0]['eta'] == tomorrow.isoformat()
+        assert stub_apply.kwargs[0]['eta'] == tomorrow
