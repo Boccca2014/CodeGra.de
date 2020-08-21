@@ -6,6 +6,7 @@ the APIs in this module are mostly used to manipulate
 SPDX-License-Identifier: AGPL-3.0-only
 """
 import os
+import enum
 import json
 import shutil
 import typing as t
@@ -42,6 +43,11 @@ from ..permissions import CoursePermission as CPerm
 logger = structlog.get_logger()
 
 
+class AssignmentFilter(enum.Enum):
+    rubric = enum.auto()
+    handin_requirements = enum.auto()
+
+
 @api.route('/assignments/', methods=['GET'])
 @auth.login_required
 def get_all_assignments() -> JSONResponse[t.Sequence[models.Assignment]]:
@@ -76,8 +82,24 @@ def get_all_assignments() -> JSONResponse[t.Sequence[models.Assignment]]:
         ),
         isouter=True,
     ).order_by(models.Assignment.created_at.desc())
-    if helpers.request_arg_true('only_with_rubric'):
-        query = query.filter(models.Assignment.rubric_rows.any())
+
+    with get_from_map_transaction(request.args) as [get, opt_get]:
+        only_with = get('only_with', list, list_el=AssignmentFilter)
+        only_with_rubric = opt_get('only_with_rubric', str)
+
+    if only_with_rubric in {'', 't', 'true'}:
+        only_with.append(AssignmentFilter.rubric)
+
+    if AssignmentFilter.rubric in only_with:
+        query = query.filter(
+            t.cast(models.DbColumn[object],
+                    models.Assignment.rubric_rows).any()
+        )
+
+    if AssignmentFilter.handin_requirements in only_with:
+        query = query.filter(
+            models.Assignment._cgignore_version == 'SubmissionValidator',
+        )
 
     for assig, has_linter in query.all():
         if auth.AssignmentPermissions(assig).ensure_may_see.as_bool():

@@ -642,7 +642,7 @@ export default {
         loadAssignments() {
             this.loadingAssignments = true;
             this.assignmentsWithRubric = [];
-            this.$http.get('/api/v1/assignments/?only_with_rubric').then(
+            this.$http.get('/api/v1/assignments/?only_with=rubric').then(
                 ({ data }) => {
                     this.assignmentsWithRubric = data;
                     this.loadingAssignments = false;
