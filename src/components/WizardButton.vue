@@ -180,11 +180,4 @@ export default Vue.component('wizard-button', {
         transform: translate(-50%, -50%);
     }
 }
-
-.label-extra {
-    /* position: absolute; */
-    /* text-align: center; */
-    /* left: 50%; */
-    /* transform: translateX(-50%); */
-}
 </style>
