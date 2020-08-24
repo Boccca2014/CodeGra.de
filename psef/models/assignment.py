@@ -36,7 +36,7 @@ from cg_sqlalchemy_helpers import UUIDType
 from cg_sqlalchemy_helpers import expression as sql_expression
 from cg_cache.intra_request import cached_property
 from cg_sqlalchemy_helpers.types import (
-    _T_BASE, MyQuery, DbColumn, ColumnProxy, MyNonOrderableQuery,
+    _T_BASE, MyQuery, DbColumn, ColumnProxy, FilterColumn, MyNonOrderableQuery,
     hybrid_property
 )
 from cg_sqlalchemy_helpers.mixins import IdMixin, UUIDMixin, TimestampMixin
@@ -319,6 +319,11 @@ class AssignmentDoneType(enum.IntEnum):
     """
     assigned_only: int = 1
     all_graders: int = 2
+
+
+class AssignmentFilter(enum.Enum):
+    rubric = enum.auto()
+    handin_requirements = enum.auto()
 
 
 class AssignmentLinter(Base):
@@ -3015,3 +3020,23 @@ class Assignment(helpers.NotEqualMixin, Base):  # pylint: disable=too-many-publi
                 'It is not possible to disable both webhook and files uploads',
                 APICodes.INVALID_STATE, 400
             )
+
+    @classmethod
+    def with_filters(
+        cls,
+        filters: t.Sequence[AssignmentFilter],
+    ) -> t.Sequence[FilterColumn]:
+        mapping = {
+            AssignmentFilter.rubric: cls.with_rubric,
+            AssignmentFilter.handin_requirements: cls.with_handin_requirements,
+        }
+
+        return [mapping[f]() for f in filters]
+
+    @classmethod
+    def with_rubric(cls) -> FilterColumn:
+        return cls.rubric_rows.any()
+
+    @classmethod
+    def with_handin_requirements(cls) -> FilterColumn:
+        return cls._cgignore_version == 'SubmissionValidator'

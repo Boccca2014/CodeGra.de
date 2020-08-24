@@ -43,11 +43,6 @@ from ..permissions import CoursePermission as CPerm
 logger = structlog.get_logger()
 
 
-class AssignmentFilter(enum.Enum):
-    rubric = enum.auto()
-    handin_requirements = enum.auto()
-
-
 @api.route('/assignments/', methods=['GET'])
 @auth.login_required
 def get_all_assignments() -> JSONResponse[t.Sequence[models.Assignment]]:
@@ -68,12 +63,23 @@ def get_all_assignments() -> JSONResponse[t.Sequence[models.Assignment]]:
 
     res = []
 
+    with get_from_map_transaction(request.args) as [get, opt_get]:
+        only_with = get('only_with', list, list_el=models.AssignmentFilter)
+        only_with_rubric = opt_get('only_with_rubric', str)
+
+    if only_with_rubric in {'', 't', 'true'}:
+        helpers.add_deprecate_warning(
+            'The only_with_rubric flag. Use only_with=rubric instead!'
+        )
+        only_with.append(models.AssignmentFilter.rubric)
+
     query = db.session.query(
         models.Assignment,
         models.AssignmentLinter.id.isnot(None),
     ).filter(
         models.Assignment.is_visible,
         models.Assignment.course_id.in_(course_ids),
+        *models.Assignment.with_filters(only_with),
     ).join(
         models.AssignmentLinter,
         sql_expression.and_(

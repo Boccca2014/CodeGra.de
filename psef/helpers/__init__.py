@@ -1005,7 +1005,7 @@ def get_from_map_transaction(
             if isinstance(mapping, MultiDict):
                 items = mapping.getlist(key)
             else:
-                items = [mapping.get(key, MISSING)]
+                items = maybe_wrap_in_list(mapping.get(key, []))
             return t.cast(
                 TTT, [transform_value(x, list_el, transform) for x in items]
             )
