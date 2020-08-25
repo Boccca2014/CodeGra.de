@@ -27,7 +27,7 @@ class CGEnum(enum.Enum):
     def __getattr__(self, name: str) -> t.Any:
         if name.startswith(_PREFIX):
             try:
-                found = self.__class__[name[_PREFIX_LEN:]]
+                found = type(self)[name[_PREFIX_LEN:]]
                 return self is found
             except KeyError:
                 pass
