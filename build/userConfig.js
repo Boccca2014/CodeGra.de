@@ -9,6 +9,10 @@ function resolve (dir) {
   return path.join(__dirname, '..', dir)
 }
 
+const minutes = amount => 60 * amount;
+const hours = amount => minutes(60 * amount);
+const days = amount => hours(24 * amount);
+
 function filterKeys(obj, ...keys) {
     return keys.reduce(
         (acc, key) => {
@@ -116,15 +120,15 @@ config.externalUrl = backendOpts ? backendOpts.external_url : '';
 
 const beforeTime = backendOpts ? backendOpts.login_token_before_time : null;
 if (beforeTime == null) {
-    // 2 days and 30 minutes, same as in ``config.py``
-    config.loginTokenBeforeTime = [2 * 24 * 60 * 60, 30 * 60]
+    // Same as in ``config.py``
+    config.loginTokenBeforeTime = [days(2), minutes(30)]
 } else {
     config.loginTokenBeforeTime = beforeTime.split(',').map(item => parseFloat(item.trim()))
 }
 
 const examLoginMaxLength = backendOpts ? backendOpts.exam_login_max_length : null;
 if (examLoginMaxLength == null) {
-    config.examLoginMaxLength = 43200;
+    config.examLoginMaxLength = hours(12);
 } else {
     config.examLoginMaxLength = parseInt(examLoginMaxLength);
 }
