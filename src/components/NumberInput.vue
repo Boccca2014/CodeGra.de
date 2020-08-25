@@ -59,7 +59,7 @@ export default class NumberInput extends Vue {
         });
     }
 
-    @Watch('userInput')
+    @Watch('userInput', { immediate: true })
     emitValue() {
         this.$emit('input', this.internalValue);
     }
