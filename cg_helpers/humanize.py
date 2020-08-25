@@ -88,8 +88,17 @@ _TIMEDELTA_MAPPING = [
 def timedelta(delta: dt.timedelta, *, no_prefix: bool = False) -> str:
     """Humanize a timedelta.
 
+    >>> timedelta(dt.timedelta(hours=1))
+    'in an hour'
+    >>> timedelta(dt.timedelta(hours=-1))
+    'an hour ago'
+    >>> timedelta(dt.timedelta(hours=-1), no_prefix=True)
+    'an hour'
+
     :param delta: The delta to huminze, it may be negative too (which will be
         formatted differently).
+    :param no_prefix: Don't prefix (or postfix in the case of a negative delta)
+        the resulting string. See the doctest for the exact effect.
 
     :returns: A human readable format of the delta.
     """
