@@ -1413,7 +1413,7 @@ class Assignment(helpers.NotEqualMixin, Base):  # pylint: disable=too-many-publi
             )
 
         max_time = psef.current_app.config['EXAM_LOGIN_MAX_LENGTH']
-        if (self.available_at - self.deadline) > max_time:
+        if (self.deadline - self.available_at) > max_time:
             raise APIException(
                 (
                     'Login links can only be enabled if the deadline is at'

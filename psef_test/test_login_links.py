@@ -13,7 +13,7 @@ from psef.permissions import CoursePermission as CPerm
 
 def test_enabling_login_links(
     describe, test_client, logged_in, admin_user, yesterday, session,
-    stub_function
+    stub_function, app, monkeypatch, tomorrow, error_template
 ):
     with describe('setup'), logged_in(admin_user):
         send_mail_stub = stub_function(psef.mail, 'send_login_link_mail')
@@ -85,6 +85,29 @@ def test_enabling_login_links(
         new_token = m.Assignment.query.get(assig_id).send_login_links_token
         assert new_token is None
         assert not send_mail_stub.called
+
+    with describe('Cannot enable login links with large availability window'
+                  ), logged_in(teacher):
+        monkeypatch.setitem(
+            app.config, 'EXAM_LOGIN_MAX_LENGTH', timedelta(days=1)
+        )
+        test_client.req(
+            'patch',
+            url,
+            409,
+            data={
+                'send_login_links': True,
+                'deadline': tomorrow.isoformat(),
+                'available_at': yesterday.isoformat(),
+            },
+            result={
+                **error_template, 'message':
+                    re.compile(
+                        'Login links can only be enabled if the deadline is at'
+                        ' most 24 hours after.*'
+                    )
+            }
+        )
 
 
 def test_sending_login_links(
