@@ -17,9 +17,9 @@
         {%- else -%}
             This is just a reminder that on
         {%- endif %}
-        {{ assignment.available_at.strftime("%Y-%m-%d") }} the {{
-        assignment.name }} assignment in the {{ course.name }} course will
-        become available. This email contains a special link which you can use
+        {{ assignment.available_at.strftime("%Y-%m-%d") }} the assignment {{
+        assignment.name }} in the course {{ course.name }} will
+        become available. This e-mail contains a special link which you can use
         during the time this assignment will be available.
     {% endcall %}
 
@@ -41,6 +41,6 @@
 {% endblock %}
 
 {% block footer %}
-    You received this email because you are enrolled for the course "{{
-    course.name }}". This is an automated email, replies will not be read.
+    You received this e-mail because you are enrolled for the course "{{
+    course.name }}". This is an automated e-mail, replies will not be read.
 {% endblock %}

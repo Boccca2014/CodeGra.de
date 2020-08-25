@@ -384,7 +384,7 @@ def ensure_logged_in() -> None:
 
 @cache_within_request
 def _ensure_course_visible_for_current_user(course_id: int) -> None:
-    """Ensure that the given user is enrolled in the given course.
+    """Ensure that the current user is enrolled in the given course.
 
     This function also checks if the scope of the logged in user is correct for
     the given token. So in other words, this is more than simply checking if
@@ -1349,7 +1349,7 @@ class AssignmentPermissions(CoursePermissionChecker):
 
     @CoursePermissionChecker.as_ensure_function
     def ensure_may_edit_info(self) -> None:
-        """Make sure the current user may edit the this assignments
+        """Make sure the current user may edit this assignment's
         general info.
         """
         self.ensure_may_see()
@@ -1357,7 +1357,7 @@ class AssignmentPermissions(CoursePermissionChecker):
 
     @CoursePermissionChecker.as_ensure_function
     def ensure_may_edit_cgignore(self) -> None:
-        """Make sure the current user may edit the this assignments
+        """Make sure the current user may edit this assignment's
         ``cgignore``.
         """
         self.ensure_may_see()
