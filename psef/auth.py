@@ -195,10 +195,7 @@ class PermissionChecker:
         :param initial: A permission checker.
         :param rest: Other permission checkers this user should also pass.
         """
-        result = initial
-        for checker in rest:
-            result = result.and_(checker)
-        return result
+        return initial.and_(*rest)
 
     @property
     def user(self) -> 'psef.models.User':
