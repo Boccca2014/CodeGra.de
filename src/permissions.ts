@@ -157,7 +157,7 @@ export const CoursePermission = {
     canViewInlineFeedbackBeforeApproved: makeCPerm('can_view_inline_feedback_before_approved', 'View peer feedback before approved', 'Users with this permission can view unapproved inline comments, comments that need approval include peer feedback comments. Users still need to have the permission to see the feedback, so this permission alone is not enough to see peer feedback.', null),
     canApproveInlineComments: makeCPerm('can_approve_inline_comments', 'Approve inline comments', 'Users with this permission can approve inline comments, comments that need approval include peer feedback comments.', null),
     canEditPeerFeedbackSettings: makeCPerm('can_edit_peer_feedback_settings', 'Edit peer feedback settings', 'Users with this permission can edit the peer feedback status of an assignment.', null),
-    canReceiveLoginLinks: makeCPerm('can_receive_login_links', 'Receive login links', 'Users with this permission will (and can) receive login links if this is enabled for the assignment. You should not give this permission to users with powerful permissions (such as "Can grade work").', null),
+    canReceiveLoginLinks: makeCPerm('can_receive_login_links', 'Receive login links', 'Users with this permission will receive login links if this is enabled for the assignment. You should not give this permission to users with powerful permissions (such as "Can grade work").', null),
 };
 export type CoursePermission = typeof CoursePermission[keyof typeof CoursePermission];
 /* eslint-enable */

@@ -422,6 +422,6 @@
     "default_value": true,
     "course_permission": true,
     "short_description": "Receive login links",
-    "long_description": "Users with this permission will (and can) receive login links if this is enabled for the assignment. You should not give this permission to users with powerful permissions (such as \"Can grade work\")."
+    "long_description": "Users with this permission will receive login links if this is enabled for the assignment. You should not give this permission to users with powerful permissions (such as \"Can grade work\")."
   }
 }
