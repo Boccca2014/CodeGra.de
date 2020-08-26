@@ -37,6 +37,7 @@
     </router-link>
     <router-link class="sidebar-item manage-link"
                  v-if="assignment.canManage && !small"
+                 v-b-popover="'Manage assignment'"
                  :class="{ selected: manageSelected }"
                  :to="manageRoute(assignment)">
         <icon name="gear" />
