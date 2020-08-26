@@ -48,7 +48,18 @@
                 <icon :name="icons[states.HIDDEN]"/>
                 <icon :name="icons[states.OPEN]"/>
 
-                <template #confirm>
+                <template #confirm v-if="assignment.availableAt">
+                    Students will not be able to see their grade.
+                    <template v-if="assignment.availableAt.isBefore($root.$now)">
+                        They will be able to see the assignment.
+                    </template>
+                    <template v-else>
+                        They will be able to see the assignment in
+                        <cg-relative-time :date="assignment.availableAt"
+                                          :now="$root.$now" />.
+                    </template>
+                </template>
+                <template #confirm v-else>
                     Students will not be able to see their grade. Whether they
                     can see the assignment at all is determined by the
                     assignment's state in {{ lmsName }}.
@@ -180,6 +191,13 @@ export default {
                     break;
                 case states.HIDDEN:
                     base = `Hidden until ${readable}`;
+                    break;
+                case states.DONE:
+                    if (availableAt.isBefore(this.$root.$now)) {
+                        base = `Opened ${readable}`;
+                    } else {
+                        base = `Hidden until ${readable}`;
+                    }
                     break;
                 default:
                     break;
