@@ -192,7 +192,7 @@ export default {
                 (acc, w) => acc + (w || 0),
                 0,
             );
-            return Math.max(graderWeight, 1);
+            return graderWeight === 0 ? 1 : graderWeight;
         },
 
         otherAssignments() {
