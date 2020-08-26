@@ -784,20 +784,17 @@ def ensure_can_edit_members_of_group(
         group.group_set.course_id,
     )
 
-    for member in members:
-        if not member.is_enrolled(course_id):
-            raise APIException(
-                'The given user is not enrolled in this course', (
-                    f'The member {member.id} is not enrolled in course'
-                    f' {course_id}'
-                ), APICodes.INVALID_PARAM, 400
-            )
-        if member.is_test_student:
-            raise APIException(
-                'You cannot add test students to groups',
-                f'The user {member.id} is a test student',
-                APICodes.INVALID_PARAM, 400
-            )
+    if not all(member.is_enrolled(course_id) for member in members):
+        raise APIException(
+            'The given user is not enrolled in this course',
+            f'Some members are not enrolled in course {course_id}',
+            APICodes.INVALID_PARAM, 400
+        )
+    elif any(member.is_test_student for member in members):
+        raise APIException(
+            'You cannot add test students to groups',
+            'Some users are test students', APICodes.INVALID_PARAM, 400
+        )
 
     if group.has_a_submission:
         ensure_permission(
@@ -1233,9 +1230,10 @@ class CoursePermissions(CoursePermissionChecker):
 
     @CoursePermissionChecker.as_ensure_function
     def ensure_may_see(self) -> None:
-        """Make sure the current user may edit the peer feedback settings of
-        this course.
+        """Make sure the current see this course.
         """
+        # This function is designed to be empty as the decorator already checks
+        # this permission.
 
     @CoursePermissionChecker.as_ensure_function
     def ensure_may_see_roles(self) -> None:
@@ -1328,7 +1326,7 @@ class AssignmentPermissions(CoursePermissionChecker):
 
     @CoursePermissionChecker.as_ensure_function
     def ensure_may_see_graders(self) -> None:
-        """Ensure the current user may see this work.
+        """Ensure the current user may see the graders of work.
         """
         self.ensure_may_see()
         # TODO: This should probably be on the work checker, however we also
@@ -1337,7 +1335,7 @@ class AssignmentPermissions(CoursePermissionChecker):
 
     @CoursePermissionChecker.as_ensure_function
     def ensure_may_assign_graders(self) -> None:
-        """Ensure the current user may see this work.
+        """Ensure the current user may assign graders to this work.
         """
         self.ensure_may_see()
         # TODO: This should probably be on the work checker, however we also
