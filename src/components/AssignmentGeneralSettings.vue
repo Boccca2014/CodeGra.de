@@ -12,8 +12,12 @@
             Some settings of this assignment are managed through {{ lmsName.extract() }}.
         </template>
         <template #description v-else>
-            In exam mode students receive an e-mail with a link to register for
-            and access the exam.
+            In exam mode students receive an e-mail with a link to access the exam.
+
+            <cg-description-popover hug-text>
+                Students will only be able to see the contents of this course
+                while logged in through the link they have received.
+            </cg-description-popover>
         </template>
 
         <b-form-select
