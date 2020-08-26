@@ -5414,3 +5414,30 @@ def test_changing_kind_of_assignment(
             data={'kind': 'normal'},
             result={'__allow_extra__': True, 'kind': 'normal'}
         )
+
+
+def test_changing_kind_of_lti_assignment(
+    describe, test_client, logged_in, admin_user, tomorrow, yesterday, session,
+    lti1p3_provider, error_template
+):
+    with describe('setup'), logged_in(admin_user):
+        course, _ = helpers.create_lti1p3_course(
+            test_client, session, lti1p3_provider
+        )
+        assig = helpers.create_lti1p3_assignment(session, course)
+        assig.deadline = tomorrow
+        assig.available_at = yesterday
+        url = f'/api/v1/assignments/{helpers.get_id(assig)}'
+        session.commit()
+
+    with describe('cannot change mode to exam'), logged_in(admin_user):
+        test_client.req(
+            'patch',
+            url,
+            409,
+            data={'kind': 'exam'},
+            result={
+                **error_template,
+                'message': 'Exam mode is not available for LTI assignments',
+            }
+        )

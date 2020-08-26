@@ -75,9 +75,34 @@ def test_enabling_login_links(
 
     with describe('Setting again does nothing'), logged_in(teacher):
         old_token = m.Assignment.query.get(assig_id).send_login_links_token
-        test_client.req('patch', url, 200, data={'send_login_links': True})
+        test_client.req(
+            'patch',
+            url,
+            200,
+            data={
+                'send_login_links': True,
+                'available_at': (yesterday - timedelta(minutes=1)).isoformat(),
+            }
+        )
         new_token = m.Assignment.query.get(assig_id).send_login_links_token
         assert new_token == old_token
+        assert not send_mail_stub.called
+
+    with describe('Changing available at reschedules links'
+                  ), logged_in(teacher):
+        old_token = m.Assignment.query.get(assig_id).send_login_links_token
+        test_client.req(
+            'patch',
+            url,
+            200,
+            data={
+                'send_login_links': True,
+                'available_at': (yesterday - timedelta(minutes=2)).isoformat(),
+            }
+        )
+        new_token = m.Assignment.query.get(assig_id).send_login_links_token
+        assert new_token != old_token
+        assert new_token is not None
         assert not send_mail_stub.called
 
     with describe('Disabling clears token'), logged_in(teacher):
