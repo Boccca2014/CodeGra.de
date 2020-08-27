@@ -4,7 +4,7 @@ Overview of CodeGrade
 CodeGrade can be used both as a stand-alone web application and as a module in
 your LMS. The following chapters apply to both situations. Please consult the
 :ref:`LMS Integration <lms-chapter>` chapter for detailed information of
-integrating CodeGrade into your Learning Management System.
+integrating CodeGrade with your Learning Management System.
 
 This chapter provides a brief overview of the components and navigation in
 CodeGrade.
@@ -20,7 +20,8 @@ General Site
 CodeGrade allows for the :ref:`creation of courses and assignments
 <management-chapter>`.
 
-.. note:: CodeGrade assignments can also be created in co-operative Learning Management Systems.
+.. note:: CodeGrade assignments can also be created in co-operative Learning
+   Management Systems.
 
 Each assignment is part of a course and each course can have multiple
 assignments linked to it. All courses and assignments have individual settings
@@ -63,25 +64,30 @@ Account Management
 
 Creating a new account
 ~~~~~~~~~~~~~~~~~~~~~~~
-A CodeGrade account has to be created in order to use CodeGrade and follow
-courses. This can be done by navigating to your institute's CodeGrade site
-(e.g. uva.codegra.de) and clicking the 'Register' button.
-Here you can register a new account by entering your full name,
-valid e-mail address and a password. Also a unique username has to be chosen to
-finish registration, please keep in mind that this username cannot be changed
-after your registration is complete.
+You must have a CodeGrade account in order to use CodeGrade and follow courses.
+If your CodeGrade instance is linked with a Learning Management System (LMS)
+a new account will automatically be registered when you visit your first
+CodeGrade assignment in your LMS.
+
+Otherwise you can create an account by navigating to your institute's CodeGrade
+site (e.g. uva.codegra.de) and clicking the 'Register' button. Here you can
+register a new account by entering your full name, a valid e-mail address and
+a password. Also a unique username has to be chosen to finish registration,
+please keep in mind that this username cannot be changed after your
+registration is complete.
 
 You are now registered and logged in to CodeGrade!
 
 Logging in to an existing account
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 If you already have a CodeGrade account, you can use this to log in to the online
-environment.  After clicking the 'Login' button, enter your username and password
+environment. After clicking the 'Login' button, enter your username and password
 and click 'Login'. You are now logged in to CodeGrade!
 
-Use the 'Forgot password' button in the case you have forgotten your password.
-After entering your username, a temporary link will be e-mailed which allows you
-to reset your password. Please consult your institute in the case of a forgotten
-username or wrong e-mail address.
+Click 'Forgot password' in the case you have forgotten your password. After
+entering your username, a temporary link will be sent in an e-mail which allows
+you to reset your password. Please consult your institute in the case of
+a forgotten username or an incorrect e-mail address.
 
-.. note:: Please check your spam filter if no e-mail is received shortly after the request.
+.. note:: Please check your spam filter if no e-mail is received shortly after
+   the request.
