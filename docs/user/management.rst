@@ -246,24 +246,6 @@ Submissions can be uploaded as an archive, which is automatically extracted by C
 
 .. _upload-blackboard-zip:
 
-Uploading Blackboard Archives
-+++++++++++++++++++++++++++++++
-It is possible to combine CodeGrade with the Blackboard learning management
-system: handing in is done via Blackboard and grading and presenting feedback
-via the stand-alone CodeGrade application. After exporting the submissions on
-Blackboard (see Blackboard documentation
-`here <https://help.blackboard.com/Learn/Instructor/Assignments/Download_Assignments>`__),
-the downloaded archive can be uploaded using Blackboard Zip tool in CodeGrade.
-
-By uploading this archive, CodeGrade will add all students' corresponding
-CodeGrade accounts to the course and link their submissions correctly.  If a
-student does not yet have a CodeGrade account, a new account will be created.
-
-.. warning::
-
-    BlackBoard uploading is an experimental feature that was tested working with
-    BlackBoard 9, if an error occurs please contact us at help@codegra.de.
-
 Graders
 ~~~~~~~~~
 In this tab you can edit all settings regarding graders, like dividing and
