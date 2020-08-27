@@ -42,12 +42,12 @@ jobs:
           GITHUB_TOKEN: '${{ secrets.GITHUB_TOKEN }}'
 
       - name: Found ignore comment
-        run: printf '%s\n' '${{ steps.ignore_changelog.outputs.triggered }}'
+        run: printf '%s\n' '${{ steps.ignore_docs.outputs.triggered }}'
 
       - name: "Checkout code"
-        if: steps.ignore_changelog.outputs.triggered == 'false'
+        if: steps.ignore_docs.outputs.triggered == 'false'
         uses: actions/checkout@v1
 
-      - name: Check if changelog was updated
-        if: steps.ignore_changelog.outputs.triggered == 'false'
+      - name: Check if docs were updated
+        if: steps.ignore_docs.outputs.triggered == 'false'
         run: ./.github/scripts/ensure_file_changed.sh docs/user docs/guides
