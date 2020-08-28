@@ -246,6 +246,8 @@ files are not saved, but they will be when you write them to the ``$AT_OUTPUT``
 directory. The files will then be accessible through the "Autotest output"
 section of the file browser in the Code Viewer.
 
+.. _best-practices-submission-metadata:
+
 How to access submission metadata from the tests
 --------------------------------------------------
 
@@ -260,12 +262,12 @@ When you have done this, all steps in the current category will have an extra
 environment variable named ``$CG_INFO`` defined. This variable contains a JSON
 object with the following keys:
 
-* ``deadline`` The deadline of this assignment.
-* ``submitted_at`` The date and time the student submitted their work.
-* ``result_id`` An identifier unique to this AutoTest result. This value changes
+- ``deadline`` The deadline of this assignment.
+- ``submitted_at`` The date and time the student submitted their work.
+- ``result_id`` An identifier unique to this AutoTest result. This value changes
   every time the AutoTest is run, even if it is run multiple times for the same
   submission of the same student.
-* ``student_id`` An identifier unique to the student for which the AutoTest is
+- ``student_id`` An identifier unique to the student for which the AutoTest is
   run. This value stays constant between runs of different submissions by the
   same student.
 

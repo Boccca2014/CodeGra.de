@@ -267,9 +267,14 @@ third part of the specifications.
 Secondly, numerous options can be selected to further specify the behaviour of
 your requirements. These options are:
 
-- **Delete empty directories**: If enabled, automatically delete empty directories in submissions.
-- **Delete leading directories**: If enabled, automatically delete superfluous leading directories (i.e. top-level directories in which all files / subdirectories are located).
-- **Allow overrides by students**: If enabled, the student can, after being shown a warning, still force hand in the submission even if it violates the hand-in requirements.
+- **Delete empty directories**: If enabled, automatically delete empty
+  directories in submissions.
+- **Delete leading directories**: If enabled, automatically delete superfluous
+  leading directories (i.e. top-level directories in which all files
+  / subdirectories are located).
+- **Allow overrides by students**: If enabled, the student can, after being
+  shown a warning, still force hand in the submission even if it violates the
+  hand-in requirements.
 
 Thirdly, rules can be given that consist of exceptions to the default rule and
 requiring certain files. These rules can apply to files anywhere in the
@@ -297,12 +302,6 @@ Here you can select which group set to use for this assignment. When a group set
 is selected the assignment becomes a group assignment. Group sets are a
 key concept for group assignments in CodeGrade, more information about them can
 be found in the :ref:`groups chapter <groups-chapter>`.
-
-Uploading Submissions
-+++++++++++++++++++++++
-Submissions can be uploaded via the assignment management page too. Using the *Upload submission* tool submissions can be uploaded as
-any requested user: hand in submissions for students or hand in as administrator by selecting a user via the search bar.
-Submissions can be uploaded as an archive, which is automatically extracted by CodeGrade, or as multiple individual files.
 
 .. _upload-blackboard-zip:
 
