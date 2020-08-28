@@ -168,16 +168,16 @@ export default Vue.component('wizard-button', {
             background-color: fade(@color-danger, 35%) !important;
         }
     }
-}
 
-.file-icon {
-    position: relative;
+    .file-icon {
+        position: relative;
 
-    .center {
-        position: absolute;
-        top: 60%;
-        left: 50%;
-        transform: translate(-50%, -50%);
+        .center {
+            position: absolute;
+            top: 60%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+        }
     }
 }
 </style>
