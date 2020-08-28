@@ -35,6 +35,7 @@ you through setting up a plagiarism run.
 
 .. note::
 
-    Click the **Export** button on the top right hand corner to export a
-    plagiarism report. Plagiarism cases will be exported in LaTeX format, so
-    that additions and further comments can be added before exporting as PDF.
+    Click the **Export** button on the top right hand corner to export
+    a plagiarism report. Plagiarism cases can be exported in Docx or LaTeX
+    format, so that additions and further comments can be added before
+    exporting as PDF.
