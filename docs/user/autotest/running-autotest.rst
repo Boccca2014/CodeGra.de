@@ -44,6 +44,7 @@ whether a single test is passed or failed.
 - :fa:`clock-o`: Waiting to be started.
 - :fa:`circle-o-notch`: Running.
 - :fa:`check`: Test is finished and passed.
+- :fa:`tilde`: Test is finished but did not score full points.
 - :fa:`times`: Test is finished and failed.
 - :fa:`exclamation-triangle`: Test is timed out.
 - :fa:`ban`: Test is skipped because it is hidden or a previous checkpoint
