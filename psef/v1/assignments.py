@@ -82,9 +82,7 @@ def get_all_assignments() -> JSONResponse[t.Sequence[models.Assignment]]:
             assig.whitespace_linter_exists = has_linter
             res.append(assig)
 
-    if helpers.request_arg_true(
-        request.args.get('only_with_rubric', 'false').lower(),
-    ):
+    if helpers.request_arg_true('only_with_rubric'):
         query = query.filter(models.Assignment.rubric_rows.any())
 
     return jsonify(res)

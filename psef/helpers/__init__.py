@@ -1204,12 +1204,12 @@ def request_arg_true(
 
     :param arg_name: The name of the argument to check.
     :returns: ``True`` if and only iff the requested get parameter ``arg_name``
-        is present and it value equals (case insensitive) ``'true'``, ``'1'``,
-        or ``''`` (empty string).
+        is present and it value equals (case insensitive) ``'true'``, ``'t'``,
+        ``'1'``, or ``''`` (empty string).
     """
     if request_args is None:
         request_args = flask.request.args
-    return request_args.get(arg_name, 'false').lower() in {'true', '1', ''}
+    return request_args.get(arg_name, 'false').lower() in {'true', 't', '1', ''}
 
 
 def extended_requested() -> bool:
