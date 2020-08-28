@@ -37,6 +37,8 @@ tests you can add to this.
   special test is high enough to continue with the tests after the Check Points
   test. This makes it possible to have certain tests only execute if tests
   before it were successful.
+- **Unit Test** for integration with unit testing frameworks that support JUnit
+  compatible XML output.
 
 Running
 --------------------

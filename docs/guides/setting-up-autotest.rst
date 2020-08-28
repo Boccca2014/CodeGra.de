@@ -49,6 +49,7 @@ AutoTest servers in the cloud.
         Add Run Program tests <setting-up-runprogramtest>
         Add Capture Points tests <setting-up-capturepointstest>
         Add Checkpoints <setting-up-checkpoints>
+        Add Unit Tests <setting-up-unittest>
 
 
 Now that AutoTest is set up, you can run it. Simply press the *run* button to
