@@ -31,6 +31,9 @@ export default Vue.component('wizard-button', {
             type: String,
             required: true,
         },
+        // Whether to render the icon as a "file icon", meaning that the icon
+        // given in the "icon" prop will be rendered smaller at the center
+        // of a large "file-o" icon.
         isFileIcon: {
             type: Boolean,
             default: false,
@@ -145,18 +148,25 @@ export default Vue.component('wizard-button', {
     &.small {
         width: 8rem;
         height: 8rem;
+        /* XXX: This is a bit of a hack, but it forces the first line of the
+           button label to always because for some reason the button content
+           is always centered vertically, which caused the labels of two
+           adjacent buttons to not be aligned with each other when one of them
+           has a single-line label and the other has a multi-line label. */
         padding: 1.75rem 0.5rem;
     }
 
     &.medium {
         width: 10rem;
         height: 10rem;
+        /* XXX: See above. */
         padding: 2rem 0.5rem;
     }
 
     &.large {
         width: 14rem;
         height: 14rem;
+        /* XXX: See above. */
         padding: 3rem 0.5rem;
     }
 
