@@ -47,3 +47,8 @@ whether a single test is passed or failed.
 - :fa:`exclamation-triangle`: Test is timed out.
 - :fa:`ban`: Test is skipped because it is hidden or a previous checkpoint
   failed.
+
+Rerunning individual runs
+-------------------------
+An individual student run can be restarted by opening their result and clicking
+the arrow next to the state of the run and selecting "Restart this result".
