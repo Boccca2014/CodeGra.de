@@ -31,7 +31,7 @@ from werkzeug.local import LocalProxy
 from mypy_extensions import Arg
 from typing_extensions import Final, Literal, Protocol
 from sqlalchemy.dialects import postgresql
-from werkzeug.datastructures import FileStorage, MultiDict
+from werkzeug.datastructures import FileStorage
 from sqlalchemy.sql.expression import or_
 
 import psef
@@ -875,16 +875,6 @@ class TransactionGet(Protocol[K]):
     ) -> t.Union[T, TT, ZZ]:
         ...
 
-    @t.overload
-    def __call__(
-        self,
-        to_get: K,
-        typ: t.Type[list],
-        *,
-        list_el: t.Type[T],
-    ) -> t.List[T]:
-        ...
-
 
 class TransactionOptionalGet(Protocol[T_CONTRA]):
     """Protocol for a function to optionally get something with a given type
@@ -963,9 +953,10 @@ def get_from_map_transaction(
     all_keys_requested = []
     keys = []
 
-    def transform_value(
-        value: t.Union[TT, MissingType],
+    def get(
+        key: T,
         typ: t.Union[t.Type, t.Tuple[t.Type, ...], register.Register],
+        *,
         transform: t.Callable[[TT], TTT] = None,
     ) -> TTT:
         all_keys_requested.append(key)
@@ -989,30 +980,6 @@ def get_from_map_transaction(
             return transform(t.cast(TT, value))
 
         return t.cast(TTT, value)
-
-    def get(
-        key: T,
-        typ: t.Union[t.Type, t.Tuple[t.Type, ...], register.Register],
-        *,
-        transform: t.Callable[[TT], TTT] = None,
-        list_el: t.Type[TT] = None,
-    ) -> TTT:
-        all_keys_requested.append(key)
-
-        if isinstance(typ, type) and issubclass(typ, list):
-            assert list_el is not None
-            items: t.List[t.Union[TT, MissingType]]
-            if isinstance(mapping, MultiDict):
-                items = mapping.getlist(key)
-            else:
-                items = maybe_wrap_in_list(mapping.get(key, []))
-            return t.cast(
-                TTT, [transform_value(x, list_el, transform) for x in items]
-            )
-        else:
-            keys.append((key, typ))
-            value: t.Union[TT, MissingType] = mapping.get(key, MISSING)
-            return transform_value(value, typ, transform)
 
     def optional_get(
         key: T,

@@ -6,7 +6,6 @@ the APIs in this module are mostly used to manipulate
 SPDX-License-Identifier: AGPL-3.0-only
 """
 import os
-import enum
 import json
 import shutil
 import typing as t
@@ -63,23 +62,12 @@ def get_all_assignments() -> JSONResponse[t.Sequence[models.Assignment]]:
 
     res = []
 
-    with get_from_map_transaction(request.args) as [get, opt_get]:
-        only_with = get('only_with', list, list_el=models.AssignmentFilter)
-        only_with_rubric = opt_get('only_with_rubric', str)
-
-    if only_with_rubric in {'', 't', 'true'}:
-        helpers.add_deprecate_warning(
-            'The only_with_rubric flag. Use only_with=rubric instead!'
-        )
-        only_with.append(models.AssignmentFilter.rubric)
-
     query = db.session.query(
         models.Assignment,
         models.AssignmentLinter.id.isnot(None),
     ).filter(
         models.Assignment.is_visible,
         models.Assignment.course_id.in_(course_ids),
-        *models.Assignment.with_filters(only_with),
     ).join(
         models.AssignmentLinter,
         sql_expression.and_(
@@ -89,28 +77,15 @@ def get_all_assignments() -> JSONResponse[t.Sequence[models.Assignment]]:
         isouter=True,
     ).order_by(models.Assignment.created_at.desc())
 
-    with get_from_map_transaction(request.args) as [get, opt_get]:
-        only_with = get('only_with', list, list_el=AssignmentFilter)
-        only_with_rubric = opt_get('only_with_rubric', str)
-
-    if only_with_rubric in {'', 't', 'true'}:
-        only_with.append(AssignmentFilter.rubric)
-
-    if AssignmentFilter.rubric in only_with:
-        query = query.filter(
-            t.cast(models.DbColumn[object],
-                   models.Assignment.rubric_rows).any()
-        )
-
-    if AssignmentFilter.handin_requirements in only_with:
-        query = query.filter(
-            models.Assignment._cgignore_version == 'SubmissionValidator',
-        )
-
     for assig, has_linter in query.all():
         if auth.AssignmentPermissions(assig).ensure_may_see.as_bool():
             assig.whitespace_linter_exists = has_linter
             res.append(assig)
+
+    if helpers.request_arg_true(
+        request.args.get('only_with_rubric', 'false').lower(),
+    ):
+        query = query.filter(models.Assignment.rubric_rows.any())
 
     return jsonify(res)
 
