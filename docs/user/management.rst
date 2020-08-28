@@ -95,7 +95,7 @@ Three assignment states are available and can be set on the top right:
 
 General
 ~~~~~~~~
-In this tab you can edit basic settings, as the assignment name and
+In this tab you can edit basic settings, such as the assignment name and
 deadline, but also some more advanced settings.
 
 Upload types
@@ -192,6 +192,66 @@ certain time period.
 You can combine the *cool off period* with a maximum amount of submissions. This
 could allow you, for example, to enforce a small wait period between two
 submissions, but also enforce a total amount of submissions.
+
+Uploading Submissions
++++++++++++++++++++++++
+Submissions can be uploaded via the assignment management page too. Using the
+*Upload submission* tool submissions can be uploaded as any requested user:
+hand in submissions for students or hand in as administrator by selecting
+a user via the search bar. Submissions can be uploaded as an archive, which is
+automatically extracted by CodeGrade, or as multiple individual files.
+
+Peer feedback
++++++++++++++
+Who knows better what problems students run into than the students themselves?
+This is why CodeGrade offers peer feedback, a way for students to review and
+learn from each other's code. When peer feedback is enabled for an assignment
+students get assigned to a number of other students and get access to their
+submissions.
+
+You can enable peer feedback by clicking the :fa:`comments-o` button,
+configuring the peer feedback settings, and finally pressing the "Submit"
+button.
+
+Amount of students
+##################
+This is the amount of submissions each student should review. Students are
+distributed randomly amongst each other. This happens in an auomated fashion
+once the deadline of the assignment has passed.
+
+.. warning::
+
+   This setting should be treated with care, *especially after the assignment's
+   deadline*, because changing it will cause all students to be reassigned. The
+   process of reassigning does not guarantee that students are assigned to the
+   same peers as before the change, even when the number has increased. On the
+   contrary, it is quite likely that almost all students are assigned to
+   someone else than they had been.
+
+Time to give peer feedback
+##########################
+The amount of time students have to give feedback to their peers. During this
+time students can place comments on the submissions they were assigned to.
+Students will still be able to view the submissions even after this time has
+passed.
+
+Automatically approve comments
+##############################
+By default when a student places peer feedback on another student's submission
+the other student will not be able to see it immediately. The comment first has
+to be approved by the teacher or teaching assistant. Enabling this option
+changes that behavior so that each comment is automatically approved.
+
+.. note::
+
+  Comments can still be disapproved even with this setting turned on.
+
+Group assignment
+++++++++++++++++++
+Here you can select which group set to use for this assignment. When a group set
+is selected the assignment becomes a group assignment. Group sets are a
+key concept for group assignments in CodeGrade, more information about them can
+be found in the :ref:`groups chapter <groups-chapter>`.
 
 Hand-in Requirements
 ++++++++++++++++++++++
@@ -426,6 +486,11 @@ precise grading. Continuous rubric categories are also very useful for
     A rubric is only saved after pressing the 'Submit' button, it is recommended
     to occasionally save the rubric to prevent losing work.
 
+AutoTest
+~~~~~~~~~
+The AutoTest configuration and results can be viewed and edited in the AutoTest
+tab. For more information on how to set up AutoTest refer to
+:ref:`the AutoTest documentation <autotest-overview>`.
 
 Creating a new Assignment
 ~~~~~~~~~~~~~~~~~~~~~~~~~

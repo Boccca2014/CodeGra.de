@@ -15,8 +15,8 @@ found via the 'Assignments' menu and selecting the assignment to review.
 
 Code Viewer for Teachers
 -------------------------
-The Code Viewer consists of up to four tabs: **Code**, **Feedback overview**,
-optionally **AutoTest** and optionally **Teacher Revision**.
+The Code Viewer consists of up to five tabs: **Code**, **Feedback Overview**,
+and optionally **AutoTest**, **Teacher Revision** and **Peer Feedback**.
 
 The **Code** tab shows an overview of all handed in code and other files. It is
 possible to browse through all handed in files and folders.
@@ -32,7 +32,7 @@ can be displayed by a mouse over. The Code Viewer displays the selected file
 from the file browser, which shows an hierarchical overview of all submitted
 files.
 
-The **Feedback overview** tab provides a clear overview of all given feedback on
+The **Feedback Overview** tab provides a clear overview of all given feedback on
 the submission, this includes inline comments and general feedback.
 
 The **AutoTest** tab shows an overview of the AutoTest results and optionally
@@ -40,7 +40,11 @@ Continuous Feedback output.
 
 The **Teacher Revision** shows the teacher revision, if available.
 
-Additional features in the Code Viewer aid the grading and reviewing process. These features are described below.
+The **Peer Feedback** tab gives an overview of all peer feedback given by this
+student.
+
+Additional features in the Code Viewer aid the grading and reviewing process.
+These features are described below.
 
 File browser
 ~~~~~~~~~~~~
@@ -67,33 +71,53 @@ for instructions on generating output in an AutoTest.
 
 Inline feedback
 ~~~~~~~~~~~~~~~~~~~~~~
-Oftentimes, feedback for specific lines or blocks of code is wanted to make specific errors clear to students.
+Oftentimes, feedback for specific lines or blocks of code is wanted to make
+specific errors clear to students.
 CodeGrade enables this with the addition of line feedback.
 
-Feedback on a specific line can be given by clicking on this line of code in the Code Viewer. Feedback can be
-written in the appeared dialog and saved with the :fa:`check` button. Clicking on previously placed line
-for line feedback displays this same dialog and clicking the :fa:`times` button will remove the comment.
+Feedback on a specific line can be given by clicking on this line of code in
+the Code Viewer. Feedback can be written in the appeared dialog and saved with
+the :fa:`check` button. Clicking on previously placed line for line feedback
+displays this same dialog and clicking the :fa:`times` button will remove the
+comment.
+
+Students can also comment on their own code in the same way. This can be useful
+if they have questions about the assignment or their code. Teachers or teaching
+assistants assigned to a submission will be notified when this happens, so that
+they can swiftly act on such questions.
+
+Both students and teachers can reply to comments by clicking on the "Click to
+reply..." box, allowing the entire discussion to be held in one place.
 
 .. _codeviewer-snippets:
 
 Snippets
 ^^^^^^^^^
-It is not unusual that identical line feedback comments apply to multiple cases or students. Snippets can be used
-to efficiently but thoroughly cover all these reoccurring comments. Snippets are named saved comments that can be quickly added in the reviewing process.
+It is not unusual that identical line feedback comments apply to multiple cases
+or students. Snippets can be used to efficiently but thoroughly cover all these
+reoccurring comments. Snippets are named saved comments that can be quickly
+added in the reviewing process.
 
-.. note:: Personal (:fa:`user-circle-o`) snippets are saved to your CodeGrade account and can be used on any assignment in any course you grade. Course (:fa:`book`) snippets are set up for a specific course and are shared by all graders in that course.
+.. note:: Personal (:fa:`user-circle-o`) snippets are saved to your CodeGrade
+   account and can be used on any assignment in any course you grade. Course
+   (:fa:`book`) snippets are set up for a specific course and are shared by all
+   graders in that course.
 
-New personal snippets can be added through the :ref:`profile page <preferences-chapter>`
-and via the :fa:`plus` button in the line of line feedback dialog. The latter
-makes it possible to save existing line for line feedback comments. After
-clicking this button the snippet can be named and saved for future use. To use
-your saved snippet, simply type in the given name and press the :kbd:`Tab` keyboard key
-to autocomplete it to the saved comment.
+New personal snippets can be added through the :ref:`profile page
+<preferences-chapter>` and via the :fa:`snippet` button in the top right corner
+of the feedback editing dialog. The latter makes it possible to save existing
+inline feedback comments. After clicking this button the snippet can be named
+and saved for future use. To use your saved snippet, simply type in the given
+name and press the :kbd:`Tab` key on your keyboard to autocomplete it to the
+saved comment.
 
 New course snippets can be added by the teacher of a course on the
 :ref:`course management page <course-management>`.
 
-.. note:: It is in most cases recommended to use a short keyword for the snippet.
+.. note:: It is in most cases recommended to use a short keyword for the
+   snippet.
+
+.. _codeviewer-peer-feedback:
 
 Course feedback
 ~~~~~~~~~~~~~~~~~~
@@ -114,11 +138,14 @@ search through the general feedback you can use the ``general:`` prefix.
 
 Rubrics
 ~~~~~~~~~
-If a rubric is available for the assignment it can be found under the :fa:`th` button.
-The matching rubric items can be selected per category in the rubric. Selecting other rubric items will
-automatically update the grade, this is linear to the points of the rubric.
+If a rubric is available for the assignment it can be found under the :fa:`th`
+button.  The matching rubric items can be selected per category in the rubric.
+Selecting other rubric items will automatically update the grade, this is
+linear to the points of the rubric.
 
-.. warning:: Alterations in the rubric have to be manually saved with the 'submit' button (unless the ``incremental_rubric_submission`` config setting is enabled).
+.. warning:: Alterations in the rubric have to be manually saved with the
+   'submit' button (unless the ``incremental_rubric_submission`` config setting
+   is enabled).
 
 General feedback and grade
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -126,59 +153,73 @@ A final grade can be given using the input field underneath the Code Viewer.
 
 .. note:: The grade generated with the rubric can be overwritten.
 
-Additional general feedback can be given with the menu found under the :fa:`pencil-square-o` button.
+Additional general feedback can be given with the menu found under the
+:fa:`pencil-square-o` button.
 
 Grade History
 ~~~~~~~~~~~~~~
-A detailed overview of the previous grades to the current submission can be found under the
-:fa:`history` button. This overviews specifies the grade, grader, date and time and whether this
-grade was automatically generated from the rubric. Students can normally not see the grade history overview.
+A detailed overview of the previous grades to the current submission can be
+found under the :fa:`history` button. This overviews specifies the grade,
+grader, date and time and whether this grade was automatically generated from
+the rubric. Students can normally not see the grade history overview.
 
-.. note:: Each individual revision of the rubric will add a new entry in the grade history overview.
+.. note:: Each individual revision of the rubric will add a new entry in the
+   grade history overview.
 
 
 Download feedback or assignment
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-It is sometimes necessary to manually download the submission or its feedback. These can both be
-separately downloaded using the :fa:`download` button. The assignment can be downloaded as archive.
-An overview of all feedback, including line feedback, linter comments and general grade and feedback can be download as
-plain text file.
+It is sometimes necessary to manually download the submission or its feedback.
+These can both be separately downloaded using the :fa:`download` button. The
+assignment can be downloaded as archive.  An overview of all feedback,
+including line feedback, linter comments and general grade and feedback can be
+download as plain text file.
 
-.. note:: Make sure pop-ups from CodeGrade are allowed in your browser if downloading fails.
-.. note:: Although it is possible to manually download individual submissions, we recommend using the filesystem.
+.. note:: Make sure pop-ups from CodeGrade are allowed in your browser if
+   downloading fails.
+
+.. note:: Although it is possible to manually download individual submissions,
+   we recommend using the filesystem.
 
 Deleting a submission
 ~~~~~~~~~~~~~~~~~~~~~~
-CodeGrade offers the functionality to remove submissions, this can be done using the red :fa:`times` button.
+CodeGrade offers the functionality to remove submissions, this can be done
+using the red :fa:`times` button.
 
-.. warning:: Deleting a submission will result in effectively removing all information about the submission (including plagiarism results) and is irreversible!
+.. warning:: Deleting a submission will result in effectively removing all
+   information about the submission (including plagiarism results) and is
+   irreversible!
 
 .. _codeviewer-students:
 
 Code Viewer for Students
 -------------------------
-Handed in programming assignments can be displayed using CodeGrade's Code Viewer. The Code Viewer in essence
-provides an overview of your handed in files and the feedback gotten.
+Handed in programming assignments can be viewed using CodeGrade's Code Viewer.
+The Code Viewer in essence provides an overview of your handed in files and the
+feedback gotten.
 
-Up to four tabs are available in the Code Viewer for students: **Code**,
-**Feedback overview**, optionally **AutoTest** and optionally **Teacher
-Revision**.
+Up to five tabs are available in the Code Viewer for students: **Code**,
+**Feedback overview**, and optionally **AutoTest**, **Teacher Revision** and
+**Peer Feedback**.
 
-The final grade is displayed on the bottom of the screen, if available.
-If a rubric is available for the assignment it can be found under the :fa:`th` button, next to this final grade.
-
-.. note::
-    The redesigned submission page deprecates the old **Overview mode**.
+The final grade is displayed on the bottom of the screen, if available. If
+a rubric is available for the assignment it can be found under the :fa:`th`
+button, next to this final grade.
 
 .. _codeviewer-settings:
 
-Settings Tab
---------------------
-The Code Viewer settings can be found under the :fa:`cog` button. And allows for configuring:
+Settings
+--------
+The Code Viewer settings can be found under the :fa:`cog` button. And allows
+for configuring:
 
 * Whitespace characters' visibility.
-* Programming language and its corresponding highlighting (usually should be left default).
+* Programming language and its corresponding highlighting (usually should be
+  left default).
 * Font size of the text in the Code Viewer.
+* Showing or hiding inline feedback.
+* Amount of context lines.
 * Theme to light or dark.
 
-.. note:: The font and theme settings are saved site-wide and can also be set on the Profile page.
+.. note:: The font and theme settings are saved site-wide and can also be set
+   on the Profile page.
