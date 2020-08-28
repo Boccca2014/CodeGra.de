@@ -201,6 +201,11 @@ hand in submissions for students or hand in as administrator by selecting
 a user via the search bar. Submissions can be uploaded as an archive, which is
 automatically extracted by CodeGrade, or as multiple individual files.
 
+You can also do a submission as a test student to check if your assignment
+setup works as expected. It can be useful to test your hand-in requirements,
+AutoTest configuration, linter configuration, you name it. You can even do test
+submissions before you have set a deadline on the assignment.
+
 Peer feedback
 +++++++++++++
 Who knows better what problems students run into than the students themselves?
