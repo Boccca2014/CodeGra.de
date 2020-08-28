@@ -87,10 +87,10 @@ Assignment State
 ~~~~~~~~~~~~~~~~~~~
 Three assignment states are available and can be set on the top right:
 
-* :fa:`eye-slash` **Hidden** state: the assignment is invisible to students.
-* :fa:`clock-o` **Open** state: the assignment is visible to students and
+- :fa:`eye-slash` **Hidden** state: the assignment is invisible to students.
+- :fa:`clock-o` **Open** state: the assignment is visible to students and
   students can hand in submissions before the deadline.
-* :fa:`check` **Done** state: the assignment is visible to students and grading
+- :fa:`check` **Done** state: the assignment is visible to students and grading
   is finished.
 
 General
@@ -98,13 +98,42 @@ General
 In this tab you can edit basic settings, such as the assignment name and
 deadline, but also some more advanced settings.
 
+Assignment type
++++++++++++++++
+A CodeGrade assignment can be one of three types:
+
+- **Normal**: a regular assignment.
+- **Exam**: an exam. For exams you do not configure the deadline of an
+  assignment but rather when it starts and a duration. Students can optionally
+  receive an e-mail with a link with which they can set a password and log into
+  CodeGrade when the exam starts. During the exam students only have access to
+  the course of the exam, and not any other courses.
+
+  See the :ref:`Exam mode documentation <exam-mode>` documentation for more
+  information about exams in CodeGrade.
+- **LTI**: an assignment managed via a Learning Management System. You cannot
+  switch to one of the other types of assignment.
+
+Available at
+++++++++++++
+The available at date of an assignment automates the transition from the
+**hidden** state of the assignment to the **open** state. Set a date and time
+and at that moment the assignment will become visible to students, so you don't
+have to think about it anymore.
+
 Upload types
 +++++++++++++
 CodeGrade offers two means of handing in for students: via the file uploader
 in CodeGrade or using Git (GitHub or GitLab).
 
-- **File Uploader**: this option allows students to hand in their submission through CodeGrade's file uploader. Students can hand in one or multiple files and can even hand in archives (e.g. ``.zip`` or ``.tar.gz``) which will be extracted automatically.
-- **Git**: this option allows students to configure their GitHub or GitLab repository to upload to CodeGrade with every ``push``. Configuration instructions can be found on the hand-in page, the unique deploy key and webhook have to be configured for each separate assignment once per student.
+- **File Uploader**: this option allows students to hand in their submission
+  through CodeGrade's file uploader. Students can hand in one or multiple files
+  and can even hand in archives (e.g. ``.zip`` or ``.tar.gz``) which will be
+  extracted automatically.
+- **Git**: this option allows students to configure their GitHub or GitLab
+  repository to upload to CodeGrade with every ``push``. Configuration
+  instructions can be found on the hand-in page, the unique deploy key and
+  webhook have to be configured for each separate assignment once per student.
 
 .. note::
 
