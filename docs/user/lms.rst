@@ -50,7 +50,7 @@ be created from within Brightspace.
 
 .. warning::
 
-    Setting a deadline, or other visibility rules in Moodle, are **not**
+    Setting a deadline, or other visibility rules in Brightspace, are **not**
     synchronized with CodeGrade. You should set a deadline in CodeGrade after
     creating an assignment, as otherwise students will not be able to submit
     their work.
@@ -89,6 +89,17 @@ Moodle.
     When CodeGrade is connected to Moodle, all assignments should be
     graded on a scale from 0 to 10 in CodeGrade. Scaling, and maximum points can
     be set in Moodle.
+
+Sakai
+-----
+CodeGrade integrates with the `Sakai <https://sakailms.org/>`__ learning management
+system through LTI. New CodeGrade assignments can be created from within Sakai.
+
+.. warning::
+
+    Setting a deadline, or other visibility rules in Sakai, do **not** sync to
+    CodeGrade. You should set a deadline in CodeGrade after creating an
+    assignment, as otherwise students will not be able to submit their work.
 
 Other LMS
 -----------
