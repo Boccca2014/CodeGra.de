@@ -7,6 +7,7 @@ from sys import maxsize as _maxsize
 from functools import wraps
 
 import coolname
+from typing_extensions import TypedDict
 from sqlalchemy.sql.expression import or_ as sql_or
 from sqlalchemy.sql.expression import func as sql_func
 
@@ -360,10 +361,40 @@ class GroupSet(NotEqualMixin, Base):
         order_by=lambda: psef.models.Group.created_at,
     )
 
+    __table_args__ = (
+        db.CheckConstraint('minimum_size <= maximum_size'),
+        db.CheckConstraint('minimum_size > 0')
+    )
+
     def __eq__(self, other: object) -> bool:
         if not isinstance(other, GroupSet):
             return NotImplemented
         return self.id == other.id
+
+    class AsJSON(TypedDict):
+        """The way this class will be represented in JSON.
+        """
+        #: The id of this group set.
+        id: int
+        #: The minimum size a group should be before it can submit work.
+        minimum_size: int
+        #: The maximum size a group can be.
+        maximum_size: int
+        #: The ids of the assignments connected to this group set.
+        assignment_ids: t.Sequence[int]
+
+    def __to_json__(self) -> t.Mapping[str, t.Union[int, t.List[int]]]:
+        own_assignments = set(a.id for a in self.assignments)
+        visible_assigs = [
+            a.id for a in self.course.get_all_visible_assignments()
+            if a.id in own_assignments
+        ]
+        return {
+            'id': self.id,
+            'minimum_size': self.minimum_size,
+            'maximum_size': self.maximum_size,
+            'assignment_ids': visible_assigs,
+        }
 
     def get_valid_group_for_user(self, user: 'user_models.User'
                                  ) -> t.Optional['Group']:
@@ -413,24 +444,6 @@ class GroupSet(NotEqualMixin, Base):
             )
         else:
             return group
-
-    __table_args__ = (
-        db.CheckConstraint('minimum_size <= maximum_size'),
-        db.CheckConstraint('minimum_size > 0')
-    )
-
-    def __to_json__(self) -> t.Mapping[str, t.Union[int, t.List[int]]]:
-        own_assignments = set(a.id for a in self.assignments)
-        visible_assigs = [
-            a.id for a in self.course.get_all_visible_assignments()
-            if a.id in own_assignments
-        ]
-        return {
-            'id': self.id,
-            'minimum_size': self.minimum_size,
-            'maximum_size': self.maximum_size,
-            'assignment_ids': visible_assigs,
-        }
 
     def __get_group_size_query(self, asc: bool,
                                has_subs: bool) -> MyQueryTuple[int]:

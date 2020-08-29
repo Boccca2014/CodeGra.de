@@ -111,6 +111,33 @@ def delete_assignment(assignment_id: int) -> EmptyResponse:
     return make_empty_response()
 
 
+@api.route("/assignments/<int:assignment_id>/course", methods=['GET'])
+@auth.login_required
+def get_course_of_assignment(
+    assignment_id: int
+) -> t.Union[ExtendedJSONResponse[models.Course], JSONResponse[models.Course]]:
+    """Get a course of an :class:`.models.Assignment`.
+
+    .. :quickref: Assignment; Get a the course an assignment is in.
+
+    :param int assignment_id: The id of the assignment
+    :returns: A response containing the JSON serialized course.
+    """
+    assignment = helpers.get_or_404(
+        models.Assignment,
+        assignment_id,
+        also_error=lambda a: not a.is_visible
+    )
+    auth.AssignmentPermissions(assignment).ensure_may_see()
+
+    if helpers.extended_requested():
+        return ExtendedJSONResponse.make(
+            assignment.course, use_extended=models.Course
+        )
+    else:
+        return JSONResponse.make(assignment.course)
+
+
 @api.route("/assignments/<int:assignment_id>", methods=['GET'])
 @auth.login_required
 def get_assignment(assignment_id: int) -> JSONResponse[models.Assignment]:

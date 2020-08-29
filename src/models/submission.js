@@ -5,6 +5,8 @@ import { NONEXISTENT } from '@/constants';
 import moment from 'moment';
 import * as mutationTypes from '@/store/mutation-types';
 
+import { AssignmentsStore } from '@/store/modules/assignments';
+
 const REVISIONS = ['student', 'teacher'];
 
 class BaseFile {
@@ -432,7 +434,7 @@ export class Submission {
     }
 
     get assignment() {
-        return store.getters['courses/assignments'][this.assignmentId];
+        return AssignmentsStore.getAssignment()(this.assignmentId).extract();
     }
 
     isLate() {

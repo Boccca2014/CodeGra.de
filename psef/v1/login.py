@@ -165,7 +165,8 @@ def login() -> ExtendedJSONResponse[models.User.LoginResponse]:
         {
             'user': user,
             'access_token': user.make_access_token(),
-        }
+        },
+        use_extended=models.User,
     )
 
 
@@ -211,7 +212,7 @@ def self_information(
             )
         else:
             obj = current_user
-        return extended_jsonify(obj)
+        return extended_jsonify(obj, use_extended=models.User)
     return jsonify(current_user)
 
 

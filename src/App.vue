@@ -53,15 +53,16 @@ export default {
     computed: {
         ...mapGetters('user', ['loggedIn', 'jwtClaims']),
         ...mapGetters('pref', ['darkMode']),
-        ...mapGetters('courses', ['assignments', 'courses']),
+        ...mapGetters('courses', ['getCourse']),
+        ...mapGetters('assignments', ['getAssignment']),
 
         canManageLTICourse() {
-            return this.$utils.getProps(
-                this.assignments,
+            if (this.$LTIAssignmentId == null) {
+                return false;
+            }
+            return this.getAssignment(this.$LTIAssignmentId).mapOrDefault(
+                assig => assig.course.canManage,
                 false,
-                this.$LTIAssignmentId,
-                'course',
-                'canManage',
             );
         },
 
@@ -78,12 +79,15 @@ export default {
             return window !== window.top && this.$ltiProvider && this.$ltiProvider.addBorder;
         },
 
+        forCourseId() {
+            return this.jwtClaims.for_course;
+        },
+
         forCourse() {
-            const forCourse = this.jwtClaims.for_course;
-            if (forCourse == null) {
+            if (this.forCourseId == null) {
                 return null;
             }
-            return this.$utils.getProps(this.courses, null, forCourse, 'name');
+            return this.getCourse(this.forCourseId).mapOrDefault(course => course.name, null);
         },
     },
 
@@ -129,11 +133,30 @@ export default {
                 }
             },
         },
+
+        forCourseId: {
+            immediate: true,
+            handler(newValue) {
+                if (newValue != null) {
+                    this.loadSingleCourse({ courseId: newValue });
+                }
+            },
+        },
+
+        $LTIAssignmentId: {
+            immediate: true,
+            handler(newValue) {
+                if (newValue != null) {
+                    this.loadSingleAssignment({ assignmentId: newValue });
+                }
+            },
+        },
     },
 
     methods: {
+        ...mapActions('courses', ['loadSingleCourse']),
+        ...mapActions('assignments', ['loadSingleAssignment']),
         ...mapActions('user', ['verifyLogin']),
-        ...mapActions('courses', ['loadCourses']),
 
         makeForCourseToast(courseName) {
             return {
@@ -189,7 +212,6 @@ export default {
         this.$root.$on('cg::app::toast', this.addToast);
 
         this.verifyLogin()
-            .then(() => (this.loggedIn ? this.loadCourses() : Promise.resolve()))
             .then(
                 () => {
                     const route = this.$route.name;

@@ -249,12 +249,12 @@
 
 <script lang="ts">
 import { Vue, Component, Prop, Watch } from 'vue-property-decorator';
-import { mapActions } from 'vuex';
-import { AxiosResponse } from 'axios';
 import moment from 'moment';
 
 import * as models from '@/models';
 import { Nothing } from '@/utils';
+
+import { AssignmentsStore } from '@/store/modules/assignments';
 
 // @ts-ignore
 import DatetimePicker from './DatetimePicker';
@@ -267,11 +267,6 @@ function optionalText(cond: boolean, text: string) {
 @Component({
     components: {
         DatetimePicker,
-    },
-    methods: {
-        ...mapActions('courses', [
-            'patchAssignment',
-        ]),
     },
 })
 export default class AssignmentGeneralSettings extends Vue {
@@ -302,9 +297,6 @@ export default class AssignmentGeneralSettings extends Vue {
             this.examDuration = this.calcExamDuration();
         }
     }
-
-    patchAssignment!:
-        (args: any) => Promise<AxiosResponse<void>>;
 
     get isNormal() {
         return this.kind === models.AssignmentKind.normal;
@@ -587,13 +579,13 @@ export default class AssignmentGeneralSettings extends Vue {
             deadline = this.examDeadline;
         }
 
-        return this.patchAssignment({
+        return AssignmentsStore.patchAssignment({
             assignmentId: this.assignment.id,
             assignmentProps: {
-                name: this.name,
+                name: this.name as string,
                 kind: this.kind,
-                available_at: this.$utils.formatNullableDate(this.availableAt, true),
-                deadline: this.$utils.formatNullableDate(deadline, true) || undefined,
+                available_at: this.$utils.formatNullableDate(this.availableAt, true) ?? undefined,
+                deadline: this.$utils.formatNullableDate(deadline, true) ?? undefined,
                 max_grade: this.maxGrade.orDefault(Nothing).extractNullable(),
                 send_login_links: this.isExam && this.sendLoginLinks,
             },

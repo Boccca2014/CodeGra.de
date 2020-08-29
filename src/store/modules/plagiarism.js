@@ -45,8 +45,10 @@ const actions = {
     loadRun({ state, commit, dispatch }, runId) {
         if (state.loadRunPromises[runId] == null) {
             const promise = Promise.all([
-                axios.get(`/api/v1/plagiarism/${runId}`),
-                axios.get(`/api/v1/plagiarism/${runId}/cases/?limit=${LIMIT_FIRST_REQUEST}`),
+                axios.get(`/api/v1/plagiarism/${runId}?no_course_in_assignment=true`),
+                axios.get(
+                    `/api/v1/plagiarism/${runId}/cases/?limit=${LIMIT_FIRST_REQUEST}&no_course_in_assignment=true`,
+                ),
             ]).then(async ([{ data: run }, { data: cases }]) => {
                 run.cases = (cases || []).map(c => processCase(run, c));
                 run.has_more_cases = run.cases.length >= LIMIT_FIRST_REQUEST;
@@ -64,7 +66,7 @@ const actions = {
         const run = state.runs[runId];
         if (run.has_more_cases) {
             const { data: cases } = await axios.get(
-                `/api/v1/plagiarism/${runId}/cases/?limit=${LIMIT_PER_REQUEST}&offset=${state.runs[runId].cases.length}`,
+                `/api/v1/plagiarism/${runId}/cases/?limit=${LIMIT_PER_REQUEST}&offset=${state.runs[runId].cases.length}&no_course_in_assignment=true`,
             );
             const newCases = cases.map(c => processCase(run, c));
             await addUsersToStore(dispatch, newCases);

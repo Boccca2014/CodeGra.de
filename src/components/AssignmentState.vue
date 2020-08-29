@@ -8,8 +8,7 @@
                             :variant="hiddenVariant"
                             :duration="0"
                             confirm="true"
-                            :submit="() => updateState(states.HIDDEN)"
-                            @success="afterUpdateState">
+                            :submit="() => updateState(states.HIDDEN)">
                     <icon :name="icons[states.HIDDEN]"/>
 
                     <template #confirm>
@@ -24,8 +23,7 @@
                             :variant="openVariant"
                             :duration="0"
                             confirm="true"
-                            :submit="() => updateState(states.OPEN)"
-                            @success="afterUpdateState">
+                            :submit="() => updateState(states.OPEN)">
                     <icon :name="icons[states.OPEN]"/>
 
                     <template #confirm>
@@ -43,8 +41,7 @@
                            :variant="ltiHiddenOpenVariant"
                            :duration="0"
                            confirm="true"
-                           :submit="() => updateState(states.OPEN)"
-                           @success="afterUpdateState">
+                           :submit="() => updateState(states.OPEN)">
                 <icon :name="icons[states.HIDDEN]"/>
                 <icon :name="icons[states.OPEN]"/>
 
@@ -73,8 +70,7 @@
                            :variant="doneVariant"
                            :duration="0"
                            confirm="true"
-                           :submit="() => updateState(states.DONE)"
-                           @success="afterUpdateState">
+                           :submit="() => updateState(states.DONE)">
                 <icon :name="icons[states.DONE]"/>
 
                 <template #confirm>
@@ -235,20 +231,13 @@ export default {
     },
 
     methods: {
-        ...mapActions('courses', ['updateAssignment']),
+        ...mapActions('assignments', ['patchAssignment']),
 
         updateState(pendingState) {
-            return this.$http
-                .patch(`/api/v1/assignments/${this.assignment.id}`, {
-                    state: pendingState,
-                });
-        },
-
-        afterUpdateState({ data }) {
-            this.updateAssignment({
+            return this.patchAssignment({
                 assignmentId: this.assignment.id,
                 assignmentProps: {
-                    state: data.state,
+                    state: pendingState,
                 },
             });
         },

@@ -1,9 +1,7 @@
 <!-- SPDX-License-Identifier: AGPL-3.0-only -->
 <template>
 <div v-if="error != null" class="mt-3">
-    <b-alert show variant="danger">
-        {{ error }}
-    </b-alert>
+    <cg-error :error="error" />
 </div>
 <loader center class="submission-page-loader" v-else-if="loadingPage"/>
 <div class="page submission outer-container" id="submission-page" v-else>
@@ -50,7 +48,7 @@
                            @show="$root.$emit('bv::hide::popover')">
                     <grade-history style="width: 30rem;"
                                    :submission-id="submission && submission.id"
-                                   :isLTI="assignment && assignment.course.is_lti"/>
+                                   :isLTI="assignment && assignment.course.isLTI"/>
                 </b-popover>
             </b-button>
 
@@ -338,7 +336,7 @@ export default {
             storeGetSingleSubmission: 'getSingleSubmission',
             storeGetGroupSubmissionOfUser: 'getGroupSubmissionOfUser',
         }),
-        ...mapGetters('courses', ['courses', 'assignments']),
+        ...mapGetters('assignments', ['getAssignment']),
         ...mapGetters('autotest', {
             allAutoTests: 'tests',
         }),
@@ -346,21 +344,19 @@ export default {
         ...mapGetters('feedback', ['getFeedback']),
 
         course() {
-            const id = Number(this.$route.params.courseId);
-            return this.courses[id];
+            return this.$utils.getProps(this.assignment, null, 'course');
         },
 
         courseId() {
-            return this.$utils.getProps(this.course, null, 'id');
+            return Number(this.$route.params.courseId);
         },
 
         assignment() {
-            const id = Number(this.$route.params.assignmentId);
-            return this.assignments[id];
+            return this.getAssignment(this.assignmentId).extract();
         },
 
         assignmentId() {
-            return this.$utils.getProps(this.assignment, null, 'id');
+            return Number(this.$route.params.assignmentId);
         },
 
         submission() {
@@ -379,8 +375,8 @@ export default {
         editable() {
             return !!(
                 this.canGrade &&
-                this.currentSubmissionIsLatest &&
-                this.groupOfCurrentUser == null
+                    this.currentSubmissionIsLatest &&
+                    this.groupOfCurrentUser == null
             );
         },
 
@@ -431,16 +427,16 @@ export default {
 
         prefFileId() {
             switch (this.selectedCat) {
-                case 'code':
-                    return this.fileId;
-                case 'feedback-overview':
-                    return `${this.submissionId}-feedback-overview`;
-                case 'auto-test':
-                    return `${this.submissionId}-auto-test`;
-                case 'teacher-diff':
-                    return `${this.submissionId}-teacher-diff`;
-                default:
-                    return '';
+            case 'code':
+                return this.fileId;
+            case 'feedback-overview':
+                return `${this.submissionId}-feedback-overview`;
+            case 'auto-test':
+                return `${this.submissionId}-auto-test`;
+            case 'teacher-diff':
+                return `${this.submissionId}-teacher-diff`;
+            default:
+                return '';
             }
         },
 
@@ -506,9 +502,9 @@ export default {
 
             return (
                 ((canSeeUserFeedback || canSeeLinterFeedback) && !feedback) ||
-                !fileTree ||
-                !currentFile ||
-                (canViewAutoTest && !autoTest)
+                    !fileTree ||
+                    !currentFile ||
+                    (canViewAutoTest && !autoTest)
             );
         },
 
@@ -590,8 +586,8 @@ export default {
             // which would cause the CF badge to flicker on page load.
             return (
                 test &&
-                test.results_always_visible &&
-                ((result && result.isFinal === false) || !this.canSeeGrade)
+                    test.results_always_visible &&
+                    ((result && result.isFinal === false) || !this.canSeeGrade)
             );
         },
 
@@ -684,13 +680,16 @@ export default {
     },
 
     watch: {
+        assignment() {
+            if (this.assignment == null) {
+                this.loadData();
+            }
+        },
+
         assignmentId: {
             immediate: true,
             handler() {
-                if (this.assignmentId != null) {
-                    this.loadCurrentSubmission();
-                    this.storeLoadSubmissions(this.assignmentId);
-                }
+                this.loadData();
             },
         },
 
@@ -704,7 +703,7 @@ export default {
         submissionId: {
             immediate: true,
             handler() {
-                this.loadData();
+                this.loadCurrentSubmissionData();
             },
         },
 
@@ -714,13 +713,13 @@ export default {
         // again.
         feedback() {
             if (!this.feedback) {
-                this.loadData();
+                this.loadCurrentSubmissionData();
             }
         },
 
         fileTree() {
             if (!this.fileTree) {
-                this.loadData();
+                this.loadCurrentSubmissionData();
             }
         },
 
@@ -766,6 +765,9 @@ export default {
             storeLoadSingleSubmission: 'loadSingleSubmission',
             storeDeleteSubmission: 'deleteSubmission',
         }),
+        ...mapActions('assignments', {
+            storeLoadSingleAssignment: 'loadSingleAssignment',
+        }),
         ...mapActions('feedback', {
             storeLoadFeedback: 'loadFeedback',
         }),
@@ -777,6 +779,22 @@ export default {
             storeLoadAutoTest: 'loadAutoTest',
             storeLoadAutoTestResult: 'loadAutoTestResult',
         }),
+
+        loadData() {
+            Promise.all([
+                this.storeLoadSingleAssignment({
+                    assignmentId: this.assignmentId,
+                    courseId: this.courseId,
+                }),
+                this.loadCurrentSubmission(),
+                this.storeLoadSubmissions({
+                    assignmentId: this.assignmentId,
+                    courseId: this.courseId,
+                }),
+            ]).then(this.loadCurrentSubmissionData, error => {
+                this.error = error;
+            });
+        },
 
         loadCurrentSubmission() {
             if (this.assignmentId == null) {
@@ -794,12 +812,13 @@ export default {
             return this.storeLoadSingleSubmission({
                 assignmentId: this.assignmentId,
                 submissionId: this.$route.params.submissionId,
+                courseId: this.courseId,
             }).catch(err => {
-                this.error = this.$utils.getErrorMessage(err);
+                this.error = err;
             });
         },
 
-        loadData() {
+        loadCurrentSubmissionData() {
             if (this.submissionId == null || this.error != null) {
                 return;
             }
@@ -864,7 +883,7 @@ export default {
                     this.openFirstFile();
                 },
                 err => {
-                    this.error = this.$utils.getErrorMessage(err);
+                    this.error = err;
                 },
             );
         },

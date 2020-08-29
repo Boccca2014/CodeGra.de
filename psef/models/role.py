@@ -7,6 +7,7 @@ import abc
 import typing as t
 
 from flask import current_app
+from sqlalchemy.orm import selectinload
 from sqlalchemy.orm.collections import attribute_mapped_collection
 
 from cg_sqlalchemy_helpers.types import ColumnProxy, FilterColumn
@@ -110,12 +111,6 @@ class AbstractRole(t.Generic[_T]):
             assert isinstance(permission, GlobalPermission)
 
         revert = permission in self._permissions
-        if current_app.do_sanity_checks:
-            found_perm = Permission.get_permission(permission)
-            assert (
-                found_perm.default_value == permission.value.default_value
-            ), "Wrong permission in database"
-
         res = permission.value.default_value
         if revert:
             return not res
@@ -218,6 +213,10 @@ class CourseRole(AbstractRole[CoursePermission], Base):
         server_default='false',
         nullable=False
     )
+
+    @classmethod
+    def eager_load_permissions(cls) -> object:
+        return selectinload(cls._permissions)
 
     @property
     def uses_course_permissions(self) -> bool:
@@ -353,12 +352,6 @@ class CourseRole(AbstractRole[CoursePermission], Base):
         # Make extra sure this permission is not a global permission, as this
         # would not error during runtime otherwise.
         assert isinstance(permission, CoursePermission)
-
-        if current_app.do_sanity_checks:
-            found_perm = Permission.get_permission(permission)
-            assert (
-                found_perm.default_value == permission.value.default_value
-            ), "Wrong permission in database"
 
         perm_id = Permission.query_permission(permission).with_entities(
             Permission.id

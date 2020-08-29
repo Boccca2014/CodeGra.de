@@ -175,7 +175,7 @@ class JSONResponse(t.Generic[T], flask.Response):  # pylint: disable=too-many-an
         )
 
     @classmethod
-    def make(cls, obj: T, status_code: int = 200) -> 'JSONResponse[T]':
+    def make(cls, obj: T, *, status_code: int = 200) -> 'JSONResponse[T]':
         """Create a response with the given object ``obj`` as json payload.
 
         :param obj: The object that will be jsonified using
@@ -232,6 +232,7 @@ class ExtendedJSONResponse(t.Generic[T], JSONResponse[T]):  # pylint: disable=to
     def make(
         cls,
         obj: T,
+        *,
         status_code: int = 200,
         use_extended: _UseExtendedType = object,
     ) -> 'ExtendedJSONResponse[T]':

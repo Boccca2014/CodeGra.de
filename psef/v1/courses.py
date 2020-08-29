@@ -8,12 +8,12 @@ import uuid
 import typing as t
 
 from flask import request
-from sqlalchemy.orm import selectinload
 from mypy_extensions import TypedDict
 from flask_limiter.util import get_remote_address
 
 import psef
 import psef.auth as auth
+import cg_helpers
 import psef.models as models
 import psef.helpers as helpers
 from psef import limiter, current_user
@@ -508,7 +508,8 @@ def add_course() -> JSONResponse[models.Course]:
 
 @api.route('/courses/', methods=['GET'])
 @auth.login_required
-def get_courses() -> JSONResponse[t.Sequence[t.Mapping[str, t.Any]]]:
+def get_courses() -> t.Union[JSONResponse[t.List[models.Course]],
+                             ExtendedJSONResponse[t.List[models.Course]]]:
     """Return all :class:`.models.Course` objects the current user is a member
     of.
 
@@ -520,74 +521,47 @@ def get_courses() -> JSONResponse[t.Sequence[t.Mapping[str, t.Any]]]:
         assignments and group sets for each course are also included under the
         key ``assignments`` and ``group_sets`` respectively.
 
-    :>jsonarr str role: The name of the role the current user has in this
-        course.
-    :>jsonarr ``**rest``: JSON serialization of :py:class:`psef.models.Course`.
-
     :raises PermissionException: If there is no logged in user. (NOT_LOGGED_IN)
     """
+    courses_query = models.Course.update_query_for_extended_jsonify(
+        models.Course.query.filter(
+            auth.CoursePermissions.ensure_may_see_filter()
+        )
+    ).order_by(models.Course.created_at.desc(), models.Course.name)
 
-    def _get_rest(course: models.Course) -> t.Mapping[str, t.Any]:
-        if helpers.extended_requested():
-            snippets: t.Sequence[models.CourseSnippet] = []
-            if (
-                current_user.has_permission(GPerm.can_use_snippets) and
-                current_user.has_permission(
-                    CPerm.can_view_course_snippets, course_id=course.id
-                )
-            ):
-                snippets = course.snippets
+    psef.current_user.load_all_permissions()
 
-            return {
-                'assignments': course.get_all_visible_assignments(),
-                'group_sets': course.group_sets,
-                'snippets': snippets,
-                **course.__to_json__(),
-            }
-        return course.__to_json__()
-
-    extra_loads: t.Optional[t.List[t.Any]] = None
-    if helpers.extended_requested():
-        load_assig = selectinload(models.Course.assignments)
-        extra_loads = [
-            selectinload(models.Course.assignments),
-            selectinload(models.Course.snippets),
-            selectinload(models.Course.group_sets),
-            load_assig.selectinload(models.Assignment.analytics_workspaces),
-            load_assig.selectinload(models.Assignment.rubric_rows),
-            load_assig.selectinload(models.Assignment.group_set),
-        ]
-
-    # We don't use `helpers.get_or_404` here as preloading doesn't seem to work
-    # when we do.
-    user = models.User.query.filter_by(id=current_user.id).options(
-        [
-            selectinload(
-                models.User.courses,
-            ).selectinload(
-                models.CourseRole._permissions,  # pylint: disable=protected-access
-            ),
-        ]
-    ).one()
-
-    return jsonify(
-        [
-            {
-                'role': user.courses[c.id].name,
-                **_get_rest(c),
-            } for c in helpers.get_in_or_error(
-                models.Course,
-                models.Course.id,
-                [cr.course_id for cr in user.courses.values()],
-                extra_loads,
-            ) if auth.CoursePermissions(c).ensure_may_see.as_bool()
-        ]
+    courses = helpers.maybe_apply_sql_slice(courses_query).all()
+    assignments = cg_helpers.flatten(c.assignments for c in courses)
+    assignment_ids = [a.id for a in assignments]
+    with_linter = set(
+        assignment_id for assignment_id, in
+        models.AssignmentLinter.get_whitespace_linter_query().filter(
+            models.AssignmentLinter.assignment_id.in_(assignment_ids)
+        ).with_entities(models.AssignmentLinter.assignment_id)
     )
+    for assignment in assignments:
+        assignment.whitespace_linter_exists = assignment.id in with_linter
+
+    if not helpers.request_arg_true('no_role_name'):
+        helpers.add_deprecate_warning(
+            'Getting the role of the current user in the requested course is'
+            ' deprecated and will be removed in the next major version of'
+            ' CodeGrade'
+        )
+        helpers.jsonify_options.get_options().add_role_to_course = True
+
+    if helpers.extended_requested():
+        return ExtendedJSONResponse.make(courses, use_extended=models.Course)
+    else:
+        return JSONResponse.make(courses)
 
 
 @api.route('/courses/<int:course_id>', methods=['GET'])
 @auth.login_required
-def get_course_data(course_id: int) -> JSONResponse[t.Mapping[str, t.Any]]:
+def get_course_by_id(
+    course_id: int
+) -> t.Union[JSONResponse[models.Course], ExtendedJSONResponse[models.Course]]:
     """Return course data for a given :class:`.models.Course`.
 
     .. :quickref: Course; Get data for a given course.
@@ -607,12 +581,18 @@ def get_course_data(course_id: int) -> JSONResponse[t.Mapping[str, t.Any]]:
     course = helpers.get_or_404(models.Course, course_id)
     auth.CoursePermissions(course).ensure_may_see()
 
-    return jsonify(
-        {
-            'role': current_user.courses[course.id].name,
-            **course.__to_json__(),
-        }
-    )
+    if not helpers.request_arg_true('no_role_name'):
+        helpers.add_deprecate_warning(
+            'Getting the role of the current user in the requested course is'
+            ' deprecated and will be removed in the next major version of'
+            ' CodeGrade'
+        )
+        helpers.jsonify_options.get_options().add_role_to_course = True
+
+    if helpers.extended_requested():
+        return ExtendedJSONResponse.make(course, use_extended=models.Course)
+    else:
+        return JSONResponse.make(course)
 
 
 @api.route('/courses/<int:course_id>/permissions/', methods=['GET'])

@@ -793,7 +793,7 @@ export default {
             storeClearAutoTestRun: 'clearAutoTestRun',
         }),
 
-        ...mapActions('courses', {
+        ...mapActions('assignments', {
             storeUpdateAssignment: 'updateAssignment',
         }),
 
@@ -839,7 +839,7 @@ export default {
             this.loading = true;
 
             return Promise.all([
-                this.storeLoadSubmissions(this.assignmentId),
+                this.storeLoadSubmissions({ assignmentId: this.assignmentId }),
 
                 this.storeLoadRubric({
                     assignmentId: this.assignmentId,
@@ -932,6 +932,7 @@ export default {
             if (forceLoadSubmission) {
                 promises.push(
                     this.storeLoadSingleSubmission({
+                        courseId: this.assignment.courseId,
                         assignmentId: this.assignmentId,
                         submissionId: this.submissionId,
                         force: true,
@@ -1155,7 +1156,7 @@ export default {
         afterImportAutoTest(payload) {
             // TODO: Show error messages to user if any of the requests belo fail.
             this.importAssignment = null;
-            this.storeForceLoadSubmissions(this.assignmentId);
+            this.storeForceLoadSubmissions({ assignmentId: this.assignmentId });
             this.storeLoadRubric({
                 assignmentId: this.assignmentId,
                 force: true,
@@ -1177,7 +1178,7 @@ export default {
             storeTests: 'tests',
             storeResults: 'results',
         }),
-        ...mapGetters('courses', ['assignments']),
+        ...mapGetters('assignments', ['allAssignments']),
         ...mapGetters('rubrics', {
             storeRubrics: 'rubrics',
         }),
@@ -1200,13 +1201,18 @@ export default {
         },
 
         possibleImportAssignments() {
-            return Object.values(this.assignments)
-                .filter(a => a.auto_test_id != null)
-                .map(a => ({
-                    name: a.name,
-                    course: { name: a.course.name },
-                    auto_test_id: a.auto_test_id,
-                }));
+            // TODO: Load all assignments in mounted
+            return this.$utils.sortBy(
+                this.allAssignments
+                    .filter(a => a.auto_test_id != null),
+                assig => [assig.createdAt],
+                // Get newest assignments at the top.
+                { reverse: true },
+            ).map(a => ({
+                name: a.name,
+                course: { name: a.course.name },
+                auto_test_id: a.auto_test_id,
+            }));
         },
 
         allNonDeletedSuites() {

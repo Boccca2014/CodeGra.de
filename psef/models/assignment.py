@@ -110,7 +110,7 @@ class AssignmentJSON(TypedDict, total=True):
     deadline: t.Optional[DatetimeWithTimezone]  #: ISO UTC date.
     name: str  #: The name of the assignment.
     is_lti: bool  #: Is this an LTI assignment.
-    course: 'course_models.Course'  #: Course of this assignment.
+    course_id: int  #: Course of this assignment.
     cgignore: t.Optional['psef.helpers.JSONType']  #: The cginore.
     cgignore_version: t.Optional[str]
     #: Has the whitespace linter run on this assignment.
@@ -367,6 +367,10 @@ class AssignmentLinter(Base):
         foreign_keys=assignment_id,
         backref=db.backref('linters', uselist=True),
     )
+
+    @classmethod
+    def get_whitespace_linter_query(cls) -> MyQuery['AssignmentLinter']:
+        return cls.query.filter(AssignmentLinter.name == 'MixedWhitespace')
 
     @property
     def linters_crashed(self) -> int:
@@ -2043,7 +2047,7 @@ class Assignment(helpers.NotEqualMixin, Base):  # pylint: disable=too-many-publi
     def is_hidden(self) -> bool:
         """Is the assignment hidden.
         """
-        return self.state.is_hidden
+        return self.state == AssignmentStateEnum.hidden
 
     @property
     def is_done(self) -> bool:
@@ -2078,9 +2082,8 @@ class Assignment(helpers.NotEqualMixin, Base):  # pylint: disable=too-many-publi
         # defined outside of the init.
         if not hasattr(self, '_whitespace_linter_exists'):
             self._whitespace_linter_exists = db.session.query(
-                AssignmentLinter.query.filter(
+                AssignmentLinter.get_whitespace_linter_query().filter(
                     AssignmentLinter.assignment_id == self.id,
-                    AssignmentLinter.name == 'MixedWhitespace'
                 ).exists(),
             ).scalar()
 
@@ -2137,7 +2140,7 @@ class Assignment(helpers.NotEqualMixin, Base):  # pylint: disable=too-many-publi
             'deadline': self.deadline,
             'name': self.name,
             'is_lti': self.is_lti,
-            'course': self.course,
+            'course_id': self.course_id,
             'cgignore': None if cgignore is None else cgignore.export(),
             'cgignore_version': self._cgignore_version,
             'whitespace_linter': self.whitespace_linter,
@@ -2164,6 +2167,13 @@ class Assignment(helpers.NotEqualMixin, Base):  # pylint: disable=too-many-publi
             'division_parent_id': None,
             'analytics_workspace_ids': [],
         }
+
+        if not helpers.request_arg_true('no_course_in_assignment'):
+            helpers.add_deprecate_warning(
+                'The option to send a complete course with an assignment will'
+                ' be removed in the next major release of CodeGrade'
+            )
+            res['course'] = self.course.__to_json__()  # type: ignore[misc]
 
         if self.course.lti_provider is not None:
             res['lms_name'] = self.course.lti_provider.lms_name

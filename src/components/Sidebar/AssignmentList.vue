@@ -9,29 +9,69 @@
     </div>
 
     <ul class="sidebar-list"
-        v-if="assignments.length > 0">
-        <li class="sidebar-list-section-header text-muted"
-            v-if="showTopAssignments">
-            <small>Closest deadlines</small>
+        v-if="assignments.length > 0 || loading > 0">
+        <template v-if="currentAssignment.isJust() && !currentIsInTop">
+            <li class="sidebar-list-section-header text-muted">
+                <small>Current assignment</small>
+            </li>
+            <assignment-list-item
+                small
+                :key="`current-assignment-${currentAssignment.extract().id}`"
+                :current-id="currentAssignment.extract().id"
+                no-popover
+                :sbloc="sbloc"
+                :assignment="currentAssignment.extract()"/>
+            <li>
+                <hr class="separator" />
+            </li>
+        </template>
+        <li v-if="loading > 0">
+            <cg-loader :scale="1" />
         </li>
+        <template v-else>
+            <li class="sidebar-list-section-header text-muted"
+                v-if="showTopAssignments">
+                <small>Closest deadlines</small>
+            </li>
 
-        <assignment-list-item v-for="assignment in topAssignments"
-                              small
-                              :key="`top-assignment-${assignment.id}`"
-                              v-if="showTopAssignments"
-                              :current-id="currentAssignment && currentAssignment.id"
-                              :sbloc="sbloc"
-                              :assignment="assignment"/>
+            <assignment-list-item v-for="assignment in topAssignments"
+                                small
+                                :key="`top-assignment-${assignment.id}`"
+                                v-if="showTopAssignments"
+                                :current-id="currentAssignment.mapOrDefault(a => a.id, null)"
+                                no-popover
+                                :sbloc="sbloc"
+                                :assignment="assignment"/>
 
-        <li v-if="showTopAssignments">
-            <hr class="separator">
-        </li>
+            <li v-if="showTopAssignments">
+                <hr class="separator">
+            </li>
 
-        <assignment-list-item v-for="assignment in (filteredAssignments || sortedAssignments)"
-                              :key="`sorted-assignment-${assignment.id}`"
-                              :assignment="assignment"
-                              :current-id="currentAssignment && currentAssignment.id"
-                              :sbloc="sbloc"/>
+            <assignment-list-item v-for="assignment in filteredAssignments.slice(0, visibleAssignments)"
+                                :key="`sorted-assignment-${assignment.id}`"
+                                :assignment="assignment"
+                                no-popover
+                                :current-id="currentAssignment.mapOrDefault(a => a.id, null)"
+                                :sbloc="sbloc"/>
+
+            <li class="d-flex mx-2 my-1" v-if="moreAssignmentsAvailable">
+                <b-btn class="flex-grow"
+                    @click="showMoreAssignments">
+                    <cg-loader v-if="renderingMoreAssignments > 0" :scale="1" class="py-1"/>
+                    <span v-else v-b-visible="visible => visible && showMoreAssignments()">
+                        Load more assignments
+                    </span>
+                    <infinite-loading @infinite="showMoreAssignments" :distance="150">
+                        <div slot="spinner"></div>
+                        <div slot="no-more"></div>
+                        <div slot="no-results"></div>
+                        <div slot="error" slot-scope="err">
+                            {{ err }}
+                        </div>
+                    </infinite-loading>
+                </b-btn>
+            </li>
+        </template>
     </ul>
     <span v-else class="sidebar-list no-items-text">
         You don't have any assignments yet.
@@ -71,6 +111,7 @@
 
 <script>
 import { mapActions, mapGetters } from 'vuex';
+import InfiniteLoading from 'vue-infinite-loading';
 
 import Icon from 'vue-awesome/components/Icon';
 import 'vue-awesome/icons/gear';
@@ -81,7 +122,8 @@ import { cmpNoCase } from '@/utils';
 import SubmitInput from '../SubmitInput';
 import AssignmentListItem from './AssignmentListItem';
 
-let idNum = 0;
+const EXTRA_ASSIGNMENTS = 15;
+const TOP_ASSIGNMENTS_LENGTH = 7;
 
 export default {
     name: 'assignment-list',
@@ -94,22 +136,20 @@ export default {
     },
 
     computed: {
-        ...mapGetters('courses', {
-            allAssignments: 'assignments',
-            allCourses: 'courses',
-        }),
+        ...mapGetters('courses', ['getCourse']),
+        ...mapGetters('assignments', ['getAssignment', 'allAssignments']),
 
         sbloc() {
             return this.currentCourse ? undefined : 'a';
         },
 
         currentAssignment() {
-            return this.allAssignments[this.$route.params.assignmentId];
+            return this.getAssignment(this.$route.params.assignmentId);
         },
 
         currentCourse() {
             if (this.data && this.data.course) {
-                return this.allCourses[this.data.course.id];
+                return this.getCourse(this.data.course.id).extract();
             } else {
                 return null;
             }
@@ -117,28 +157,27 @@ export default {
 
         showAddButton() {
             const course = this.currentCourse;
-            return !!(course && course.canCreateAssignments);
+            return !!(this.loading === 0 && course && course.canCreateAssignments);
         },
 
         showManageButton() {
             const course = this.currentCourse;
-            return !!(course && course.canManage);
+            return !!(this.loading === 0 && course && course.canManage);
         },
 
         manageButtonActive() {
             const course = this.currentCourse;
             return !!(
-                this.$route.params.courseId &&
+                this.$route.name === 'manage_course' &&
                 course &&
-                this.$route.params.courseId.toString() === course.id.toString() &&
-                !this.currentAssignment
+                this.$route.params.courseId.toString() === course.id.toString()
             );
         },
 
         assignments() {
             return this.currentCourse
                 ? this.currentCourse.assignments
-                : Object.values(this.allAssignments);
+                : this.allAssignments;
         },
 
         topAssignments() {
@@ -152,11 +191,21 @@ export default {
             return this.assignments
                 .filter(a => lookup[a.id] != null)
                 .sort((a, b) => lookup[a.id] - lookup[b.id])
-                .slice(0, 3);
+                .slice(0, TOP_ASSIGNMENTS_LENGTH);
         },
 
         showTopAssignments() {
-            return !this.filter && this.sortedAssignments.length >= this.topAssignments.length + 2;
+            return !this.filter && this.assignments.length >= TOP_ASSIGNMENTS_LENGTH + 2;
+        },
+
+        currentIsInTop() {
+            if (!this.showTopAssignments) {
+                return false;
+            }
+            return this.currentAssignment.mapOrDefault(
+                cur => this.topAssignments.some(a => a.id === cur.id),
+                false,
+            );
         },
 
         sortedAssignments() {
@@ -165,7 +214,7 @@ export default {
 
         filteredAssignments() {
             if (!this.filter) {
-                return null;
+                return this.sortedAssignments;
             }
 
             const filterParts = this.filter.toLocaleLowerCase().split(' ');
@@ -181,29 +230,32 @@ export default {
 
         addAssignmentPopover() {
             const course = this.currentCourse;
-            if (!course || !course.is_lti) {
+            if (!course || !course.isLTI) {
                 return 'Add a new assignment';
             }
             return 'Add a new assignment that is not connected to your LMS.';
         },
 
         addAssignmentConfirm() {
-            if (!this.$utils.getProps(this.currentCourse, false, 'is_lti')) {
+            if (!this.currentCourse) {
                 return '';
             }
-            const lms = this.currentCourse.lti_provider.name;
-            return `You are about to create an assignment that is not connected to ${lms}. This means that students will not be able to navigate to this assignment inside ${lms} and grades will not be synced. Are you sure?`;
+            return this.currentCourse.ltiProvider.mapOrDefault(prov => {
+                const lms = prov.lms;
+                return `You are about to create an assignment that is not connected to ${lms}. This means that students will not be able to navigate to this assignment inside ${lms} and grades will not be synced. Are you sure?`;
+            }, '');
+        },
+
+        moreAssignmentsAvailable() {
+            return this.visibleAssignments <= this.assignments.length;
         },
     },
 
     async mounted() {
         this.$root.$on('sidebar::reload', this.reloadAssignments);
 
-        const res = this.loadCourses();
-        if (res != null) {
-            this.$emit('loading');
-            await res;
-            this.$emit('loaded');
+        if (this.currentCourse == null) {
+            await this.asLoader(this.loadAllCourses());
         }
 
         await this.$nextTick();
@@ -218,9 +270,12 @@ export default {
     },
 
     data() {
-        const id = idNum++;
+        const id = this.$utils.getUniqueId();
         return {
             filter: '',
+            loading: 0,
+            renderingMoreAssignments: 0,
+            visibleAssignments: EXTRA_ASSIGNMENTS * 4,
             addButtonId: `assignment-add-btn-${id}`,
             popoverId: `assignment-add-popover-${id}`,
         };
@@ -231,16 +286,27 @@ export default {
     },
 
     methods: {
-        ...mapActions('courses', ['loadCourses', 'reloadCourses']),
+        ...mapActions('courses', ['loadAllCourses', 'reloadCourses']),
+
+        async asLoader(promise) {
+            if (this.loading === 0) {
+                this.$emit('loading');
+            }
+
+            this.loading += 1;
+            await promise;
+            this.loading = Math.max(0, this.loading - 1);
+
+            if (this.loading === 0) {
+                this.$emit('loaded');
+            }
+        },
 
         reloadAssignments() {
             if (this.currentCourse) {
                 return Promise.resolve();
             }
-            this.$emit('loading');
-            return this.reloadCourses().then(() => {
-                this.$emit('loaded');
-            });
+            return this.asLoader(this.reloadCourses({ fullReload: true }));
         },
 
         manageCourseRoute(courseId) {
@@ -251,17 +317,20 @@ export default {
         },
 
         createNewAssignment(name, resolve, reject) {
+            const url = this.$utils.buildUrl(
+                ['api', 'v1', 'courses', this.currentCourse.id, 'assignments'],
+                {
+                    query: { no_course_in_assignment: true },
+                    addTrailingSlash: true,
+                },
+            );
             this.$http
-                .post(`/api/v1/courses/${this.currentCourse.id}/assignments/`, {
-                    name,
-                })
+                .post(url, { name })
                 .then(
                     res => {
                         const assig = res.data;
                         res.onAfterSuccess = () => {
-                            this.$emit('loading');
-                            this.reloadCourses().then(() => {
-                                this.$emit('loaded');
+                            this.asLoader(this.reloadCourses).then(() => {
                                 this.$router.push({
                                     name: 'manage_assignment',
                                     params: {
@@ -282,12 +351,26 @@ export default {
         closePopover() {
             this.$root.$emit('bv::hide::popover', this.popoverId);
         },
+
+        showMoreAssignments(state = null) {
+            this.renderingMoreAssignments += 1;
+            this.visibleAssignments += EXTRA_ASSIGNMENTS;
+            this.renderingMoreAssignments -= 1;
+            if (state) {
+                if (this.moreAssignmentsAvailable) {
+                    state.loaded();
+                } else {
+                    state.complete();
+                }
+            }
+        },
     },
 
     components: {
         AssignmentListItem,
         Icon,
         SubmitInput,
+        InfiniteLoading,
     },
 };
 </script>

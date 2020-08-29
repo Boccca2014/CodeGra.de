@@ -656,7 +656,17 @@ export default {
         loadAssignments() {
             this.loadingAssignments = true;
             this.assignmentsWithRubric = [];
-            this.$http.get('/api/v1/assignments/?only_with_rubric').then(
+            const url = this.$utils.buildUrl(
+                ['api', 'v1', 'assignments'],
+                {
+                    query: {
+                        no_course_in_assignment: true,
+                        only_with_rubric: true,
+                    },
+                    addTrailingSlash: true,
+                },
+            );
+            this.$http.get(url).then(
                 ({ data }) => {
                     this.assignmentsWithRubric = data;
                     this.loadingAssignments = false;
@@ -678,7 +688,9 @@ export default {
         afterLoadOldRubric() {
             this.showRubricImporter = false;
             this.importAssignment = null;
-            this.forceLoadSubmissions(this.assignmentId);
+            this.forceLoadSubmissions({
+                assignmentId: this.assignmentId,
+            });
             this.resetRubric();
         },
 
@@ -740,7 +752,7 @@ export default {
         },
 
         afterSubmit() {
-            this.forceLoadSubmissions(this.assignmentId);
+            this.forceLoadSubmissions({ assignmentId: this.assignmentId });
         },
 
         ensureEditable() {

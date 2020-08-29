@@ -4,7 +4,6 @@ import * as stat from 'simple-statistics';
 
 import { keys } from 'ts-transformer-keys';
 
-import { store } from '@/store';
 import {
     flat1,
     hasAttr,
@@ -27,6 +26,7 @@ import {
 import { makeCache } from '@/utils/cache';
 import { defaultdict } from '@/utils/defaultdict';
 import { NONEXISTENT } from '@/constants';
+import { AssignmentsStore } from '@/store/modules/assignments';
 
 import { Assignment, Rubric, RubricItem, RubricRow, AnyUser, User } from '@/models';
 
@@ -1087,7 +1087,7 @@ export class Workspace {
     }
 
     get assignment(): Assignment | undefined {
-        return store.getters['courses/assignments'][this.assignment_id];
+        return AssignmentsStore.getAssignment()(this.assignment_id).extract();
     }
 
     filter(filters: readonly WorkspaceFilter[]) {

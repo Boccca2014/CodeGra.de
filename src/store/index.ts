@@ -9,7 +9,6 @@ import { getStoreBuilder } from 'vuex-typex';
 import user from './modules/user';
 import pref from './modules/preference';
 // @ts-ignore
-import courses, { onDone as coursesOnDone } from './modules/courses';
 import rubrics from './modules/rubrics';
 import autotest from './modules/autotest';
 import analytics from './modules/analytics';
@@ -19,12 +18,15 @@ import code from './modules/code';
 import users from './modules/users';
 import fileTrees from './modules/file_trees';
 
-// We import this for the side effect only.
-import './modules/notification';
-import './modules/feedback';
-import './modules/peer_feedback';
-
 import { RootState } from './state';
+
+import { onDone as coursesOnDone } from './modules/courses';
+
+export { NotificationStore } from './modules/notification';
+export { FeedbackStore } from './modules/feedback';
+export { PeerFeedbackStore } from './modules/peer_feedback';
+export { AssignmentsStore } from './modules/assignments';
+export { CoursesStore } from './modules/courses';
 
 Vue.use(Vuex);
 
@@ -64,7 +66,6 @@ const rootBuilder = getStoreBuilder<RootState>();
 Object.entries({
     user,
     pref,
-    courses,
     rubrics,
     autotest,
     analytics,

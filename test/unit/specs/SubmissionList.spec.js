@@ -93,7 +93,7 @@ describe('SubmissionList.vue', () => {
         await store.dispatch('courses/loadCourses');
         assignment = store.getters['courses/assignments'][$route.params.assignmentId];
 
-        await store.dispatch('submissions/loadSubmissions', $route.params.assignmentId);
+        await store.dispatch('submissions/loadSubmissions', { assignmentId: $route.params.assignmentId });
 
         wrapper = shallowMount(SubmissionList, {
             store,

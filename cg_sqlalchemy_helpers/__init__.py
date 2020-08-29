@@ -65,6 +65,7 @@ def init_app(db: types.MyDb, app: Flask) -> None:
         @event.listens_for(db.engine, "before_cursor_execute")
         def __before_cursor_execute(*_args: object) -> None:
             if hasattr(g, 'query_start'):
+                # print(_args[2:4])
                 g.query_start = time.time()
 
         @event.listens_for(db.engine, "after_cursor_execute")

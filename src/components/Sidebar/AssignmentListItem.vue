@@ -37,7 +37,7 @@
     </router-link>
     <router-link class="sidebar-item manage-link"
                  v-if="assignment.canManage && !small"
-                 v-b-popover="'Manage assignment'"
+                 v-b-popover="noPopover ? '' : 'Manage assignment'"
                  :class="{ selected: manageSelected }"
                  :to="manageRoute(assignment)">
         <icon name="gear" />
@@ -74,6 +74,11 @@ export default {
 
         sbloc: {
             default: undefined,
+        },
+
+        noPopover: {
+            type: Boolean,
+            default: false,
         },
     },
 

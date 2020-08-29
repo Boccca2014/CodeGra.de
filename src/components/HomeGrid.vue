@@ -27,11 +27,11 @@
 
     <loader v-if="loadingCourses" page-loader/>
 
-    <template v-else-if="courses.length === 0">
+    <template v-else-if="courses.length === 0 && !moreCoursesAvailable">
         <h3 class="text-center font-italic text-muted">You have no courses yet!</h3>
     </template>
 
-    <template v-else-if="filteredCourses.length === 0">
+    <template v-else-if="filteredCourses.length === 0 && !moreCoursesAvailable">
         <h3 class="text-center font-italic text-muted">No matching courses found!</h3>
     </template>
 
@@ -81,12 +81,14 @@
         </div>
     </masonry>
 
-
     <b-btn class="extra-load-btn"
            v-if="moreCoursesAvailable && !loadingCourses"
            @click="showMoreCourses()">
-        <loader v-if="renderingMoreCourses > 0" :scale="1" class="py-1"/>
-        <span v-else>
+        <span v-if="renderingMoreCourses > 0">
+            <span class="align-middle">Loading more courses</span>
+            <loader :scale="1" :center="false" />
+        </span>
+        <span v-else v-b-visible="visible => visible && showMoreCourses()">
             Load more courses
         </span>
         <infinite-loading @infinite="showMoreCourses" :distance="150">
@@ -109,8 +111,9 @@ import Icon from 'vue-awesome/components/Icon';
 import 'vue-awesome/icons/gear';
 import InfiniteLoading from 'vue-infinite-loading';
 
-import { hashString, cmpNoCaseMany } from '@/utils';
+import { hashString } from '@/utils';
 import { Counter } from '@/utils/counter';
+import { INITIAL_COURSES_AMOUNT } from '@/constants';
 
 import AssignmentState from './AssignmentState';
 import UserInfo from './UserInfo';
@@ -149,7 +152,7 @@ const COLOR_PAIRS = [
 // the infinite scroll list. This is a multiple of 3 and of 2 (and 1 ofc) as
 // those are the amount of columns we use in our masonry. So by using a multiple
 // we increase the chance that we fill the masonry nice and even.
-const EXTRA_COURSES_AMOUNT = 12;
+const EXTRA_COURSES_AMOUNT = INITIAL_COURSES_AMOUNT / 2;
 
 export default {
     name: 'home-grid',
@@ -165,15 +168,9 @@ export default {
     },
 
     computed: {
-        ...mapGetters('courses', { unsortedCourses: 'courses' }),
+        ...mapGetters('courses', { courses: 'sortedCourses', retrievedAllCourses: 'retrievedAllCourses' }),
         ...mapGetters('user', { nameOfUser: 'name' }),
         ...mapGetters('pref', ['darkMode']),
-
-        courses() {
-            return Object.values(this.unsortedCourses).sort((a, b) =>
-                cmpNoCaseMany([b.created_at, a.created_at], [a.name, b.name]),
-            );
-        },
 
         // TODO: This is duplicated in Sidebar/CourseList.vue. We should factor
         // it out into a Course or CourseCollection model or something.
@@ -221,12 +218,15 @@ export default {
         // Are there more courses available. If this is true we should show the
         // infinite loader.
         moreCoursesAvailable() {
+            if (!this.retrievedAllCourses) {
+                return true;
+            }
             return this.filteredCourses.length > this.amountCoursesToShow;
         },
     },
 
     async mounted() {
-        await Promise.all([this.$afterRerender(), this.loadCourses()]);
+        await Promise.all([this.$afterRerender(), this.loadFirstCourses()]);
         this.loadingCourses = false;
 
         const searchInput = await this.$waitForRef('searchInput');
@@ -248,7 +248,7 @@ export default {
     },
 
     methods: {
-        ...mapActions('courses', ['loadCourses']),
+        ...mapActions('courses', ['loadFirstCourses', 'loadAllCourses']),
 
         getAssignments(course) {
             if (!this.searchString) {
@@ -319,7 +319,13 @@ export default {
         // `loaded` and `complete`.
         async showMoreCourses($state = null) {
             this.renderingMoreCourses += 1;
-            await this.$afterRerender();
+
+            const promises = [this.$afterRerender()];
+            if (this.amountCoursesToShow + EXTRA_COURSES_AMOUNT > INITIAL_COURSES_AMOUNT) {
+                promises.push(this.loadAllCourses());
+            }
+
+            await Promise.all(promises);
             this.amountCoursesToShow += EXTRA_COURSES_AMOUNT;
             this.renderingMoreCourses -= 1;
 

@@ -35,9 +35,10 @@
         <loader page-loader />
     </div>
 
-    <div class="page-content" v-show="!loadingInner"
-         :key="assignmentId">
+    <div class="page-content" :key="assignmentId"
+         v-show="!loadingInner">
         <div :class="{hidden: selectedCat !== 'general'}"
+             v-if="visibleCats.general"
              class="row cat-wrapper">
             <div class="col-xl-6">
                 <assignment-general-settings
@@ -129,7 +130,7 @@
                     </span>
 
                     <c-g-ignore-file class="m-3"
-                                     :assignment-id="assignmentId"/>
+                                     :assignment="assignment"/>
                 </b-card>
 
                 <b-card header="Blackboard zip"
@@ -143,7 +144,7 @@
                     <file-uploader class="blackboard-zip-uploader"
                                    :url="`/api/v1/assignments/${assignment.id}/submissions/`"
                                    :disabled="assignment.is_lti"
-                                   @response="forceLoadSubmissions(assignment.id)"
+                                   @response="() => forceLoadSubmissions({ assignmentId: assignment.id, courseId: assignment.courseId })"
                                    :id="`file-uploader-assignment-${assignment.id}`"/>
                 </b-card>
 
@@ -178,11 +179,12 @@
 
         <div class="cat-wrapper"
              :class="{hidden: selectedCat !== 'graders'}">
-            <assignment-grader-settings :assignment="assignment" />
+            <assignment-grader-settings :assignment="assignment"
+                                        v-if="visibleCats.graders"/>
         </div>
 
         <div class="cat-wrapper" :class="{hidden: selectedCat !== 'linters'}">
-            <b-card v-if="canUseLinters"
+            <b-card v-if="canUseLinters && visibleCats.linters"
                     header="Linters"
                     :course-id="assignment.course.id">
                 <linters :assignment="assignment"/>
@@ -191,7 +193,7 @@
         </div>
 
         <div class="cat-wrapper" :class="{hidden: selectedCat !== 'plagiarism'}">
-            <b-card v-if="canUsePlagiarism" no-body>
+            <b-card v-if="canUsePlagiarism && visibleCats.plagiarism" no-body>
                 <span slot="header">
                     Plagiarism checking
                     <description-popover>
@@ -207,7 +209,7 @@
         </div>
 
         <div class="cat-wrapper" :class="{hidden: selectedCat !== 'rubric'}">
-            <b-card header="Rubric" v-if="canUseRubrics">
+            <b-card header="Rubric" v-if="canUseRubrics && visibleCats.rubric">
                 <!-- TODO: Proper fix instead of :key hack -->
                 <rubric-editor :key="assignment.id"
                                :hidden="selectedCat !== 'rubric'"
@@ -219,6 +221,7 @@
         <div class="cat-wrapper" :class="{hidden: selectedCat !== 'auto-test'}">
             <!-- TODO: Proper fix instead of :key hack -->
             <auto-test :key="assignment.id"
+                       v-if="visibleCats['auto-test']"
                        :assignment="assignment"
                        :hidden="selectedCat !== 'auto-test'"
                        editable />
@@ -261,30 +264,29 @@ export default {
     data() {
         return {
             UserConfig,
-            loading: true,
             loadingInner: true,
             selectedCat: '',
+            visibleCats: {},
         };
     },
 
     computed: {
-        ...mapGetters('courses', ['assignments']),
+        ...mapGetters('assignments', ['getAssignment']),
 
         formattedDeadline() {
             return (this.assignment && this.assignment.getFormattedDeadline()) || '';
         },
 
+        courseId() {
+            return Number(this.$route.params.courseId);
+        },
+
         assignment() {
-            const id = this.$route.params.assignmentId;
-            return this.assignments[id] || {};
+            return this.getAssignment(this.assignmentId).extract();
         },
 
         assignmentId() {
-            return this.$utils.getProps(this.assignment, null, 'id');
-        },
-
-        assignmentUrl() {
-            return `/api/v1/assignments/${this.assignment.id}`;
+            return Number(this.$route.params.assignmentId);
         },
 
         ltiProvider() {
@@ -423,49 +425,47 @@ export default {
                 hash: '#groups',
             };
         },
+
+        loading() {
+            return this.assignment == null;
+        },
     },
 
     watch: {
         assignmentId: {
             immediate: true,
-            handler(newVal, oldVal) {
-                if (newVal == null) {
-                    this.loading = true;
-                    this.loadingInner = true;
-                } else if (newVal !== oldVal) {
-                    this.loadData();
-                }
+            handler() {
+                this.loadData();
+            },
+        },
+
+        assignment(newVal) {
+            if (newVal == null) {
+                this.loadData();
+            }
+        },
+
+        selectedCat: {
+            immediate: true,
+            handler(newVal) {
+                this.$set(this.visibleCats, newVal, true);
             },
         },
     },
 
     methods: {
-        ...mapActions('courses', [
-            'updateAssignment',
-            'updateRemoteAssignment',
-            'loadCourses',
-            'reloadCourses',
-        ]),
+        ...mapActions('courses', ['loadSingleCourse']),
         ...mapActions('submissions', ['forceLoadSubmissions']),
 
         async loadData() {
-            const setAssigData = () => {
-                this.loading = false;
-            };
-
-            this.loading = true;
             this.loadingInner = true;
 
-            if (this.assignment.id === this.assignmentId) {
-                setAssigData();
-            }
-
+            await this.loadSingleCourse({ courseId: this.courseId });
+            this.visibleCats = {
+                [this.selectedCat]: true,
+            };
             await this.$afterRerender();
-
-            return this.loadCourses().then(() => {
-                setAssigData();
-                this.loadingInner = false;
-            });
+            this.loadingInner = false;
         },
 
         deleteAssignment() {
@@ -473,7 +473,7 @@ export default {
         },
 
         afterDeleteAssignment() {
-            this.reloadCourses();
+            this.loadSingleCourse({ courseId: this.courseId, force: true });
             this.$router.push({ name: 'home' });
         },
     },

@@ -13,7 +13,7 @@ def make_typed_dict_extender(base: t.Any, extends_to: t.Type) -> t.Callable:  # 
     """
 
     def _extend(**kwargs: t.Any) -> dict:
-        kwargs.update(base)
-        return kwargs
+        base.update(kwargs)
+        return base
 
     return _extend

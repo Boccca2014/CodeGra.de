@@ -18,6 +18,7 @@ class Options:
     """
     add_permissions_to_user: t.Optional['models.User'] = None
     latest_only: bool = False
+    add_role_to_course: bool = False
 
 
 def get_options() -> Options:

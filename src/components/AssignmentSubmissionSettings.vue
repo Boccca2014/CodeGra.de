@@ -36,11 +36,10 @@
 
 <script lang="ts">
 import { Vue, Component, Prop, Watch } from 'vue-property-decorator';
-import { mapActions } from 'vuex';
-import { AxiosResponse } from 'axios';
 
 import * as models from '@/models';
 import { Right } from '@/utils';
+import { AssignmentsStore } from '@/store/modules/assignments';
 
 // @ts-ignore
 import AssignmentSubmitTypes, { AssignmentSubmitTypesValue } from './AssignmentSubmitTypes';
@@ -52,11 +51,6 @@ import SubmissionLimits, { SubmissionLimitValue } from './SubmissionLimits';
         AssignmentSubmitTypes,
         SubmissionLimits,
     },
-    methods: {
-        ...mapActions('courses', [
-            'patchAssignment',
-        ]),
-    },
 })
 export default class AssignmentSubmissionSettings extends Vue {
     @Prop({ required: true })
@@ -67,9 +61,6 @@ export default class AssignmentSubmissionSettings extends Vue {
     submissionLimits: SubmissionLimitValue = Right(this.assigSubmissionLimits);
 
     readonly uniqueId: number = this.$utils.getUniqueId();
-
-    patchAssignment!:
-        (args: any) => Promise<AxiosResponse<void>>;
 
     get assignmentId() {
         return this.assignment.id;
@@ -150,14 +141,14 @@ export default class AssignmentSubmissionSettings extends Vue {
         const types = this.submitTypes.unsafeCoerce();
         const limits = this.submissionLimits.unsafeCoerce();
 
-        return this.patchAssignment({
+        return AssignmentsStore.patchAssignment({
             assignmentId: this.assignment.id,
             assignmentProps: {
                 files_upload_enabled: types.files,
                 webhook_upload_enabled: types.webhook,
                 max_submissions: limits.maxSubmissions,
                 cool_off_period: limits.coolOff.period ? 60 * limits.coolOff.period : 0,
-                amount_in_cool_off_period: limits.coolOff.amount,
+                amount_in_cool_off_period: limits.coolOff.amount ?? undefined,
             },
         });
     }

@@ -203,9 +203,10 @@
 import Icon from 'vue-awesome/components/Icon';
 import 'vue-awesome/icons/times';
 
-import { mapGetters, mapActions } from 'vuex';
+import { mapActions } from 'vuex';
 
 import { range, getProps } from '@/utils';
+import * as models from '@/models';
 
 import SubmitButton from './SubmitButton';
 import FileRule from './FileRule';
@@ -221,8 +222,8 @@ export default {
     name: 'ignore-file',
 
     props: {
-        assignmentId: {
-            type: Number,
+        assignment: {
+            type: models.Assignment,
             required: true,
         },
 
@@ -238,8 +239,6 @@ export default {
     },
 
     computed: {
-        ...mapGetters('courses', ['assignments']),
-
         remoteIgnoreFile() {
             return [
                 getProps(this.assignment, null, 'cgignore'),
@@ -251,15 +250,11 @@ export default {
             return this.rules.some(r => !r.removed && r.rule_type !== 'require');
         },
 
-        assignment() {
-            return this.assignments[this.assignmentId];
-        },
-
         configurationValid() {
             return (
                 this.policy &&
-                this.options.every(o => o.value != null) &&
-                this.rules.some(r => !r.removed)
+                    this.options.every(o => o.value != null) &&
+                    this.rules.some(r => !r.removed)
             );
         },
 
@@ -348,7 +343,7 @@ export default {
     },
 
     methods: {
-        ...mapActions('courses', ['updateAssignment']),
+        ...mapActions('assignments', ['patchAssignment']),
 
         copyRemoteValues(ignore, version) {
             if (version === 'IgnoreFilterManager' || (version == null && ignore != null)) {
@@ -385,7 +380,7 @@ export default {
                 {
                     key: 'delete_empty_directories',
                     description:
-                        'If this option is enabled, this will automatically delete empty directories without any files in submissions.',
+                    'If this option is enabled, this will automatically delete empty directories without any files in submissions.',
                     value: false,
                     name: 'Delete empty directories',
                     options: onOff,
@@ -394,7 +389,7 @@ export default {
                 {
                     key: 'remove_leading_directories',
                     description:
-                        'If this option is enabled, this will automatically delete any extra leading directories in a submission. For example, if all the files and/or directories are in a subdirectory, this will remove the top level directory.',
+                    'If this option is enabled, this will automatically delete any extra leading directories in a submission. For example, if all the files and/or directories are in a subdirectory, this will remove the top level directory.',
                     value: true,
                     name: 'Delete leading directories',
                     options: onOff,
@@ -404,7 +399,7 @@ export default {
                     key: 'allow_override',
                     value: false,
                     description:
-                        'If this option is enabled, this will allow students to press an override button to hand in a submission, even if it does not follow the hand-in requirements. Students will, however, get a warning that their submission does not follow the hand-in requirements.',
+                    'If this option is enabled, this will allow students to press an override button to hand in a submission, even if it does not follow the hand-in requirements. Students will, however, get a warning that their submission does not follow the hand-in requirements.',
                     name: 'Allow overrides by students',
                     options: onOff,
                     id: getOptionId(),
@@ -432,11 +427,13 @@ export default {
         },
 
         updateIgnore(ignore, ignoreVersion) {
-            const data = {
-                ignore,
-                ignore_version: ignoreVersion,
-            };
-            return this.$http.patch(`/api/v1/assignments/${this.assignment.id}`, data);
+            return this.patchAssignment({
+                assignmentId: this.assignment.id,
+                assignmentProps: {
+                    ignore,
+                    ignore_version: ignoreVersion,
+                },
+            });
         },
 
         addNewRule(name) {
@@ -451,17 +448,10 @@ export default {
         },
 
         async afterUpdateIgnore(response) {
-            // eslint-disable-next-line
-            const { cgignore, cgignore_version } = response.data;
-            this.updateAssignment({
-                assignmentId: this.assignmentId,
-                assignmentProps: {
-                    cgignore,
-                    cgignore_version,
-                },
-            });
             // We need to set `loadingRules` to `true` so that we can update the
             // rules without having any issue with animations.
+            // eslint-disable-next-line camelcase
+            const { cgignore, cgignore_version } = response.data;
             this.loadingRules = true;
             await this.$nextTick();
             this.copyRemoteValues(cgignore, cgignore_version);

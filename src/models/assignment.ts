@@ -10,14 +10,15 @@ import { Rubric } from '@/models';
 // @ts-ignore
 import { store } from '@/store';
 
-import { NONEXISTENT } from '@/constants';
+import { NONEXISTENT, MANAGE_GENERAL_COURSE_PERMISSIONS } from '@/constants';
 import * as utils from '@/utils/typed';
 import { LTIProvider } from '@/lti_providers';
 
 import * as assignmentState from '@/store/assignment-states';
-import { AnyUser, User } from './user';
-
-const noop = (_: object): void => undefined as void;
+import { makeCache } from '@/utils/cache';
+import { CoursesStore } from '@/store/modules/courses';
+import { AnyUser, User, GroupServerData } from './user';
+import { Course } from './course';
 
 export enum AssignmentKind {
     normal = 'normal',
@@ -26,7 +27,7 @@ export enum AssignmentKind {
 }
 
 /* eslint-disable camelcase */
-interface AssignmentServerProps {
+export interface AssignmentServerProps {
     id: number;
     state: assignmentState.AssignmentStates;
     description: string | null;
@@ -39,7 +40,7 @@ interface AssignmentServerProps {
     done_email: string | null;
     fixed_max_rubric_points: number | null;
     max_grade: number | null;
-    group_set: any;
+    group_set: GroupServerData | null;
     division_parent_id: number | null;
     auto_test_id: number | null;
     files_upload_enabled: boolean;
@@ -51,6 +52,7 @@ interface AssignmentServerProps {
     peer_feedback_settings: AssignmentPeerFeedbackSettings;
     kind: AssignmentKind;
     send_login_links: boolean;
+    course_id: number;
 
     deadline: string | null;
     created_at: string;
@@ -60,36 +62,32 @@ interface AssignmentServerProps {
 }
 
 export interface AssignmentUpdateableProps {
-    state?: assignmentState.AssignmentStates;
-    description?: string | null;
-    name?: string | null;
-    is_lti?: string | null;
-    cgignore?: any;
-    cgignore_version?: string | null;
-    whitespace_linter?: any;
-    done_type?: string | null;
-    done_email?: string | null;
     fixed_max_rubric_points?: number | null;
-    max_grade?: number | null;
-    group_set?: any;
+    group_set?: GroupServerData;
     division_parent_id?: number | null;
     auto_test_id?: number | null;
-    files_upload_enabled?: boolean;
-    webhook_upload_enabled?: boolean;
-    max_submissions?: number | null;
-    amount_in_cool_off_period?: number;
-    kind?: AssignmentKind;
-    send_login_links?: boolean;
-
-    // Special properties that also may be set.
-    reminderTime?: moment.Moment;
-    deadline?: moment.Moment;
-    cool_off_period?: number;
     peer_feedback_settings?: AssignmentPeerFeedbackSettings | null;
-    availableAt?: moment.Moment | null;
 }
 
 const ALLOWED_UPDATE_PROPS = new Set(keys<AssignmentUpdateableProps>());
+
+type KeyNotToCopy =
+    | 'created_at'
+    | 'reminder_time'
+    | 'available_at'
+    | 'course_id'
+    | 'cool_off_period';
+const KEYS_NOT_TO_COPY: KeyNotToCopy[] = [
+    'created_at',
+    'reminder_time',
+    'available_at',
+    'course_id',
+    'cool_off_period',
+];
+const KEYS_NOT_TO_COPY_LOOKUP: Set<string> = new Set(KEYS_NOT_TO_COPY);
+const KEYS_TO_COPY = keys<AssignmentServerProps>().filter(
+    key => !KEYS_NOT_TO_COPY_LOOKUP.has(key),
+) as Exclude<keyof AssignmentServerProps, KeyNotToCopy>[];
 
 export interface AssignmentPeerFeedbackSettings {
     time: number;
@@ -97,8 +95,6 @@ export interface AssignmentPeerFeedbackSettings {
     // eslint-disable-next-line camelcase
     auto_approved: boolean;
 }
-
-type Mutable<T extends { [x: string]: any }, K extends string> = { [P in K]: T[P] };
 
 abstract class AssignmentData {
     constructor(props: AssignmentData) {
@@ -129,7 +125,7 @@ abstract class AssignmentData {
 
     readonly max_grade!: number | null;
 
-    readonly group_set!: any;
+    readonly group_set!: GroupServerData | null;
 
     readonly division_parent_id!: number | null;
 
@@ -148,8 +144,6 @@ abstract class AssignmentData {
     readonly coolOffPeriod!: moment.Duration;
 
     readonly courseId!: number;
-
-    readonly canManage!: boolean;
 
     readonly deadline!: moment.Moment;
 
@@ -173,60 +167,74 @@ abstract class AssignmentData {
 
 // eslint-disable-next-line
 export class Assignment extends AssignmentData {
+    @utils.nonenumerable
+    private _cache = makeCache('canManage');
+
     private constructor(props: AssignmentData) {
         super(props);
         Object.freeze(this);
     }
 
-    static fromServerData(serverData: AssignmentServerProps, courseId: number, canManage: boolean) {
-        const props = keys<AssignmentServerProps>().reduce((acc, prop) => {
-            switch (prop) {
-                case 'deadline':
-                case 'created_at':
-                case 'reminder_time':
-                case 'available_at':
-                case 'cool_off_period': {
-                    break;
-                }
-                default: {
-                    const value = serverData[prop];
-                    // Just to make sure this property is found in acc.
-                    noop(acc[prop]);
-                    // @ts-ignore
-                    acc[prop] = value;
-                }
-            }
-            return acc;
-        }, {} as Mutable<AssignmentData, keyof AssignmentData>);
+    @utils.nonenumerable
+    get canManage() {
+        return this._cache.get('canManage', () =>
+            MANAGE_GENERAL_COURSE_PERMISSIONS.some(perm => this.hasPermission(perm)),
+        );
+    }
 
-        props.courseId = courseId;
-        props.canManage = canManage;
+    static fromServerData(serverData: AssignmentServerProps): Assignment {
+        const props = utils.pickKeys(serverData, KEYS_TO_COPY);
 
-        props.deadline = moment.utc(serverData.deadline ?? 'INVALID', moment.ISO_8601);
-        props.createdAt = moment.utc(serverData.created_at, moment.ISO_8601);
-        if (serverData.available_at != null) {
-            props.availableAt = moment.utc(serverData.available_at, moment.ISO_8601);
+        const courseId = serverData.course_id;
+
+        let deadline;
+        if (serverData.deadline == null) {
+            deadline = moment.invalid();
         } else {
-            props.availableAt = null;
+            deadline = moment.utc(serverData.deadline, moment.ISO_8601);
+        }
+        const createdAt = moment.utc(serverData.created_at, moment.ISO_8601);
+
+        let availableAt;
+        if (serverData.available_at != null) {
+            availableAt = moment.utc(serverData.available_at, moment.ISO_8601);
+        } else {
+            availableAt = null;
         }
 
-        props.reminderTime = moment.utc(serverData.reminder_time as string, moment.ISO_8601);
+        let reminderTime;
+        if (serverData.reminder_time == null) {
+            reminderTime = moment.invalid();
+        } else {
+            reminderTime = moment.utc(serverData.reminder_time, moment.ISO_8601);
+        }
 
-        props.coolOffPeriod = moment.duration(serverData.cool_off_period, 'seconds');
+        const coolOffPeriod = moment.duration(serverData.cool_off_period, 'seconds');
 
-        return new Assignment(props);
+        return new Assignment(
+            Object.assign(props, {
+                courseId,
+                deadline,
+                createdAt,
+                availableAt,
+                reminderTime,
+                coolOffPeriod,
+            }),
+        );
     }
 
-    get course(): Record<string, any> {
-        return store.getters['courses/courses'][this.courseId];
+    @utils.nonenumerable
+    get course(): Course {
+        return CoursesStore.getCourse()(this.courseId).unsafeCoerce();
     }
 
+    @utils.nonenumerable
     get ltiProvider(): utils.Maybe<LTIProvider> {
         const course = this.course;
         if (course == null || !this.is_lti) {
             return utils.Nothing;
         }
-        return utils.Maybe.fromNullable(this.course.ltiProvider);
+        return this.course.ltiProvider;
     }
 
     getReminderTimeOrDefault(): moment.Moment {
@@ -245,10 +253,12 @@ export class Assignment extends AssignmentData {
         return baseTime.clone().add(1, 'weeks');
     }
 
+    @utils.nonenumerable
     get hasDeadline(): boolean {
         return this.deadline.isValid();
     }
 
+    @utils.nonenumerable
     // eslint-disable-next-line
     get created_at(): string {
         return utils.formatDate(this.createdAt);
@@ -280,6 +290,7 @@ export class Assignment extends AssignmentData {
         return now.isAfter(this.deadline);
     }
 
+    @utils.nonenumerable
     get peerFeedbackDeadline() {
         if (this.deadline == null || this.peer_feedback_settings == null) {
             return null;
@@ -322,10 +333,12 @@ export class Assignment extends AssignmentData {
         return this.getSubmitDisabledReasons({ now }).length === 0;
     }
 
+    @utils.nonenumerable
     get maxGrade() {
         return this.max_grade == null ? 10 : this.max_grade;
     }
 
+    @utils.nonenumerable
     get graders(): AnyUser[] | null {
         if (this.graderIds == null) {
             return null;
@@ -337,13 +350,7 @@ export class Assignment extends AssignmentData {
     }
 
     hasPermission(permission: CPerm | CPermOpts): boolean {
-        let permName;
-        if (typeof permission === 'string') {
-            permName = permission;
-        } else {
-            permName = permission.value;
-        }
-        return !!(this.course?.permissions ?? {})[permName];
+        return this.course.hasPermission(permission);
     }
 
     _canSeeFeedbackType(typ: 'grade' | 'linter' | 'user'): boolean {
@@ -375,49 +382,22 @@ export class Assignment extends AssignmentData {
         return this._canSeeFeedbackType('linter');
     }
 
+    @utils.nonenumerable
     get rubric(): Rubric<number> | NONEXISTENT | undefined {
         return store.getters['rubrics/rubrics'][this.id];
     }
 
     update(newProps: AssignmentUpdateableProps) {
-        return new Assignment(
-            Object.assign(
-                {},
-                this,
-                Object.keys(newProps).reduce((acc, key) => {
-                    // @ts-ignore
-                    if (!ALLOWED_UPDATE_PROPS.has(key)) {
-                        // @ts-ignore
-                        const value: object = newProps[key];
-                        throw TypeError(`Cannot set assignment property: ${key} to ${value}`);
-                    }
+        const propKeys = Object.keys(newProps);
+        if (!propKeys.every(key => ALLOWED_UPDATE_PROPS.has(key as any))) {
+            const disallowedPairs = propKeys
+                .filter(key => !ALLOWED_UPDATE_PROPS.has(key as any))
+                .map(key => `${key}: ${(newProps as Record<string, any>)[key]}`)
+                .join(', ');
+            throw TypeError(`Cannot set assignment property: ${disallowedPairs}`);
+        }
 
-                    if (key === 'deadline' || key === 'reminderTime') {
-                        const value = newProps[key];
-                        if (!moment.isMoment(value)) {
-                            throw new Error(`${key} can only be set as moment`);
-                        }
-                        acc[key] = value;
-                    } else if (key === 'cool_off_period') {
-                        const value = newProps[key];
-                        acc.coolOffPeriod = moment.duration(value, 'seconds');
-                    } else if (key === 'availableAt') {
-                        const value = newProps[key];
-                        if (!(value === null || moment.isMoment(value))) {
-                            throw new Error(`${key} can only be set as moment or null`);
-                        }
-                        acc[key] = value;
-                    } else {
-                        // @ts-ignore
-                        const value: any = newProps[key];
-                        // @ts-ignore
-                        acc[key] = value;
-                    }
-
-                    return acc;
-                }, {} as Mutable<AssignmentData, keyof AssignmentData>),
-            ),
-        );
+        return new Assignment(Object.assign({}, this, newProps));
     }
 }
 

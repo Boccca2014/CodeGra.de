@@ -25,7 +25,9 @@ from cg_helpers import maybe_wrap_in_list
 from cg_dt_utils import DatetimeWithTimezone
 from psef.helpers import readable_join
 from psef.exceptions import APICodes, APIException, PermissionException
+from cg_sqlalchemy_helpers import expression as sql_expression
 from cg_cache.intra_request import cache_within_request
+from cg_sqlalchemy_helpers.types import FilterColumn
 
 from . import helpers
 from .permissions import CoursePermission as CPerm
@@ -355,27 +357,31 @@ def login_required(fun: T) -> T:
     return t.cast(T, __wrapper)
 
 
-@cache_within_request
 def _get_cur_user_nullable() -> t.Optional['psef.models.User']:
     return _resolve_user(psef.current_user)
 
 
-@cache_within_request
 def _get_cur_user() -> 'psef.models.User':
     user = _resolve_user(psef.current_user)
-    ensure_logged_in()
+    ensure_logged_in(user)
     assert user is not None
     return user
 
 
-def ensure_logged_in() -> None:
+def ensure_logged_in(
+    user: t.Union[None,
+                  'psef.models.User',
+                  Literal[helpers.MissingType.token],
+                  ] = helpers.MISSING
+) -> None:
     """Make sure a user is currently logged in.
 
     :returns: Nothing.
 
     :raises PermissionException: If there is no logged in user. (NOT_LOGGED_IN)
     """
-    if not user_active(psef.current_user):
+    user = psef.current_user if user is helpers.MISSING else user
+    if not user_active(user):
         _raise_login_exception()
 
 
@@ -423,7 +429,6 @@ def as_current_user(user: t.Union['psef.models.User', LocalProxy]
     old_claims = copy.copy(flask_jwt.get_jwt_claims())
     try:
         _ensure_course_visible_for_current_user.clear_cache()  # type: ignore
-        _get_cur_user.clear_cache()  # type: ignore
         set_current_user(user, jwt_claims={})
         yield
     finally:
@@ -1227,6 +1232,19 @@ class CoursePermissions(CoursePermissionChecker):
             course_id = course.id
         super().__init__(course_id)
         self._course = course
+
+    @staticmethod
+    def ensure_may_see_filter() -> FilterColumn:
+        user = _get_cur_user_nullable()
+        if user is None:
+            return sql_expression.false()
+        for_course = flask_jwt.get_jwt_claims().get('for_course')
+        if for_course is not None:
+            return psef.models.Course.id == for_course
+
+        return psef.models.Course.id.in_(
+            [cr.course_id for cr in user.courses.values()]
+        )
 
     @CoursePermissionChecker.as_ensure_function
     def ensure_may_see(self) -> None:
