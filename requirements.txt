@@ -2,7 +2,7 @@ alembic==1.4.2
 alembic-autogenerate-enums==0.0.2
 argon2-cffi==20.1.0
 boto3==1.14.51
-botocore==1.17.23
+botocore==1.17.51
 celery==4.4.6
 colorama==0.4.3
 coolname==1.1.0
