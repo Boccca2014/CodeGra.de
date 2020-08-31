@@ -60,7 +60,7 @@ sqlalchemy-citext==1.7.0
 SQLAlchemy-Utils==0.36.8
 structlog==20.1.0
 transip==2.1.2
-typing-extensions==3.7.4.2
+typing-extensions==3.7.4.3
 validate-email==1.3
 Werkzeug==1.0.1
 yapf==0.26.0
