@@ -20,34 +20,17 @@
 
                 <template v-if="canLogin">
                     <p>
-                        <template v-if="isExam">
-                            You can start the exam by clicking the button
-                            below.
-                        </template>
-                        <template v-else>
-                            You can access the assignment by clicking the
-                            button below.
-                        </template>
+                        You can start the exam by clicking the button below.
                     </p>
 
-                    <p v-if="isExam">
+                    <p>
                         The exam started {{ canLoginIn }} and ends {{ deadlineIn }}.
-                    </p>
-                    <p v-else>
-                        The assignment became available {{ canLoginIn }} and the
-                        deadline of this assignment is {{ deadlineIn }}.
                     </p>
                 </template>
                 <template v-else>
                     <p>
-                        <template v-if="isExam">
-                            You can log in to start the exam from this page once it
-                            has started.
-                        </template>
-                        <template v-else>
-                            You can access the assignment from this page once it has
-                            become available.
-                        </template>
+                        You can log in to start the exam from this page once it
+                        has started.
 
                         Please do not delete the e-mail you received with the
                         link to this page as you will need it when the exam
@@ -55,23 +38,23 @@
                     </p>
 
                     <p>
-                        The {{ assignmentType }} will become available
-                        {{ canLoginIn }} and ends {{ deadlineIn }}. You can
-                        click the button below to log in once the
-                        {{ assignmentType }} is available.
+                        The exam will become available {{ canLoginIn }} and
+                        ends {{ deadlineIn }}. You can click the button below
+                        to log in once the exam is available.
                     </p>
                 </template>
 
                 <div class="my-3 text-center">
                     <div v-b-popover.top.hover="canLogin ? '' : 'You can not log in yet.'">
-                        <cg-submit-button style="height: 10rem; width: 10rem;"
-                                        variant="secondary"
-                                        class="align-self-center"
-                                        :icon-scale="4"
-                                        :submit="login"
-                                        ref="loginBtn"
-                                        :disabled="!canLogin"
-                                        @after-success="success">
+                        <cg-submit-button
+                            style="height: 10rem; width: 10rem;"
+                            variant="secondary"
+                            class="align-self-center"
+                            :icon-scale="4"
+                            :submit="login"
+                            ref="loginBtn"
+                            :disabled="!canLogin"
+                            @after-success="success">
                             <fa-icon name="sign-in" :scale="6" />
                             <div>Start</div>
                         </cg-submit-button>
@@ -81,12 +64,12 @@
                 <template v-if="!canLogin && canLoginInSeconds < 60 * 60">
                     <p>
                         Set the toggle below to "Yes" to log in automatically
-                        when the {{ assignmentType }} starts.
+                        when the exam starts.
                     </p>
 
                     <cg-toggle v-model="autoLogin"
-                                label-on="Yes"
-                                label-off="No"/>
+                               label-on="Yes"
+                               label-off="No"/>
                 </template>
             </div>
             <cg-loader page-loader v-else />
@@ -137,18 +120,6 @@ export default class AssignmentLogin extends Vue {
 
     get loginUuid(): string {
         return this.$route.params.loginUuid;
-    }
-
-    get isExam(): boolean {
-        if (this.assignment == null) {
-            return false;
-        } else {
-            return this.assignment.kind === 'exam';
-        }
-    }
-
-    get assignmentType(): string {
-        return this.isExam ? 'exam' : 'assignment';
     }
 
     get canLogin(): boolean {
