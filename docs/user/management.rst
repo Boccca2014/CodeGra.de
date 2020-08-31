@@ -398,7 +398,8 @@ communication between graders:
 * **Finished** notification: send an e-mail to a specified e-mail address to
   notify when all graders are finished grading.
 
-.. note:: Notifications rely on the manually set status by the graders.
+.. note:: For these notifications to be sent, graders must manually update
+   their status.
 
 Linters
 ~~~~~~~~~

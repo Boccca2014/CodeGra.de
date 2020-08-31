@@ -53,11 +53,11 @@ The file browser shows a hierarchical overview of all submitted files.
 Optionally it can also show suggested changes by the teacher, or generated
 files.
 
-Files indicated with ``diff`` have a teacher revision (optionally created
-with the `filesystem <https://fs-docs.codegra.de>`__). If available, the
-teacher's revision can be viewed by expanding the Teacher revision tree. Files
-that were not changed by the teacher have a slightly faded color, to make it
-easier to spot which files have changed.
+Files indicated with ``diff`` have a teacher revision (created with the
+`filesystem <https://fs-docs.codegra.de>`__). If available, the teacher's
+revision can be viewed by expanding the Teacher revision tree. Files that were
+not changed by the teacher have a slightly faded color, to make it easier to
+spot which files have changed.
 
 When a teacher revision is available, there is also a Teacher diff category in
 the file browser, which can be used to view a line-by-line diff of the files
