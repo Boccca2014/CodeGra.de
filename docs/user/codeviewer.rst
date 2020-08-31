@@ -70,24 +70,37 @@ generated output <autotest-automatically-generated-output>`
 for instructions on generating output in an AutoTest.
 
 Inline feedback
-~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~
 Oftentimes, feedback for specific lines or blocks of code is wanted to make
-specific errors clear to students.
-CodeGrade enables this with the addition of line feedback.
+specific errors clear to students. CodeGrade enables this with inline feedback.
 
 Feedback on a specific line can be given by clicking on this line of code in
-the Code Viewer. Feedback can be written in the appeared dialog and saved with
-the :fa:`check` button. Clicking on previously placed line for line feedback
-displays this same dialog and clicking the :fa:`times` button will remove the
-comment.
+the Code Viewer. Feedback can be written in the dialog that appears and saved
+with the "Save" button.
+
+To edit a previously placed inline comment, click on the :fa:`pencil` at the
+top of the comment. You can view a list of all edits you made by clicking the
+:fa:`history` icon.
+
+Delete a comment by clicking on :fa:`times` at the top, or by clicking the
+"Delete" button while editing a comment. Click "Cancel" while editing to revert
+any changes you have made and stop editing the comment.
+
+Student questions
+^^^^^^^^^^^^^^^^^
 
 Students can also comment on their own code in the same way. This can be useful
 if they have questions about the assignment or their code. Teachers or teaching
-assistants assigned to a submission will be notified when this happens, so that
-they can swiftly act on such questions.
+assistants assigned to a submission :ref:`will be notified
+<user-notifications>` when this happens, so that they can swiftly act on such
+questions.
 
 Both students and teachers can reply to comments by clicking on the "Click to
 reply..." box, allowing the entire discussion to be held in one place.
+
+.. note:: Students need the permission "Add inline comments to own submissions"
+   to be able to place comments on their own submissions. By default, this
+   permission is enabled for the student role.
 
 .. _codeviewer-snippets:
 
