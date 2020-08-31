@@ -60,17 +60,6 @@
                         </cg-submit-button>
                     </div>
                 </div>
-
-                <template v-if="!canLogin && canLoginInSeconds < 60 * 60">
-                    <p>
-                        Set the toggle below to "Yes" to log in automatically
-                        when the exam starts.
-                    </p>
-
-                    <cg-toggle v-model="autoLogin"
-                               label-on="Yes"
-                               label-off="No"/>
-                </template>
             </div>
             <cg-loader page-loader v-else />
         </div>
@@ -104,8 +93,6 @@ export default class AssignmentLogin extends Vue {
     private user: models.User | null = null;
 
     private error: Error | null = null;
-
-    public autoLogin: boolean = false;
 
     storeLogin!: (response: AxiosResponse) => Promise<unknown>;
 
@@ -168,17 +155,6 @@ export default class AssignmentLogin extends Vue {
         }
     }
 
-    @Watch('canLogin')
-    async onCanLoginChange() {
-        if (this.canLogin && this.autoLogin) {
-            this.autoLogin = false;
-            const btn = await this.$waitForRef('loginBtn');
-            if (btn) {
-                (btn as any).onClick();
-            }
-        }
-    }
-
     @Watch('assignmentId', { immediate: true })
     onAssignmentIdChange() {
         this.loadData();
@@ -205,7 +181,9 @@ export default class AssignmentLogin extends Vue {
     }
 
     login() {
-        return this.$http.post(this.$utils.buildUrl(['api', 'v1', 'login_links', this.loginUuid, 'login']));
+        return this.$http.post(
+            this.$utils.buildUrl(['api', 'v1', 'login_links', this.loginUuid, 'login']),
+        );
     }
 
     success(response: AxiosResponse) {
