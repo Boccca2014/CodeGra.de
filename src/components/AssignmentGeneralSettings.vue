@@ -125,13 +125,15 @@
         </template>
 
         <template #invalid-feedback>
-            <div v-if="examDuration.isLeft()">
-                {{ $utils.getErrorMessage(examDuration.extract()) }}
+            <div v-if="examDurationHours.isLeft()">
+                {{ $utils.getErrorMessage(examDurationHours.extract()) }}
             </div>
 
-            <!-- We can always extract twice because the cg-number-input has the
-                 required attribute and as such the Maybe is always a Just. -->
-            <div v-else-if="sendLoginLinks && examDuration.extract().extract() > maxExamDuration">
+            <div v-if="examDurationMinutes.isLeft()">
+                {{ $utils.getErrorMessage(examDurationMinutes.extract()) }}
+            </div>
+
+            <div v-if="examTooLong">
                 With "Send login mails" enabled, exams can take at most
                 {{ maxExamDuration }} hours.
 
@@ -144,16 +146,34 @@
             </div>
         </template>
 
-        <b-input-group append="hours">
+        <b-input-group>
             <cg-number-input
                 :id="`assignment-deadline-${uniqueId}-input`"
-                name="Exam duration"
+                name="Exam duration hours"
                 :required="true"
                 :min="0"
                 :step="1"
-                v-model="examDuration"
+                v-model="examDurationHours"
                 @input="deadline = examDeadline"
                 @keydown.native.ctrl.enter="$refs.submitGeneralSettings.onClick"/>
+
+            <b-input-group-append is-text>
+                hours
+            </b-input-group-append>
+
+            <cg-number-input
+                :id="`assignment-deadline-${uniqueId}-input`"
+                name="Exam duration minutes"
+                :required="true"
+                :min="0"
+                :step="1"
+                v-model="examDurationMinutes"
+                @input="deadline = examDeadline"
+                @keydown.native.ctrl.enter="$refs.submitGeneralSettings.onClick"/>
+
+            <b-input-group-append is-text>
+                minutes
+            </b-input-group-append>
         </b-input-group>
     </b-form-group>
 
@@ -188,7 +208,7 @@
         <b-input-group v-b-popover.top.hover="deadlinePopover">
             <datetime-picker
                 v-model="deadline"
-                @input="examDuration = calcExamDuration()"
+                @input="resetExamDuration"
                 :id="`assignment-deadline-${uniqueId}-input`"
                 class="assignment-deadline"
                 placeholder="None set"
@@ -286,7 +306,9 @@ export default class AssignmentGeneralSettings extends Vue {
 
     deadline: string | null = null;
 
-    examDuration: NumberInputValue = numberInputValue(null);
+    examDurationHours: NumberInputValue = numberInputValue(null);
+
+    examDurationMinutes: NumberInputValue = numberInputValue(null);
 
     maxGrade: NumberInputValue = numberInputValue(null);
 
@@ -299,7 +321,7 @@ export default class AssignmentGeneralSettings extends Vue {
         if (this.isExam) {
             this.deadline = this.examDeadline;
         } else {
-            this.examDuration = this.calcExamDuration();
+            this.recalcExamDuration();
         }
     }
 
@@ -312,6 +334,14 @@ export default class AssignmentGeneralSettings extends Vue {
 
     get isExam() {
         return this.kind === models.AssignmentKind.exam;
+    }
+
+    get examDuration() {
+        return this.examDurationHours.orDefault(Nothing).map(hours =>
+            this.examDurationMinutes.orDefault(Nothing).map(minutes =>
+                hours + minutes / 60,
+            ),
+        ).join();
     }
 
     get kindOptions() {
@@ -348,7 +378,7 @@ export default class AssignmentGeneralSettings extends Vue {
             this.assignment.deadline,
             true,
         );
-        this.examDuration = this.calcExamDuration();
+        this.recalcExamDuration();
         this.maxGrade = numberInputValue(this.assignment.max_grade);
         this.sendLoginLinks = this.assignment.send_login_links;
     }
@@ -392,6 +422,14 @@ export default class AssignmentGeneralSettings extends Vue {
             () => false,
             maybeMaxGrade => maybeMaxGrade.extractNullable() !== this.assignment.max_grade,
         );
+    }
+
+    get examTooLong() {
+        if (!this.sendLoginLinks) {
+            return false;
+        }
+
+        return this.examDuration.orDefault(0) > this.maxExamDuration;
     }
 
     get nothingChanged() {
@@ -468,14 +506,8 @@ export default class AssignmentGeneralSettings extends Vue {
             return true;
         }
 
-        return this.examDuration.orDefault(Nothing).mapOrDefault(
-            examDuration => {
-                if (this.sendLoginLinks) {
-                    return examDuration <= this.maxExamDuration;
-                } else {
-                    return true;
-                }
-            },
+        return this.examDuration.mapOrDefault(
+            duration => (this.sendLoginLinks ? duration <= this.maxExamDuration : true),
             false,
         );
     }
@@ -513,7 +545,7 @@ export default class AssignmentGeneralSettings extends Vue {
             return null;
         }
 
-        return examDuration.orDefault(Nothing).mapOrDefault(
+        return examDuration.mapOrDefault(
             duration => this.$utils.formatDate(
                 this.$utils.toMoment(availableAt).add(duration, 'hour'),
                 true,
@@ -540,14 +572,18 @@ export default class AssignmentGeneralSettings extends Vue {
         this.maxGrade = numberInputValue(null);
     }
 
-    calcExamDuration() {
+    recalcExamDuration() {
         const { deadline, availableAt } = this;
 
         if (deadline == null || availableAt == null) {
-            return numberInputValue(null);
+            this.examDurationHours = numberInputValue(null);
+            this.examDurationMinutes = numberInputValue(null);
         } else {
             const d = this.$utils.toMoment(deadline).diff(availableAt);
-            return numberInputValue(moment.duration(d).asHours());
+            const hours = moment.duration(d).asHours();
+
+            this.examDurationHours = numberInputValue(Math.floor(hours));
+            this.examDurationMinutes = numberInputValue(Math.round(60 * (hours % 1)));
         }
     }
 
