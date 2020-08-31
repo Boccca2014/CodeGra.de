@@ -78,11 +78,27 @@ registration is complete.
 
 You are now registered and logged in to CodeGrade!
 
+.. note:: Registering a new account in this way may not be available on your
+   CodeGrade instance.
+
 Logging in to an existing account
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-If you already have a CodeGrade account, you can use this to log in to the online
-environment. After clicking the 'Login' button, enter your username and password
-and click 'Login'. You are now logged in to CodeGrade!
+
+There are multiple ways to log in to CodeGrade. If you visit CodeGrade via your
+Learning Management System (Blackboard, Canvas, etc.) you do not need to enter
+any password as you will automatically be logged in. If you are on a standalone
+CodeGrade instance, you can log in either with a username and password
+combination or via a single sign-on (SSO) provider.
+
+To log in with your username and password, you need to already have registered
+an account. Visit <instance>.codegra.de, click 'Login' in the sidebar, and
+enter your username and password. After clicking the 'Login' button you are now
+logged in to CodeGrade!
+
+To log in with SSO select your institution in the list of SSO providers. You
+will be taken to a page where you can log in to the SSO system, which will take
+you back to CodeGrade afterwards. When you return you will be logged in to
+CodeGrade.
 
 Click 'Forgot password' in the case you have forgotten your password. After
 entering your username, a temporary link will be sent in an e-mail which allows
