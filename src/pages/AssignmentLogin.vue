@@ -10,6 +10,20 @@
 
     <div class="row justify-content-center">
         <div class="col" style="max-width: 25rem;">
+            <b-alert v-if="loggedIn && user && loggedInUserId != user.id"
+                     show
+                     variant="warning">
+                <p>
+                    Another user is currently logged in than the one trying to
+                    take the exam. <a href="#" @click="storeLogout">Click
+                    here</a> to log the other user out.
+                </p>
+
+                <p class="mb-0">
+                    Starting the exam by clicking the "Start" button below will
+                    also log out the other user.
+                </p>
+            </b-alert>
             <b-alert v-if="error" show variant="danger">
                 {{ $utils.getErrorMessage(error) }}
             </b-alert>
@@ -25,6 +39,11 @@
 
                     <p>
                         The exam started {{ canLoginIn }} and ends {{ deadlineIn }}.
+                    </p>
+                </template>
+                <template v-else-if="!isBeforeDeadline">
+                    <p>
+                        The exam ended {{ deadlineIn }}.
                     </p>
                 </template>
                 <template v-else>
@@ -74,16 +93,23 @@ import 'vue-awesome/icons/sign-in';
 
 // @ts-ignore
 import LocalHeader from '@/components/LocalHeader';
-import { mapActions } from 'vuex';
+import { mapActions, mapGetters } from 'vuex';
 import { AxiosResponse } from 'axios';
 
 import * as models from '@/models';
 
 @Component({
     components: { LocalHeader },
+    computed: {
+        ...mapGetters('user', {
+            loggedIn: 'loggedIn',
+            loggedInUserId: 'id',
+        }),
+    },
     methods: {
         ...mapActions('user', {
             storeLogin: 'login',
+            storeLogout: 'logout',
         }),
     },
 })
@@ -94,7 +120,11 @@ export default class AssignmentLogin extends Vue {
 
     private error: Error | null = null;
 
+    loggedIn!: boolean;
+
     storeLogin!: (response: AxiosResponse) => Promise<unknown>;
+
+    storeLogout!: () => Promise<unknown>;
 
     get assignmentId(): number {
         return parseInt(this.$route.params.assignmentId, 10);
@@ -109,8 +139,16 @@ export default class AssignmentLogin extends Vue {
         return this.$route.params.loginUuid;
     }
 
-    get canLogin(): boolean {
+    get isAfterLoginTime() {
         return this.loginTime?.isBefore(this.$root.$epoch) ?? false;
+    }
+
+    get isBeforeDeadline() {
+        return this.assignment?.deadline?.isAfter(this.$root.$epoch) ?? false;
+    }
+
+    get canLogin(): boolean {
+        return this.isAfterLoginTime && this.isBeforeDeadline;
     }
 
     get canLoginInSeconds(): number | null {
@@ -146,7 +184,7 @@ export default class AssignmentLogin extends Vue {
         const now = this.$root.$epoch;
         // moment.diff returns a value in milliseconds.
         const diff = deadline.diff(now) / 1000;
-        if (diff < 45) {
+        if (diff >= 0 && diff < 45) {
             return `in ${diff.toFixed(0)} seconds`;
         } else if (diff <= 15 * 60) {
             return deadline.from(now);
@@ -180,7 +218,11 @@ export default class AssignmentLogin extends Vue {
         });
     }
 
-    login() {
+    async login() {
+        if (this.loggedIn) {
+            await this.storeLogout();
+        }
+
         return this.$http.post(
             this.$utils.buildUrl(['api', 'v1', 'login_links', this.loginUuid, 'login']),
         );
