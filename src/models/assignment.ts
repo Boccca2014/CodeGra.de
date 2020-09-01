@@ -7,8 +7,7 @@ import { CoursePermission as CPerm, CoursePermissionOptions as CPermOpts } from 
 
 import { Rubric } from '@/models';
 
-// @ts-ignore
-import { store } from '@/store';
+import { CoursesStore, store } from '@/store';
 
 import { NONEXISTENT, MANAGE_GENERAL_COURSE_PERMISSIONS } from '@/constants';
 import * as utils from '@/utils/typed';
@@ -16,7 +15,6 @@ import { LTIProvider } from '@/lti_providers';
 
 import * as assignmentState from '@/store/assignment-states';
 import { makeCache } from '@/utils/cache';
-import { CoursesStore } from '@/store/modules/courses';
 import { AnyUser, User, GroupServerData } from './user';
 import { Course } from './course';
 

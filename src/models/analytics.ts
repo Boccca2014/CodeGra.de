@@ -26,7 +26,7 @@ import {
 import { makeCache } from '@/utils/cache';
 import { defaultdict } from '@/utils/defaultdict';
 import { NONEXISTENT } from '@/constants';
-import { AssignmentsStore } from '@/store/modules/assignments';
+import { AssignmentsStore } from '@/store';
 
 import { Assignment, Rubric, RubricItem, RubricRow, AnyUser, User } from '@/models';
 

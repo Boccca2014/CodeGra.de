@@ -896,7 +896,7 @@ export function formatTimePart(num: number): string {
     return `${num < 10 ? '0' : ''}${num}`;
 }
 
-function isMaybe<T>(obj: T | Maybe<T>): obj is Maybe<T> {
+export function isMaybe<T>(obj: T | Maybe<T>): obj is Maybe<T> {
     // @ts-ignore
     return obj != null && obj?.constructor === Maybe;
 }

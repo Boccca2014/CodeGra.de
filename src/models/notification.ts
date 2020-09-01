@@ -4,10 +4,9 @@ import axios from 'axios';
 
 import { SubmitButtonResult } from '@/interfaces';
 
-import { store } from '@/store';
+import { store, AssignmentsStore } from '@/store';
 import { FeedbackReplyServerData, FeedbackReply } from '@/models/feedback';
 import { Assignment } from '@/models/assignment';
-import { AssignmentsStore } from '@/store/modules/assignments';
 import { Maybe } from '@/utils';
 
 import { Submission } from './submission';

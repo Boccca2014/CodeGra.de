@@ -108,7 +108,7 @@ export namespace AssignmentsStore {
             if (state.loaders[assignmentId] == null || force) {
                 commitLoader({
                     assignmentId,
-                    value: CoursesStore.loadPermissions().then(async () => {
+                    value: CoursesStore.loadPermissions({ force }).then(async () => {
                         if (courseId != null) {
                             await CoursesStore.loadSingleCourse({ courseId, force });
                         }

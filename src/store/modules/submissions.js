@@ -340,9 +340,9 @@ const actions = {
         return promise;
     },
 
-    async loadSubmissions(context, { assignmentId, courseId }) {
+    loadSubmissions(context, { assignmentId, courseId }) {
         if (context.state.submissionsLoaders[assignmentId] == null) {
-            await context.dispatch('forceLoadSubmissions', { assignmentId, courseId });
+            return context.dispatch('forceLoadSubmissions', { assignmentId, courseId });
         }
 
         return context.state.submissionsLoaders[assignmentId];

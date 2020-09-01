@@ -96,7 +96,9 @@ export namespace CoursesStore {
         'commitCourses',
     );
 
-    const commitPermissions = moduleBuilder.commit(
+    // This is only exported to be used in tests, don't call this commit from
+    // your own code.
+    export const commitPermissions = moduleBuilder.commit(
         (state, payload: { permissions: Record<number, CPermMap> }) => {
             state.permissions = Object.assign({}, state.permissions, payload.permissions);
         },
@@ -147,17 +149,21 @@ export namespace CoursesStore {
         state.gotAllCourses = payload.value;
     }, 'commitGotAllCourses');
 
-    export const loadPermissions = moduleBuilder.dispatch(({ state }) => {
-        if (state.loaders.permissions == null) {
-            commitLoader({
-                key: 'permissions',
-                value: axios.get('/api/v1/permissions/?type=course').then(({ data }) => {
-                    commitPermissions({ permissions: data });
-                }),
-            });
-        }
-        return state.loaders.permissions;
-    }, 'loadPermissions');
+    export const loadPermissions = moduleBuilder.dispatch(
+        ({ state }, payload: { force?: boolean } = {}) => {
+            const { force = false } = payload;
+            if (state.loaders.permissions == null || force) {
+                commitLoader({
+                    key: 'permissions',
+                    value: axios.get('/api/v1/permissions/?type=course').then(({ data }) => {
+                        commitPermissions({ permissions: data });
+                    }),
+                });
+            }
+            return state.loaders.permissions;
+        },
+        'loadPermissions',
+    );
 
     // eslint-disable-next-line
     function _getPermissionsForCourse(state: CoursesState) {
@@ -167,6 +173,23 @@ export namespace CoursesStore {
     export const getPermissionsForCourse = moduleBuilder.read(
         _getPermissionsForCourse,
         'getPermissionsForCourse',
+    );
+
+    export const commitPermission = moduleBuilder.commit(
+        (state, payload: { courseId: number; perm: CPermOpts; value: boolean }) => {
+            const { courseId, perm, value } = payload;
+            const perms = state.permissions[courseId];
+            if (perms == null) {
+                throw new Error(
+                    `Cannot update permission for course ${courseId}, no permissions were found. Available courses: ${Object.keys(
+                        state.permissions,
+                    ).join(', ')}`,
+                );
+            }
+            utils.vueSet(perms, perm, value);
+            utils.vueSet(state.permissions, courseId, perms);
+        },
+        'commitPermission',
     );
 
     export const addCourses = moduleBuilder.dispatch(
@@ -210,7 +233,7 @@ export namespace CoursesStore {
         async ({ state }, payload: { courseId: number; force?: boolean }) => {
             const { courseId, force = false } = payload;
             await Promise.all([
-                loadPermissions(),
+                loadPermissions({ force }),
                 state.loaders.firstCourses,
                 state.loaders.allCourses,
             ]);
@@ -230,7 +253,7 @@ export namespace CoursesStore {
     export const loadFirstCourses = moduleBuilder.dispatch(
         async ({ state }, payload?: { force?: boolean }) => {
             const { force = false } = payload ?? {};
-            await loadPermissions();
+            await loadPermissions({ force });
 
             const didLoad = state.loaders.firstCourses != null;
             const didLoadAll = state.loaders.allCourses != null;
@@ -267,7 +290,7 @@ export namespace CoursesStore {
     export const loadAllCourses = moduleBuilder.dispatch(
         async ({ state }, payload?: { force?: boolean }) => {
             const { force = false } = payload ?? {};
-            await loadPermissions();
+            await loadPermissions({ force });
             if (state.loaders.allCourses == null || force) {
                 commitLoader({
                     key: 'allCourses',

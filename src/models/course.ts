@@ -6,10 +6,9 @@ import moment from 'moment';
 import { LTIProvider, makeProvider as makeLTIProvider } from '@/lti_providers';
 import { CourseSnippet } from '@/interfaces';
 import { Maybe, nonenumerable, filterMap, formatDate } from '@/utils';
-import { CoursesStore } from '@/store/modules/courses';
+import { AssignmentsStore, CoursesStore } from '@/store';
 import { makeCache } from '@/utils/cache';
 import { MANAGE_ASSIGNMENT_PERMISSIONS } from '@/constants';
-import { AssignmentsStore } from '@/store/modules/assignments';
 
 /* eslint-disable camelcase */
 interface CourseServerData {
@@ -37,6 +36,7 @@ export interface CourseExtendedServerData extends CourseServerData {
 /* eslint-enable camelcase */
 
 export interface CourseUpdatableProps {
+    name: string;
     groupSets: ReadonlyArray<GroupSetServerData>;
     snippets: ReadonlyArray<CourseSnippet>;
 }
@@ -128,7 +128,7 @@ export class Course {
     update(props: CourseUpdatableProps): Course {
         return new Course(
             this.id,
-            this.name,
+            props.name ?? this.name,
             this.createdAt,
             this.virtual,
             this.ltiProvider,
