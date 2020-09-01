@@ -125,12 +125,10 @@
         </template>
 
         <template #invalid-feedback>
-            <div v-if="examDurationHours.isLeft()">
-                {{ $utils.getErrorMessage(examDurationHours.extract()) }}
-            </div>
-
-            <div v-if="examDurationMinutes.isLeft()">
-                {{ $utils.getErrorMessage(examDurationMinutes.extract()) }}
+            <div v-if="examDuration.isLeft()">
+                <template v-for="err in examDuration.extract()">
+                    {{ $utils.getErrorMessage(err) }}
+                </template>
             </div>
 
             <div v-if="examTooLong">
@@ -274,7 +272,7 @@ import { AxiosResponse } from 'axios';
 import moment from 'moment';
 
 import * as models from '@/models';
-import { Nothing } from '@/utils';
+import { Either, Left, Maybe, Nothing } from '@/utils';
 
 // @ts-ignore
 import DatetimePicker from './DatetimePicker';
@@ -328,20 +326,30 @@ export default class AssignmentGeneralSettings extends Vue {
     patchAssignment!:
         (args: any) => Promise<AxiosResponse<void>>;
 
-    get isNormal() {
-        return this.kind === models.AssignmentKind.normal;
-    }
-
     get isExam() {
         return this.kind === models.AssignmentKind.exam;
     }
 
-    get examDuration() {
-        return this.examDurationHours.orDefault(Nothing).map(hours =>
-            this.examDurationMinutes.orDefault(Nothing).map(minutes =>
-                hours + minutes / 60,
-            ),
-        ).join();
+    get examDuration(): Either<Error[], Maybe<number>> {
+        const errors = Either.lefts([
+            this.examDurationHours,
+            this.examDurationMinutes,
+        ]);
+
+        if (errors.length > 0) {
+            return Left(errors);
+        }
+
+        const hours = this.examDurationHours.orDefault(Nothing).orDefault(0);
+        const minutes = this.examDurationMinutes.orDefault(Nothing).orDefault(0);
+
+        if (hours === 0 && minutes === 0) {
+            return Left([
+                new Error('The exam must take longer than 0 minutes!'),
+            ]);
+        }
+
+        return numberInputValue(hours + minutes / 60);
     }
 
     get kindOptions() {
@@ -429,7 +437,7 @@ export default class AssignmentGeneralSettings extends Vue {
             return false;
         }
 
-        return this.examDuration.orDefault(0) > this.maxExamDuration;
+        return this.examDuration.orDefault(Nothing).orDefault(0) > this.maxExamDuration;
     }
 
     get nothingChanged() {
@@ -506,7 +514,7 @@ export default class AssignmentGeneralSettings extends Vue {
             return true;
         }
 
-        return this.examDuration.mapOrDefault(
+        return this.examDuration.orDefault(Nothing).mapOrDefault(
             duration => (this.sendLoginLinks ? duration <= this.maxExamDuration : true),
             false,
         );
@@ -545,7 +553,7 @@ export default class AssignmentGeneralSettings extends Vue {
             return null;
         }
 
-        return examDuration.mapOrDefault(
+        return examDuration.orDefault(Nothing).mapOrDefault(
             duration => this.$utils.formatDate(
                 this.$utils.toMoment(availableAt).add(duration, 'hour'),
                 true,
