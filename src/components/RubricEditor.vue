@@ -48,9 +48,9 @@
         <multiselect
             class="assignment-selector"
             v-model="importAssignment"
-            :options="otherAssignmentsWithRubric || []"
+            :options="otherAssignmentsWithRubric"
             :searchable="true"
-            :custom-label="a => `${a.course.name} - ${a.name}`"
+            :custom-label="getImportLabel"
             :multiple="false"
             track-by="id"
             label="label"
@@ -402,7 +402,7 @@ import 'vue-awesome/icons/times';
 import 'vue-awesome/icons/reply';
 import 'vue-awesome/icons/ellipsis-h';
 
-import { NONEXISTENT } from '@/constants';
+import { NONEXISTENT, INITIAL_COURSES_AMOUNT } from '@/constants';
 import { Rubric } from '@/models';
 import { ValidationError } from '@/models/errors';
 import { formatGrade } from '@/utils';
@@ -443,7 +443,7 @@ export default {
             error: null,
             currentCategory: 0,
             internalFixedMaxPoints: this.assignment.fixed_max_rubric_points,
-            assignmentIdsWithRubric: null,
+            assignmentsWithRubric: null,
             importAssignment: null,
             loadingAssignments: false,
             loadAssignmentsError: '',
@@ -457,7 +457,7 @@ export default {
         assignmentId: {
             immediate: true,
             handler() {
-                this.assignmentIdsWithRubric = null;
+                this.assignmentsWithRubric = null;
                 this.loadData();
             },
         },
@@ -474,14 +474,11 @@ export default {
             this.resetRubric();
         },
 
-        // TODO: Make sure reloading courses work while importing.
-        otherAssignmentIdsWithRubric(newVal) {
-            if (newVal != null) {
-                newVal.forEach(data => this.loadSingleAssignment({
-                    assignmentId: data.assignmentId,
-                    courseId: data.courseId,
-                }));
+        courseIdsWithRubric(newVal) {
+            if (newVal.size > INITIAL_COURSES_AMOUNT) {
+                this.loadAllCourses();
             }
+            newVal.forEach(courseId => this.loadSingleCourse({ courseId }));
         },
     },
 
@@ -495,6 +492,7 @@ export default {
         }),
 
         ...mapGetters('assignments', ['getAssignment']),
+        ...mapGetters('courses', ['getCourse']),
 
         assignmentId() {
             return this.assignment.id;
@@ -596,30 +594,23 @@ export default {
             );
         },
 
-        otherAssignmentIdsWithRubric() {
-            return (this.assignmentIdsWithRubric || []).filter(
-                ({ assignmentId }) => assignmentId !== this.assignmentId,
+        otherAssignmentsWithRubric() {
+            return (this.assignmentsWithRubric || []).filter(
+                ({ id }) => id !== this.assignmentId,
             );
         },
 
-        otherAssignmentsWithRubric() {
-            return this.$utils.filterMap(
-                this.otherAssignmentIdsWithRubric || [],
-                ({ assignmentId }) => this.getAssignment(assignmentId),
-            ).map(assig => ({
-                id: assig.id,
-                course: {
-                    id: assig.courseId,
-                    name: assig.course.name,
-                },
-                name: assig.name,
-            }));
+        courseIdsWithRubric() {
+            return this.otherAssignmentsWithRubric.reduce((acc, assigLike) => {
+                acc.add(assigLike.courseId);
+                return acc;
+            }, new Set());
         },
     },
 
     methods: {
         ...mapActions('submissions', ['forceLoadSubmissions']),
-        ...mapActions('assignments', ['loadSingleAssignment']),
+        ...mapActions('courses', ['loadSingleCourse', 'loadAllCourses']),
 
         ...mapActions('autotest', {
             storeLoadAutoTest: 'loadAutoTest',
@@ -640,10 +631,7 @@ export default {
                 this.storeLoadRubric({
                     assignmentId: this.assignmentId,
                 }).then(
-                    () => {
-                        this.resetRubric();
-                        return this.maybeLoadOtherAssignments();
-                    },
+                    () => this.resetRubric(),
                     this.$utils.makeHttpErrorHandler({
                         404: () => this.maybeLoadOtherAssignments(),
                     }),
@@ -675,7 +663,7 @@ export default {
             if (
                 this.editable &&
                 !this.hidden &&
-                this.assignmentIdsWithRubric === null &&
+                this.assignmentsWithRubric === null &&
                 this.rubricRows.length === 0
             ) {
                 this.loadAssignments();
@@ -684,7 +672,7 @@ export default {
 
         loadAssignments() {
             this.loadingAssignments = true;
-            this.assignmentIdsWithRubric = [];
+            this.assignmentsWithRubric = [];
             const url = this.$utils.buildUrl(
                 ['api', 'v1', 'assignments'],
                 {
@@ -697,8 +685,12 @@ export default {
             );
             this.$http.get(url).then(
                 ({ data }) => {
-                    this.assignmentIdsWithRubric = data.map(x => ({
-                        assignmentId: x.id,
+                    // We cannot (!) use real models here as all getters will be
+                    // removed by vue-multiselect as it tries to copy the
+                    // objects, however that doesn't work with getters.
+                    this.assignmentsWithRubric = data.map(x => ({
+                        id: x.id,
+                        name: x.name,
                         courseId: x.course_id,
                     }));
                     this.loadingAssignments = false;
@@ -823,6 +815,14 @@ export default {
         setRowType(idx, type) {
             const row = this.rubric.rows[idx].setType(type);
             this.rubric = this.rubric.updateRow(idx, row);
+        },
+
+        getImportLabel(assigLike) {
+            const courseName = this.getCourse(assigLike.courseId).mapOrDefault(
+                c => c.name,
+                '…',
+            );
+            return `${courseName} - ${assigLike.name}`;
         },
     },
 
