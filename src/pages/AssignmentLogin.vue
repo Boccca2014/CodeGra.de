@@ -251,7 +251,6 @@ export default class AssignmentLogin extends Vue {
         this.storeLogin(response)
             .then(() => {
                 const { assignment } = this;
-                console.log(assignment);
 
                 if (assignment == null) {
                     this.$router.replace({ name: 'home' });
