@@ -407,7 +407,9 @@ context('Manage Assignment', () => {
                 .contains('.form-group', 'Available at')
                 .find('.invalid-feedback')
                 .should('not.be.visible');
-            cy.get('@submit').should('not.be.disabled');
+            cy.get('@submit')
+                .should('not.be.disabled')
+                .submit('success');
         });
     });
 
