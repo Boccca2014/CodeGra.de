@@ -31,6 +31,7 @@
                               :key="`sorted-assignment-${assignment.id}`"
                               :assignment="assignment"
                               :current-id="currentAssignment && currentAssignment.id"
+                              :show-course-name="currentCourse == null"
                               :sbloc="sbloc"/>
     </ul>
     <span v-else class="sidebar-list no-items-text">

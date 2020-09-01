@@ -26,7 +26,9 @@
             </small>
         </div>
 
-        <small v-if="!small" class="course text-truncate" :title="assignment.course.name">{{ assignment.course.name }}</small>
+        <small v-if="!small && showCourseName"
+               class="course text-truncate"
+               :title="assignment.course.name">{{ assignment.course.name }}</small>
 
         <small v-if="!small && assignment.hasDeadline" class="deadline">
             Due <cg-relative-time :date="assignment.deadline" />
@@ -70,6 +72,11 @@ export default {
         currentId: {
             type: Number,
             default: null,
+        },
+
+        showCourseName: {
+            type: Boolean,
+            default: true,
         },
 
         sbloc: {
