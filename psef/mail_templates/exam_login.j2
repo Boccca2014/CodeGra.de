@@ -17,7 +17,7 @@
         {%- else -%}
             This is just a reminder that on
         {%- endif %}
-	{{ assignment.available_at.strftime("%Y-%m-%d") }} the exam {{
+	{{ assignment.available_at.strftime("%Y-%m-%d %H:%M") }} the exam {{
 	assignment.name }} in the course {{ course.name }} will become
 	available. This e-mail contains a special link which you can use during
 	the time this exam will be available.
@@ -35,8 +35,7 @@
     {% endcall %}
 
     {% call utils.body_row() %}
-        This link is unique and private, sharing this link with others will
-        allow them to impersonate you.
+        This link is unique and private, do not share it with others!
     {% endcall %}
 {% endblock %}
 

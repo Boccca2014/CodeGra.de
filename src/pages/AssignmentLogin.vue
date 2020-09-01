@@ -14,8 +14,8 @@
                      show
                      variant="warning">
                 <p>
-                    Another user is currently logged in than the one trying to
-                    take the exam. <a href="#" @click="storeLogout">Click
+                    Another user than the one trying to take the exam is
+                    currently logged in. <a href="#" @click="storeLogout">Click
                     here</a> to log the other user out.
                 </p>
 
@@ -38,7 +38,9 @@
                     </p>
 
                     <p>
-                        The exam started {{ canLoginIn }} and ends {{ deadlineIn }}.
+                        The exam started {{ canLoginIn }} and ends {{
+                        deadlineIn }}; you have {{ examDuration }} to complete
+                        the exam.
                     </p>
                 </template>
                 <template v-else-if="!isBeforeDeadline">
@@ -58,8 +60,9 @@
 
                     <p>
                         The exam will become available {{ canLoginIn }} and
-                        ends {{ deadlineIn }}. You can click the button below
-                        to log in once the exam is available.
+                        ends {{ deadlineIn }}; you have {{ examDuration }} to
+                        complete the exam. You can click the button below to
+                        log in once the exam is available.
                     </p>
                 </template>
 
@@ -88,6 +91,7 @@
 
 <script lang="ts">
 import { Vue, Component, Watch } from 'vue-property-decorator';
+import moment from 'moment';
 
 import 'vue-awesome/icons/sign-in';
 
@@ -193,6 +197,17 @@ export default class AssignmentLogin extends Vue {
         }
     }
 
+    get examDuration() {
+        const available = this.assignment?.availableAt;
+        const deadline = this.assignment?.deadline;
+
+        if (available == null || deadline == null) {
+            return null;
+        }
+
+        return moment.duration(available.diff(deadline)).humanize();
+    }
+
     @Watch('assignmentId', { immediate: true })
     onAssignmentIdChange() {
         this.loadData();
@@ -211,7 +226,11 @@ export default class AssignmentLogin extends Vue {
         this.$http.get(this.$utils.buildUrl(
             ['api', 'v1', 'login_links', this.loginUuid],
         )).then(({ data }) => {
-            this.assignment = models.Assignment.fromServerData(data.assignment, -1, false);
+            this.assignment = models.Assignment.fromServerData(
+                data.assignment,
+                data.assignment.course.id.toString(),
+                false,
+            );
             this.user = models.makeUser(data.user);
         }, err => {
             this.error = err;
@@ -229,21 +248,23 @@ export default class AssignmentLogin extends Vue {
     }
 
     success(response: AxiosResponse) {
-        this.storeLogin(response).then(() => {
-            const { assignment } = this;
+        this.storeLogin(response)
+            .then(() => {
+                const { assignment } = this;
+                console.log(assignment);
 
-            if (assignment == null) {
-                this.$router.replace({ name: 'home' });
-            } else {
-                this.$router.replace({
-                    name: 'assignment_submissions',
-                    params: {
-                        courseId: assignment?.course?.id,
-                        assignmentId: assignment?.id.toString(),
-                    },
-                });
-            }
-        });
+                if (assignment == null) {
+                    this.$router.replace({ name: 'home' });
+                } else {
+                    this.$router.replace({
+                        name: 'assignment_submissions',
+                        params: {
+                            courseId: assignment?.courseId.toString(),
+                            assignmentId: assignment?.id.toString(),
+                        },
+                    });
+                }
+            });
     }
 }
 </script>

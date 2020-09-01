@@ -11,7 +11,7 @@
         <template #description v-if="isLTI">
             Some settings of this assignment are managed through {{ lmsName.extract() }}.
         </template>
-        <template #description v-else>
+        <template #description v-else-if="isExam">
             In exam mode students receive an e-mail with a link to access the exam.
 
             <cg-description-popover hug-text>

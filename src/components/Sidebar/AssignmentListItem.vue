@@ -17,6 +17,9 @@
                               :editable="false"
                               v-if="!small"
                               size="sm"/>
+            <small v-else-if="isNotStartedExam" class="deadline">
+                Open <cg-relative-time :date="assignment.availableAt" />
+            </small>
             <small v-else-if="assignment.hasDeadline" class="deadline">
                 Due <cg-relative-time :date="assignment.deadline" />
             </small>
@@ -26,16 +29,21 @@
             </small>
         </div>
 
-        <small v-if="!small && showCourseName"
-               class="course text-truncate"
-               :title="assignment.course.name">{{ assignment.course.name }}</small>
+        <template v-if="!small">
+            <small v-if="showCourseName"
+                class="course text-truncate"
+                :title="assignment.course.name">{{ assignment.course.name }}</small>
 
-        <small v-if="!small && assignment.hasDeadline" class="deadline">
-            Due <cg-relative-time :date="assignment.deadline" />
-        </small>
-        <small v-else-if="!small" class="deadline text-muted">
-            <i>No deadline</i>
-        </small>
+            <small v-if="isNotStartedExam" class="deadline">
+                Open <cg-relative-time :date="assignment.availableAt" />
+            </small>
+            <small v-else-if="assignment.hasDeadline" class="deadline">
+                Due <cg-relative-time :date="assignment.deadline" />
+            </small>
+            <small v-else class="deadline text-muted">
+                <i>No deadline</i>
+            </small>
+        </template>
     </router-link>
     <router-link class="sidebar-item manage-link"
                  v-if="assignment.canManage && !small"
@@ -53,6 +61,7 @@ import 'vue-awesome/icons/gear';
 
 import { mapGetters } from 'vuex';
 
+import { AssignmentKind } from '@/models';
 import AssignmentState from '../AssignmentState';
 
 export default {
@@ -105,6 +114,19 @@ export default {
                 return this.selected ? 'primary' : 'light';
             }
             return this.selected ? 'light' : 'primary';
+        },
+
+        isNotStartedExam() {
+            const { assignment } = this;
+
+            if (assignment == null) {
+                return false;
+            }
+
+            return (
+                assignment.kind === AssignmentKind.exam &&
+                assignment.availableAt.isAfter(this.$root.$epoch)
+            );
         },
     },
 
