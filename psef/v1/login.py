@@ -173,10 +173,8 @@ def login() -> ExtendedJSONResponse[models.User.LoginResponse]:
 @api.route("/login", methods=["GET"])
 @auth.login_required
 def self_information(
-) -> t.Union[JSONResponse[t.Union[models.User, t.MutableMapping[str, t.Any], t.
-                                  Mapping[int, str]]],
-             ExtendedJSONResponse[t.Union[models.User, t.MutableMapping[str, t.
-                                                                        Any]]],
+) -> t.Union[JSONResponse[t.Union[models.User, t.Mapping[int, str]]],
+             ExtendedJSONResponse[models.User],
              ]:
     """Get the info of the currently logged in :class:`.models.User`.
 
@@ -202,17 +200,12 @@ def self_information(
                 for role in current_user.courses.values()
             }
         )
-
     elif helpers.extended_requested() or args.get('type') == 'extended':
-        obj: t.Union[t.MutableMapping[str, t.Any], models.User]
+        user = models.User.resolve(current_user)
         if request_arg_true('with_permissions'):
-            obj = current_user.__extended_to_json__()
-            obj['permissions'] = GPerm.create_map(
-                current_user.get_all_permissions()
-            )
-        else:
-            obj = current_user
-        return extended_jsonify(obj, use_extended=models.User)
+            jsonify_options.get_options().add_permissions_to_user = user
+        return extended_jsonify(user, use_extended=models.User)
+
     return jsonify(current_user)
 
 
@@ -335,7 +328,7 @@ def user_patch_handle_reset_on_lti() -> EmptyResponse:
     return make_empty_response()
 
 
-def user_patch_handle_change_user_data() -> JSONResponse[models.User]:
+def user_patch_handle_change_user_data() -> ExtendedJSONResponse[models.User]:
     """Handle the PATCH login route when no ``type`` is given.
 
     :returns: An empty response.
@@ -391,4 +384,4 @@ def user_patch_handle_change_user_data() -> JSONResponse[models.User]:
         current_user.name = name
 
     db.session.commit()
-    return jsonify(current_user)
+    return ExtendedJSONResponse.make(current_user, use_extended=models.User)

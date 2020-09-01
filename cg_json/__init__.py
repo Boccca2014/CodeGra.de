@@ -13,6 +13,7 @@ from json import JSONEncoder
 import flask
 import structlog
 from flask import current_app
+from werkzeug.local import LocalProxy
 
 T = t.TypeVar('T')
 logger = structlog.get_logger()
@@ -103,6 +104,9 @@ def get_extended_encoder_class(
 
             :param o: The object that should be converted to JSON.
             """
+            if isinstance(o, LocalProxy):
+                o = o._get_current_object()
+
             if hasattr(o, '__extended_to_json__') and use_extended(o):
                 return o.__extended_to_json__()
             else:
