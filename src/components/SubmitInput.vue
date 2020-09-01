@@ -78,9 +78,10 @@ export default {
             });
         },
 
-        afterSubmit() {
+        afterSubmit(data) {
             this.name = '';
             this.disabled = false;
+            this.$emit('after-submit', data);
         },
 
         cancel() {

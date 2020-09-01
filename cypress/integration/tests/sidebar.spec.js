@@ -154,7 +154,7 @@ context('Sidebar', () => {
         });
     });
 
-    context('Reloading stuff', () => {
+    context.only('Reloading stuff', () => {
         const seed = Math.floor(100000 * Math.random());
         let course;
         let assignment;
@@ -202,12 +202,12 @@ context('Sidebar', () => {
                 cy.get('.home-grid .course-wrapper')
                     .should('not.be.visible');
                 // Check that there is a "no courses" message.
-                cy.get('.home-grid')
+                cy.get('.home-grid .extra-load-btn')
                     .should('be.visible')
-                    .should('contain', 'You have no courses yet');
+                    .should('contain', 'Loading');
                 // Check that the message disappears...
-                cy.get('.home-grid')
-                    .should('not.contain', 'You have no courses yet');
+                cy.get('.home-grid .extra-load-btn')
+                    .should('not.contain', 'Loading');
                 // ... and that the courses are visible again.
                 cy.get('.course-wrapper')
                     .should('be.visible');

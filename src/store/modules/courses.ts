@@ -339,6 +339,12 @@ export namespace CoursesStore {
         },
         'updateCourse',
     );
+
+    export const createCourse = moduleBuilder.dispatch(async (_, payload: { name: string }) => {
+        const response = await api.courses.create(payload);
+        addCourse({ course: response.data });
+        return response;
+    }, 'createCourse');
 }
 
 export function onDone(store: Store<RootState>) {

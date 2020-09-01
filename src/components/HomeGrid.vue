@@ -85,7 +85,7 @@
            v-if="moreCoursesAvailable && !loadingCourses"
            @click="showMoreCourses()">
         <span v-if="renderingMoreCourses > 0">
-            <span class="align-middle">Loading more courses</span>
+            <span class="align-middle">Loading <template v-if="courses.length > 0">more</template> courses</span>
             <loader :scale="1" :center="false" />
         </span>
         <span v-else v-b-visible="visible => visible && showMoreCourses()">
@@ -321,7 +321,8 @@ export default {
             this.renderingMoreCourses += 1;
 
             const promises = [this.$afterRerender()];
-            if (this.amountCoursesToShow + EXTRA_COURSES_AMOUNT > INITIAL_COURSES_AMOUNT) {
+            const nextToShow = this.amountCoursesToShow + EXTRA_COURSES_AMOUNT;
+            if (Math.min(nextToShow, this.courses.length) > INITIAL_COURSES_AMOUNT) {
                 promises.push(this.loadAllCourses());
             }
 

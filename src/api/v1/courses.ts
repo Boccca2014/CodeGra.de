@@ -28,3 +28,15 @@ export async function getById(courseId: number) {
 
     return response.data;
 }
+
+export async function create(data: { name: string }) {
+    const response: AxiosResponse<models.CourseExtendedServerData> = await axios.post(
+        buildUrl(['api', 'v1', 'courses'], {
+            query: { extended: true, no_role_name: true, no_course_in_assignment: true },
+            addTrailingSlash: true,
+        }),
+        { name: data.name },
+    );
+
+    return response;
+}

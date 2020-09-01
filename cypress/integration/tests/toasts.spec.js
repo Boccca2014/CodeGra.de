@@ -96,12 +96,6 @@ context('General messages', () => {
             status: 401,
         });
 
-        // A request must be sent to the server, so just reload the courses.
-        cy.get('.sidebar').within(() => {
-            cy.get('.sidebar-entry-courses').click();
-            cy.get('.submenu:last .refresh-button').click();
-        });
-
         cy.get('.toast')
             .should('contain', 'Not logged in')
             .should('contain', 'Your session has expired')
@@ -113,13 +107,12 @@ context('General messages', () => {
         cy.login('admin', 'admin');
 
         cy.window().then($window => {
-            $window.__app__.$store.state.user.jwtToken = 'xxx';
+            $window.__app__.$store.commit('user/SET_ACCESS_TOKEN', 'xxx');
         });
 
         // A request must be sent to the server, so just reload the courses.
         cy.get('.sidebar').within(() => {
-            cy.get('.sidebar-entry-courses').click();
-            cy.get('.submenu:last .refresh-button').click();
+            cy.get('.sidebar-entry-assignments').click();
         });
 
         cy.get('.toast')
@@ -133,13 +126,12 @@ context('General messages', () => {
         cy.login('admin', 'admin');
 
         cy.window().then($window => {
-            $window.__app__.$store.state.user.jwtToken = null;
+            $window.__app__.$store.commit('user/SET_ACCESS_TOKEN', null);
         });
 
         // A request must be sent to the server, so just reload the courses.
         cy.get('.sidebar').within(() => {
-            cy.get('.sidebar-entry-courses').click();
-            cy.get('.submenu:last .refresh-button').click();
+            cy.get('.sidebar-entry-assignments').click();
         });
 
         cy.get('.toast')

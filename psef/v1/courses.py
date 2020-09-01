@@ -479,7 +479,7 @@ def create_new_assignment(course_id: int) -> JSONResponse[models.Assignment]:
 
 @api.route('/courses/', methods=['POST'])
 @auth.permission_required(GPerm.can_create_courses)
-def add_course() -> JSONResponse[models.Course]:
+def add_course() -> ExtendedJSONResponse[models.Course]:
     """Add a new :class:`.models.Course`.
 
     .. :quickref: Course; Add a new course.
@@ -492,18 +492,17 @@ def add_course() -> JSONResponse[models.Course]:
     :raises APIException: If the parameter "name" is not in the request.
         (MISSING_REQUIRED_PARAM)
     """
-    content = get_json_dict_from_request()
-    ensure_keys_in_dict(content, [('name', str)])
-    name = t.cast(str, content['name'])
+    with helpers.get_from_request_transaction() as [get, _]:
+        name = get('name', str)
 
     new_course = models.Course.create_and_add(name)
-    db.session.commit()
+    db.session.flush()
 
     role = models.CourseRole.get_initial_course_role(new_course)
     current_user.courses[new_course.id] = role
     db.session.commit()
 
-    return jsonify(new_course)
+    return ExtendedJSONResponse.make(new_course, use_extended=models.Course)
 
 
 @api.route('/courses/', methods=['GET'])

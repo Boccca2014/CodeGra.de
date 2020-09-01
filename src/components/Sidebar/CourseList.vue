@@ -75,6 +75,7 @@
                 <submit-input style="width: 18rem;"
                               placeholder="New course name"
                               @create="createNewCourse"
+                              @after-submit="afterCreateNewCouse"
                               @cancel="closePopover"/>
             </b-popover>
         </b-btn>
@@ -215,7 +216,7 @@ export default {
     },
 
     methods: {
-        ...mapActions('courses', ['loadFirstCourses', 'loadSingleCourse', 'loadAllCourses', 'reloadCourses']),
+        ...mapActions('courses', ['loadFirstCourses', 'loadSingleCourse', 'loadAllCourses', 'reloadCourses', 'createCourse']),
 
         async asLoader(promise) {
             if (this.loading === 0) {
@@ -245,32 +246,15 @@ export default {
         },
 
         createNewCourse(name, resolve, reject) {
-            this.$http
-                .post('/api/v1/courses/', {
-                    name,
-                })
-                .then(
-                    res => {
-                        const course = res.data;
-                        res.onAfterSuccess = () => {
-                            this.asLoader(this.loadSingleCourse(
-                                { courseId: course.id },
-                            )).then(() => {
-                                this.$router.push({
-                                    name: 'manage_course',
-                                    params: {
-                                        courseId: course.id,
-                                    },
-                                });
-                            });
-                        };
+            return this.createCourse({ name }).then(resolve, reject);
+        },
 
-                        resolve(res);
-                    },
-                    err => {
-                        reject(err);
-                    },
-                );
+        afterCreateNewCouse({ data: course }) {
+            console.log(course);
+            this.$router.push({
+                name: 'manage_course',
+                params: { courseId: course.id },
+            });
         },
 
         closePopover() {
