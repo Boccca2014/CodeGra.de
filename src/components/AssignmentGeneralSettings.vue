@@ -146,7 +146,7 @@
 
         <b-input-group>
             <cg-number-input
-                :id="`assignment-deadline-${uniqueId}-input`"
+                :id="`assignment-deadline-hours-${uniqueId}-input`"
                 name="Exam duration hours"
                 :required="true"
                 :min="0"
@@ -160,7 +160,7 @@
             </b-input-group-append>
 
             <cg-number-input
-                :id="`assignment-deadline-${uniqueId}-input`"
+                :id="`assignment-deadline-minutes-${uniqueId}-input`"
                 name="Exam duration minutes"
                 :required="true"
                 :min="0"

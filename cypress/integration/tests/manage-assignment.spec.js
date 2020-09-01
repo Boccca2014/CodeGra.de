@@ -211,13 +211,13 @@ context('Manage Assignment', () => {
                 .then(oldValue => {
                     // Should not be disabled after changing the duration.
                     cy.get('@settings')
-                        .find('input[id^="assignment-deadline-"]')
+                        .find('input[id^="assignment-deadline-hours-"]')
                         .setText('10');
                     cy.get('@submit').should('not.be.disabled');
 
                     // Should be disabled after changing back.
                     cy.get('@settings')
-                        .find('input[id^="assignment-deadline-"]')
+                        .find('input[id^="assignment-deadline-hours-"]')
                         .setText(oldValue);
                     cy.get('@submit').should('be.disabled');
                 });
@@ -225,7 +225,7 @@ context('Manage Assignment', () => {
             // Set deadline early enough that it is accepted in combination
             // with the send login mails option.
             cy.get('@settings')
-                .find('input[id^="assignment-deadline-"]')
+                .find('input[id^="assignment-deadline-hours-"]')
                 .setText('3');
             cy.get('@submit').submit('success');
 
@@ -286,7 +286,7 @@ context('Manage Assignment', () => {
                 .find('.label-on')
                 .click();
             cy.get('@settings')
-                .find('input[id^="assignment-deadline-"]')
+                .find('input[id^="assignment-deadline-hours-"]')
                 .setText('1000');
             cy.get('@settings')
                 .contains('.form-group', 'Duration')
@@ -312,7 +312,7 @@ context('Manage Assignment', () => {
                 .find('.label-on')
                 .click();
             cy.get('@settings')
-                .find('input[id^="assignment-deadline-"]')
+                .find('input[id^="assignment-deadline-hours-"]')
                 .setText('3');
             cy.get('@settings')
                 .contains('.form-group', 'Duration')
