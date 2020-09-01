@@ -626,21 +626,28 @@ export default class AssignmentGeneralSettings extends Vue {
     }
 
     submitGeneralSettings() {
+        let name;
+        if (!this.assignment.is_lti) {
+            name = this.name;
+        }
+
         let deadline = this.deadline;
         if (this.isExam) {
             deadline = this.examDeadline;
         }
 
+        const props = {
+            name,
+            kind: this.kind,
+            available_at: this.$utils.formatNullableDate(this.availableAt, true),
+            deadline: this.$utils.formatNullableDate(deadline, true) || undefined,
+            max_grade: this.maxGrade.orDefault(Nothing).extractNullable(),
+            send_login_links: this.isExam && this.sendLoginLinks,
+        };
+
         return this.patchAssignment({
             assignmentId: this.assignment.id,
-            assignmentProps: {
-                name: this.name,
-                kind: this.kind,
-                available_at: this.$utils.formatNullableDate(this.availableAt, true),
-                deadline: this.$utils.formatNullableDate(deadline, true) || undefined,
-                max_grade: this.maxGrade.orDefault(Nothing).extractNullable(),
-                send_login_links: this.isExam && this.sendLoginLinks,
-            },
+            assignmentProps: props,
         });
     }
 }
