@@ -70,7 +70,7 @@ category.
     same student.
 
   See the :ref:`AutoTest Best Practices <best-practices-submission-metadata>`
-  guide for concrete some examples of how this can be used.
+  guide for some concrete examples of how this can be used.
 
 Running
 --------------------
