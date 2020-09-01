@@ -230,7 +230,19 @@ export default class AssignmentLogin extends Vue {
 
     success(response: AxiosResponse) {
         this.storeLogin(response).then(() => {
-            this.$router.replace({ name: 'home' });
+            const { assignment } = this;
+
+            if (assignment == null) {
+                this.$router.replace({ name: 'home' });
+            } else {
+                this.$router.replace({
+                    name: 'assignment_submissions',
+                    params: {
+                        courseId: assignment?.course?.id,
+                        assignmentId: assignment?.id.toString(),
+                    },
+                });
+            }
         });
     }
 }
