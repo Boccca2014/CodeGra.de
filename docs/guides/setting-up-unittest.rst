@@ -14,7 +14,7 @@ test.
    your Test Category.
 
 2. Enter the command that will run your test suite. The command should write
-   a JUnit XML file to the location givey in the ``$CG_JUNIT_XML_LOCATION``
+   a JUnit XML file to the location given in the ``$CG_JUNIT_XML_LOCATION``
    environment variable.
 
 Compatibility scripts
@@ -26,7 +26,7 @@ location. We provide wrapper scripts for a growing list of frameworks at our
 `AutoTest Examples <https://github.com/CodeGra-de/AutoTest-examples>`__ GitHub
 repository that handle all of this for you. Is your preferred testing framework
 not listed or does a script not work as you need it to? Please send an e-mail
-to `support@codegra.de <mailto:support@codegra.de>`__ so we can discuss the
+to `support@codegrade.com <mailto:support@codegrade.com>`__ so we can discuss the
 possibilities!
 
 All wrapper scripts have a similar interface and procedure for running tests.

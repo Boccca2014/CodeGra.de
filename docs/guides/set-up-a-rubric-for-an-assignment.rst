@@ -38,4 +38,4 @@ Set up a rubric for an assignment
 .. note::
 
     Want to brainstorm about what a good rubric entails? Contact us at
-    `support@codegra.de <mailto:support@codegra.de>`_.
+    `support@codegrade.com <mailto:support@codegrade.com>`_.

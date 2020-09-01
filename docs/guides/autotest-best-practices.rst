@@ -4,7 +4,7 @@ Best Practices for AutoTest
 This is a list of common questions and best practices for CodeGrade AutoTest.
 This is by no means a complete list, if you have any other questions, please
 consult the :ref:`AutoTest User Documenation <autotest-overview>` or the
-CodeGrade Support Team at `support@codegra.de <mailto:support@codegra.de>`_.
+CodeGrade Support Team at `support@codegrade.com <mailto:support@codegrade.com>`_.
 
 When to use hidden steps?
 ---------------------------
@@ -164,7 +164,7 @@ to capture the score of the unit tests.
 
 For common unit testing frameworks, we already have written frameworks to
 easily and seamlessly use them in CodeGrade, please contact us at
-`support@codegra.de <mailto:support@codegra.de>`_ for details.
+`support@codegrade.com <mailto:support@codegrade.com>`_ for details.
 
 How to integrate existing grading scripts?
 --------------------------------------------
@@ -177,7 +177,7 @@ script and capture the score.
 .. note::
     If you need any help converting your existing grading scripts to CodeGrade
     grading scripts, feel free to contact us at
-    `support@codegra.de <mailto:support@codegra.de>`_.
+    `support@codegrade.com <mailto:support@codegrade.com>`_.
 
 .. warning::
     It is important to note that rubric calculation and capture points might be a bit
