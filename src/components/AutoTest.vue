@@ -793,6 +793,10 @@ export default {
             storeClearAutoTestRun: 'clearAutoTestRun',
         }),
 
+        ...mapActions('courses', {
+            storeLoadAllCourses: 'loadAllCourses',
+        }),
+
         ...mapActions('assignments', {
             storeUpdateAssignment: 'updateAssignment',
         }),
@@ -830,13 +834,28 @@ export default {
         },
 
         loadAutoTest() {
+            this.loading = true;
+            this.message = null;
+
             if (this.autoTestId == null) {
                 this.configCollapsed = false;
-                this.loading = false;
-                return Promise.resolve();
+                return Promise.all([
+                    this.storeLoadRubric({
+                        assignmentId: this.assignmentId,
+                    }).catch(this.$utils.makeHttpErrorHandler({
+                        404: () => null,
+                    })),
+                    this.storeLoadAllCourses(),
+                ]).then(() => {
+                    this.loading = false;
+                }, err => {
+                    this.message = {
+                        text: this.$utils.getErrorMessage(err),
+                        isError: true,
+                    };
+                    this.loading = false;
+                });
             }
-
-            this.loading = true;
 
             return Promise.all([
                 this.storeLoadSubmissions({ assignmentId: this.assignmentId }),

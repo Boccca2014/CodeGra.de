@@ -443,7 +443,7 @@ export default {
             error: null,
             currentCategory: 0,
             internalFixedMaxPoints: this.assignment.fixed_max_rubric_points,
-            assignmentsWithRubric: null,
+            assignmentIdsWithRubric: null,
             importAssignment: null,
             loadingAssignments: false,
             loadAssignmentsError: '',
@@ -457,7 +457,7 @@ export default {
         assignmentId: {
             immediate: true,
             handler() {
-                this.assignmentsWithRubric = null;
+                this.assignmentIdsWithRubric = null;
                 this.loadData();
             },
         },
@@ -473,6 +473,16 @@ export default {
         serverData() {
             this.resetRubric();
         },
+
+        // TODO: Make sure reloading courses work while importing.
+        otherAssignmentIdsWithRubric(newVal) {
+            if (newVal != null) {
+                newVal.forEach(data => this.loadSingleAssignment({
+                    assignmentId: data.assignmentId,
+                    courseId: data.courseId,
+                }));
+            }
+        },
     },
 
     computed: {
@@ -483,6 +493,8 @@ export default {
         ...mapGetters('rubrics', {
             allRubrics: 'rubrics',
         }),
+
+        ...mapGetters('assignments', ['getAssignment']),
 
         assignmentId() {
             return this.assignment.id;
@@ -584,13 +596,30 @@ export default {
             );
         },
 
+        otherAssignmentIdsWithRubric() {
+            return (this.assignmentIdsWithRubric || []).filter(
+                ({ assignmentId }) => assignmentId !== this.assignmentId,
+            );
+        },
+
         otherAssignmentsWithRubric() {
-            return this.assignmentsWithRubric.filter(assig => assig.id !== this.assignmentId);
+            return this.$utils.filterMap(
+                this.otherAssignmentIdsWithRubric || [],
+                ({ assignmentId }) => this.getAssignment(assignmentId),
+            ).map(assig => ({
+                id: assig.id,
+                course: {
+                    id: assig.courseId,
+                    name: assig.course.name,
+                },
+                name: assig.name,
+            }));
         },
     },
 
     methods: {
         ...mapActions('submissions', ['forceLoadSubmissions']),
+        ...mapActions('assignments', ['loadSingleAssignment']),
 
         ...mapActions('autotest', {
             storeLoadAutoTest: 'loadAutoTest',
@@ -613,10 +642,10 @@ export default {
                 }).then(
                     () => {
                         this.resetRubric();
-                        this.maybeLoadOtherAssignments();
+                        return this.maybeLoadOtherAssignments();
                     },
                     this.$utils.makeHttpErrorHandler({
-                        404: () => {},
+                        404: () => this.maybeLoadOtherAssignments(),
                     }),
                 ),
                 this.autoTestConfigId &&
@@ -646,7 +675,7 @@ export default {
             if (
                 this.editable &&
                 !this.hidden &&
-                this.assignmentsWithRubric === null &&
+                this.assignmentIdsWithRubric === null &&
                 this.rubricRows.length === 0
             ) {
                 this.loadAssignments();
@@ -655,7 +684,7 @@ export default {
 
         loadAssignments() {
             this.loadingAssignments = true;
-            this.assignmentsWithRubric = [];
+            this.assignmentIdsWithRubric = [];
             const url = this.$utils.buildUrl(
                 ['api', 'v1', 'assignments'],
                 {
@@ -668,7 +697,10 @@ export default {
             );
             this.$http.get(url).then(
                 ({ data }) => {
-                    this.assignmentsWithRubric = data;
+                    this.assignmentIdsWithRubric = data.map(x => ({
+                        assignmentId: x.id,
+                        courseId: x.course_id,
+                    }));
                     this.loadingAssignments = false;
                 },
                 err => {
