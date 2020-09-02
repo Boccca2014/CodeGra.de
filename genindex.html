@@ -218,6 +218,7 @@
  | <a href="#N"><strong>N</strong></a>
  | <a href="#O"><strong>O</strong></a>
  | <a href="#P"><strong>P</strong></a>
+ | <a href="#Q"><strong>Q</strong></a>
  | <a href="#R"><strong>R</strong></a>
  | <a href="#S"><strong>S</strong></a>
  | <a href="#T"><strong>T</strong></a>
@@ -231,6 +232,8 @@
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="psef_api/psef.html#psef.models.role.AbstractRole">AbstractRole (class in psef.models.role)</a>
+</li>
+      <li><a href="psef_api/psef.html#psef.models.user.User.LoginResponse.access_token">access_token (psef.models.user.User.LoginResponse attribute)</a>
 </li>
       <li><a href="psef_api/psef.html#psef.models.auto_test_step.AutoTestStepResult.achieved_points">achieved_points() (psef.models.auto_test_step.AutoTestStepResult property)</a>
 </li>
@@ -251,6 +254,8 @@
       <li><a href="psef_api/psef.html#psef.models.auto_test.AutoTest.add_to_run">add_to_run() (psef.models.auto_test.AutoTest static method)</a>
 </li>
       <li><a href="psef_api/psef.html#psef.helpers.add_warning">add_warning() (in module psef.helpers)</a>
+</li>
+      <li><a href="psef_api/psef.html#psef.auth.PermissionChecker.all">all() (psef.auth.PermissionChecker static method)</a>
 </li>
       <li><a href="psef_api/psef.html#psef.exceptions.APIWarnings.ALL_PEER_FEEDBACK_REDIVIDED">ALL_PEER_FEEDBACK_REDIVIDED (psef.exceptions.APIWarnings attribute)</a>
 </li>
@@ -314,8 +319,12 @@
 </li>
       <li><a href="psef_api/psef.html#psef.auth.as_current_user">as_current_user() (in module psef.auth)</a>
 </li>
-      <li><a href="psef_api/psef.html#psef.auth.PermissionChecker.as_ensure_function">as_ensure_function() (psef.auth.PermissionChecker static method)</a>
+      <li><a href="psef_api/psef.html#psef.auth.CoursePermissionChecker.as_ensure_function">as_ensure_function() (psef.auth.CoursePermissionChecker static method)</a>
+
+      <ul>
+        <li><a href="psef_api/psef.html#psef.auth.GlobalPermissionChecker.as_ensure_function">(psef.auth.GlobalPermissionChecker static method)</a>
 </li>
+      </ul></li>
       <li><a href="psef_api/psef.html#psef.auto_test.StartedContainer.as_snapshot">as_snapshot() (psef.auto_test.StartedContainer method)</a>
 </li>
       <li><a href="psef_api/psef.html#psef.models.task_result.TaskResult.as_task">as_task() (psef.models.task_result.TaskResult method)</a>
@@ -326,6 +335,8 @@
 
       <ul>
         <li><a href="psef_api/psef.html#psef.auth.WorksByUserPermissions.assignment">(psef.auth.WorksByUserPermissions attribute)</a>
+</li>
+        <li><a href="psef_api/psef.html#psef.models.assignment.AssignmentLoginLink.AsJSON.assignment">(psef.models.assignment.AssignmentLoginLink.AsJSON attribute)</a>
 </li>
       </ul></li>
       <li><a href="psef_api/psef.html#psef.exceptions.APICodes.ASSIGNMENT_DEADLINE_UNSET">ASSIGNMENT_DEADLINE_UNSET (psef.exceptions.APICodes attribute)</a>
@@ -380,7 +391,13 @@
 </li>
       <li><a href="psef_api/psef.html#psef.models.assignment.AssignmentJSON">AssignmentJSON (class in psef.models.assignment)</a>
 </li>
+      <li><a href="psef_api/psef.html#psef.models.assignment.AssignmentKind">AssignmentKind (class in psef.models.assignment)</a>
+</li>
       <li><a href="psef_api/psef.html#psef.models.assignment.AssignmentLinter">AssignmentLinter (class in psef.models.assignment)</a>
+</li>
+      <li><a href="psef_api/psef.html#psef.models.assignment.AssignmentLoginLink">AssignmentLoginLink (class in psef.models.assignment)</a>
+</li>
+      <li><a href="psef_api/psef.html#psef.models.assignment.AssignmentLoginLink.AsJSON">AssignmentLoginLink.AsJSON (class in psef.models.assignment)</a>
 </li>
       <li><a href="psef_api/psef.html#psef.models.assignment.AssignmentPeerFeedbackConnection">AssignmentPeerFeedbackConnection (class in psef.models.assignment)</a>
 </li>
@@ -420,6 +437,8 @@
 </li>
       <li><a href="psef_api/psef.html#psef.models.file.AutoTestFixture">AutoTestFixture (class in psef.models.file)</a>
 </li>
+      <li><a href="psef_api/psef.html#psef.auth.AutoTestFixturePermissions">AutoTestFixturePermissions (class in psef.auth)</a>
+</li>
       <li><a href="psef_api/psef.html#psef.models.file.AutoTestOutputFile">AutoTestOutputFile (class in psef.models.file)</a>
 </li>
       <li><a href="psef_api/psef.html#psef.auth.AutoTestPermissions">AutoTestPermissions (class in psef.auth)</a>
@@ -447,6 +466,14 @@
       <li><a href="psef_api/psef.html#psef.models.auto_test_step.AutoTestStepResultState">AutoTestStepResultState (class in psef.models.auto_test_step)</a>
 </li>
       <li><a href="psef_api/psef.html#psef.models.auto_test.AutoTestSuite">AutoTestSuite (class in psef.models.auto_test)</a>
+</li>
+      <li><a href="psef_api/psef.html#psef.lti.v1_3.CGCustomClaims.ClaimResult.available_at">available_at (psef.lti.v1_3.CGCustomClaims.ClaimResult attribute)</a>
+
+      <ul>
+        <li><a href="psef_api/psef.html#psef.models.assignment.AssignmentJSON.available_at">(psef.models.assignment.AssignmentJSON attribute)</a>
+</li>
+      </ul></li>
+      <li><a href="psef_api/psef.html#psef.models.assignment.Assignment.available_at">available_at() (psef.models.assignment.Assignment property)</a>
 </li>
   </ul></td>
 </tr></table>
@@ -562,6 +589,8 @@
 </li>
       <li><a href="psef_api/psef.html#psef.models.lti_provider.CourseLTIProvider.can_poll_names_again">can_poll_names_again() (psef.models.lti_provider.CourseLTIProvider method)</a>
 </li>
+      <li><a href="psef_api/psef.html#psef.permissions.CoursePermission.can_receive_login_links">can_receive_login_links (psef.permissions.CoursePermission attribute)</a>
+</li>
       <li><a href="psef_api/psef.html#psef.permissions.CoursePermission.can_run_autotest">can_run_autotest (psef.permissions.CoursePermission attribute)</a>
 </li>
       <li><a href="psef_api/psef.html#psef.permissions.GlobalPermission.can_search_users">can_search_users (psef.permissions.GlobalPermission attribute)</a>
@@ -638,6 +667,8 @@
       </ul></li>
       <li><a href="psef_api/psef.html#psef.lti.v1_1.CanvasLTI">CanvasLTI (class in psef.lti.v1_1)</a>
 </li>
+      <li><a href="psef_api/psef.html#psef.auth.PlagiarismCasePermissions.case">case (psef.auth.PlagiarismCasePermissions attribute)</a>
+</li>
       <li><a href="psef_api/psef.html#psef.lti.v1_3.CGAssignmentsGradesService">CGAssignmentsGradesService (class in psef.lti.v1_3)</a>
 </li>
       <li><a href="psef_api/psef.html#psef.lti.v1_3.CGCustomClaims">CGCustomClaims (class in psef.lti.v1_3)</a>
@@ -688,9 +719,13 @@
 </li>
       <li><a href="psef_api/psef.html#psef.auto_test.AutoTestContainer.clone">clone() (psef.auto_test.AutoTestContainer method)</a>
 </li>
+      <li><a href="psef_api/psef.html#psef.auth.CodePermisisons.code">code (psef.auth.CodePermisisons attribute)</a>
+</li>
       <li><a href="psef_api/psef.html#psef.lti.v1_1.LTIRole.codegrade_role_name">codegrade_role_name() (psef.lti.v1_1.LTIRole property)</a>
 </li>
       <li><a href="psef_api/psef.html#psef.lti.v1_1.LTIRole.codegrade_role_name_used">codegrade_role_name_used() (psef.lti.v1_1.LTIRole class method)</a>
+</li>
+      <li><a href="psef_api/psef.html#psef.auth.CodePermisisons">CodePermisisons (class in psef.auth)</a>
 </li>
       <li><a href="psef_api/psef.html#psef.helpers.coerce_json_value_to_typeddict">coerce_json_value_to_typeddict() (in module psef.helpers)</a>
 </li>
@@ -787,6 +822,8 @@
       <li><a href="psef_api/psef.html#psef.permissions.CoursePermission">CoursePermission (class in psef.permissions)</a>
 </li>
       <li><a href="psef_api/psef.html#psef.auth.CoursePermissionChecker">CoursePermissionChecker (class in psef.auth)</a>
+</li>
+      <li><a href="psef_api/psef.html#psef.auth.CoursePermissions">CoursePermissions (class in psef.auth)</a>
 </li>
       <li><a href="psef_api/psef.html#psef.models.course.CourseRegistrationLink">CourseRegistrationLink (class in psef.models.course)</a>
 </li>
@@ -1048,33 +1085,11 @@
 </li>
       <li><a href="psef_api/psef.html#psef.auth.ensure_can_edit_members_of_group">ensure_can_edit_members_of_group() (in module psef.auth)</a>
 </li>
-      <li><a href="psef_api/psef.html#psef.auth.ensure_can_edit_work">ensure_can_edit_work() (in module psef.auth)</a>
-</li>
-      <li><a href="psef_api/psef.html#psef.auth.ensure_can_see_assignment">ensure_can_see_assignment() (in module psef.auth)</a>
-</li>
-      <li><a href="psef_api/psef.html#psef.auth.ensure_can_see_general_feedback">ensure_can_see_general_feedback() (in module psef.auth)</a>
-</li>
-      <li><a href="psef_api/psef.html#psef.auth.ensure_can_see_grade">ensure_can_see_grade() (in module psef.auth)</a>
-</li>
-      <li><a href="psef_api/psef.html#psef.auth.ensure_can_see_linter_feedback">ensure_can_see_linter_feedback() (in module psef.auth)</a>
-</li>
-      <li><a href="psef_api/psef.html#psef.auth.ensure_can_see_plagiarims_case">ensure_can_see_plagiarims_case() (in module psef.auth)</a>
-</li>
       <li><a href="psef_api/psef.html#psef.auth.ensure_can_submit_work">ensure_can_submit_work() (in module psef.auth)</a>
-</li>
-      <li><a href="psef_api/psef.html#psef.auth.ensure_can_view_autotest">ensure_can_view_autotest() (in module psef.auth)</a>
-</li>
-      <li><a href="psef_api/psef.html#psef.auth.ensure_can_view_autotest_result">ensure_can_view_autotest_result() (in module psef.auth)</a>
 </li>
       <li><a href="psef_api/psef.html#psef.auth.ensure_can_view_autotest_step_details">ensure_can_view_autotest_step_details() (in module psef.auth)</a>
 </li>
       <li><a href="psef_api/psef.html#psef.auth.ensure_can_view_files">ensure_can_view_files() (in module psef.auth)</a>
-</li>
-      <li><a href="psef_api/psef.html#psef.auth.ensure_can_view_fixture">ensure_can_view_fixture() (in module psef.auth)</a>
-</li>
-      <li><a href="psef_api/psef.html#psef.auth.ensure_can_view_group">ensure_can_view_group() (in module psef.auth)</a>
-</li>
-      <li><a href="psef_api/psef.html#psef.auth.ensure_enrolled">ensure_enrolled() (in module psef.auth)</a>
 </li>
       <li><a href="psef_api/psef.html#psef.helpers.ensure_json_dict">ensure_json_dict() (in module psef.helpers)</a>
 </li>
@@ -1094,10 +1109,16 @@
         <li><a href="psef_api/psef.html#psef.lti.v1_3.FlaskMessageLaunch.ensure_lti_user">(psef.lti.v1_3.FlaskMessageLaunch method)</a>
 </li>
       </ul></li>
-      <li><a href="psef_api/psef.html#psef.auth.FeedbackBasePermissions.ensure_may_add">ensure_may_add (psef.auth.FeedbackBasePermissions attribute)</a>
+      <li><a href="psef_api/psef.html#psef.auth.AssignmentPermissions.ensure_may_add">ensure_may_add (psef.auth.AssignmentPermissions attribute)</a>
 
       <ul>
+        <li><a href="psef_api/psef.html#psef.auth.AutoTestPermissions.ensure_may_add">(psef.auth.AutoTestPermissions attribute)</a>
+</li>
+        <li><a href="psef_api/psef.html#psef.auth.FeedbackBasePermissions.ensure_may_add">(psef.auth.FeedbackBasePermissions attribute)</a>
+</li>
         <li><a href="psef_api/psef.html#psef.auth.FeedbackReplyPermissions.ensure_may_add">(psef.auth.FeedbackReplyPermissions attribute)</a>
+</li>
+        <li><a href="psef_api/psef.html#psef.auth.GroupSetPermissions.ensure_may_add">(psef.auth.GroupSetPermissions attribute)</a>
 </li>
         <li><a href="psef_api/psef.html#psef.auth.LTI1p3ProviderPermissions.ensure_may_add">(psef.auth.LTI1p3ProviderPermissions attribute)</a>
 </li>
@@ -1106,34 +1127,94 @@
 </li>
       <li><a href="psef_api/psef.html#psef.auth.FeedbackReplyPermissions.ensure_may_add_as_peer">ensure_may_add_as_peer (psef.auth.FeedbackReplyPermissions attribute)</a>
 </li>
+      <li><a href="psef_api/psef.html#psef.auth.AssignmentPermissions.ensure_may_assign_graders">ensure_may_assign_graders (psef.auth.AssignmentPermissions attribute)</a>
+</li>
       <li><a href="psef_api/psef.html#psef.auth.FeedbackReplyPermissions.ensure_may_change_approval">ensure_may_change_approval (psef.auth.FeedbackReplyPermissions attribute)</a>
 </li>
-      <li><a href="psef_api/psef.html#psef.auth.FeedbackReplyPermissions.ensure_may_delete">ensure_may_delete (psef.auth.FeedbackReplyPermissions attribute)</a>
-</li>
-      <li><a href="psef_api/psef.html#psef.auth.FeedbackReplyPermissions.ensure_may_edit">ensure_may_edit (psef.auth.FeedbackReplyPermissions attribute)</a>
+      <li><a href="psef_api/psef.html#psef.auth.AssignmentPermissions.ensure_may_delete">ensure_may_delete (psef.auth.AssignmentPermissions attribute)</a>
 
       <ul>
+        <li><a href="psef_api/psef.html#psef.auth.FeedbackReplyPermissions.ensure_may_delete">(psef.auth.FeedbackReplyPermissions attribute)</a>
+</li>
+        <li><a href="psef_api/psef.html#psef.auth.GroupPermissions.ensure_may_delete">(psef.auth.GroupPermissions attribute)</a>
+</li>
+        <li><a href="psef_api/psef.html#psef.auth.GroupSetPermissions.ensure_may_delete">(psef.auth.GroupSetPermissions attribute)</a>
+</li>
+        <li><a href="psef_api/psef.html#psef.auth.LinterPermissions.ensure_may_delete">(psef.auth.LinterPermissions attribute)</a>
+</li>
+        <li><a href="psef_api/psef.html#psef.auth.WorkPermissions.ensure_may_delete">(psef.auth.WorkPermissions attribute)</a>
+</li>
+      </ul></li>
+      <li><a href="psef_api/psef.html#psef.auth.AutoTestFixturePermissions.ensure_may_edit">ensure_may_edit (psef.auth.AutoTestFixturePermissions attribute)</a>
+
+      <ul>
+        <li><a href="psef_api/psef.html#psef.auth.AutoTestPermissions.ensure_may_edit">(psef.auth.AutoTestPermissions attribute)</a>
+</li>
+        <li><a href="psef_api/psef.html#psef.auth.CodePermisisons.ensure_may_edit">(psef.auth.CodePermisisons attribute)</a>
+</li>
+        <li><a href="psef_api/psef.html#psef.auth.FeedbackReplyPermissions.ensure_may_edit">(psef.auth.FeedbackReplyPermissions attribute)</a>
+</li>
+        <li><a href="psef_api/psef.html#psef.auth.GroupPermissions.ensure_may_edit">(psef.auth.GroupPermissions attribute)</a>
+</li>
+        <li><a href="psef_api/psef.html#psef.auth.GroupSetPermissions.ensure_may_edit">(psef.auth.GroupSetPermissions attribute)</a>
+</li>
         <li><a href="psef_api/psef.html#psef.auth.LTI1p3ProviderPermissions.ensure_may_edit">(psef.auth.LTI1p3ProviderPermissions attribute)</a>
 </li>
         <li><a href="psef_api/psef.html#psef.auth.NotificationPermissions.ensure_may_edit">(psef.auth.NotificationPermissions attribute)</a>
 </li>
+        <li><a href="psef_api/psef.html#psef.auth.WorkPermissions.ensure_may_edit">(psef.auth.WorkPermissions attribute)</a>
+</li>
       </ul></li>
+      <li><a href="psef_api/psef.html#psef.auth.AssignmentPermissions.ensure_may_edit_cgignore">ensure_may_edit_cgignore (psef.auth.AssignmentPermissions attribute)</a>
+</li>
+      <li><a href="psef_api/psef.html#psef.auth.WorkPermissions.ensure_may_edit_grade">ensure_may_edit_grade (psef.auth.WorkPermissions attribute)</a>
+</li>
+      <li><a href="psef_api/psef.html#psef.auth.AssignmentPermissions.ensure_may_edit_group_status">ensure_may_edit_group_status (psef.auth.AssignmentPermissions attribute)</a>
+</li>
+      <li><a href="psef_api/psef.html#psef.auth.AssignmentPermissions.ensure_may_edit_info">ensure_may_edit_info (psef.auth.AssignmentPermissions attribute)</a>
+</li>
+      <li><a href="psef_api/psef.html#psef.auth.AssignmentPermissions.ensure_may_edit_notifications">ensure_may_edit_notifications (psef.auth.AssignmentPermissions attribute)</a>
+</li>
       <li><a href="psef_api/psef.html#psef.auth.AssignmentPermissions.ensure_may_edit_peer_feedback">ensure_may_edit_peer_feedback (psef.auth.AssignmentPermissions attribute)</a>
+</li>
+      <li><a href="psef_api/psef.html#psef.auth.AssignmentPermissions.ensure_may_edit_plagiarism">ensure_may_edit_plagiarism (psef.auth.AssignmentPermissions attribute)</a>
+</li>
+      <li><a href="psef_api/psef.html#psef.auth.CoursePermissions.ensure_may_edit_roles">ensure_may_edit_roles (psef.auth.CoursePermissions attribute)</a>
+</li>
+      <li><a href="psef_api/psef.html#psef.auth.CoursePermissions.ensure_may_edit_snippets">ensure_may_edit_snippets (psef.auth.CoursePermissions attribute)</a>
+</li>
+      <li><a href="psef_api/psef.html#psef.auth.CoursePermissions.ensure_may_edit_users">ensure_may_edit_users (psef.auth.CoursePermissions attribute)</a>
 </li>
       <li><a href="psef_api/psef.html#psef.auth.AutoTestResultPermissions.ensure_may_restart">ensure_may_restart (psef.auth.AutoTestResultPermissions attribute)</a>
 </li>
       <li><a href="psef_api/psef.html#psef.auth.AnalyticsWorkspacePermissions.ensure_may_see">ensure_may_see (psef.auth.AnalyticsWorkspacePermissions attribute)</a>
 
       <ul>
+        <li><a href="psef_api/psef.html#psef.auth.AssignmentPermissions.ensure_may_see">(psef.auth.AssignmentPermissions attribute)</a>
+</li>
+        <li><a href="psef_api/psef.html#psef.auth.AutoTestFixturePermissions.ensure_may_see">(psef.auth.AutoTestFixturePermissions attribute)</a>
+</li>
         <li><a href="psef_api/psef.html#psef.auth.AutoTestPermissions.ensure_may_see">(psef.auth.AutoTestPermissions attribute)</a>
 </li>
         <li><a href="psef_api/psef.html#psef.auth.AutoTestResultPermissions.ensure_may_see">(psef.auth.AutoTestResultPermissions attribute)</a>
 </li>
+        <li><a href="psef_api/psef.html#psef.auth.AutoTestRunPermissions.ensure_may_see">(psef.auth.AutoTestRunPermissions attribute)</a>
+</li>
+        <li><a href="psef_api/psef.html#psef.auth.CoursePermissions.ensure_may_see">(psef.auth.CoursePermissions attribute)</a>
+</li>
         <li><a href="psef_api/psef.html#psef.auth.FeedbackReplyPermissions.ensure_may_see">(psef.auth.FeedbackReplyPermissions attribute)</a>
+</li>
+        <li><a href="psef_api/psef.html#psef.auth.GroupPermissions.ensure_may_see">(psef.auth.GroupPermissions attribute)</a>
+</li>
+        <li><a href="psef_api/psef.html#psef.auth.GroupSetPermissions.ensure_may_see">(psef.auth.GroupSetPermissions attribute)</a>
+</li>
+        <li><a href="psef_api/psef.html#psef.auth.LinterPermissions.ensure_may_see">(psef.auth.LinterPermissions attribute)</a>
 </li>
         <li><a href="psef_api/psef.html#psef.auth.LTI1p3ProviderPermissions.ensure_may_see">(psef.auth.LTI1p3ProviderPermissions attribute)</a>
 </li>
         <li><a href="psef_api/psef.html#psef.auth.NotificationPermissions.ensure_may_see">(psef.auth.NotificationPermissions attribute)</a>
+</li>
+        <li><a href="psef_api/psef.html#psef.auth.PlagiarismCasePermissions.ensure_may_see">(psef.auth.PlagiarismCasePermissions attribute)</a>
 </li>
         <li><a href="psef_api/psef.html#psef.auth.TaskResultPermissions.ensure_may_see">(psef.auth.TaskResultPermissions attribute)</a>
 </li>
@@ -1144,6 +1225,10 @@
       </ul></li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="psef_api/psef.html#psef.auth.CodePermisisons.ensure_may_see">ensure_may_see() (psef.auth.CodePermisisons method)</a>
+</li>
+      <li><a href="psef_api/psef.html#psef.auth.WorkPermissions.ensure_may_see_assignee">ensure_may_see_assignee (psef.auth.WorkPermissions attribute)</a>
+</li>
       <li><a href="psef_api/psef.html#psef.auth.FeedbackReplyPermissions.ensure_may_see_author">ensure_may_see_author (psef.auth.FeedbackReplyPermissions attribute)</a>
 </li>
       <li><a href="psef_api/psef.html#psef.auth.FeedbackReplyPermissions.ensure_may_see_edits">ensure_may_see_edits (psef.auth.FeedbackReplyPermissions attribute)</a>
@@ -1152,7 +1237,25 @@
 </li>
       <li><a href="psef_api/psef.html#psef.auth.WorkPermissions.ensure_may_see_grade">ensure_may_see_grade (psef.auth.WorkPermissions attribute)</a>
 </li>
+      <li><a href="psef_api/psef.html#psef.auth.WorkPermissions.ensure_may_see_grade_history">ensure_may_see_grade_history (psef.auth.WorkPermissions attribute)</a>
+</li>
+      <li><a href="psef_api/psef.html#psef.auth.AssignmentPermissions.ensure_may_see_graders">ensure_may_see_graders (psef.auth.AssignmentPermissions attribute)</a>
+</li>
       <li><a href="psef_api/psef.html#psef.auth.WorkPermissions.ensure_may_see_linter_feedback">ensure_may_see_linter_feedback (psef.auth.WorkPermissions attribute)</a>
+</li>
+      <li><a href="psef_api/psef.html#psef.auth.PlagiarismCasePermissions.ensure_may_see_other_assignment">ensure_may_see_other_assignment (psef.auth.PlagiarismCasePermissions attribute)</a>
+</li>
+      <li><a href="psef_api/psef.html#psef.auth.PlagiarismCasePermissions.ensure_may_see_other_submission">ensure_may_see_other_submission (psef.auth.PlagiarismCasePermissions attribute)</a>
+</li>
+      <li><a href="psef_api/psef.html#psef.auth.AutoTestResultPermissions.ensure_may_see_output_files">ensure_may_see_output_files (psef.auth.AutoTestResultPermissions attribute)</a>
+</li>
+      <li><a href="psef_api/psef.html#psef.auth.AssignmentPermissions.ensure_may_see_plagiarism">ensure_may_see_plagiarism (psef.auth.AssignmentPermissions attribute)</a>
+</li>
+      <li><a href="psef_api/psef.html#psef.auth.CoursePermissions.ensure_may_see_roles">ensure_may_see_roles (psef.auth.CoursePermissions attribute)</a>
+</li>
+      <li><a href="psef_api/psef.html#psef.auth.CoursePermissions.ensure_may_see_snippets">ensure_may_see_snippets (psef.auth.CoursePermissions attribute)</a>
+</li>
+      <li><a href="psef_api/psef.html#psef.auth.CoursePermissions.ensure_may_see_users">ensure_may_see_users (psef.auth.CoursePermissions attribute)</a>
 </li>
       <li><a href="psef_api/psef.html#psef.auth.AutoTestRunPermissions.ensure_may_start">ensure_may_start (psef.auth.AutoTestRunPermissions attribute)</a>
 </li>
@@ -1329,6 +1432,8 @@
 </li>
       </ul></li>
       <li><a href="psef_api/psef.html#psef.models.assignment.AssignmentJSON.fixed_max_rubric_points">fixed_max_rubric_points (psef.models.assignment.AssignmentJSON attribute)</a>
+</li>
+      <li><a href="psef_api/psef.html#psef.auth.AutoTestFixturePermissions.fixture">fixture (psef.auth.AutoTestFixturePermissions attribute)</a>
 </li>
       <li><a href="psef_api/psef.html#psef.auto_test.StartedContainer.fixtures_dir">fixtures_dir() (psef.auto_test.StartedContainer property)</a>
 </li>
@@ -1510,6 +1615,8 @@
 </li>
       <li><a href="psef_api/psef.html#psef.extract_tree.ExtractFileTreeBase.get_full_name">get_full_name() (psef.extract_tree.ExtractFileTreeBase method)</a>
 </li>
+      <li><a href="psef_api/psef.html#psef.models.role.CourseRole.get_has_permission_filter">get_has_permission_filter() (psef.models.role.CourseRole class method)</a>
+</li>
       <li><a href="psef_api/psef.html#psef.models.file.AutoTestFixture.get_id">get_id() (psef.models.file.AutoTestFixture method)</a>
 
       <ul>
@@ -1534,14 +1641,14 @@
         <li><a href="psef_api/psef.html#psef.models.auto_test.AutoTestSuite.get_instructions">(psef.models.auto_test.AutoTestSuite method)</a>
 </li>
       </ul></li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="psef_api/psef.html#psef.models.lti_provider.LTI1p3Provider.get_json_config">get_json_config() (psef.models.lti_provider.LTI1p3Provider method)</a>
 </li>
       <li><a href="psef_api/psef.html#psef.helpers.get_json_dict_from_request">get_json_dict_from_request() (in module psef.helpers)</a>
 </li>
       <li><a href="psef_api/psef.html#psef.helpers.get_key_from_dict">get_key_from_dict() (in module psef.helpers)</a>
 </li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="psef_api/psef.html#psef.models.assignment.Assignment.get_latest_submission_for_user">get_latest_submission_for_user() (psef.models.assignment.Assignment method)</a>
 </li>
       <li><a href="psef_api/psef.html#psef.models.lti_provider.LTI1p3Provider.get_launch_url">get_launch_url() (psef.models.lti_provider.LTI1p3Provider method)</a>
@@ -1595,6 +1702,8 @@
       <li><a href="psef_api/psef.html#psef.helpers.get_or_404">get_or_404() (in module psef.helpers)</a>
 </li>
       <li><a href="psef_api/psef.html#psef.models.lti_provider.UserLTIProvider.get_or_create_user">get_or_create_user() (psef.models.lti_provider.UserLTIProvider class method)</a>
+</li>
+      <li><a href="psef_api/psef.html#psef.models.plagiarism.PlagiarismWorks.get_other_index">get_other_index() (psef.models.plagiarism.PlagiarismWorks static method)</a>
 </li>
       <li><a href="psef_api/psef.html#psef.models.comment.CommentReply.get_outdated_json">get_outdated_json() (psef.models.comment.CommentReply method)</a>
 </li>
@@ -1704,9 +1813,21 @@
 </li>
       <li><a href="psef_api/psef.html#psef.models.group.Group">Group (class in psef.models.group)</a>
 </li>
-      <li><a href="psef_api/psef.html#psef.models.assignment.AssignmentJSON.group_set">group_set (psef.models.assignment.AssignmentJSON attribute)</a>
+      <li><a href="psef_api/psef.html#psef.auth.GroupPermissions.group">group (psef.auth.GroupPermissions attribute)</a>
+</li>
+      <li><a href="psef_api/psef.html#psef.auth.GroupSetPermissions.group_set">group_set (psef.auth.GroupSetPermissions attribute)</a>
+
+      <ul>
+        <li><a href="psef_api/psef.html#psef.models.assignment.AssignmentJSON.group_set">(psef.models.assignment.AssignmentJSON attribute)</a>
+</li>
+      </ul></li>
+      <li><a href="psef_api/psef.html#psef.models.group.Group.group_set_id">group_set_id (psef.models.group.Group attribute)</a>
+</li>
+      <li><a href="psef_api/psef.html#psef.auth.GroupPermissions">GroupPermissions (class in psef.auth)</a>
 </li>
       <li><a href="psef_api/psef.html#psef.models.group.GroupSet">GroupSet (class in psef.models.group)</a>
+</li>
+      <li><a href="psef_api/psef.html#psef.auth.GroupSetPermissions">GroupSetPermissions (class in psef.auth)</a>
 </li>
   </ul></td>
 </tr></table>
@@ -1714,7 +1835,7 @@
 <h2 id="H">H</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="psef_api/psef.html#psef.models.group.Group.has_a_submission">has_a_submission() (psef.models.group.Group property)</a>
+      <li><a href="psef_api/psef.html#psef.models.group.Group.has_a_submission">has_a_submission (psef.models.group.Group attribute)</a>
 </li>
       <li><a href="psef_api/psef.html#psef.models.work.Work.has_as_author">has_as_author() (psef.models.work.Work method)</a>
 </li>
@@ -1758,8 +1879,6 @@
 </li>
       <li><a href="psef_api/psef.html#psef.helpers.Hashable">Hashable (class in psef.helpers)</a>
 </li>
-      <li><a href="psef_api/psef.html#psef.helpers.human_readable_size">human_readable_size() (in module psef.helpers)</a>
-</li>
   </ul></td>
 </tr></table>
 
@@ -1770,6 +1889,8 @@
 
       <ul>
         <li><a href="psef_api/psef.html#psef.models.assignment.AssignmentJSON.id">(psef.models.assignment.AssignmentJSON attribute)</a>
+</li>
+        <li><a href="psef_api/psef.html#psef.models.assignment.AssignmentLoginLink.AsJSON.id">(psef.models.assignment.AssignmentLoginLink.AsJSON attribute)</a>
 </li>
         <li><a href="psef_api/psef.html#psef.models.comment.CommentBaseJSON.id">(psef.models.comment.CommentBaseJSON attribute)</a>
 </li>
@@ -1838,10 +1959,10 @@
 </li>
       <li><a href="psef_api/psef.html#psef.exceptions.APICodes.INVALID_FILE_IN_ARCHIVE">INVALID_FILE_IN_ARCHIVE (psef.exceptions.APICodes attribute)</a>
 </li>
-      <li><a href="psef_api/psef.html#psef.exceptions.APIWarnings.INVALID_FILENAME">INVALID_FILENAME (psef.exceptions.APIWarnings attribute)</a>
-</li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="psef_api/psef.html#psef.exceptions.APIWarnings.INVALID_FILENAME">INVALID_FILENAME (psef.exceptions.APIWarnings attribute)</a>
+</li>
       <li><a href="psef_api/psef.html#psef.exceptions.APICodes.INVALID_OAUTH_REQUEST">INVALID_OAUTH_REQUEST (psef.exceptions.APICodes attribute)</a>
 </li>
       <li><a href="psef_api/psef.html#psef.exceptions.APICodes.INVALID_PARAM">INVALID_PARAM (psef.exceptions.APICodes attribute)</a>
@@ -1938,13 +2059,15 @@
   <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="psef_api/psef.html#psef.models.lti_provider.LTI1p3Provider.key_set_url">key_set_url() (psef.models.lti_provider.LTI1p3Provider property)</a>
 </li>
+      <li><a href="psef_api/psef.html#psef.models.assignment.AssignmentJSON.kind">kind (psef.models.assignment.AssignmentJSON attribute)</a>
+</li>
   </ul></td>
 </tr></table>
 
 <h2 id="L">L</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="psef_api/psef.html#psef.models.group.GroupSet.largest_group_size">largest_group_size() (psef.models.group.GroupSet property)</a>
+      <li><a href="psef_api/psef.html#psef.models.group.GroupSet.largest_group_size">largest_group_size (psef.models.group.GroupSet attribute)</a>
 </li>
       <li><a href="psef_api/psef.html#psef.models.comment.CommentReplyJSON.last_edit">last_edit (psef.models.comment.CommentReplyJSON attribute)</a>
 </li>
@@ -1960,13 +2083,19 @@
 </li>
       <li><a href="psef_api/psef.html#psef.linters.Linter">Linter (class in psef.linters)</a>
 </li>
-      <li><a href="psef_api/psef.html#psef.linters.LinterRunner.linter">linter (psef.linters.LinterRunner attribute)</a>
+      <li><a href="psef_api/psef.html#psef.auth.LinterPermissions.linter">linter (psef.auth.LinterPermissions attribute)</a>
+
+      <ul>
+        <li><a href="psef_api/psef.html#psef.linters.LinterRunner.linter">(psef.linters.LinterRunner attribute)</a>
 </li>
+      </ul></li>
       <li><a href="psef_api/psef.html#psef.models.linter.LinterComment">LinterComment (class in psef.models.linter)</a>
 </li>
       <li><a href="psef_api/psef.html#psef.linters.LinterCrash">LinterCrash</a>
 </li>
       <li><a href="psef_api/psef.html#psef.models.linter.LinterInstance">LinterInstance (class in psef.models.linter)</a>
+</li>
+      <li><a href="psef_api/psef.html#psef.auth.LinterPermissions">LinterPermissions (class in psef.auth)</a>
 </li>
       <li><a href="psef_api/psef.html#psef.linters.LinterRunner">LinterRunner (class in psef.linters)</a>
 </li>
@@ -2000,14 +2129,14 @@
 </li>
       <li><a href="psef_api/psef.html#psef.models.rubric.RubricRowBase.locked">locked() (psef.models.rubric.RubricRowBase property)</a>
 </li>
-      <li><a href="psef_api/psef.html#psef.models.assignment.Assignment.locked_rubric_rows">locked_rubric_rows() (psef.models.assignment.Assignment property)</a>
+      <li><a href="psef_api/psef.html#psef.models.assignment.Assignment.locked_rubric_rows">locked_rubric_rows (psef.models.assignment.Assignment attribute)</a>
 </li>
       <li><a href="psef_api/psef.html#psef.exceptions.APICodes.LOCKED_UPDATE">LOCKED_UPDATE (psef.exceptions.APICodes attribute)</a>
 </li>
-      <li><a href="psef_api/psef.html#psef.helpers.LockType">LockType (class in psef.helpers)</a>
-</li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="psef_api/psef.html#psef.helpers.LockType">LockType (class in psef.helpers)</a>
+</li>
       <li><a href="psef_api/psef.html#psef.exceptions.APICodes.LOGIN_FAILURE">LOGIN_FAILURE (psef.exceptions.APICodes attribute)</a>
 </li>
       <li><a href="psef_api/psef.html#psef.auth.login_required">login_required() (in module psef.auth)</a>
@@ -2077,6 +2206,8 @@
       <li><a href="psef_api/psef.html#psef.exceptions.APICodes.MAILING_FAILED">MAILING_FAILED (psef.exceptions.APICodes attribute)</a>
 </li>
       <li><a href="psef_api/psef.html#psef.lti.v1_3.CGDeepLinkResource.make">make() (psef.lti.v1_3.CGDeepLinkResource class method)</a>
+</li>
+      <li><a href="psef_api/psef.html#psef.models.user.User.make_access_token">make_access_token() (psef.models.user.User method)</a>
 </li>
       <li><a href="psef_api/psef.html#psef.models.auto_test.AutoTestRun.make_result">make_result() (psef.models.auto_test.AutoTestRun method)</a>
 </li>
@@ -2296,6 +2427,8 @@
 </li>
         <li><a href="psef_api/psef.html#psef.models.assignment.AssignmentJSON.name">(psef.models.assignment.AssignmentJSON attribute)</a>
 </li>
+        <li><a href="psef_api/psef.html#psef.models.group.Group.name">(psef.models.group.Group attribute)</a>
+</li>
         <li><a href="psef_api/psef.html#psef.permissions.UnknownPermission.name">(psef.permissions.UnknownPermission attribute)</a>
 </li>
         <li><a href="psef_api/psef.html#psef.plagiarism.Option.name">(psef.plagiarism.Option attribute)</a>
@@ -2313,10 +2446,10 @@
 </li>
       <li><a href="psef_api/psef.html#psef.models.auto_test.AutoTestRun.new_results_should_be_final">new_results_should_be_final() (psef.models.auto_test.AutoTestRun property)</a>
 </li>
-      <li><a href="psef_api/psef.html#psef.exceptions.APICodes.NO_FILES_SUBMITTED">NO_FILES_SUBMITTED (psef.exceptions.APICodes attribute)</a>
-</li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="psef_api/psef.html#psef.exceptions.APICodes.NO_FILES_SUBMITTED">NO_FILES_SUBMITTED (psef.exceptions.APICodes attribute)</a>
+</li>
       <li><a href="psef_api/psef.html#psef.models.comment.CommentType.normal">normal (psef.models.comment.CommentType attribute)</a>
 </li>
       <li><a href="psef_api/psef.html#psef.exceptions.APICodes.NOT_LOGGED_IN">NOT_LOGGED_IN (psef.exceptions.APICodes attribute)</a>
@@ -2365,11 +2498,13 @@
 </li>
       <li><a href="psef_api/psef.html#psef.ignore.Options.OptionName">Options.OptionName (class in psef.ignore)</a>
 </li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="psef_api/psef.html#psef.plagiarism.OptionTypes">OptionTypes (class in psef.plagiarism)</a>
 </li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="psef_api/psef.html#psef.models.user_setting.EmailNotificationTypes.ordered_options">ordered_options() (psef.models.user_setting.EmailNotificationTypes class method)</a>
+</li>
+      <li><a href="psef_api/psef.html#psef.models.plagiarism.PlagiarismWorks.other_work">other_work() (psef.models.plagiarism.PlagiarismWorks property)</a>
 </li>
       <li><a href="psef_api/psef.html#psef.lti.v1_1.BareBonesLTIProvider.outcome_service_url">outcome_service_url() (psef.lti.v1_1.BareBonesLTIProvider property)</a>
 
@@ -2386,6 +2521,8 @@
       <li><a href="psef_api/psef.html#psef.auto_test.StartedContainer.output_dir">output_dir() (psef.auto_test.StartedContainer property)</a>
 </li>
       <li><a href="psef_api/psef.html#psef.auto_test.OutputTail">OutputTail (class in psef.auto_test)</a>
+</li>
+      <li><a href="psef_api/psef.html#psef.models.plagiarism.PlagiarismWorks.own_work">own_work() (psef.models.plagiarism.PlagiarismWorks property)</a>
 </li>
   </ul></td>
 </tr></table>
@@ -2445,6 +2582,8 @@
 </li>
       <li><a href="psef_api/psef.html#psef.models.comment.CommentType.peer_feedback">peer_feedback (psef.models.comment.CommentType attribute)</a>
 </li>
+      <li><a href="psef_api/psef.html#psef.models.assignment.AssignmentJSON.peer_feedback_settings">peer_feedback_settings (psef.models.assignment.AssignmentJSON attribute)</a>
+</li>
       <li><a href="psef_api/psef.html#psef.models.work.Work.peer_feedback_submissions_filter">peer_feedback_submissions_filter() (psef.models.work.Work class method)</a>
 </li>
       <li><a href="psef_api/psef.html#psef.models.assignment.AssignmentPeerFeedbackConnection.peer_user_id">peer_user_id (psef.models.assignment.AssignmentPeerFeedbackConnection attribute)</a>
@@ -2469,6 +2608,8 @@
 </li>
       <li><a href="psef_api/psef.html#psef.models.plagiarism.PlagiarismCase">PlagiarismCase (class in psef.models.plagiarism)</a>
 </li>
+      <li><a href="psef_api/psef.html#psef.auth.PlagiarismCasePermissions">PlagiarismCasePermissions (class in psef.auth)</a>
+</li>
       <li><a href="psef_api/psef.html#psef.models.plagiarism.PlagiarismMatch">PlagiarismMatch (class in psef.models.plagiarism)</a>
 </li>
       <li><a href="psef_api/psef.html#psef.plagiarism.PlagiarismProvider">PlagiarismProvider (class in psef.plagiarism)</a>
@@ -2476,6 +2617,8 @@
       <li><a href="psef_api/psef.html#psef.models.plagiarism.PlagiarismRun">PlagiarismRun (class in psef.models.plagiarism)</a>
 </li>
       <li><a href="psef_api/psef.html#psef.models.plagiarism.PlagiarismState">PlagiarismState (class in psef.models.plagiarism)</a>
+</li>
+      <li><a href="psef_api/psef.html#psef.models.plagiarism.PlagiarismWorks">PlagiarismWorks (class in psef.models.plagiarism)</a>
 </li>
       <li><a href="psef_api/psef.html#psef.models.comment.CommentReplyType.plain_text">plain_text (psef.models.comment.CommentReplyType attribute)</a>
 </li>
@@ -2806,6 +2949,14 @@
   </ul></td>
 </tr></table>
 
+<h2 id="Q">Q</h2>
+<table style="width: 100%" class="indextable genindextable"><tr>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="psef_api/psef.html#psef.models.permission.Permission.query_permission">query_permission() (psef.models.permission.Permission class method)</a>
+</li>
+  </ul></td>
+</tr></table>
+
 <h2 id="R">R</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
@@ -3029,6 +3180,14 @@
 </li>
       <li><a href="psef_api/psef.html#psef.mail.send_grader_status_changed_mail">send_grader_status_changed_mail() (in module psef.mail)</a>
 </li>
+      <li><a href="psef_api/psef.html#psef.mail.send_login_link_mail">send_login_link_mail() (in module psef.mail)</a>
+</li>
+      <li><a href="psef_api/psef.html#psef.models.assignment.AssignmentJSON.send_login_links">send_login_links (psef.models.assignment.AssignmentJSON attribute)</a>
+</li>
+      <li><a href="psef_api/psef.html#psef.models.assignment.Assignment.send_login_links">send_login_links() (psef.models.assignment.Assignment property)</a>
+</li>
+      <li><a href="psef_api/psef.html#psef.models.assignment.Assignment.send_login_links_token">send_login_links_token() (psef.models.assignment.Assignment property)</a>
+</li>
       <li><a href="psef_api/psef.html#psef.mail.send_reset_password_email">send_reset_password_email() (in module psef.mail)</a>
 </li>
       <li><a href="psef_api/psef.html#psef.mail.send_student_mail">send_student_mail() (in module psef.mail)</a>
@@ -3087,7 +3246,7 @@
         <li><a href="psef_api/psef.html#psef.extract_tree.ExtractFileTreeSpecialFile.size">(psef.extract_tree.ExtractFileTreeSpecialFile attribute)</a>
 </li>
       </ul></li>
-      <li><a href="psef_api/psef.html#psef.models.group.GroupSet.smallest_group_size">smallest_group_size() (psef.models.group.GroupSet property)</a>
+      <li><a href="psef_api/psef.html#psef.models.group.GroupSet.smallest_group_size">smallest_group_size (psef.models.group.GroupSet attribute)</a>
 </li>
       <li><a href="psef_api/psef.html#psef.models.snippet.Snippet">Snippet (class in psef.models.snippet)</a>
 </li>
@@ -3107,6 +3266,8 @@
 </li>
       <li><a href="psef_api/psef.html#psef.auto_test.AutoTestContainer.started_container">started_container() (psef.auto_test.AutoTestContainer method)</a>
 </li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="psef_api/psef.html#psef.auto_test.StartedContainer">StartedContainer (class in psef.auto_test)</a>
 </li>
       <li><a href="psef_api/psef.html#psef.models.assignment.AssignmentJSON.state">state (psef.models.assignment.AssignmentJSON attribute)</a>
@@ -3115,8 +3276,6 @@
         <li><a href="psef_api/psef.html#psef.models.auto_test.AutoTestResult.state">(psef.models.auto_test.AutoTestResult attribute)</a>
 </li>
       </ul></li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="psef_api/psef.html#psef.models.auto_test_step.AutoTestStepResult.state">state() (psef.models.auto_test_step.AutoTestStepResult property)</a>
 </li>
       <li><a href="psef_api/psef.html#psef.models.assignment.Assignment.state_name">state_name() (psef.models.assignment.Assignment property)</a>
@@ -3341,13 +3500,21 @@
 </li>
       <li><a href="psef_api/psef.html#psef.exceptions.APICodes.UPLOAD_TYPE_DISABLED">UPLOAD_TYPE_DISABLED (psef.exceptions.APICodes attribute)</a>
 </li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="psef_api/psef.html#psef.lti.v1_1.LTIResultDataType.url">url (psef.lti.v1_1.LTIResultDataType attribute)</a>
 </li>
       <li><a href="psef_api/psef.html#psef.models.user.User">User (class in psef.models.user)</a>
 </li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="psef_api/psef.html#psef.models.assignment.AssignmentLoginLink.AsJSON.user">user (psef.models.assignment.AssignmentLoginLink.AsJSON attribute)</a>
+
+      <ul>
+        <li><a href="psef_api/psef.html#psef.models.user.User.LoginResponse.user">(psef.models.user.User.LoginResponse attribute)</a>
+</li>
+      </ul></li>
       <li><a href="psef_api/psef.html#psef.auth.PermissionChecker.user">user() (psef.auth.PermissionChecker property)</a>
+</li>
+      <li><a href="psef_api/psef.html#psef.models.user.User.LoginResponse">User.LoginResponse (class in psef.models.user)</a>
 </li>
       <li><a href="psef_api/psef.html#psef.auth.user_active">user_active() (in module psef.auth)</a>
 </li>
@@ -3361,7 +3528,7 @@
 </li>
       <li><a href="psef_api/psef.html#psef.models.work.Work.user_submissions_filter">user_submissions_filter() (psef.models.work.Work class method)</a>
 </li>
-      <li><a href="psef_api/psef.html#psef.models.comment.CommentBase.user_visible_replies">user_visible_replies() (psef.models.comment.CommentBase property)</a>
+      <li><a href="psef_api/psef.html#psef.models.comment.CommentBase.user_visible_replies">user_visible_replies (psef.models.comment.CommentBase attribute)</a>
 </li>
       <li><a href="psef_api/psef.html#psef.models.lti_provider.UserLTIProvider">UserLTIProvider (class in psef.models.lti_provider)</a>
 </li>
@@ -3439,6 +3606,8 @@
       </ul></li>
       <li><a href="psef_api/psef.html#psef.models.user_setting.SettingBase.verify_settings_change_token">verify_settings_change_token() (psef.models.user_setting.SettingBase class method)</a>
 </li>
+      <li><a href="psef_api/psef.html#psef.models.group.Group.virtual_user_id">virtual_user_id (psef.models.group.Group attribute)</a>
+</li>
   </ul></td>
 </tr></table>
 
@@ -3471,10 +3640,10 @@
 </li>
       <li><a href="psef_api/psef.html#psef.models.auto_test_step.AutoTestStepBase.weight">weight() (psef.models.auto_test_step.AutoTestStepBase property)</a>
 </li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="psef_api/psef.html#psef.models.assignment.AssignmentJSON.whitespace_linter">whitespace_linter (psef.models.assignment.AssignmentJSON attribute)</a>
 </li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="psef_api/psef.html#psef.models.assignment.Assignment.whitespace_linter">whitespace_linter() (psef.models.assignment.Assignment property)</a>
 </li>
       <li><a href="psef_api/psef.html#psef.models.assignment.Assignment.whitespace_linter_exists">whitespace_linter_exists() (psef.models.assignment.Assignment property)</a>
@@ -3496,6 +3665,8 @@
       <li><a href="psef_api/psef.html#psef.auth.WorkPermissions">WorkPermissions (class in psef.auth)</a>
 </li>
       <li><a href="psef_api/psef.html#psef.models.rubric.WorkRubricItem">WorkRubricItem (class in psef.models.rubric)</a>
+</li>
+      <li><a href="psef_api/psef.html#psef.models.plagiarism.PlagiarismCase.works">works() (psef.models.plagiarism.PlagiarismCase property)</a>
 </li>
       <li><a href="psef_api/psef.html#psef.auth.WorksByUserPermissions">WorksByUserPermissions (class in psef.auth)</a>
 </li>

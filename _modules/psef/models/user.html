@@ -208,25 +208,31 @@
 <span class="kn">import</span> <span class="nn">uuid</span>
 <span class="kn">import</span> <span class="nn">typing</span> <span class="k">as</span> <span class="nn">t</span>
 <span class="kn">import</span> <span class="nn">functools</span>
+<span class="kn">from</span> <span class="nn">datetime</span> <span class="kn">import</span> <span class="n">timedelta</span>
 <span class="kn">from</span> <span class="nn">collections</span> <span class="kn">import</span> <span class="n">defaultdict</span>
 
 <span class="kn">import</span> <span class="nn">structlog</span>
+<span class="kn">import</span> <span class="nn">flask_jwt_extended</span>
 <span class="kn">from</span> <span class="nn">flask</span> <span class="kn">import</span> <span class="n">current_app</span>
 <span class="kn">from</span> <span class="nn">itsdangerous</span> <span class="kn">import</span> <span class="n">BadSignature</span><span class="p">,</span> <span class="n">URLSafeTimedSerializer</span>
 <span class="kn">from</span> <span class="nn">werkzeug.local</span> <span class="kn">import</span> <span class="n">LocalProxy</span>
 <span class="kn">from</span> <span class="nn">sqlalchemy_utils</span> <span class="kn">import</span> <span class="n">PasswordType</span>
-<span class="kn">from</span> <span class="nn">typing_extensions</span> <span class="kn">import</span> <span class="n">Literal</span>
+<span class="kn">from</span> <span class="nn">typing_extensions</span> <span class="kn">import</span> <span class="n">Literal</span><span class="p">,</span> <span class="n">TypedDict</span>
 <span class="kn">from</span> <span class="nn">sqlalchemy.sql.expression</span> <span class="kn">import</span> <span class="n">false</span>
 <span class="kn">from</span> <span class="nn">sqlalchemy.orm.collections</span> <span class="kn">import</span> <span class="n">attribute_mapped_collection</span>
 
 <span class="kn">import</span> <span class="nn">psef</span>
+<span class="kn">from</span> <span class="nn">cg_dt_utils</span> <span class="kn">import</span> <span class="n">DatetimeWithTimezone</span>
 <span class="kn">from</span> <span class="nn">cg_sqlalchemy_helpers</span> <span class="kn">import</span> <span class="n">CIText</span><span class="p">,</span> <span class="n">hybrid_property</span>
 
 <span class="kn">from</span> <span class="nn">.</span> <span class="kn">import</span> <span class="n">UUID_LENGTH</span><span class="p">,</span> <span class="n">Base</span><span class="p">,</span> <span class="n">DbColumn</span><span class="p">,</span> <span class="n">db</span>
 <span class="kn">from</span> <span class="nn">.</span> <span class="kn">import</span> <span class="n">course</span> <span class="k">as</span> <span class="n">course_models</span>
-<span class="kn">from</span> <span class="nn">..</span> <span class="kn">import</span> <span class="n">signals</span><span class="p">,</span> <span class="n">db_locks</span>
+<span class="kn">from</span> <span class="nn">..</span> <span class="kn">import</span> <span class="n">auth</span><span class="p">,</span> <span class="n">signals</span><span class="p">,</span> <span class="n">db_locks</span>
 <span class="kn">from</span> <span class="nn">.role</span> <span class="kn">import</span> <span class="n">Role</span><span class="p">,</span> <span class="n">CourseRole</span>
-<span class="kn">from</span> <span class="nn">..helpers</span> <span class="kn">import</span> <span class="n">NotEqualMixin</span><span class="p">,</span> <span class="n">validate</span><span class="p">,</span> <span class="n">handle_none</span><span class="p">,</span> <span class="n">maybe_unwrap_proxy</span>
+<span class="kn">from</span> <span class="nn">..helpers</span> <span class="kn">import</span> <span class="p">(</span>
+    <span class="n">NotEqualMixin</span><span class="p">,</span> <span class="n">validate</span><span class="p">,</span> <span class="n">handle_none</span><span class="p">,</span> <span class="n">jsonify_options</span><span class="p">,</span> <span class="n">maybe_unwrap_proxy</span><span class="p">,</span>
+    <span class="n">get_request_start_time</span>
+<span class="p">)</span>
 <span class="kn">from</span> <span class="nn">.permission</span> <span class="kn">import</span> <span class="n">Permission</span>
 <span class="kn">from</span> <span class="nn">..exceptions</span> <span class="kn">import</span> <span class="n">APICodes</span><span class="p">,</span> <span class="n">APIException</span><span class="p">,</span> <span class="n">PermissionException</span>
 <span class="kn">from</span> <span class="nn">.link_tables</span> <span class="kn">import</span> <span class="n">user_course</span><span class="p">,</span> <span class="n">course_permissions</span>
@@ -269,6 +275,66 @@
 <span class="sd">    :ivar reset_email_on_lti: Determines if the email should be reset on the</span>
 <span class="sd">        next LTI launch.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="User.LoginResponse"><a class="viewcode-back" href="../../../psef_api/psef.html#psef.models.user.User.LoginResponse">[docs]</a>    <span class="k">class</span> <span class="nc">LoginResponse</span><span class="p">(</span><span class="n">TypedDict</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;When logging in this object will be given.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1">#: The user that was logged in.</span>
+        <span class="n">user</span><span class="p">:</span> <span class="s1">&#39;User&#39;</span>
+        <span class="c1">#: A JWT token that can be used to do authenticated requests.</span>
+        <span class="n">access_token</span><span class="p">:</span> <span class="nb">str</span></div>
+
+    <span class="nd">@t</span><span class="o">.</span><span class="n">overload</span>
+    <span class="k">def</span> <span class="nf">make_access_token</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="o">*</span><span class="p">,</span>
+        <span class="n">expires_in</span><span class="p">:</span> <span class="n">t</span><span class="o">.</span><span class="n">Optional</span><span class="p">[</span><span class="n">timedelta</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+        <span class="o">...</span>
+
+    <span class="nd">@t</span><span class="o">.</span><span class="n">overload</span>
+    <span class="k">def</span> <span class="nf">make_access_token</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="o">*</span><span class="p">,</span>
+        <span class="n">expires_at</span><span class="p">:</span> <span class="n">DatetimeWithTimezone</span><span class="p">,</span>
+        <span class="n">for_course</span><span class="p">:</span> <span class="s1">&#39;course_models.Course&#39;</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+        <span class="o">...</span>
+
+<div class="viewcode-block" id="User.make_access_token"><a class="viewcode-back" href="../../../psef_api/psef.html#psef.models.user.User.make_access_token">[docs]</a>    <span class="k">def</span> <span class="nf">make_access_token</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="o">*</span><span class="p">,</span>
+        <span class="n">expires_at</span><span class="p">:</span> <span class="n">t</span><span class="o">.</span><span class="n">Optional</span><span class="p">[</span><span class="n">DatetimeWithTimezone</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">expires_in</span><span class="p">:</span> <span class="n">t</span><span class="o">.</span><span class="n">Optional</span><span class="p">[</span><span class="n">timedelta</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">for_course</span><span class="p">:</span> <span class="n">t</span><span class="o">.</span><span class="n">Optional</span><span class="p">[</span><span class="s1">&#39;course_models.Course&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Make an access token for this user.</span>
+
+<span class="sd">        :param expires_at: The date when this token expires. Cannot be given</span>
+<span class="sd">            when ``expires_in`` is not ``None``.</span>
+<span class="sd">        :param expires_in: The amount of time after which the token should</span>
+<span class="sd">            expire. Cannot be given when ``expires_at`` is not ``None``.</span>
+<span class="sd">        :param for_course: If given the token can only be used for requests in</span>
+<span class="sd">            this course.</span>
+
+<span class="sd">        :returns: A JWT token encoded as a string.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">id</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+        <span class="k">if</span> <span class="n">expires_at</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">assert</span> <span class="n">expires_in</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">,</span> <span class="p">(</span>
+                <span class="s1">&#39;Cannot provide expires_in and expires_at&#39;</span>
+            <span class="p">)</span>
+            <span class="n">now</span> <span class="o">=</span> <span class="n">get_request_start_time</span><span class="p">()</span>
+            <span class="n">expires_in</span> <span class="o">=</span> <span class="n">expires_at</span> <span class="o">-</span> <span class="n">now</span>
+
+        <span class="k">return</span> <span class="n">flask_jwt_extended</span><span class="o">.</span><span class="n">create_access_token</span><span class="p">(</span>
+            <span class="n">identity</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">id</span><span class="p">,</span>
+            <span class="n">fresh</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+            <span class="n">expires_delta</span><span class="o">=</span><span class="n">expires_in</span><span class="p">,</span>
+            <span class="n">user_claims</span><span class="o">=</span><span class="p">{</span>
+                <span class="s1">&#39;for_course&#39;</span><span class="p">:</span> <span class="kc">None</span> <span class="k">if</span> <span class="n">for_course</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">for_course</span><span class="o">.</span><span class="n">id</span><span class="p">,</span>
+            <span class="p">}</span>
+        <span class="p">)</span></div>
 
 <div class="viewcode-block" id="User.resolve"><a class="viewcode-back" href="../../../psef_api/psef.html#psef.models.user.User.resolve">[docs]</a>    <span class="nd">@classmethod</span>
     <span class="k">def</span> <span class="nf">resolve</span><span class="p">(</span>
@@ -754,11 +820,16 @@
 <span class="sd">        :returns: A object as described above.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">is_self</span> <span class="o">=</span> <span class="n">psef</span><span class="o">.</span><span class="n">current_user</span> <span class="ow">and</span> <span class="n">psef</span><span class="o">.</span><span class="n">current_user</span><span class="o">.</span><span class="n">id</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">id</span>
-        <span class="k">return</span> <span class="p">{</span>
+        <span class="n">res</span> <span class="o">=</span> <span class="p">{</span>
             <span class="s1">&#39;email&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">email</span> <span class="k">if</span> <span class="n">is_self</span> <span class="k">else</span> <span class="s1">&#39;&lt;REDACTED&gt;&#39;</span><span class="p">,</span>
             <span class="s2">&quot;hidden&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">can_see_hidden</span><span class="p">,</span>
             <span class="o">**</span><span class="bp">self</span><span class="o">.</span><span class="n">__to_json__</span><span class="p">(),</span>
         <span class="p">}</span>
+        <span class="k">if</span> <span class="n">jsonify_options</span><span class="o">.</span><span class="n">get_options</span><span class="p">()</span><span class="o">.</span><span class="n">add_permissions_to_user</span> <span class="o">==</span> <span class="bp">self</span><span class="p">:</span>
+            <span class="n">res</span><span class="p">[</span><span class="s1">&#39;permissions&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">GlobalPermission</span><span class="o">.</span><span class="n">create_map</span><span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">get_all_permissions</span><span class="p">()</span>
+            <span class="p">)</span>
+        <span class="k">return</span> <span class="n">res</span>
 
 <div class="viewcode-block" id="User.has_course_permission_once"><a class="viewcode-back" href="../../../psef_api/psef.html#psef.models.user.User.has_course_permission_once">[docs]</a>    <span class="k">def</span> <span class="nf">has_course_permission_once</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">perm</span><span class="p">:</span> <span class="n">CoursePermission</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
         <span class="sd">&quot;&quot;&quot;Check whether this user has the specified course</span>
@@ -770,24 +841,9 @@
 <span class="sd">        :returns: True if the user has the permission once</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">assert</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">virtual</span>
-
-        <span class="n">permission</span> <span class="o">=</span> <span class="n">Permission</span><span class="o">.</span><span class="n">get_permission</span><span class="p">(</span><span class="n">perm</span><span class="p">)</span>
-        <span class="k">assert</span> <span class="n">permission</span><span class="o">.</span><span class="n">course_permission</span>
-
-        <span class="n">course_roles</span> <span class="o">=</span> <span class="n">db</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">query</span><span class="p">(</span>
-            <span class="n">user_course</span><span class="o">.</span><span class="n">c</span><span class="o">.</span><span class="n">course_id</span>
-        <span class="p">)</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">User</span><span class="p">,</span> <span class="n">User</span><span class="o">.</span><span class="n">id</span> <span class="o">==</span> <span class="n">user_course</span><span class="o">.</span><span class="n">c</span><span class="o">.</span><span class="n">user_id</span><span class="p">)</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span>
-            <span class="n">User</span><span class="o">.</span><span class="n">id</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">id</span>
-        <span class="p">)</span><span class="o">.</span><span class="n">subquery</span><span class="p">(</span><span class="s1">&#39;course_roles&#39;</span><span class="p">)</span>
-        <span class="n">crp</span> <span class="o">=</span> <span class="n">db</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="n">course_permissions</span><span class="o">.</span><span class="n">c</span><span class="o">.</span><span class="n">course_role_id</span><span class="p">)</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
-            <span class="n">Permission</span><span class="p">,</span> <span class="n">course_permissions</span><span class="o">.</span><span class="n">c</span><span class="o">.</span><span class="n">permission_id</span> <span class="o">==</span> <span class="n">Permission</span><span class="o">.</span><span class="n">id</span>
-        <span class="p">)</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">Permission</span><span class="o">.</span><span class="n">id</span> <span class="o">==</span> <span class="n">permission</span><span class="o">.</span><span class="n">id</span><span class="p">)</span><span class="o">.</span><span class="n">subquery</span><span class="p">(</span><span class="s1">&#39;crp&#39;</span><span class="p">)</span>
-        <span class="n">res</span> <span class="o">=</span> <span class="n">db</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">query</span><span class="p">(</span>
-            <span class="n">course_roles</span><span class="o">.</span><span class="n">c</span><span class="o">.</span><span class="n">course_id</span>
-        <span class="p">)</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">crp</span><span class="p">,</span> <span class="n">course_roles</span><span class="o">.</span><span class="n">c</span><span class="o">.</span><span class="n">course_id</span> <span class="o">==</span> <span class="n">crp</span><span class="o">.</span><span class="n">c</span><span class="o">.</span><span class="n">course_role_id</span><span class="p">)</span>
-        <span class="n">link</span> <span class="o">=</span> <span class="n">db</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="n">res</span><span class="o">.</span><span class="n">exists</span><span class="p">())</span><span class="o">.</span><span class="n">scalar</span><span class="p">()</span>
-
-        <span class="k">return</span> <span class="n">link</span> <span class="o">^</span> <span class="n">permission</span><span class="o">.</span><span class="n">default_value</span></div>
+        <span class="k">return</span> <span class="nb">any</span><span class="p">(</span>
+            <span class="n">crole</span><span class="o">.</span><span class="n">has_permission</span><span class="p">(</span><span class="n">perm</span><span class="p">)</span> <span class="k">for</span> <span class="n">crole</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">courses</span><span class="o">.</span><span class="n">values</span><span class="p">()</span>
+        <span class="p">)</span></div>
 
     <span class="nd">@t</span><span class="o">.</span><span class="n">overload</span>
     <span class="k">def</span> <span class="nf">get_all_permissions</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">t</span><span class="o">.</span><span class="n">Mapping</span><span class="p">[</span><span class="n">GlobalPermission</span><span class="p">,</span> <span class="nb">bool</span><span class="p">]:</span>  <span class="c1"># pylint: disable=function-redefined,missing-docstring,no-self-use</span>
@@ -808,7 +864,7 @@
 <span class="sd">            all course permissions of the user in a specific</span>
 <span class="sd">            :class:`.course_models.Course`.</span>
 
-<span class="sd">        :param course_id: The course or course id</span>
+<span class="sd">        :param course: The course or course id</span>
 
 <span class="sd">        :returns: A name boolean mapping where the name is the name of the</span>
 <span class="sd">                  permission and the value indicates if this user has this</span>
@@ -816,16 +872,17 @@
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">assert</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">virtual</span>
 
-        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">course_id</span><span class="p">,</span> <span class="n">course_models</span><span class="o">.</span><span class="n">Course</span><span class="p">):</span>
-            <span class="n">course_id</span> <span class="o">=</span> <span class="n">course_id</span><span class="o">.</span><span class="n">id</span>
-
         <span class="k">if</span> <span class="n">course_id</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">role</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
                 <span class="k">return</span> <span class="p">{</span><span class="n">perm</span><span class="p">:</span> <span class="kc">False</span> <span class="k">for</span> <span class="n">perm</span> <span class="ow">in</span> <span class="n">GlobalPermission</span><span class="p">}</span>
             <span class="k">else</span><span class="p">:</span>
                 <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">role</span><span class="o">.</span><span class="n">get_all_permissions</span><span class="p">()</span>
         <span class="k">else</span><span class="p">:</span>
-            <span class="k">if</span> <span class="n">course_id</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">courses</span><span class="p">:</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">course_id</span><span class="p">,</span> <span class="n">course_models</span><span class="o">.</span><span class="n">Course</span><span class="p">):</span>
+                <span class="n">course_id</span> <span class="o">=</span> <span class="n">course_id</span><span class="o">.</span><span class="n">id</span>
+
+            <span class="k">if</span> <span class="n">auth</span><span class="o">.</span><span class="n">CoursePermissions</span><span class="p">(</span><span class="n">course_id</span><span class="o">=</span><span class="n">course_id</span>
+                                      <span class="p">)</span><span class="o">.</span><span class="n">ensure_may_see</span><span class="o">.</span><span class="n">as_bool</span><span class="p">():</span>
                 <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">courses</span><span class="p">[</span><span class="n">course_id</span><span class="p">]</span><span class="o">.</span><span class="n">get_all_permissions</span><span class="p">()</span>
             <span class="k">else</span><span class="p">:</span>
                 <span class="k">return</span> <span class="p">{</span><span class="n">perm</span><span class="p">:</span> <span class="kc">False</span> <span class="k">for</span> <span class="n">perm</span> <span class="ow">in</span> <span class="n">CoursePermission</span><span class="p">}</span></div>

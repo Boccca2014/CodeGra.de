@@ -210,13 +210,13 @@
 <span class="kn">from</span> <span class="nn">functools</span> <span class="kn">import</span> <span class="n">wraps</span>
 
 <span class="kn">import</span> <span class="nn">coolname</span>
-<span class="kn">from</span> <span class="nn">werkzeug.utils</span> <span class="kn">import</span> <span class="n">cached_property</span>
 <span class="kn">from</span> <span class="nn">sqlalchemy.sql.expression</span> <span class="kn">import</span> <span class="n">or_</span> <span class="k">as</span> <span class="n">sql_or</span>
 <span class="kn">from</span> <span class="nn">sqlalchemy.sql.expression</span> <span class="kn">import</span> <span class="n">func</span> <span class="k">as</span> <span class="n">sql_func</span>
 
 <span class="kn">import</span> <span class="nn">psef</span>
 <span class="kn">import</span> <span class="nn">cg_cache.intra_request</span>
 <span class="kn">from</span> <span class="nn">cg_dt_utils</span> <span class="kn">import</span> <span class="n">DatetimeWithTimezone</span>
+<span class="kn">from</span> <span class="nn">cg_cache.intra_request</span> <span class="kn">import</span> <span class="n">cached_property</span>
 <span class="kn">from</span> <span class="nn">cg_sqlalchemy_helpers.types</span> <span class="kn">import</span> <span class="n">MyQueryTuple</span><span class="p">,</span> <span class="n">hybrid_property</span>
 
 <span class="kn">from</span> <span class="nn">.</span> <span class="kn">import</span> <span class="n">Base</span><span class="p">,</span> <span class="n">DbColumn</span><span class="p">,</span> <span class="n">db</span>
@@ -246,17 +246,13 @@
 
 <span class="sd">    A group is a collection of real (non virtual) users that itself is</span>
 <span class="sd">    connected to a virtual user. A group is connected to a :class:`.GroupSet`.</span>
-
-<span class="sd">    :ivar ~.Group.name: The name of the group. This has to be unique in a group</span>
-<span class="sd">        set.</span>
-<span class="sd">    :ivar virtual_user: The virtual user this group is connected to. This user</span>
-<span class="sd">        is used to submissions as the group.</span>
-<span class="sd">    :ivar group_set: The :class:`.GroupSet` this group is connected to.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">__tablename__</span> <span class="o">=</span> <span class="s1">&#39;Group&#39;</span>
 
     <span class="nb">id</span> <span class="o">=</span> <span class="n">db</span><span class="o">.</span><span class="n">Column</span><span class="p">(</span><span class="s1">&#39;id&#39;</span><span class="p">,</span> <span class="n">db</span><span class="o">.</span><span class="n">Integer</span><span class="p">,</span> <span class="n">primary_key</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="c1">#: The name of the group. This has to be unique in a group set.</span>
     <span class="n">name</span> <span class="o">=</span> <span class="n">db</span><span class="o">.</span><span class="n">Column</span><span class="p">(</span><span class="s1">&#39;name&#39;</span><span class="p">,</span> <span class="n">db</span><span class="o">.</span><span class="n">Unicode</span><span class="p">)</span>
+    <span class="c1">#: The id of the :class:`.GroupSet` this group is connected to.</span>
     <span class="n">group_set_id</span> <span class="o">=</span> <span class="n">db</span><span class="o">.</span><span class="n">Column</span><span class="p">(</span>
         <span class="s1">&#39;group_set_id&#39;</span><span class="p">,</span>
         <span class="n">db</span><span class="o">.</span><span class="n">Integer</span><span class="p">,</span>
@@ -268,6 +264,8 @@
         <span class="n">default</span><span class="o">=</span><span class="n">DatetimeWithTimezone</span><span class="o">.</span><span class="n">utcnow</span><span class="p">,</span>
         <span class="n">nullable</span><span class="o">=</span><span class="kc">False</span>
     <span class="p">)</span>
+    <span class="c1">#: The id of the virtual user this group is connected to. This user is used</span>
+    <span class="c1">#: to submissions as the group.</span>
     <span class="n">virtual_user_id</span> <span class="o">=</span> <span class="n">db</span><span class="o">.</span><span class="n">Column</span><span class="p">(</span>
         <span class="s1">&#39;virtual_user_id&#39;</span><span class="p">,</span>
         <span class="n">db</span><span class="o">.</span><span class="n">Integer</span><span class="p">,</span>
@@ -281,6 +279,19 @@
         <span class="n">order_by</span><span class="o">=</span><span class="k">lambda</span><span class="p">:</span> <span class="n">user_models</span><span class="o">.</span><span class="n">User</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
         <span class="n">uselist</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
     <span class="p">)</span>
+
+    <span class="n">virtual_user</span> <span class="o">=</span> <span class="n">db</span><span class="o">.</span><span class="n">relationship</span><span class="p">(</span>
+        <span class="k">lambda</span><span class="p">:</span> <span class="n">psef</span><span class="o">.</span><span class="n">models</span><span class="o">.</span><span class="n">User</span><span class="p">,</span> <span class="n">foreign_keys</span><span class="o">=</span><span class="n">virtual_user_id</span><span class="p">,</span> <span class="n">uselist</span><span class="o">=</span><span class="kc">False</span>
+    <span class="p">)</span>
+
+    <span class="n">group_set</span> <span class="o">=</span> <span class="n">db</span><span class="o">.</span><span class="n">relationship</span><span class="p">(</span>
+        <span class="k">lambda</span><span class="p">:</span> <span class="n">GroupSet</span><span class="p">,</span>
+        <span class="n">back_populates</span><span class="o">=</span><span class="s1">&#39;groups&#39;</span><span class="p">,</span>
+        <span class="n">innerjoin</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="n">uselist</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+    <span class="p">)</span>
+
+    <span class="n">__table_args__</span> <span class="o">=</span> <span class="p">(</span><span class="n">db</span><span class="o">.</span><span class="n">UniqueConstraint</span><span class="p">(</span><span class="s1">&#39;group_set_id&#39;</span><span class="p">,</span> <span class="s1">&#39;name&#39;</span><span class="p">),</span> <span class="p">)</span>
 
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
@@ -361,19 +372,6 @@
             <span class="p">)</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">_members</span> <span class="o">=</span> <span class="p">[</span><span class="n">u</span> <span class="k">for</span> <span class="n">u</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_members</span> <span class="k">if</span> <span class="n">u</span> <span class="o">!=</span> <span class="n">member_to_remove</span><span class="p">]</span></div>
-
-    <span class="n">virtual_user</span> <span class="o">=</span> <span class="n">db</span><span class="o">.</span><span class="n">relationship</span><span class="p">(</span>
-        <span class="k">lambda</span><span class="p">:</span> <span class="n">psef</span><span class="o">.</span><span class="n">models</span><span class="o">.</span><span class="n">User</span><span class="p">,</span> <span class="n">foreign_keys</span><span class="o">=</span><span class="n">virtual_user_id</span><span class="p">,</span> <span class="n">uselist</span><span class="o">=</span><span class="kc">False</span>
-    <span class="p">)</span>
-
-    <span class="n">group_set</span> <span class="o">=</span> <span class="n">db</span><span class="o">.</span><span class="n">relationship</span><span class="p">(</span>
-        <span class="k">lambda</span><span class="p">:</span> <span class="n">GroupSet</span><span class="p">,</span>
-        <span class="n">back_populates</span><span class="o">=</span><span class="s1">&#39;groups&#39;</span><span class="p">,</span>
-        <span class="n">innerjoin</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
-        <span class="n">uselist</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
-    <span class="p">)</span>
-
-    <span class="n">__table_args__</span> <span class="o">=</span> <span class="p">(</span><span class="n">db</span><span class="o">.</span><span class="n">UniqueConstraint</span><span class="p">(</span><span class="s1">&#39;group_set_id&#39;</span><span class="p">,</span> <span class="s1">&#39;name&#39;</span><span class="p">),</span> <span class="p">)</span>
 
 <div class="viewcode-block" id="Group.has_a_submission"><a class="viewcode-back" href="../../../psef_api/psef.html#psef.models.group.Group.has_a_submission">[docs]</a>    <span class="nd">@cached_property</span>
     <span class="k">def</span> <span class="nf">has_a_submission</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>

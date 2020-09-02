@@ -218,23 +218,31 @@
 
 <span class="kn">import</span> <span class="nn">structlog</span>
 <span class="kn">import</span> <span class="nn">sqlalchemy</span>
+<span class="kn">from</span> <span class="nn">furl</span> <span class="kn">import</span> <span class="n">furl</span>
 <span class="kn">from</span> <span class="nn">sqlalchemy.orm</span> <span class="kn">import</span> <span class="n">validates</span>
 <span class="kn">from</span> <span class="nn">mypy_extensions</span> <span class="kn">import</span> <span class="n">DefaultArg</span>
 <span class="kn">from</span> <span class="nn">sqlalchemy.types</span> <span class="kn">import</span> <span class="n">JSON</span>
+<span class="kn">from</span> <span class="nn">sqlalchemy_utils</span> <span class="kn">import</span> <span class="n">PasswordType</span>
 <span class="kn">from</span> <span class="nn">typing_extensions</span> <span class="kn">import</span> <span class="n">TypedDict</span>
 <span class="kn">from</span> <span class="nn">sqlalchemy.orm.collections</span> <span class="kn">import</span> <span class="n">attribute_mapped_collection</span>
 
 <span class="kn">import</span> <span class="nn">psef</span>
+<span class="kn">import</span> <span class="nn">cg_enum</span>
 <span class="kn">import</span> <span class="nn">cg_cache</span>
 <span class="kn">import</span> <span class="nn">cg_sqlalchemy_helpers</span>
-<span class="kn">from</span> <span class="nn">cg_helpers</span> <span class="kn">import</span> <span class="n">handle_none</span><span class="p">,</span> <span class="n">on_not_none</span><span class="p">,</span> <span class="n">zip_times_with_offset</span>
+<span class="kn">from</span> <span class="nn">cg_helpers</span> <span class="kn">import</span> <span class="p">(</span>
+    <span class="n">humanize</span><span class="p">,</span> <span class="n">handle_none</span><span class="p">,</span> <span class="n">on_not_none</span><span class="p">,</span> <span class="n">zip_times_with_offset</span>
+<span class="p">)</span>
 <span class="kn">from</span> <span class="nn">cg_dt_utils</span> <span class="kn">import</span> <span class="n">DatetimeWithTimezone</span>
+<span class="kn">from</span> <span class="nn">cg_flask_helpers</span> <span class="kn">import</span> <span class="n">callback_after_this_request</span>
+<span class="kn">from</span> <span class="nn">cg_sqlalchemy_helpers</span> <span class="kn">import</span> <span class="n">UUIDType</span>
 <span class="kn">from</span> <span class="nn">cg_sqlalchemy_helpers</span> <span class="kn">import</span> <span class="n">expression</span> <span class="k">as</span> <span class="n">sql_expression</span>
+<span class="kn">from</span> <span class="nn">cg_cache.intra_request</span> <span class="kn">import</span> <span class="n">cached_property</span>
 <span class="kn">from</span> <span class="nn">cg_sqlalchemy_helpers.types</span> <span class="kn">import</span> <span class="p">(</span>
     <span class="n">_T_BASE</span><span class="p">,</span> <span class="n">MyQuery</span><span class="p">,</span> <span class="n">DbColumn</span><span class="p">,</span> <span class="n">ColumnProxy</span><span class="p">,</span> <span class="n">MyNonOrderableQuery</span><span class="p">,</span>
     <span class="n">hybrid_property</span>
 <span class="p">)</span>
-<span class="kn">from</span> <span class="nn">cg_sqlalchemy_helpers.mixins</span> <span class="kn">import</span> <span class="n">IdMixin</span><span class="p">,</span> <span class="n">TimestampMixin</span>
+<span class="kn">from</span> <span class="nn">cg_sqlalchemy_helpers.mixins</span> <span class="kn">import</span> <span class="n">IdMixin</span><span class="p">,</span> <span class="n">UUIDMixin</span><span class="p">,</span> <span class="n">TimestampMixin</span>
 
 <span class="kn">from</span> <span class="nn">.</span> <span class="kn">import</span> <span class="n">UUID_LENGTH</span><span class="p">,</span> <span class="n">Base</span><span class="p">,</span> <span class="n">db</span>
 <span class="kn">from</span> <span class="nn">.</span> <span class="kn">import</span> <span class="n">user</span> <span class="k">as</span> <span class="n">user_models</span>
@@ -244,6 +252,8 @@
 <span class="kn">from</span> <span class="nn">.</span> <span class="kn">import</span> <span class="n">rubric</span> <span class="k">as</span> <span class="n">rubric_models</span>
 <span class="kn">from</span> <span class="nn">.</span> <span class="kn">import</span> <span class="n">analytics</span> <span class="k">as</span> <span class="n">analytics_models</span>
 <span class="kn">from</span> <span class="nn">.</span> <span class="kn">import</span> <span class="n">auto_test</span> <span class="k">as</span> <span class="n">auto_test_models</span>
+<span class="kn">from</span> <span class="nn">.</span> <span class="kn">import</span> <span class="n">validator</span>
+<span class="kn">from</span> <span class="nn">.</span> <span class="kn">import</span> <span class="n">task_result</span> <span class="k">as</span> <span class="n">task_result_models</span>
 <span class="kn">from</span> <span class="nn">..</span> <span class="kn">import</span> <span class="n">auth</span><span class="p">,</span> <span class="n">ignore</span><span class="p">,</span> <span class="n">helpers</span><span class="p">,</span> <span class="n">signals</span><span class="p">,</span> <span class="n">db_locks</span>
 <span class="kn">from</span> <span class="nn">.role</span> <span class="kn">import</span> <span class="n">CourseRole</span>
 <span class="kn">from</span> <span class="nn">.permission</span> <span class="kn">import</span> <span class="n">Permission</span><span class="p">,</span> <span class="n">PermissionComp</span>
@@ -258,10 +268,6 @@
     <span class="c1"># pylint: disable=unused-import</span>
     <span class="kn">from</span> <span class="nn">pylti1p3.assignments_grades</span> <span class="kn">import</span> <span class="n">_AssignmentsGradersData</span>
     <span class="kn">from</span> <span class="nn">.</span> <span class="kn">import</span> <span class="n">group</span> <span class="k">as</span> <span class="n">group_models</span>
-    <span class="n">cached_property</span> <span class="o">=</span> <span class="nb">property</span>  <span class="c1"># pylint: disable=invalid-name</span>
-<span class="k">else</span><span class="p">:</span>
-    <span class="c1"># pylint: disable=unused-import</span>
-    <span class="kn">from</span> <span class="nn">werkzeug.utils</span> <span class="kn">import</span> <span class="n">cached_property</span>
 
 <span class="n">T</span> <span class="o">=</span> <span class="n">t</span><span class="o">.</span><span class="n">TypeVar</span><span class="p">(</span><span class="s1">&#39;T&#39;</span><span class="p">)</span>
 <span class="n">Y</span> <span class="o">=</span> <span class="n">t</span><span class="o">.</span><span class="n">TypeVar</span><span class="p">(</span><span class="s1">&#39;Y&#39;</span><span class="p">)</span>
@@ -303,8 +309,8 @@
     <span class="nb">id</span><span class="p">:</span> <span class="nb">int</span>  <span class="c1">#: The id of the assignment.</span>
     <span class="n">state</span><span class="p">:</span> <span class="nb">str</span>  <span class="c1">#: Current state of the assignment.</span>
     <span class="n">description</span><span class="p">:</span> <span class="n">t</span><span class="o">.</span><span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span>  <span class="c1">#: Description of the assignment.</span>
-    <span class="n">created_at</span><span class="p">:</span> <span class="nb">str</span>  <span class="c1">#: ISO UTC date.</span>
-    <span class="n">deadline</span><span class="p">:</span> <span class="n">t</span><span class="o">.</span><span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span>  <span class="c1">#: ISO UTC date.</span>
+    <span class="n">created_at</span><span class="p">:</span> <span class="n">DatetimeWithTimezone</span>  <span class="c1">#: ISO UTC date.</span>
+    <span class="n">deadline</span><span class="p">:</span> <span class="n">t</span><span class="o">.</span><span class="n">Optional</span><span class="p">[</span><span class="n">DatetimeWithTimezone</span><span class="p">]</span>  <span class="c1">#: ISO UTC date.</span>
     <span class="n">name</span><span class="p">:</span> <span class="nb">str</span>  <span class="c1">#: The name of the assignment.</span>
     <span class="n">is_lti</span><span class="p">:</span> <span class="nb">bool</span>  <span class="c1">#: Is this an LTI assignment.</span>
     <span class="n">course</span><span class="p">:</span> <span class="s1">&#39;course_models.Course&#39;</span>  <span class="c1">#: Course of this assignment.</span>
@@ -312,6 +318,15 @@
     <span class="n">cgignore_version</span><span class="p">:</span> <span class="n">t</span><span class="o">.</span><span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span>
     <span class="c1">#: Has the whitespace linter run on this assignment.</span>
     <span class="n">whitespace_linter</span><span class="p">:</span> <span class="nb">bool</span>
+
+    <span class="c1">#: The time the assignment will become available (i.e. the state will</span>
+    <span class="c1">#: switch from &#39;hidden&#39; to &#39;open&#39;). If the state is not &#39;hidden&#39; this value</span>
+    <span class="c1">#: has no meaning. If this value is not ``None`` you cannot change to state</span>
+    <span class="c1">#: to &#39;hidden&#39; or &#39;open&#39;.</span>
+    <span class="n">available_at</span><span class="p">:</span> <span class="n">t</span><span class="o">.</span><span class="n">Optional</span><span class="p">[</span><span class="n">DatetimeWithTimezone</span><span class="p">]</span>
+
+    <span class="c1">#: Should we send login links to all users before the available_at time.</span>
+    <span class="n">send_login_links</span><span class="p">:</span> <span class="nb">bool</span>
 
     <span class="c1">#: The fixed value for the maximum that can be achieved in a rubric. This</span>
     <span class="c1">#: can be higher and lower than the actual max. Will be `null` if unset.</span>
@@ -344,7 +359,7 @@
     <span class="c1">#: by a user. A user can submit at most `amount_in_cool_off_period`</span>
     <span class="c1">#: submissions in `cool_off_period` seconds. `amount_in_cool_off_period`</span>
     <span class="c1">#: is always &gt;= 1, so this check is disabled if `cool_off_period == 0`.</span>
-    <span class="n">cool_off_period</span><span class="p">:</span> <span class="nb">float</span>
+    <span class="n">cool_off_period</span><span class="p">:</span> <span class="n">datetime</span><span class="o">.</span><span class="n">timedelta</span>
     <span class="n">amount_in_cool_off_period</span><span class="p">:</span> <span class="nb">int</span>
 
     <span class="c1">#: ISO UTC date. This will be `null` if you don&#39;t have the permission to</span>
@@ -355,7 +370,7 @@
     <span class="n">lms_name</span><span class="p">:</span> <span class="n">t</span><span class="o">.</span><span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span>
 
     <span class="c1">#: The peer feedback settings for this assignment. If ``null`` this</span>
-    <span class="c1">#assignment is not a peer feedback assignment.</span>
+    <span class="c1">#: assignment is not a peer feedback assignment.</span>
     <span class="n">peer_feedback_settings</span><span class="p">:</span> <span class="n">t</span><span class="o">.</span><span class="n">Optional</span><span class="p">[</span><span class="s1">&#39;AssignmentPeerFeedbackSettings&#39;</span><span class="p">]</span>
 
     <span class="c1">#: The kind of reminder that will be sent.  If you don&#39;t have the</span>
@@ -373,7 +388,10 @@
 
     <span class="c1">#: The ids of the analytics workspaces connected to this assignment.</span>
     <span class="c1">#: WARNING: This API is still in beta, and might change in the future.</span>
-    <span class="n">analytics_workspace_ids</span><span class="p">:</span> <span class="n">t</span><span class="o">.</span><span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span></div>
+    <span class="n">analytics_workspace_ids</span><span class="p">:</span> <span class="n">t</span><span class="o">.</span><span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span>
+
+    <span class="c1">#: What kind of assignment is this.</span>
+    <span class="n">kind</span><span class="p">:</span> <span class="s1">&#39;AssignmentKind&#39;</span></div>
 
 
 <div class="viewcode-block" id="AssignmentAmbiguousSettingTag"><a class="viewcode-back" href="../../../psef_api/psef.html#psef.models.assignment.AssignmentAmbiguousSettingTag">[docs]</a><span class="k">class</span> <span class="nc">AssignmentAmbiguousSettingTag</span><span class="p">(</span><span class="n">enum</span><span class="o">.</span><span class="n">Enum</span><span class="p">):</span>
@@ -382,7 +400,8 @@
     <span class="n">webhook</span> <span class="o">=</span> <span class="n">enum</span><span class="o">.</span><span class="n">auto</span><span class="p">()</span>
     <span class="n">cgignore</span> <span class="o">=</span> <span class="n">enum</span><span class="o">.</span><span class="n">auto</span><span class="p">()</span>
     <span class="n">max_submissions</span> <span class="o">=</span> <span class="n">enum</span><span class="o">.</span><span class="n">auto</span><span class="p">()</span>
-    <span class="n">cool_off</span> <span class="o">=</span> <span class="n">enum</span><span class="o">.</span><span class="n">auto</span><span class="p">()</span></div>
+    <span class="n">cool_off</span> <span class="o">=</span> <span class="n">enum</span><span class="o">.</span><span class="n">auto</span><span class="p">()</span>
+    <span class="n">deadline</span> <span class="o">=</span> <span class="n">enum</span><span class="o">.</span><span class="n">auto</span><span class="p">()</span></div>
 
 
 <span class="nd">@dataclasses</span><span class="o">.</span><span class="n">dataclass</span><span class="p">(</span><span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
@@ -395,12 +414,20 @@
 
 
 <div class="viewcode-block" id="AssignmentStateEnum"><a class="viewcode-back" href="../../../psef_api/psef.html#psef.models.assignment.AssignmentStateEnum">[docs]</a><span class="nd">@enum</span><span class="o">.</span><span class="n">unique</span>
-<span class="k">class</span> <span class="nc">AssignmentStateEnum</span><span class="p">(</span><span class="n">enum</span><span class="o">.</span><span class="n">IntEnum</span><span class="p">):</span>
+<span class="k">class</span> <span class="nc">AssignmentStateEnum</span><span class="p">(</span><span class="n">cg_enum</span><span class="o">.</span><span class="n">CGEnum</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Describes in what state an :class:`.Assignment` is.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">hidden</span> <span class="o">=</span> <span class="mi">0</span>
     <span class="nb">open</span> <span class="o">=</span> <span class="mi">1</span>
     <span class="n">done</span> <span class="o">=</span> <span class="mi">2</span></div>
+
+
+<div class="viewcode-block" id="AssignmentKind"><a class="viewcode-back" href="../../../psef_api/psef.html#psef.models.assignment.AssignmentKind">[docs]</a><span class="nd">@enum</span><span class="o">.</span><span class="n">unique</span>
+<span class="k">class</span> <span class="nc">AssignmentKind</span><span class="p">(</span><span class="n">cg_enum</span><span class="o">.</span><span class="n">CGEnum</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Describes in what state an :class:`.Assignment` is.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">normal</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">exam</span> <span class="o">=</span> <span class="mi">1</span></div>
 
 
 <div class="viewcode-block" id="AssignmentVisibilityState"><a class="viewcode-back" href="../../../psef_api/psef.html#psef.models.assignment.AssignmentVisibilityState">[docs]</a><span class="nd">@enum</span><span class="o">.</span><span class="n">unique</span>
@@ -1185,6 +1212,74 @@
 <span class="p">)</span>
 
 
+<div class="viewcode-block" id="AssignmentLoginLink"><a class="viewcode-back" href="../../../psef_api/psef.html#psef.models.assignment.AssignmentLoginLink">[docs]</a><span class="k">class</span> <span class="nc">AssignmentLoginLink</span><span class="p">(</span><span class="n">Base</span><span class="p">,</span> <span class="n">UUIDMixin</span><span class="p">,</span> <span class="n">TimestampMixin</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;This class represents a link that a user can use to login for a specific</span>
+<span class="sd">    assignment between the ``available_at`` and the ``deadline``.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">user_id</span> <span class="o">=</span> <span class="n">db</span><span class="o">.</span><span class="n">Column</span><span class="p">(</span>
+        <span class="s1">&#39;user_id&#39;</span><span class="p">,</span>
+        <span class="n">db</span><span class="o">.</span><span class="n">Integer</span><span class="p">,</span>
+        <span class="n">db</span><span class="o">.</span><span class="n">ForeignKey</span><span class="p">(</span><span class="s1">&#39;User.id&#39;</span><span class="p">,</span> <span class="n">ondelete</span><span class="o">=</span><span class="s1">&#39;CASCADE&#39;</span><span class="p">),</span>
+        <span class="n">nullable</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">user</span> <span class="o">=</span> <span class="n">db</span><span class="o">.</span><span class="n">relationship</span><span class="p">(</span>
+        <span class="k">lambda</span><span class="p">:</span> <span class="n">user_models</span><span class="o">.</span><span class="n">User</span><span class="p">,</span>
+        <span class="n">foreign_keys</span><span class="o">=</span><span class="n">user_id</span><span class="p">,</span>
+        <span class="n">innerjoin</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="n">lazy</span><span class="o">=</span><span class="s1">&#39;joined&#39;</span><span class="p">,</span>
+    <span class="p">)</span>
+
+    <span class="n">assignment_id</span> <span class="o">=</span> <span class="n">db</span><span class="o">.</span><span class="n">Column</span><span class="p">(</span>
+        <span class="s1">&#39;assignment_id&#39;</span><span class="p">,</span>
+        <span class="n">db</span><span class="o">.</span><span class="n">Integer</span><span class="p">,</span>
+        <span class="n">db</span><span class="o">.</span><span class="n">ForeignKey</span><span class="p">(</span><span class="s1">&#39;Assignment.id&#39;</span><span class="p">,</span> <span class="n">ondelete</span><span class="o">=</span><span class="s1">&#39;CASCADE&#39;</span><span class="p">),</span>
+        <span class="n">nullable</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">assignment</span> <span class="o">=</span> <span class="n">db</span><span class="o">.</span><span class="n">relationship</span><span class="p">(</span>
+        <span class="k">lambda</span><span class="p">:</span> <span class="n">Assignment</span><span class="p">,</span>
+        <span class="n">foreign_keys</span><span class="o">=</span><span class="n">assignment_id</span><span class="p">,</span>
+    <span class="p">)</span>
+
+    <span class="n">password</span> <span class="o">=</span> <span class="n">db</span><span class="o">.</span><span class="n">Column</span><span class="p">(</span>
+        <span class="s1">&#39;password&#39;</span><span class="p">,</span>
+        <span class="n">PasswordType</span><span class="p">(</span><span class="n">schemes</span><span class="o">=</span><span class="p">[</span>
+            <span class="s1">&#39;pbkdf2_sha512&#39;</span><span class="p">,</span>
+        <span class="p">],</span> <span class="n">deprecated</span><span class="o">=</span><span class="p">[]),</span>
+        <span class="n">nullable</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+    <span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">get_url</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">furl</span><span class="p">(</span>
+            <span class="n">psef</span><span class="o">.</span><span class="n">current_app</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s1">&#39;EXTERNAL_URL&#39;</span><span class="p">]</span>
+        <span class="p">)</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">path</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;assignments&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">assignment_id</span><span class="p">,</span> <span class="s1">&#39;login&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">id</span><span class="p">]</span>
+              <span class="p">)</span><span class="o">.</span><span class="n">tostr</span><span class="p">()</span>
+
+    <span class="k">def</span> <span class="nf">get_message_id</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">idx</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+        <span class="k">return</span> <span class="s1">&#39;&lt;</span><span class="si">{self_id}</span><span class="s1">-</span><span class="si">{token_id}</span><span class="s1">-</span><span class="si">{idx}</span><span class="s1">@</span><span class="si">{domain}</span><span class="s1">&gt;&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+            <span class="n">self_id</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">id</span><span class="p">,</span>
+            <span class="n">token_id</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">assignment</span><span class="o">.</span><span class="n">send_login_links_token</span><span class="p">,</span>
+            <span class="n">idx</span><span class="o">=</span><span class="n">idx</span><span class="p">,</span>
+            <span class="n">domain</span><span class="o">=</span><span class="n">psef</span><span class="o">.</span><span class="n">current_app</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s1">&#39;EXTERNAL_DOMAIN&#39;</span><span class="p">],</span>
+        <span class="p">)</span>
+
+<div class="viewcode-block" id="AssignmentLoginLink.AsJSON"><a class="viewcode-back" href="../../../psef_api/psef.html#psef.models.assignment.AssignmentLoginLink.AsJSON">[docs]</a>    <span class="k">class</span> <span class="nc">AsJSON</span><span class="p">(</span><span class="n">TypedDict</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;The way this class will be represented in JSON.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1">#: The id of this link.</span>
+        <span class="nb">id</span><span class="p">:</span> <span class="n">uuid</span><span class="o">.</span><span class="n">UUID</span>
+        <span class="c1">#: The assignment connected to this login link.</span>
+        <span class="n">assignment</span><span class="p">:</span> <span class="s1">&#39;Assignment&#39;</span>
+        <span class="c1">#: The user that is link will login.</span>
+        <span class="n">user</span><span class="p">:</span> <span class="s1">&#39;user_models.User&#39;</span></div>
+
+    <span class="k">def</span> <span class="nf">__to_json__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">AsJSON</span><span class="p">:</span>
+        <span class="k">return</span> <span class="p">{</span>
+            <span class="s1">&#39;id&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">id</span><span class="p">,</span>
+            <span class="s1">&#39;assignment&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">assignment</span><span class="p">,</span>
+            <span class="s1">&#39;user&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">user</span><span class="p">,</span>
+        <span class="p">}</span></div>
+
+
 <div class="viewcode-block" id="AssignmentResult"><a class="viewcode-back" href="../../../psef_api/psef.html#psef.models.assignment.AssignmentResult">[docs]</a><span class="k">class</span> <span class="nc">AssignmentResult</span><span class="p">(</span><span class="n">Base</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;The class creates the link between an :class:`.user_models.User` and an</span>
 <span class="sd">    :class:`.Assignment` in the database and the external users LIS sourcedid.</span>
@@ -1248,6 +1343,15 @@
         <span class="n">default</span><span class="o">=</span><span class="n">AssignmentStateEnum</span><span class="o">.</span><span class="n">hidden</span><span class="p">,</span>
         <span class="n">nullable</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
     <span class="p">)</span>
+
+    <span class="n">kind</span> <span class="o">=</span> <span class="n">db</span><span class="o">.</span><span class="n">Column</span><span class="p">(</span>
+        <span class="s1">&#39;kind&#39;</span><span class="p">,</span>
+        <span class="n">db</span><span class="o">.</span><span class="n">Enum</span><span class="p">(</span><span class="n">AssignmentKind</span><span class="p">),</span>
+        <span class="n">default</span><span class="o">=</span><span class="n">AssignmentKind</span><span class="o">.</span><span class="n">normal</span><span class="p">,</span>
+        <span class="n">nullable</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="n">server_default</span><span class="o">=</span><span class="s1">&#39;normal&#39;</span>
+    <span class="p">)</span>
+
     <span class="n">description</span> <span class="o">=</span> <span class="n">db</span><span class="o">.</span><span class="n">Column</span><span class="p">(</span><span class="s1">&#39;description&#39;</span><span class="p">,</span> <span class="n">db</span><span class="o">.</span><span class="n">Unicode</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="s1">&#39;&#39;</span><span class="p">)</span>
     <span class="n">course_id</span> <span class="o">=</span> <span class="n">db</span><span class="o">.</span><span class="n">Column</span><span class="p">(</span>
         <span class="s1">&#39;Course_id&#39;</span><span class="p">,</span> <span class="n">db</span><span class="o">.</span><span class="n">Integer</span><span class="p">,</span> <span class="n">db</span><span class="o">.</span><span class="n">ForeignKey</span><span class="p">(</span><span class="s1">&#39;Course.id&#39;</span><span class="p">),</span> <span class="n">nullable</span><span class="o">=</span><span class="kc">False</span>
@@ -1396,7 +1500,7 @@
     <span class="n">linters</span><span class="p">:</span> <span class="n">ColumnProxy</span><span class="p">[</span><span class="n">t</span><span class="o">.</span><span class="n">Iterable</span><span class="p">[</span><span class="s1">&#39;AssignmentLinter&#39;</span><span class="p">]]</span>
 
     <span class="c1"># This variable is available through a backref</span>
-    <span class="n">submissions</span><span class="p">:</span> <span class="n">t</span><span class="o">.</span><span class="n">Iterable</span><span class="p">[</span><span class="s1">&#39;work_models.Work&#39;</span><span class="p">]</span>
+    <span class="n">submissions</span><span class="p">:</span> <span class="n">ColumnProxy</span><span class="p">[</span><span class="n">t</span><span class="o">.</span><span class="n">Iterable</span><span class="p">[</span><span class="s1">&#39;work_models.Work&#39;</span><span class="p">]]</span>
 
     <span class="n">auto_test_id</span> <span class="o">=</span> <span class="n">db</span><span class="o">.</span><span class="n">Column</span><span class="p">(</span>
         <span class="s1">&#39;auto_test_id&#39;</span><span class="p">,</span>
@@ -1450,6 +1554,20 @@
         <span class="n">cascade</span><span class="o">=</span><span class="s1">&#39;delete-orphan,delete,save-update&#39;</span><span class="p">,</span>
     <span class="p">)</span>
 
+    <span class="n">_available_at</span> <span class="o">=</span> <span class="n">db</span><span class="o">.</span><span class="n">Column</span><span class="p">(</span>
+        <span class="s1">&#39;available_at&#39;</span><span class="p">,</span>
+        <span class="n">db</span><span class="o">.</span><span class="n">TIMESTAMP</span><span class="p">(</span><span class="n">timezone</span><span class="o">=</span><span class="kc">True</span><span class="p">),</span>
+        <span class="n">nullable</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="p">)</span>
+
+    <span class="n">_send_login_links_token</span> <span class="o">=</span> <span class="n">db</span><span class="o">.</span><span class="n">Column</span><span class="p">(</span>
+        <span class="s1">&#39;send_login_links_token&#39;</span><span class="p">,</span>
+        <span class="n">UUIDType</span><span class="p">,</span>
+        <span class="n">nullable</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="p">)</span>
+
     <span class="n">__table_args__</span> <span class="o">=</span> <span class="p">(</span>
         <span class="n">db</span><span class="o">.</span><span class="n">CheckConstraint</span><span class="p">(</span>
             <span class="s2">&quot;files_upload_enabled or webhook_upload_enabled&quot;</span><span class="p">,</span>
@@ -1459,12 +1577,110 @@
             <span class="s1">&#39;amount_in_cool_off_period &gt;= 1&#39;</span><span class="p">,</span>
             <span class="n">name</span><span class="o">=</span><span class="s1">&#39;amount_in_cool_off_period_check&#39;</span>
         <span class="p">),</span>
+        <span class="n">db</span><span class="o">.</span><span class="n">CheckConstraint</span><span class="p">(</span>
+            <span class="p">(</span>
+                <span class="s1">&#39;available_at IS NULL OR deadline IS NULL OR available_at &lt;&#39;</span>
+                <span class="s1">&#39; deadline&#39;</span>
+            <span class="p">),</span>
+            <span class="n">name</span><span class="o">=</span><span class="s1">&#39;available_at_before_deadline&#39;</span><span class="p">,</span>
+        <span class="p">),</span>
+        <span class="n">db</span><span class="o">.</span><span class="n">CheckConstraint</span><span class="p">(</span>
+            <span class="s1">&#39;send_login_links_token IS NULL OR available_at IS NOT NULL&#39;</span><span class="p">,</span>
+            <span class="n">name</span><span class="o">=</span><span class="s1">&#39;send_login_links_only_valid_with_available_at&#39;</span><span class="p">,</span>
+        <span class="p">),</span>
         <span class="n">db</span><span class="o">.</span><span class="n">UniqueConstraint</span><span class="p">(</span>
             <span class="n">lti_assignment_id</span><span class="p">,</span>
             <span class="n">course_id</span><span class="p">,</span>
             <span class="n">name</span><span class="o">=</span><span class="s1">&#39;ltiassignmentid_courseid_unique&#39;</span><span class="p">,</span>
+        <span class="p">),</span>
+    <span class="p">)</span>
+
+    <span class="nd">@validator</span><span class="o">.</span><span class="n">validates</span><span class="p">(</span>
+        <span class="k">lambda</span><span class="p">:</span> <span class="p">(</span>
+            <span class="n">Assignment</span><span class="o">.</span><span class="n">_available_at</span><span class="p">,</span>
+            <span class="n">Assignment</span><span class="o">.</span><span class="n">_deadline</span><span class="p">,</span>
+            <span class="n">Assignment</span><span class="o">.</span><span class="n">_send_login_links_token</span><span class="p">,</span>
         <span class="p">)</span>
     <span class="p">)</span>
+    <span class="k">def</span> <span class="nf">_check_available_at_and_login_links</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">send_login_links</span><span class="p">:</span>
+            <span class="k">return</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">available_at</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">deadline</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">APIException</span><span class="p">(</span>
+                <span class="p">(</span>
+                    <span class="s1">&#39;Login links can only be enabled when an available at and&#39;</span>
+                    <span class="s1">&#39; deadline is set&#39;</span>
+                <span class="p">),</span> <span class="sa">f</span><span class="s1">&#39;Some required data was missing for assignment </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">id</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">,</span>
+                <span class="n">APICodes</span><span class="o">.</span><span class="n">INVALID_STATE</span><span class="p">,</span> <span class="mi">409</span>
+            <span class="p">)</span>
+
+        <span class="n">max_time</span> <span class="o">=</span> <span class="n">psef</span><span class="o">.</span><span class="n">current_app</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s1">&#39;EXAM_LOGIN_MAX_LENGTH&#39;</span><span class="p">]</span>
+        <span class="k">if</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">deadline</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">available_at</span><span class="p">)</span> <span class="o">&gt;</span> <span class="n">max_time</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">APIException</span><span class="p">(</span>
+                <span class="p">(</span>
+                    <span class="s1">&#39;Login links can only be enabled if the deadline is at&#39;</span>
+                    <span class="s1">&#39; most </span><span class="si">{}</span><span class="s1"> after the available at date&#39;</span>
+                <span class="p">)</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">humanize</span><span class="o">.</span><span class="n">timedelta</span><span class="p">(</span><span class="n">max_time</span><span class="p">,</span> <span class="n">no_prefix</span><span class="o">=</span><span class="kc">True</span><span class="p">)),</span>
+                <span class="p">(</span>
+                    <span class="sa">f</span><span class="s1">&#39;The assignment </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">id</span><span class="si">}</span><span class="s1"> has too long between deadline&#39;</span>
+                    <span class="sa">f</span><span class="s1">&#39; and available at&#39;</span>
+                <span class="p">),</span>
+                <span class="n">APICodes</span><span class="o">.</span><span class="n">INVALID_STATE</span><span class="p">,</span>
+                <span class="mi">409</span><span class="p">,</span>
+            <span class="p">)</span>
+
+    <span class="nd">@validator</span><span class="o">.</span><span class="n">validates</span><span class="p">(</span>
+        <span class="k">lambda</span><span class="p">:</span> <span class="p">(</span><span class="n">Assignment</span><span class="o">.</span><span class="n">_available_at</span><span class="p">,</span> <span class="n">Assignment</span><span class="o">.</span><span class="n">_deadline</span><span class="p">)</span>
+    <span class="p">)</span>
+    <span class="k">def</span> <span class="nf">_check_available_at_and_deadline</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">available_at</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">deadline</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">available_at</span> <span class="o">&gt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">deadline</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">APIException</span><span class="p">(</span>
+                <span class="s1">&#39;The assignment should become available before the deadline.&#39;</span><span class="p">,</span>
+                <span class="s1">&#39;The available_at is at or after the deadline&#39;</span><span class="p">,</span>
+                <span class="n">APICodes</span><span class="o">.</span><span class="n">INVALID_STATE</span><span class="p">,</span> <span class="mi">409</span>
+            <span class="p">)</span>
+
+    <span class="nd">@validator</span><span class="o">.</span><span class="n">validates</span><span class="p">(</span>
+        <span class="k">lambda</span><span class="p">:</span> <span class="p">(</span><span class="n">Assignment</span><span class="o">.</span><span class="n">kind</span><span class="p">,</span> <span class="n">Assignment</span><span class="o">.</span><span class="n">_send_login_links_token</span><span class="p">)</span>
+    <span class="p">)</span>
+    <span class="k">def</span> <span class="nf">_check_normal_assignment_login_links</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">kind</span><span class="o">.</span><span class="n">is_normal</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">send_login_links</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">APIException</span><span class="p">(</span>
+                <span class="s1">&#39;Login links are only available for exam mode assignments&#39;</span><span class="p">,</span>
+                <span class="sa">f</span><span class="s1">&#39;The assignment </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">id</span><span class="si">}</span><span class="s1"> is not an exam assignment&#39;</span><span class="p">,</span>
+                <span class="n">APICodes</span><span class="o">.</span><span class="n">INVALID_STATE</span><span class="p">,</span> <span class="mi">409</span>
+            <span class="p">)</span>
+
+    <span class="nd">@validator</span><span class="o">.</span><span class="n">validates</span><span class="p">(</span>
+        <span class="k">lambda</span><span class="p">:</span> <span class="p">(</span>
+            <span class="n">Assignment</span><span class="o">.</span><span class="n">kind</span><span class="p">,</span>
+            <span class="n">Assignment</span><span class="o">.</span><span class="n">_available_at</span><span class="p">,</span>
+            <span class="n">Assignment</span><span class="o">.</span><span class="n">_deadline</span><span class="p">,</span>
+        <span class="p">)</span>
+    <span class="p">)</span>
+    <span class="k">def</span> <span class="nf">_check_kind_and_required_data</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">kind</span><span class="o">.</span><span class="n">is_exam</span> <span class="ow">and</span> <span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">available_at</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">deadline</span> <span class="ow">is</span> <span class="kc">None</span>
+        <span class="p">):</span>
+            <span class="k">raise</span> <span class="n">APIException</span><span class="p">(</span>
+                <span class="p">(</span>
+                    <span class="s1">&#39;Exam mode assignments are required to set an available at&#39;</span>
+                    <span class="s1">&#39; and deadline&#39;</span>
+                <span class="p">),</span> <span class="sa">f</span><span class="s1">&#39;Some required data was missing for assignment </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">id</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">,</span>
+                <span class="n">APICodes</span><span class="o">.</span><span class="n">INVALID_STATE</span><span class="p">,</span> <span class="mi">409</span>
+            <span class="p">)</span>
+
+    <span class="nd">@validator</span><span class="o">.</span><span class="n">validates</span><span class="p">(</span><span class="k">lambda</span><span class="p">:</span> <span class="p">(</span><span class="n">Assignment</span><span class="o">.</span><span class="n">is_lti</span><span class="p">,</span> <span class="n">Assignment</span><span class="o">.</span><span class="n">kind</span><span class="p">))</span>
+    <span class="k">def</span> <span class="nf">_exam_mode_not_for_lti</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_lti</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">kind</span><span class="o">.</span><span class="n">is_exam</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">APIException</span><span class="p">(</span>
+                <span class="s1">&#39;Exam mode is not available for LTI assignments&#39;</span><span class="p">,</span>
+                <span class="s1">&#39;You cannot combine LTI assignments and exam mode&#39;</span><span class="p">,</span>
+                <span class="n">APICodes</span><span class="o">.</span><span class="n">INVALID_STATE</span><span class="p">,</span> <span class="mi">409</span>
+            <span class="p">)</span>
 
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
@@ -1481,16 +1697,18 @@
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span>
             <span class="n">course</span><span class="o">=</span><span class="n">course</span><span class="p">,</span>
+            <span class="n">course_id</span><span class="o">=</span><span class="n">course</span><span class="o">.</span><span class="n">id</span><span class="p">,</span>
             <span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">,</span>
             <span class="n">visibility_state</span><span class="o">=</span><span class="n">visibility_state</span><span class="p">,</span>
             <span class="n">state</span><span class="o">=</span><span class="n">state</span><span class="p">,</span>
-            <span class="n">deadline</span><span class="o">=</span><span class="n">deadline</span><span class="p">,</span>
+            <span class="n">_deadline</span><span class="o">=</span><span class="n">deadline</span><span class="p">,</span>
             <span class="n">lti_assignment_id</span><span class="o">=</span><span class="n">lti_assignment_id</span><span class="p">,</span>
             <span class="n">description</span><span class="o">=</span><span class="n">description</span><span class="p">,</span>
             <span class="n">is_lti</span><span class="o">=</span><span class="n">is_lti</span><span class="p">,</span>
             <span class="n">analytics_workspaces</span><span class="o">=</span><span class="p">[</span>
                 <span class="n">analytics_models</span><span class="o">.</span><span class="n">AnalyticsWorkspace</span><span class="p">(</span><span class="n">assignment</span><span class="o">=</span><span class="bp">self</span><span class="p">)</span>
             <span class="p">],</span>
+            <span class="n">kind</span><span class="o">=</span><span class="n">AssignmentKind</span><span class="o">.</span><span class="n">normal</span><span class="p">,</span>
         <span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_changed_ambiguous_settings</span><span class="p">:</span> <span class="n">t</span><span class="o">.</span><span class="n">Set</span><span class="p">[</span><span class="n">AssignmentAmbiguousSettingTag</span><span class="p">]</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_on_orm_load</span><span class="p">()</span>
@@ -1515,6 +1733,9 @@
             <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">id</span> <span class="o">==</span> <span class="n">other</span><span class="o">.</span><span class="n">id</span>
         <span class="k">return</span> <span class="bp">NotImplemented</span>
 
+    <span class="k">def</span> <span class="fm">__hash__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+        <span class="k">return</span> <span class="nb">hash</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">id</span><span class="p">,</span> <span class="p">))</span>
+
     <span class="k">def</span> <span class="nf">_get_deadline</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">t</span><span class="o">.</span><span class="n">Optional</span><span class="p">[</span><span class="n">DatetimeWithTimezone</span><span class="p">]:</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_deadline</span>
 
@@ -1523,9 +1744,24 @@
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_deadline</span> <span class="o">!=</span> <span class="n">new_deadline</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_deadline</span> <span class="o">=</span> <span class="n">new_deadline</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_changed_ambiguous_settings</span><span class="o">.</span><span class="n">add</span><span class="p">(</span>
+                <span class="n">AssignmentAmbiguousSettingTag</span><span class="o">.</span><span class="n">deadline</span>
+            <span class="p">)</span>
             <span class="n">signals</span><span class="o">.</span><span class="n">ASSIGNMENT_DEADLINE_CHANGED</span><span class="o">.</span><span class="n">send</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
 
     <span class="n">deadline</span> <span class="o">=</span> <span class="n">hybrid_property</span><span class="p">(</span><span class="n">_get_deadline</span><span class="p">,</span> <span class="n">_set_deadline</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">send_login_links_token</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">t</span><span class="o">.</span><span class="n">Optional</span><span class="p">[</span><span class="n">uuid</span><span class="o">.</span><span class="n">UUID</span><span class="p">]:</span>
+        <span class="sd">&quot;&quot;&quot;The login links token.</span>
+
+<span class="sd">        This parameter is updated every time we reschedule the tasks to send</span>
+<span class="sd">        the login links, and the token is also passed to the task. This makes</span>
+<span class="sd">        it possible for the task to see if it should actually execute or not.</span>
+<span class="sd">        Do not use a ``is None`` check to see if login tokens are enabled, but</span>
+<span class="sd">        use ``send_login_links``.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_send_login_links_token</span>
 
 <div class="viewcode-block" id="Assignment.validate_group_set"><a class="viewcode-back" href="../../../psef_api/psef.html#psef.models.assignment.Assignment.validate_group_set">[docs]</a>    <span class="nd">@validates</span><span class="p">(</span><span class="s1">&#39;group_set&#39;</span><span class="p">)</span>
     <span class="k">def</span> <span class="nf">validate_group_set</span><span class="p">(</span>
@@ -1691,14 +1927,110 @@
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_state</span>
 
     <span class="k">def</span> <span class="nf">_state_setter</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">new_value</span><span class="p">:</span> <span class="n">AssignmentStateEnum</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="k">if</span> <span class="n">new_value</span> <span class="o">!=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="p">:</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">_state</span> <span class="o">=</span> <span class="n">new_value</span>
-            <span class="n">signals</span><span class="o">.</span><span class="n">ASSIGNMENT_STATE_CHANGED</span><span class="o">.</span><span class="n">send</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">available_at</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">new_value</span><span class="o">.</span><span class="n">is_done</span><span class="p">:</span>
+            <span class="n">now</span> <span class="o">=</span> <span class="n">helpers</span><span class="o">.</span><span class="n">get_request_start_time</span><span class="p">()</span>
+            <span class="n">expired</span> <span class="o">=</span> <span class="n">now</span> <span class="o">&gt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">available_at</span>
+            <span class="n">new_value</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="n">AssignmentStateEnum</span><span class="o">.</span><span class="n">open</span>
+                <span class="k">if</span> <span class="n">expired</span> <span class="k">else</span> <span class="n">AssignmentStateEnum</span><span class="o">.</span><span class="n">hidden</span>
+            <span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">new_value</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="p">:</span>
+            <span class="k">return</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_state</span> <span class="o">=</span> <span class="n">new_value</span>
+        <span class="n">signals</span><span class="o">.</span><span class="n">ASSIGNMENT_STATE_CHANGED</span><span class="o">.</span><span class="n">send</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
 
     <span class="n">state</span> <span class="o">=</span> <span class="n">hybrid_property</span><span class="p">(</span><span class="n">_state_getter</span><span class="p">,</span> <span class="n">_state_setter</span><span class="p">)</span>
 
+    <span class="k">def</span> <span class="nf">_schedule_send_login_links</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">deadline_expired</span><span class="p">:</span>
+            <span class="n">helpers</span><span class="o">.</span><span class="n">add_warning</span><span class="p">(</span>
+                <span class="p">(</span>
+                    <span class="s1">&#39;The deadline for this assignment already expired, so we&#39;</span>
+                    <span class="s1">&#39; will not send any login links.&#39;</span>
+                <span class="p">),</span> <span class="n">APIWarnings</span><span class="o">.</span><span class="n">ALREADY_EXPIRED</span>
+            <span class="p">)</span>
+        <span class="n">token</span> <span class="o">=</span> <span class="n">uuid</span><span class="o">.</span><span class="n">uuid4</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_send_login_links_token</span> <span class="o">=</span> <span class="n">token</span>
+        <span class="n">assig_id</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">id</span>
+
+        <span class="n">tasks</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">offset</span> <span class="ow">in</span> <span class="n">psef</span><span class="o">.</span><span class="n">current_app</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s1">&#39;LOGIN_TOKEN_BEFORE_TIME&#39;</span><span class="p">]:</span>
+            <span class="n">task</span> <span class="o">=</span> <span class="n">task_result_models</span><span class="o">.</span><span class="n">TaskResult</span><span class="p">(</span><span class="n">user</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
+            <span class="n">db</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">task</span><span class="p">)</span>
+            <span class="n">tasks</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">offset</span><span class="p">,</span> <span class="n">task</span><span class="p">))</span>
+
+        <span class="k">def</span> <span class="nf">_after_req</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">available_at</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+            <span class="n">now</span> <span class="o">=</span> <span class="n">helpers</span><span class="o">.</span><span class="n">get_request_start_time</span><span class="p">()</span>
+            <span class="k">for</span> <span class="n">idx</span><span class="p">,</span> <span class="p">(</span><span class="n">offset</span><span class="p">,</span> <span class="n">task</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">tasks</span><span class="p">):</span>
+                <span class="n">eta</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">available_at</span> <span class="o">-</span> <span class="n">offset</span>
+                <span class="k">if</span> <span class="n">eta</span> <span class="o">&lt;</span> <span class="n">now</span> <span class="ow">and</span> <span class="n">idx</span> <span class="o">!=</span> <span class="nb">len</span><span class="p">(</span><span class="n">tasks</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span><span class="p">:</span>
+                    <span class="k">continue</span>
+
+                <span class="n">psef</span><span class="o">.</span><span class="n">tasks</span><span class="o">.</span><span class="n">send_login_links_to_users</span><span class="p">(</span>
+                    <span class="p">(</span><span class="n">assig_id</span><span class="p">,</span> <span class="n">task</span><span class="o">.</span><span class="n">id</span><span class="o">.</span><span class="n">hex</span><span class="p">,</span> <span class="n">eta</span><span class="o">.</span><span class="n">isoformat</span><span class="p">(),</span> <span class="n">token</span><span class="o">.</span><span class="n">hex</span><span class="p">,</span> <span class="n">idx</span><span class="p">),</span>
+                    <span class="n">eta</span><span class="o">=</span><span class="n">eta</span><span class="p">,</span>
+                <span class="p">)</span>
+
+        <span class="n">callback_after_this_request</span><span class="p">(</span><span class="n">_after_req</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">send_login_links</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Should we send login links to the users with permissions to receive</span>
+<span class="sd">        one.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">send_login_links_token</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+
+    <span class="nd">@send_login_links</span><span class="o">.</span><span class="n">setter</span>
+    <span class="k">def</span> <span class="nf">send_login_links</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">new_value</span><span class="p">:</span> <span class="nb">bool</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">new_value</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">send_login_links</span><span class="p">:</span>
+            <span class="k">return</span>
+
+        <span class="k">if</span> <span class="n">new_value</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_schedule_send_login_links</span><span class="p">()</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_send_login_links_token</span> <span class="o">=</span> <span class="kc">None</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">available_at</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">t</span><span class="o">.</span><span class="n">Optional</span><span class="p">[</span><span class="n">DatetimeWithTimezone</span><span class="p">]:</span>
+        <span class="sd">&quot;&quot;&quot;At what time should this assignment become available.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_available_at</span>
+
+    <span class="nd">@available_at</span><span class="o">.</span><span class="n">setter</span>
+    <span class="k">def</span> <span class="nf">available_at</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">new_value</span><span class="p">:</span> <span class="n">t</span><span class="o">.</span><span class="n">Optional</span><span class="p">[</span><span class="n">DatetimeWithTimezone</span><span class="p">]</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">old_value</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_available_at</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_available_at</span> <span class="o">=</span> <span class="n">new_value</span>
+
+        <span class="k">if</span> <span class="n">new_value</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span>
+
+        <span class="c1"># The state setter sets this to the correct value based on the</span>
+        <span class="c1"># expiration state.</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">state</span><span class="o">.</span><span class="n">is_done</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">state</span> <span class="o">=</span> <span class="n">AssignmentStateEnum</span><span class="o">.</span><span class="n">open</span>
+
+        <span class="k">if</span> <span class="n">old_value</span> <span class="o">==</span> <span class="n">new_value</span><span class="p">:</span>
+            <span class="k">return</span>
+
+        <span class="n">now</span> <span class="o">=</span> <span class="n">helpers</span><span class="o">.</span><span class="n">get_request_start_time</span><span class="p">()</span>
+        <span class="n">expired</span> <span class="o">=</span> <span class="n">now</span> <span class="o">&gt;=</span> <span class="n">new_value</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">expired</span><span class="p">:</span>
+            <span class="n">callback_after_this_request</span><span class="p">(</span>
+                <span class="k">lambda</span><span class="p">:</span> <span class="n">psef</span><span class="o">.</span><span class="n">tasks</span><span class="o">.</span><span class="n">maybe_open_assignment_at</span><span class="p">(</span>
+                    <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">id</span><span class="p">,</span> <span class="p">),</span>
+                    <span class="n">eta</span><span class="o">=</span><span class="n">new_value</span><span class="p">,</span>
+                <span class="p">)</span>
+            <span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">send_login_links</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_schedule_send_login_links</span><span class="p">()</span>
+
     <span class="c1"># We don&#39;t use property.setter because in that case `new_val` could only be</span>
-    <span class="c1"># a `float` because of https://github.com/python/mypy/issues/220</span>
+    <span class="c1"># a `float` because of https://github.com/python/mypy/issues/3004</span>
 <div class="viewcode-block" id="Assignment.set_max_grade"><a class="viewcode-back" href="../../../psef_api/psef.html#psef.models.assignment.Assignment.set_max_grade">[docs]</a>    <span class="k">def</span> <span class="nf">set_max_grade</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">new_val</span><span class="p">:</span> <span class="n">t</span><span class="o">.</span><span class="n">Union</span><span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="nb">float</span><span class="p">,</span> <span class="nb">int</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
         <span class="sd">&quot;&quot;&quot;Set or unset the maximum grade for this assignment.</span>
 
@@ -1707,8 +2039,8 @@
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_max_grade</span> <span class="o">=</span> <span class="n">new_val</span></div>
 
+    <span class="c1">#: The minimum grade for a submission in this assignment.</span>
     <span class="n">min_grade</span> <span class="o">=</span> <span class="mi">0</span>
-    <span class="sd">&quot;&quot;&quot;The minimum grade for a submission in this assignment.&quot;&quot;&quot;</span>
 
 <div class="viewcode-block" id="Assignment.change_notifications"><a class="viewcode-back" href="../../../psef_api/psef.html#psef.models.assignment.Assignment.change_notifications">[docs]</a>    <span class="k">def</span> <span class="nf">change_notifications</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
@@ -1904,23 +2236,23 @@
         <span class="sd">&quot;&quot;&quot;Is the current assignment open, which means the assignment is in the</span>
 <span class="sd">        state students submit work.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">return</span> <span class="nb">bool</span><span class="p">(</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">deadline</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">state</span> <span class="o">==</span> <span class="n">AssignmentStateEnum</span><span class="o">.</span><span class="n">open</span> <span class="ow">and</span>
-            <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">deadline_expired</span>
-        <span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">deadline</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">False</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">state</span><span class="o">.</span><span class="n">is_open</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">False</span>
+        <span class="k">return</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">deadline_expired</span>
 
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">is_hidden</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
         <span class="sd">&quot;&quot;&quot;Is the assignment hidden.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">state</span> <span class="o">==</span> <span class="n">AssignmentStateEnum</span><span class="o">.</span><span class="n">hidden</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">state</span><span class="o">.</span><span class="n">is_hidden</span>
 
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">is_done</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
         <span class="sd">&quot;&quot;&quot;Is the assignment done, which means that grades are open.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">state</span> <span class="o">==</span> <span class="n">AssignmentStateEnum</span><span class="o">.</span><span class="n">done</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">state</span><span class="o">.</span><span class="n">is_done</span>
 
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">should_passback</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
@@ -1936,7 +2268,7 @@
 
 <span class="sd">        :returns: The correct name of the current state.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">state</span> <span class="o">==</span> <span class="n">AssignmentStateEnum</span><span class="o">.</span><span class="n">open</span><span class="p">:</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">state</span><span class="o">.</span><span class="n">is_open</span><span class="p">:</span>
             <span class="k">return</span> <span class="s1">&#39;submitting&#39;</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_open</span> <span class="k">else</span> <span class="s1">&#39;grading&#39;</span>
         <span class="k">return</span> <span class="n">AssignmentStateEnum</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">state</span><span class="p">)</span><span class="o">.</span><span class="n">name</span>
 
@@ -1952,8 +2284,8 @@
                 <span class="n">AssignmentLinter</span><span class="o">.</span><span class="n">query</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span>
                     <span class="n">AssignmentLinter</span><span class="o">.</span><span class="n">assignment_id</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">id</span><span class="p">,</span>
                     <span class="n">AssignmentLinter</span><span class="o">.</span><span class="n">name</span> <span class="o">==</span> <span class="s1">&#39;MixedWhitespace&#39;</span>
-                <span class="p">)</span><span class="o">.</span><span class="n">exists</span><span class="p">()</span>
-            <span class="p">)</span><span class="o">.</span><span class="n">scalar</span><span class="p">()</span> <span class="ow">or</span> <span class="kc">False</span>
+                <span class="p">)</span><span class="o">.</span><span class="n">exists</span><span class="p">(),</span>
+            <span class="p">)</span><span class="o">.</span><span class="n">scalar</span><span class="p">()</span>
 
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_whitespace_linter_exists</span>
 
@@ -2004,9 +2336,8 @@
             <span class="s1">&#39;id&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">id</span><span class="p">,</span>
             <span class="s1">&#39;state&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">state_name</span><span class="p">,</span>
             <span class="s1">&#39;description&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">description</span><span class="p">,</span>
-            <span class="s1">&#39;created_at&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">created_at</span><span class="o">.</span><span class="n">isoformat</span><span class="p">(),</span>
-            <span class="s1">&#39;deadline&#39;</span><span class="p">:</span>
-                <span class="kc">None</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">deadline</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="bp">self</span><span class="o">.</span><span class="n">deadline</span><span class="o">.</span><span class="n">isoformat</span><span class="p">(),</span>
+            <span class="s1">&#39;created_at&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">created_at</span><span class="p">,</span>
+            <span class="s1">&#39;deadline&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">deadline</span><span class="p">,</span>
             <span class="s1">&#39;name&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
             <span class="s1">&#39;is_lti&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_lti</span><span class="p">,</span>
             <span class="s1">&#39;course&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">course</span><span class="p">,</span>
@@ -2020,9 +2351,12 @@
             <span class="s1">&#39;files_upload_enabled&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">files_upload_enabled</span><span class="p">,</span>
             <span class="s1">&#39;webhook_upload_enabled&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">webhook_upload_enabled</span><span class="p">,</span>
             <span class="s1">&#39;max_submissions&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_submissions</span><span class="p">,</span>
-            <span class="s1">&#39;cool_off_period&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">cool_off_period</span><span class="o">.</span><span class="n">total_seconds</span><span class="p">(),</span>
+            <span class="s1">&#39;cool_off_period&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">cool_off_period</span><span class="p">,</span>
             <span class="s1">&#39;amount_in_cool_off_period&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">amount_in_cool_off_period</span><span class="p">,</span>
             <span class="s1">&#39;peer_feedback_settings&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">peer_feedback_settings</span><span class="p">,</span>
+            <span class="s1">&#39;available_at&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">available_at</span><span class="p">,</span>
+            <span class="s1">&#39;send_login_links&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">send_login_links</span><span class="p">,</span>
+            <span class="s1">&#39;kind&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">kind</span><span class="p">,</span>
 
             <span class="c1"># These are all filled in based on permissions and data</span>
             <span class="c1"># availability.</span>
@@ -2070,14 +2404,12 @@
 <span class="sd">        :param state: The new state, can be &#39;hidden&#39;, &#39;done&#39; or &#39;open&#39;</span>
 <span class="sd">        :returns: Nothing</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">if</span> <span class="n">state</span> <span class="o">==</span> <span class="s1">&#39;open&#39;</span><span class="p">:</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">state</span> <span class="o">=</span> <span class="n">AssignmentStateEnum</span><span class="o">.</span><span class="n">open</span>
-        <span class="k">elif</span> <span class="n">state</span> <span class="o">==</span> <span class="s1">&#39;hidden&#39;</span><span class="p">:</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">state</span> <span class="o">=</span> <span class="n">AssignmentStateEnum</span><span class="o">.</span><span class="n">hidden</span>
-        <span class="k">elif</span> <span class="n">state</span> <span class="o">==</span> <span class="s1">&#39;done&#39;</span><span class="p">:</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">state</span> <span class="o">=</span> <span class="n">AssignmentStateEnum</span><span class="o">.</span><span class="n">done</span>
-        <span class="k">else</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="n">InvalidAssignmentState</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;</span><span class="si">{</span><span class="n">state</span><span class="si">}</span><span class="s1"> is not a valid state&#39;</span><span class="p">)</span></div>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">new_state</span> <span class="o">=</span> <span class="n">AssignmentStateEnum</span><span class="p">[</span><span class="n">state</span><span class="p">]</span>
+        <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">InvalidAssignmentState</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;</span><span class="si">{</span><span class="n">state</span><span class="si">}</span><span class="s1"> is not a valid state&#39;</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">state</span> <span class="o">=</span> <span class="n">new_state</span></div>
 
     <span class="k">def</span> <span class="nf">get_amount_not_deleted_submissions</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
         <span class="k">return</span> <span class="n">handle_none</span><span class="p">(</span>

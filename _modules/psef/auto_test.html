@@ -258,7 +258,6 @@
 <span class="n">OutputCallback</span> <span class="o">=</span> <span class="n">t</span><span class="o">.</span><span class="n">Callable</span><span class="p">[[</span><span class="nb">bytes</span><span class="p">],</span> <span class="kc">None</span><span class="p">]</span>
 <span class="n">URL</span> <span class="o">=</span> <span class="n">t</span><span class="o">.</span><span class="n">NewType</span><span class="p">(</span><span class="s1">&#39;URL&#39;</span><span class="p">,</span> <span class="nb">str</span><span class="p">)</span>
 
-<span class="n">_STOP_RUNNING</span> <span class="o">=</span> <span class="n">Event</span><span class="p">()</span>
 <span class="n">_LXC_START_STOP_LOCK</span> <span class="o">=</span> <span class="n">multiprocessing</span><span class="o">.</span><span class="n">Lock</span><span class="p">()</span>
 
 <span class="n">T</span> <span class="o">=</span> <span class="n">t</span><span class="o">.</span><span class="n">TypeVar</span><span class="p">(</span><span class="s1">&#39;T&#39;</span><span class="p">)</span>
@@ -310,6 +309,8 @@
 <span class="n">_REQUEST_TIMEOUT</span> <span class="o">=</span> <span class="mi">10</span>
 <span class="n">_REQUEST_RETRIES</span> <span class="o">=</span> <span class="mi">5</span>
 <span class="n">_REQUEST_BACKOFF_FACTOR</span> <span class="o">=</span> <span class="mf">1.2</span>
+
+<span class="n">MaybeQuitRunning</span> <span class="o">=</span> <span class="n">t</span><span class="o">.</span><span class="n">Callable</span><span class="p">[[],</span> <span class="kc">None</span><span class="p">]</span>
 
 
 <div class="viewcode-block" id="LXCProcessError"><a class="viewcode-back" href="../../psef_api/psef.html#psef.auto_test.LXCProcessError">[docs]</a><span class="k">class</span> <span class="nc">LXCProcessError</span><span class="p">(</span><span class="ne">Exception</span><span class="p">):</span>
@@ -454,12 +455,14 @@
     <span class="k">raise</span> <span class="ne">RuntimeError</span>  <span class="c1"># pragma: no cover</span>
 
 
-<span class="k">def</span> <span class="nf">_wait_for_pid</span><span class="p">(</span><span class="n">pid</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">timeout</span><span class="p">:</span> <span class="nb">float</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">t</span><span class="o">.</span><span class="n">Tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">float</span><span class="p">]:</span>
+<span class="k">def</span> <span class="nf">_wait_for_pid</span><span class="p">(</span>
+    <span class="n">pid</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">timeout</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">maybe_quit_running</span><span class="p">:</span> <span class="n">MaybeQuitRunning</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">t</span><span class="o">.</span><span class="n">Tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">float</span><span class="p">]:</span>
     <span class="sd">&quot;&quot;&quot;Wait for ``pid`` at most ``timeout`` amount of seconds.</span>
 
 <span class="sd">    &gt;&gt;&gt; from subprocess import Popen</span>
 <span class="sd">    &gt;&gt;&gt; p = Popen(&#39;sleep 5&#39;, shell=True)</span>
-<span class="sd">    &gt;&gt;&gt; _wait_for_pid(p.pid, 0.25)</span>
+<span class="sd">    &gt;&gt;&gt; _wait_for_pid(p.pid, 0.25, lambda: None)</span>
 <span class="sd">    Traceback (most recent call last):</span>
 <span class="sd">    ...</span>
 <span class="sd">    CommandTimeoutException</span>
@@ -468,19 +471,19 @@
 
 <span class="sd">    It also works when SIGTERM is ignored.</span>
 <span class="sd">    &gt;&gt;&gt; p = Popen(&quot;trap &#39;echo SIGTERM!&#39; 15 ; sleep 5&quot;, shell=True)</span>
-<span class="sd">    &gt;&gt;&gt; _wait_for_pid(p.pid, 0.25)</span>
+<span class="sd">    &gt;&gt;&gt; _wait_for_pid(p.pid, 0.25, lambda: None)</span>
 <span class="sd">    Traceback (most recent call last):</span>
 <span class="sd">    ...</span>
 <span class="sd">    CommandTimeoutException</span>
 
 <span class="sd">    &gt;&gt;&gt; pid = Popen(&#39;sleep 0.5 &amp;&amp; exit 32&#39;, shell=True).pid</span>
-<span class="sd">    &gt;&gt;&gt; _wait_for_pid(pid, 4)[0]</span>
+<span class="sd">    &gt;&gt;&gt; _wait_for_pid(pid, 4, lambda: None)[0]</span>
 <span class="sd">    32</span>
 
-<span class="sd">    &gt;&gt;&gt; _wait_for_pid(Popen(&#39;sleep 0.5 &amp;&amp; exit 20&#39;, shell=True).pid, 4)[0]</span>
+<span class="sd">    &gt;&gt;&gt; _wait_for_pid(Popen(&#39;sleep 0.5 &amp;&amp; exit 20&#39;, shell=True).pid, 4, lambda: None)[0]</span>
 <span class="sd">    20</span>
 
-<span class="sd">    &gt;&gt;&gt; exit, left = _wait_for_pid(Popen([&#39;sleep&#39;, &#39;0.25&#39;]).pid, 1)</span>
+<span class="sd">    &gt;&gt;&gt; exit, left = _wait_for_pid(Popen([&#39;sleep&#39;, &#39;0.25&#39;]).pid, 1, lambda: None)</span>
 <span class="sd">    &gt;&gt;&gt; exit</span>
 <span class="sd">    0</span>
 <span class="sd">    &gt;&gt;&gt; abs((1 - left) - 0.25) &lt;= 0.05  # Waiting should be fairly accurate</span>
@@ -489,7 +492,7 @@
 <span class="sd">    &gt;&gt;&gt; import doctest</span>
 <span class="sd">    &gt;&gt;&gt; doctest.ELLIPSIS_MARKER = &#39;-etc-&#39;</span>
 <span class="sd">    &gt;&gt;&gt; p = Popen(&#39;kill -11 $$&#39;, shell=True)  # This segfaults</span>
-<span class="sd">    &gt;&gt;&gt; _wait_for_pid(p.pid, 1)[0] == -1</span>
+<span class="sd">    &gt;&gt;&gt; _wait_for_pid(p.pid, 1, lambda: None)[0] == -1</span>
 <span class="sd">    -etc-Process signaled-etc-</span>
 <span class="sd">    True</span>
 <span class="sd">    &quot;&quot;&quot;</span>
@@ -514,6 +517,7 @@
             <span class="n">delay</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="nb">min</span><span class="p">(</span><span class="n">delay</span> <span class="o">*</span> <span class="mi">2</span><span class="p">,</span> <span class="n">get_time_left</span><span class="p">(),</span> <span class="mf">0.05</span><span class="p">),</span> <span class="mi">0</span><span class="p">)</span>
             <span class="n">time</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="n">delay</span><span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
+            <span class="n">maybe_quit_running</span><span class="p">()</span>
             <span class="k">return</span> <span class="n">exit_code</span><span class="p">,</span> <span class="n">get_time_left</span><span class="p">()</span>
 
     <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;Process took too long, killing&#39;</span><span class="p">,</span> <span class="n">pid</span><span class="o">=</span><span class="n">pid</span><span class="p">)</span>
@@ -530,7 +534,7 @@
         <span class="n">os</span><span class="o">.</span><span class="n">kill</span><span class="p">(</span><span class="n">pid</span><span class="p">,</span> <span class="n">signal</span><span class="o">.</span><span class="n">SIGKILL</span><span class="p">)</span>
         <span class="n">os</span><span class="o">.</span><span class="n">waitpid</span><span class="p">(</span><span class="n">pid</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
 
-    <span class="n">_maybe_quit_running</span><span class="p">()</span>
+    <span class="n">maybe_quit_running</span><span class="p">()</span>
     <span class="n">end_time</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
     <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;Killing done&#39;</span><span class="p">,</span> <span class="n">pid</span><span class="o">=</span><span class="n">pid</span><span class="p">)</span>
     <span class="k">raise</span> <span class="n">CommandTimeoutException</span><span class="p">(</span><span class="n">end_time</span> <span class="o">-</span> <span class="n">start_time</span><span class="p">)</span>
@@ -691,25 +695,6 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">time_spend</span> <span class="o">=</span> <span class="n">time_spend</span></div>
 
 
-<span class="k">def</span> <span class="nf">_maybe_quit_running</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-    <span class="sd">&quot;&quot;&quot;Throw appropriate exception if container should stop running.</span>
-
-<span class="sd">    &gt;&gt;&gt; _STOP_RUNNING.clear()</span>
-<span class="sd">    &gt;&gt;&gt; _maybe_quit_running() is None</span>
-<span class="sd">    True</span>
-<span class="sd">    &gt;&gt;&gt; _STOP_RUNNING.set()</span>
-<span class="sd">    &gt;&gt;&gt; _maybe_quit_running()</span>
-<span class="sd">    Traceback (most recent call last):</span>
-<span class="sd">    ...</span>
-<span class="sd">    StopContainerException</span>
-<span class="sd">    &gt;&gt;&gt; _STOP_RUNNING.clear()</span>
-<span class="sd">    &gt;&gt;&gt; _maybe_quit_running() is None</span>
-<span class="sd">    True</span>
-<span class="sd">    &quot;&quot;&quot;</span>
-    <span class="k">if</span> <span class="n">_STOP_RUNNING</span><span class="o">.</span><span class="n">is_set</span><span class="p">():</span>
-        <span class="k">raise</span> <span class="n">StopContainerException</span>
-
-
 <span class="k">def</span> <span class="nf">_get_new_container_name</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
     <span class="sd">&quot;&quot;&quot;Get a new unique container name</span>
 
@@ -739,10 +724,14 @@
     <span class="n">template_name</span> <span class="o">=</span> <span class="n">config</span><span class="p">[</span><span class="s1">&#39;AUTO_TEST_TEMPLATE_CONTAINER&#39;</span><span class="p">]</span>
     <span class="k">if</span> <span class="n">template_name</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
         <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;No base template set, creating new container&#39;</span><span class="p">)</span>
-        <span class="n">res</span> <span class="o">=</span> <span class="n">AutoTestContainer</span><span class="p">(</span><span class="n">_get_new_container_name</span><span class="p">(),</span> <span class="n">config</span><span class="p">)</span>
+        <span class="n">res</span> <span class="o">=</span> <span class="n">AutoTestContainer</span><span class="p">(</span>
+            <span class="n">_get_new_container_name</span><span class="p">(),</span> <span class="n">config</span><span class="p">,</span> <span class="n">maybe_quit_running</span><span class="o">=</span><span class="k">lambda</span><span class="p">:</span> <span class="kc">None</span>
+        <span class="p">)</span>
         <span class="n">res</span><span class="o">.</span><span class="n">create</span><span class="p">()</span>
     <span class="k">else</span><span class="p">:</span>  <span class="c1"># pragma: no cover</span>
-        <span class="n">res</span> <span class="o">=</span> <span class="n">AutoTestContainer</span><span class="p">(</span><span class="n">template_name</span><span class="p">,</span> <span class="n">config</span><span class="p">)</span><span class="o">.</span><span class="n">clone</span><span class="p">()</span>
+        <span class="n">res</span> <span class="o">=</span> <span class="n">AutoTestContainer</span><span class="p">(</span>
+            <span class="n">template_name</span><span class="p">,</span> <span class="n">config</span><span class="p">,</span> <span class="n">maybe_quit_running</span><span class="o">=</span><span class="k">lambda</span><span class="p">:</span> <span class="kc">None</span>
+        <span class="p">)</span><span class="o">.</span><span class="n">clone</span><span class="p">()</span>
     <span class="k">return</span> <span class="n">res</span>
 
 
@@ -762,10 +751,14 @@
 
 
 <span class="k">def</span> <span class="nf">_start_container</span><span class="p">(</span>
-    <span class="n">cont</span><span class="p">:</span> <span class="n">lxc</span><span class="o">.</span><span class="n">Container</span><span class="p">,</span> <span class="n">check_network</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span> <span class="n">always</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
+    <span class="n">cont</span><span class="p">:</span> <span class="n">lxc</span><span class="o">.</span><span class="n">Container</span><span class="p">,</span>
+    <span class="o">*</span><span class="p">,</span>
+    <span class="n">check_network</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+    <span class="n">always</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="n">maybe_quit_running</span><span class="p">:</span> <span class="n">MaybeQuitRunning</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
     <span class="k">if</span> <span class="ow">not</span> <span class="n">always</span><span class="p">:</span>
-        <span class="n">_maybe_quit_running</span><span class="p">()</span>
+        <span class="n">maybe_quit_running</span><span class="p">()</span>
 
     <span class="k">if</span> <span class="n">cont</span><span class="o">.</span><span class="n">running</span><span class="p">:</span>
         <span class="k">return</span>
@@ -812,7 +805,7 @@
                     <span class="n">make_exception</span><span class="o">=</span><span class="n">StopRunningStudentException</span>
                 <span class="p">):</span>
                     <span class="k">if</span> <span class="ow">not</span> <span class="n">always</span><span class="p">:</span>
-                        <span class="n">_maybe_quit_running</span><span class="p">()</span>
+                        <span class="n">maybe_quit_running</span><span class="p">()</span>
 
                     <span class="k">if</span> <span class="ow">not</span> <span class="n">cont</span><span class="o">.</span><span class="n">get_ips</span><span class="p">():</span>
                         <span class="k">continue</span>
@@ -1050,8 +1043,6 @@
     <span class="k">def</span> <span class="nf">get_broker_session</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n">helpers</span><span class="o">.</span><span class="n">BrokerSession</span><span class="p">:</span>
         <span class="k">return</span> <span class="n">helpers</span><span class="o">.</span><span class="n">BrokerSession</span><span class="p">(</span><span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="n">broker_url</span><span class="p">,</span> <span class="n">runner_pass</span><span class="p">)</span>
 
-    <span class="n">_STOP_RUNNING</span><span class="o">.</span><span class="n">clear</span><span class="p">()</span>
-
     <span class="k">with</span> <span class="n">_get_base_container</span><span class="p">(</span><span class="n">config</span><span class="p">)</span><span class="o">.</span><span class="n">started_container</span><span class="p">()</span> <span class="k">as</span> <span class="n">cont</span><span class="p">:</span>
         <span class="k">if</span> <span class="n">config</span><span class="p">[</span><span class="s1">&#39;AUTO_TEST_TEMPLATE_CONTAINER&#39;</span><span class="p">]</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="n">cont</span><span class="o">.</span><span class="n">run_command</span><span class="p">([</span><span class="s1">&#39;apt&#39;</span><span class="p">,</span> <span class="s1">&#39;update&#39;</span><span class="p">])</span>
@@ -1092,7 +1083,11 @@
     <span class="n">_SNAPSHOT_LOCK</span> <span class="o">=</span> <span class="n">threading</span><span class="o">.</span><span class="n">Lock</span><span class="p">()</span>
 
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
-        <span class="bp">self</span><span class="p">,</span> <span class="n">container</span><span class="p">:</span> <span class="n">lxc</span><span class="o">.</span><span class="n">Container</span><span class="p">,</span> <span class="n">name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">config</span><span class="p">:</span> <span class="s1">&#39;psef.FlaskConfig&#39;</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">container</span><span class="p">:</span> <span class="n">lxc</span><span class="o">.</span><span class="n">Container</span><span class="p">,</span>
+        <span class="n">name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+        <span class="n">config</span><span class="p">:</span> <span class="s1">&#39;psef.FlaskConfig&#39;</span><span class="p">,</span>
+        <span class="n">maybe_quit_running</span><span class="p">:</span> <span class="n">MaybeQuitRunning</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_snapshots</span><span class="p">:</span> <span class="n">t</span><span class="o">.</span><span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_dirty</span> <span class="o">=</span> <span class="kc">False</span>
@@ -1103,6 +1098,10 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">_networks</span><span class="p">:</span> <span class="n">t</span><span class="o">.</span><span class="n">List</span><span class="p">[</span><span class="n">Network</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_fixtures_dir</span><span class="p">:</span> <span class="n">t</span><span class="o">.</span><span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_extra_env</span><span class="p">:</span> <span class="n">t</span><span class="o">.</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_maybe_quit_running</span> <span class="o">=</span> <span class="n">maybe_quit_running</span>
+
+    <span class="k">def</span> <span class="nf">set_maybe_quit_running</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">new_val</span><span class="p">:</span> <span class="n">MaybeQuitRunning</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_maybe_quit_running</span> <span class="o">=</span> <span class="n">new_val</span>
 
     <span class="k">def</span> <span class="nf">_stop_container</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
         <span class="n">_stop_container</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_container</span><span class="p">)</span>
@@ -1156,12 +1155,18 @@
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_stop_container</span><span class="p">()</span>
         <span class="k">try</span><span class="p">:</span>
-            <span class="k">yield</span> <span class="n">AutoTestContainer</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_name</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_config</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_container</span><span class="p">)</span>
+            <span class="k">yield</span> <span class="n">AutoTestContainer</span><span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_name</span><span class="p">,</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_config</span><span class="p">,</span>
+                <span class="n">cont</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_container</span><span class="p">,</span>
+                <span class="n">maybe_quit_running</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_maybe_quit_running</span>
+            <span class="p">)</span>
         <span class="k">finally</span><span class="p">:</span>
             <span class="n">_start_container</span><span class="p">(</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">_container</span><span class="p">,</span>
                 <span class="n">always</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
-                <span class="n">check_network</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_network_is_enabled</span>
+                <span class="n">check_network</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_network_is_enabled</span><span class="p">,</span>
+                <span class="n">maybe_quit_running</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_maybe_quit_running</span><span class="p">,</span>
             <span class="p">)</span></div>
 
 <div class="viewcode-block" id="StartedContainer.destroy_snapshots"><a class="viewcode-back" href="../../psef_api/psef.html#psef.auto_test.StartedContainer.destroy_snapshots">[docs]</a>    <span class="k">def</span> <span class="nf">destroy_snapshots</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
@@ -1221,7 +1226,11 @@
             <span class="k">for</span> <span class="n">network_idx</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_container</span><span class="o">.</span><span class="n">network</span><span class="p">)):</span>
                 <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">_container</span><span class="o">.</span><span class="n">network</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="n">network_idx</span><span class="p">)</span>
 
-        <span class="n">_start_container</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_container</span><span class="p">,</span> <span class="n">check_network</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span></div>
+        <span class="n">_start_container</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_container</span><span class="p">,</span>
+            <span class="n">check_network</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+            <span class="n">maybe_quit_running</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_maybe_quit_running</span>
+        <span class="p">)</span></div>
 
 <div class="viewcode-block" id="StartedContainer.enable_network"><a class="viewcode-back" href="../../psef_api/psef.html#psef.auto_test.StartedContainer.enable_network">[docs]</a>    <span class="nd">@timed_function</span>
     <span class="k">def</span> <span class="nf">enable_network</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
@@ -1241,7 +1250,11 @@
                 <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">network</span><span class="p">:</span>
                     <span class="nb">setattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_container</span><span class="o">.</span><span class="n">network</span><span class="p">[</span><span class="n">last_index</span><span class="p">],</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span>
 
-        <span class="n">_start_container</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_container</span><span class="p">,</span> <span class="n">check_network</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span></div>
+        <span class="n">_start_container</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_container</span><span class="p">,</span>
+            <span class="n">check_network</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+            <span class="n">maybe_quit_running</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_maybe_quit_running</span>
+        <span class="p">)</span></div>
 
 <div class="viewcode-block" id="StartedContainer.as_snapshot"><a class="viewcode-back" href="../../psef_api/psef.html#psef.auto_test.StartedContainer.as_snapshot">[docs]</a>    <span class="nd">@contextlib</span><span class="o">.</span><span class="n">contextmanager</span>
     <span class="k">def</span> <span class="nf">as_snapshot</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">disable_network</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
@@ -1259,7 +1272,7 @@
         <span class="c1"># function way harder to follow. As we keep a dirty flag, only one</span>
         <span class="c1"># snapsnot will probably be created.</span>
 
-        <span class="n">_maybe_quit_running</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_maybe_quit_running</span><span class="p">()</span>
 
         <span class="k">if</span> <span class="n">disable_network</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">disable_network</span><span class="p">()</span>
@@ -1277,7 +1290,9 @@
                     <span class="bp">self</span><span class="o">.</span><span class="n">_stop_container</span><span class="p">()</span>
                     <span class="bp">self</span><span class="o">.</span><span class="n">_create_snapshot</span><span class="p">()</span>
                     <span class="n">_start_container</span><span class="p">(</span>
-                        <span class="bp">self</span><span class="o">.</span><span class="n">_container</span><span class="p">,</span> <span class="n">check_network</span><span class="o">=</span><span class="ow">not</span> <span class="n">disable_network</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">_container</span><span class="p">,</span>
+                        <span class="n">check_network</span><span class="o">=</span><span class="ow">not</span> <span class="n">disable_network</span><span class="p">,</span>
+                        <span class="n">maybe_quit_running</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_maybe_quit_running</span>
                     <span class="p">)</span>
             <span class="k">else</span><span class="p">:</span>
                 <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
@@ -1294,7 +1309,9 @@
                     <span class="bp">self</span><span class="o">.</span><span class="n">_container</span><span class="o">.</span><span class="n">snapshot_restore</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_snapshots</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">_dirty</span> <span class="o">=</span> <span class="kc">False</span>
                 <span class="n">_start_container</span><span class="p">(</span>
-                    <span class="bp">self</span><span class="o">.</span><span class="n">_container</span><span class="p">,</span> <span class="n">check_network</span><span class="o">=</span><span class="ow">not</span> <span class="n">disable_network</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_container</span><span class="p">,</span>
+                    <span class="n">check_network</span><span class="o">=</span><span class="ow">not</span> <span class="n">disable_network</span><span class="p">,</span>
+                    <span class="n">maybe_quit_running</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_maybe_quit_running</span>
                 <span class="p">)</span></div>
 
     <span class="nd">@staticmethod</span>
@@ -1360,7 +1377,7 @@
 
 <span class="sd">        &gt;&gt;&gt; import getpass</span>
 <span class="sd">        &gt;&gt;&gt; cur_user = getpass.getuser()</span>
-<span class="sd">        &gt;&gt;&gt; env = StartedContainer(None, &#39;&#39;, {})._create_env(cur_user)</span>
+<span class="sd">        &gt;&gt;&gt; env = StartedContainer(None, &#39;&#39;, {}, None)._create_env(cur_user)</span>
 <span class="sd">        &gt;&gt;&gt; env[&#39;USER&#39;] == cur_user</span>
 <span class="sd">        True</span>
 <span class="sd">        &gt;&gt;&gt; isinstance(env[&#39;USER&#39;], str)</span>
@@ -1773,7 +1790,7 @@
         <span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">_prepared_output</span><span class="p">(</span><span class="n">stdout</span><span class="p">,</span> <span class="n">stderr</span><span class="p">,</span> <span class="n">stdin</span><span class="p">)</span> <span class="k">as</span> <span class="p">[</span>
             <span class="n">stdin_file</span><span class="p">,</span> <span class="n">stdout_file</span><span class="p">,</span> <span class="n">stderr_file</span><span class="p">,</span> <span class="n">command_started</span><span class="p">,</span> <span class="n">stop_reading</span>
         <span class="p">]:</span>
-            <span class="n">_maybe_quit_running</span><span class="p">()</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_maybe_quit_running</span><span class="p">()</span>
 
             <span class="n">pid</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_container</span><span class="o">.</span><span class="n">attach</span><span class="p">(</span>
                 <span class="n">callback</span><span class="p">,</span>
@@ -1788,7 +1805,10 @@
             <span class="k">try</span><span class="p">:</span>
                 <span class="n">res</span> <span class="o">=</span> <span class="n">_wait_for_attach</span><span class="p">(</span><span class="n">pid</span><span class="p">,</span> <span class="n">command_started</span><span class="p">)</span>
                 <span class="k">if</span> <span class="n">res</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-                    <span class="n">res</span><span class="p">,</span> <span class="n">left</span> <span class="o">=</span> <span class="n">_wait_for_pid</span><span class="p">(</span><span class="n">pid</span><span class="p">,</span> <span class="n">timeout</span> <span class="ow">or</span> <span class="n">sys</span><span class="o">.</span><span class="n">maxsize</span><span class="p">)</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_maybe_quit_running</span><span class="p">()</span>
+                    <span class="n">res</span><span class="p">,</span> <span class="n">left</span> <span class="o">=</span> <span class="n">_wait_for_pid</span><span class="p">(</span>
+                        <span class="n">pid</span><span class="p">,</span> <span class="n">timeout</span> <span class="ow">or</span> <span class="n">sys</span><span class="o">.</span><span class="n">maxsize</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_maybe_quit_running</span>
+                    <span class="p">)</span>
             <span class="k">except</span> <span class="n">CommandTimeoutException</span><span class="p">:</span>
                 <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Exception occurred when waiting&#39;</span><span class="p">,</span> <span class="n">exc_info</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
                 <span class="c1"># Wait for 1 second to clear all remaining output.</span>
@@ -1800,8 +1820,6 @@
                 <span class="n">stderr_file</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
                 <span class="n">stdout_file</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
                 <span class="n">stop_reading</span><span class="p">(</span><span class="n">left</span><span class="p">)</span>
-
-        <span class="n">_maybe_quit_running</span><span class="p">()</span>
 
         <span class="k">if</span> <span class="n">check</span> <span class="ow">and</span> <span class="n">res</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
             <span class="k">raise</span> <span class="n">LXCProcessError</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;Command &quot;</span><span class="si">{</span><span class="n">cmd</span><span class="si">}</span><span class="s1">&quot; crashed: </span><span class="si">{</span><span class="n">res</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span>
@@ -1821,7 +1839,9 @@
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
         <span class="n">config</span><span class="p">:</span> <span class="s1">&#39;psef.FlaskConfig&#39;</span><span class="p">,</span>
-        <span class="n">cont</span><span class="p">:</span> <span class="n">t</span><span class="o">.</span><span class="n">Optional</span><span class="p">[</span><span class="n">lxc</span><span class="o">.</span><span class="n">Container</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="o">*</span><span class="p">,</span>
+        <span class="n">cont</span><span class="p">:</span> <span class="n">t</span><span class="o">.</span><span class="n">Optional</span><span class="p">[</span><span class="n">lxc</span><span class="o">.</span><span class="n">Container</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">maybe_quit_running</span><span class="p">:</span> <span class="n">MaybeQuitRunning</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_name</span> <span class="o">=</span> <span class="n">name</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_lock</span> <span class="o">=</span> <span class="n">threading</span><span class="o">.</span><span class="n">RLock</span><span class="p">()</span>
@@ -1830,6 +1850,7 @@
             <span class="bp">self</span><span class="o">.</span><span class="n">_cont</span> <span class="o">=</span> <span class="n">lxc</span><span class="o">.</span><span class="n">Container</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_cont</span> <span class="o">=</span> <span class="n">cont</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_maybe_quit_running</span> <span class="o">=</span> <span class="n">maybe_quit_running</span>
 
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">name</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
@@ -1864,13 +1885,17 @@
 
         <span class="k">try</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">start_container</span><span class="p">()</span>
-            <span class="n">started</span> <span class="o">=</span> <span class="n">StartedContainer</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_cont</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_name</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_config</span><span class="p">)</span>
+            <span class="n">started</span> <span class="o">=</span> <span class="n">StartedContainer</span><span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_cont</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_name</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_config</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_maybe_quit_running</span>
+            <span class="p">)</span>
             <span class="k">yield</span> <span class="n">started</span>
         <span class="k">finally</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_stop_container</span><span class="p">(</span><span class="n">started</span><span class="p">)</span></div>
 
     <span class="k">def</span> <span class="nf">start_container</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="n">_start_container</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_cont</span><span class="p">)</span>
+        <span class="n">_start_container</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_cont</span><span class="p">,</span> <span class="n">maybe_quit_running</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_maybe_quit_running</span>
+        <span class="p">)</span>
 
     <span class="k">def</span> <span class="nf">destroy_container</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_cont</span><span class="o">.</span><span class="n">destroy</span><span class="p">()</span>
@@ -1893,13 +1918,18 @@
 <span class="sd">            generated if not provided.</span>
 <span class="sd">        :returns: A clone of this container with the provided name.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="n">_maybe_quit_running</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_maybe_quit_running</span><span class="p">()</span>
 
         <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">_lock</span><span class="p">,</span> <span class="n">timed_code</span><span class="p">(</span><span class="s1">&#39;clone_container&#39;</span><span class="p">):</span>
             <span class="n">new_name</span> <span class="o">=</span> <span class="n">new_name</span> <span class="ow">or</span> <span class="n">_get_new_container_name</span><span class="p">()</span>
             <span class="n">cont</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cont</span><span class="o">.</span><span class="n">clone</span><span class="p">(</span><span class="n">new_name</span><span class="p">)</span>
             <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">cont</span><span class="p">,</span> <span class="n">lxc</span><span class="o">.</span><span class="n">Container</span><span class="p">)</span>
-            <span class="k">return</span> <span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="p">)(</span><span class="n">new_name</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_config</span><span class="p">,</span> <span class="n">cont</span><span class="p">)</span></div></div>
+            <span class="k">return</span> <span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="p">)(</span>
+                <span class="n">new_name</span><span class="p">,</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_config</span><span class="p">,</span>
+                <span class="n">cont</span><span class="o">=</span><span class="n">cont</span><span class="p">,</span>
+                <span class="n">maybe_quit_running</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_maybe_quit_running</span>
+            <span class="p">)</span></div></div>
 
 
 <div class="viewcode-block" id="AutoTestRunner"><a class="viewcode-back" href="../../psef_api/psef.html#psef.auto_test.AutoTestRunner">[docs]</a><span class="k">class</span> <span class="nc">AutoTestRunner</span><span class="p">:</span>
@@ -1927,6 +1957,33 @@
 
         <span class="bp">self</span><span class="o">.</span><span class="n">fixtures</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">instructions</span><span class="p">[</span><span class="s1">&#39;fixtures&#39;</span><span class="p">]</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_reqs</span><span class="p">:</span> <span class="n">t</span><span class="o">.</span><span class="n">Dict</span><span class="p">[</span><span class="n">t</span><span class="o">.</span><span class="n">Tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">],</span> <span class="n">requests</span><span class="o">.</span><span class="n">Session</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_stop_running</span> <span class="o">=</span> <span class="n">multiprocessing</span><span class="o">.</span><span class="n">Event</span><span class="p">()</span>
+
+    <span class="k">def</span> <span class="nf">_stop_running_is_set</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_stop_running</span><span class="o">.</span><span class="n">is_set</span><span class="p">()</span>
+
+    <span class="k">def</span> <span class="nf">_set_stop_running</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_stop_running</span><span class="o">.</span><span class="n">set</span><span class="p">()</span>
+
+    <span class="k">def</span> <span class="nf">_maybe_quit_running</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Throw appropriate exception if container should stop running.</span>
+
+<span class="sd">        &gt;&gt;&gt; from collections import defaultdict</span>
+<span class="sd">        &gt;&gt;&gt; self = AutoTestRunner(&#39;&#39;, defaultdict(list), &#39;&#39;, {})</span>
+<span class="sd">        &gt;&gt;&gt; self._maybe_quit_running() is None</span>
+<span class="sd">        True</span>
+<span class="sd">        &gt;&gt;&gt; self._set_stop_running()</span>
+<span class="sd">        &gt;&gt;&gt; self._maybe_quit_running()</span>
+<span class="sd">        Traceback (most recent call last):</span>
+<span class="sd">        ...</span>
+<span class="sd">        StopContainerException</span>
+<span class="sd">        &gt;&gt;&gt; self._stop_running.clear()</span>
+<span class="sd">        &gt;&gt;&gt; self._maybe_quit_running() is None</span>
+<span class="sd">        True</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_stop_running_is_set</span><span class="p">():</span>
+            <span class="k">raise</span> <span class="n">StopContainerException</span>
 
     <span class="nd">@staticmethod</span>
     <span class="k">def</span> <span class="nf">_get_amount_of_needed_workers</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
@@ -2478,7 +2535,11 @@
 <span class="sd">        :param opts: The way to get work from the worker pool.</span>
 <span class="sd">        :returns: Nothing.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="n">base_container</span> <span class="o">=</span> <span class="n">AutoTestContainer</span><span class="p">(</span><span class="n">base_container_name</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="p">)</span>
+        <span class="n">base_container</span> <span class="o">=</span> <span class="n">AutoTestContainer</span><span class="p">(</span>
+            <span class="n">base_container_name</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="p">,</span>
+            <span class="n">maybe_quit_running</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_maybe_quit_running</span>
+        <span class="p">)</span>
         <span class="n">student_container</span> <span class="o">=</span> <span class="n">base_container</span><span class="o">.</span><span class="n">clone</span><span class="p">()</span>
 
         <span class="k">def</span> <span class="nf">retry_work</span><span class="p">(</span><span class="n">work</span><span class="p">:</span> <span class="n">cg_worker_pool</span><span class="o">.</span><span class="n">Work</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
@@ -2604,7 +2665,7 @@
 
     <span class="k">def</span> <span class="nf">_started_heartbeat</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s1">&#39;RepeatedTimer&#39;</span><span class="p">:</span>
         <span class="k">def</span> <span class="nf">push_heartbeat</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="k">if</span> <span class="ow">not</span> <span class="n">_STOP_RUNNING</span><span class="o">.</span><span class="n">is_set</span><span class="p">():</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_stop_running_is_set</span><span class="p">():</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">req</span><span class="o">.</span><span class="n">post</span><span class="p">(</span>
                     <span class="sa">f</span><span class="s1">&#39;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">base_url</span><span class="si">}</span><span class="s1">/runs/</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">instructions</span><span class="p">[</span><span class="s2">&quot;run_id&quot;</span><span class="p">]</span><span class="si">}</span><span class="s1">/&#39;</span>
                     <span class="s1">&#39;heartbeats/&#39;</span><span class="p">,</span>
@@ -2624,13 +2685,17 @@
         <span class="n">run_result_url</span> <span class="o">=</span> <span class="sa">f</span><span class="s1">&#39;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">base_url</span><span class="si">}</span><span class="s1">/runs/</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">instructions</span><span class="p">[</span><span class="s2">&quot;run_id&quot;</span><span class="p">]</span><span class="si">}</span><span class="s1">&#39;</span>
         <span class="n">time_taken</span><span class="p">:</span> <span class="n">t</span><span class="o">.</span><span class="n">Optional</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
 
+        <span class="n">cont</span><span class="o">.</span><span class="n">set_maybe_quit_running</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_maybe_quit_running</span><span class="p">)</span>
+
         <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">_started_heartbeat</span><span class="p">():</span>
             <span class="k">try</span><span class="p">:</span>
                 <span class="k">with</span> <span class="n">timed_code</span><span class="p">(</span><span class="s1">&#39;run_complete_auto_test&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">get_time_taken</span><span class="p">:</span>
                     <span class="bp">self</span><span class="o">.</span><span class="n">_run_test</span><span class="p">(</span><span class="n">cont</span><span class="p">)</span>
                 <span class="n">time_taken</span> <span class="o">=</span> <span class="n">get_time_taken</span><span class="p">()</span>
+            <span class="k">except</span><span class="p">:</span>  <span class="c1"># pylint: disable=bare-except</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s1">&#39;Error when running tests&#39;</span><span class="p">,</span> <span class="n">exc_info</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
             <span class="k">finally</span><span class="p">:</span>
-                <span class="n">_STOP_RUNNING</span><span class="o">.</span><span class="n">set</span><span class="p">()</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_set_stop_running</span><span class="p">()</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">req</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span>
                     <span class="n">run_result_url</span><span class="p">,</span>
                     <span class="n">json</span><span class="o">=</span><span class="p">{</span>
@@ -2710,7 +2775,7 @@
         <span class="p">),</span> <span class="n">_Manager</span><span class="p">()</span> <span class="k">as</span> <span class="n">manager</span><span class="p">:</span>
             <span class="c1"># Known issue from typeshed:</span>
             <span class="c1"># https://github.com/python/typeshed/issues/3018</span>
-            <span class="n">cpu_cores</span><span class="p">:</span> <span class="n">CpuCores</span> <span class="o">=</span> <span class="n">CpuCores</span><span class="p">(</span><span class="n">manager</span><span class="p">)</span>  <span class="c1"># type: ignore</span>
+            <span class="n">cpu_cores</span><span class="p">:</span> <span class="n">CpuCores</span> <span class="o">=</span> <span class="n">CpuCores</span><span class="p">(</span><span class="n">t</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">_Manager</span><span class="p">,</span> <span class="n">manager</span><span class="p">))</span>
             <span class="n">pool</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_make_worker_pool</span><span class="p">(</span><span class="n">base_container</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">cpu_cores</span><span class="p">)</span>
 
             <span class="k">try</span><span class="p">:</span>
@@ -2721,7 +2786,7 @@
             <span class="k">else</span><span class="p">:</span>
                 <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Done with containers, cleaning up&#39;</span><span class="p">)</span>
             <span class="k">finally</span><span class="p">:</span>
-                <span class="n">_STOP_RUNNING</span><span class="o">.</span><span class="n">set</span><span class="p">()</span></div>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_set_stop_running</span><span class="p">()</span></div>
 </pre></div>
 
            </div>

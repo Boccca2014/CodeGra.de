@@ -239,6 +239,18 @@
     <span class="n">text_maker</span> <span class="o">=</span> <span class="n">html2text</span><span class="o">.</span><span class="n">HTML2Text</span><span class="p">(</span><span class="n">bodywidth</span><span class="o">=</span><span class="mi">78</span><span class="p">)</span>
     <span class="n">text_maker</span><span class="o">.</span><span class="n">inline_links</span> <span class="o">=</span> <span class="kc">False</span>
     <span class="n">text_maker</span><span class="o">.</span><span class="n">wrap_links</span> <span class="o">=</span> <span class="kc">False</span>
+    <span class="n">text_maker</span><span class="o">.</span><span class="n">ignore_tables</span> <span class="o">=</span> <span class="kc">True</span>
+    <span class="n">text_maker</span><span class="o">.</span><span class="n">wrap_links</span> <span class="o">=</span> <span class="kc">False</span>
+
+    <span class="k">def</span> <span class="nf">_handle_tag</span><span class="p">(</span>
+        <span class="n">converter</span><span class="p">:</span> <span class="n">html2text</span><span class="o">.</span><span class="n">HTML2Text</span><span class="p">,</span> <span class="n">tag</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">_attrs</span><span class="p">:</span> <span class="nb">dict</span><span class="p">,</span> <span class="n">start</span><span class="p">:</span> <span class="nb">bool</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">start</span> <span class="ow">and</span> <span class="n">tag</span> <span class="ow">in</span> <span class="p">(</span><span class="s1">&#39;tr&#39;</span><span class="p">,</span> <span class="s1">&#39;th&#39;</span><span class="p">):</span>
+            <span class="n">converter</span><span class="o">.</span><span class="n">out</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="kc">False</span>
+
+    <span class="n">text_maker</span><span class="o">.</span><span class="n">tag_callback</span> <span class="o">=</span> <span class="n">_handle_tag</span>  <span class="c1"># type: ignore[assignment]</span>
+
     <span class="n">text_body</span> <span class="o">=</span> <span class="n">text_maker</span><span class="o">.</span><span class="n">handle</span><span class="p">(</span><span class="n">html_body</span><span class="p">)</span>
 
     <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
@@ -540,6 +552,47 @@
     <span class="p">)</span>
 
     <span class="n">mailer</span><span class="o">.</span><span class="n">send</span><span class="p">(</span><span class="n">message</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="send_login_link_mail"><a class="viewcode-back" href="../../psef_api/psef.html#psef.mail.send_login_link_mail">[docs]</a><span class="k">def</span> <span class="nf">send_login_link_mail</span><span class="p">(</span>
+    <span class="n">mailer</span><span class="p">:</span> <span class="n">Mail</span><span class="p">,</span> <span class="n">link</span><span class="p">:</span> <span class="n">models</span><span class="o">.</span><span class="n">AssignmentLoginLink</span><span class="p">,</span> <span class="n">mail_idx</span><span class="p">:</span> <span class="nb">int</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;Send a login link email with a given ``mailer``.</span>
+
+<span class="sd">    :param mailer: The mailer to use to send the login link.</span>
+<span class="sd">    :param link: The link for which you want to send the email.</span>
+<span class="sd">    :param mail_idx: How many emails were already sent to the user about this</span>
+<span class="sd">        link? This is used to change the body of the mail.</span>
+
+<span class="sd">    :param returns: Nothing.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">receiver</span> <span class="o">=</span> <span class="n">link</span><span class="o">.</span><span class="n">user</span>
+    <span class="n">subject</span> <span class="o">=</span> <span class="n">current_app</span><span class="o">.</span><span class="n">jinja_mail_env</span><span class="o">.</span><span class="n">from_string</span><span class="p">(</span>
+        <span class="n">current_app</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s1">&#39;EXAM_LOGIN_SUBJECT&#39;</span><span class="p">]</span>
+    <span class="p">)</span><span class="o">.</span><span class="n">render</span><span class="p">(</span>
+        <span class="n">site_url</span><span class="o">=</span><span class="n">current_app</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s2">&quot;EXTERNAL_URL&quot;</span><span class="p">],</span> <span class="n">link</span><span class="o">=</span><span class="n">link</span>
+    <span class="p">)</span>
+
+    <span class="n">html_body</span> <span class="o">=</span> <span class="n">current_app</span><span class="o">.</span><span class="n">jinja_mail_env</span><span class="o">.</span><span class="n">get_template</span><span class="p">(</span>
+        <span class="s1">&#39;exam_login.j2&#39;</span>
+    <span class="p">)</span><span class="o">.</span><span class="n">render</span><span class="p">(</span>
+        <span class="n">site_url</span><span class="o">=</span><span class="n">current_app</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s2">&quot;EXTERNAL_URL&quot;</span><span class="p">],</span>
+        <span class="n">subject</span><span class="o">=</span><span class="n">subject</span><span class="p">,</span>
+        <span class="n">link</span><span class="o">=</span><span class="n">link</span><span class="p">,</span>
+        <span class="n">mail_idx</span><span class="o">=</span><span class="n">mail_idx</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">refereneces</span> <span class="o">=</span> <span class="p">[</span><span class="n">link</span><span class="o">.</span><span class="n">get_message_id</span><span class="p">(</span><span class="n">i</span><span class="p">)</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">mail_idx</span><span class="p">)]</span>
+    <span class="n">in_reply_to</span> <span class="o">=</span> <span class="n">refereneces</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="k">if</span> <span class="n">refereneces</span> <span class="k">else</span> <span class="kc">None</span>
+
+    <span class="n">_send_mail</span><span class="p">(</span>
+        <span class="n">html_body</span><span class="p">,</span>
+        <span class="n">subject</span><span class="p">,</span>
+        <span class="p">[(</span><span class="n">receiver</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">receiver</span><span class="o">.</span><span class="n">email</span><span class="p">)],</span>
+        <span class="n">mailer</span><span class="o">=</span><span class="n">mailer</span><span class="p">,</span>
+        <span class="n">message_id</span><span class="o">=</span><span class="n">link</span><span class="o">.</span><span class="n">get_message_id</span><span class="p">(</span><span class="n">mail_idx</span><span class="p">),</span>
+        <span class="n">in_reply_to</span><span class="o">=</span><span class="n">in_reply_to</span><span class="p">,</span>
+        <span class="n">references</span><span class="o">=</span><span class="n">refereneces</span><span class="p">,</span>
+    <span class="p">)</span></div>
 
 
 <span class="k">def</span> <span class="nf">init_app</span><span class="p">(</span><span class="n">app</span><span class="p">:</span> <span class="n">t</span><span class="o">.</span><span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>

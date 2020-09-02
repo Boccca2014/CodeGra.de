@@ -239,7 +239,6 @@
 <span class="kn">from</span> <span class="nn">.rubric</span> <span class="kn">import</span> <span class="n">RubricItem</span><span class="p">,</span> <span class="n">WorkRubricItem</span>
 <span class="kn">from</span> <span class="nn">.comment</span> <span class="kn">import</span> <span class="n">CommentBase</span>
 <span class="kn">from</span> <span class="nn">..helpers</span> <span class="kn">import</span> <span class="n">JSONType</span>
-<span class="kn">from</span> <span class="nn">..exceptions</span> <span class="kn">import</span> <span class="n">PermissionException</span>
 <span class="kn">from</span> <span class="nn">..permissions</span> <span class="kn">import</span> <span class="n">CoursePermission</span>
 
 <span class="n">logger</span> <span class="o">=</span> <span class="n">structlog</span><span class="o">.</span><span class="n">get_logger</span><span class="p">()</span>
@@ -761,21 +760,12 @@
             <span class="s1">&#39;grade_overridden&#39;</span><span class="p">:</span> <span class="kc">False</span><span class="p">,</span>
             <span class="s1">&#39;assignee&#39;</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span>
         <span class="p">}</span>
+        <span class="n">perm_checker</span> <span class="o">=</span> <span class="n">auth</span><span class="o">.</span><span class="n">WorkPermissions</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
 
-        <span class="k">try</span><span class="p">:</span>
-            <span class="n">auth</span><span class="o">.</span><span class="n">ensure_permission</span><span class="p">(</span>
-                <span class="n">CoursePermission</span><span class="o">.</span><span class="n">can_see_assignee</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">assignment</span><span class="o">.</span><span class="n">course_id</span>
-            <span class="p">)</span>
-        <span class="k">except</span> <span class="n">PermissionException</span><span class="p">:</span>
-            <span class="k">pass</span>
-        <span class="k">else</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">perm_checker</span><span class="o">.</span><span class="n">ensure_may_see_assignee</span><span class="o">.</span><span class="n">as_bool</span><span class="p">():</span>
             <span class="n">item</span><span class="p">[</span><span class="s1">&#39;assignee&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">assignee</span>
 
-        <span class="k">try</span><span class="p">:</span>
-            <span class="n">auth</span><span class="o">.</span><span class="n">ensure_can_see_grade</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
-        <span class="k">except</span> <span class="n">PermissionException</span><span class="p">:</span>
-            <span class="k">pass</span>
-        <span class="k">else</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">auth</span><span class="o">.</span><span class="n">WorkPermissions</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">ensure_may_see_grade</span><span class="o">.</span><span class="n">as_bool</span><span class="p">():</span>
             <span class="n">item</span><span class="p">[</span><span class="s1">&#39;grade&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">grade</span>
             <span class="n">item</span><span class="p">[</span><span class="s1">&#39;grade_overridden&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">_grade</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span>
@@ -872,11 +862,7 @@
                 <span class="s1">&#39;selected&#39;</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span>
             <span class="p">},</span>
         <span class="p">}</span>
-        <span class="k">try</span><span class="p">:</span>
-            <span class="n">psef</span><span class="o">.</span><span class="n">auth</span><span class="o">.</span><span class="n">ensure_can_see_grade</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
-        <span class="k">except</span> <span class="n">PermissionException</span><span class="p">:</span>
-            <span class="k">pass</span>
-        <span class="k">else</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">auth</span><span class="o">.</span><span class="n">WorkPermissions</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">ensure_may_see_grade</span><span class="o">.</span><span class="n">as_bool</span><span class="p">():</span>
             <span class="n">res</span><span class="p">[</span><span class="s1">&#39;selected&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">selected_items</span>
             <span class="n">res</span><span class="p">[</span><span class="s1">&#39;points&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span>
                 <span class="s1">&#39;max&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">assignment</span><span class="o">.</span><span class="n">max_rubric_points</span><span class="p">,</span>

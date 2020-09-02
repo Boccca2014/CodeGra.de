@@ -218,7 +218,6 @@
 <span class="kn">import</span> <span class="nn">sqlalchemy</span>
 <span class="kn">import</span> <span class="nn">jwcrypto.jwk</span>
 <span class="kn">import</span> <span class="nn">pylti1p3.grade</span>
-<span class="kn">import</span> <span class="nn">flask_jwt_extended</span> <span class="k">as</span> <span class="nn">flask_jwt</span>
 <span class="kn">import</span> <span class="nn">pylti1p3.exception</span>
 <span class="kn">import</span> <span class="nn">pylti1p3.names_roles</span>
 <span class="kn">import</span> <span class="nn">pylti1p3.service_connector</span>
@@ -378,7 +377,9 @@
             <span class="n">assignment_models</span><span class="o">.</span><span class="n">Assignment</span><span class="o">.</span><span class="n">is_visible</span><span class="p">,</span>
         <span class="p">)</span>
         <span class="k">if</span> <span class="n">lock</span><span class="p">:</span>
-            <span class="n">query</span> <span class="o">=</span> <span class="n">query</span><span class="o">.</span><span class="n">with_for_update</span><span class="p">(</span><span class="n">read</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+            <span class="n">query</span> <span class="o">=</span> <span class="n">query</span><span class="o">.</span><span class="n">with_for_update</span><span class="p">(</span>
+                <span class="n">read</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">of</span><span class="o">=</span><span class="n">assignment_models</span><span class="o">.</span><span class="n">Assignment</span>
+            <span class="p">)</span>
 
         <span class="n">assig</span> <span class="o">=</span> <span class="n">query</span><span class="o">.</span><span class="n">one_or_none</span><span class="p">()</span>
 
@@ -1098,6 +1099,8 @@
                 <span class="n">assignment_models</span><span class="o">.</span><span class="n">Assignment</span><span class="o">.</span><span class="n">lti_assignment_id</span> <span class="o">==</span> <span class="n">lti_assid_id</span><span class="p">,</span>
                 <span class="n">assignment_models</span><span class="o">.</span><span class="n">Assignment</span><span class="o">.</span><span class="n">lti_assignment_id</span><span class="o">.</span><span class="n">isnot</span><span class="p">(</span><span class="kc">None</span><span class="p">),</span>
                 <span class="n">assignment_models</span><span class="o">.</span><span class="n">Assignment</span><span class="o">.</span><span class="n">is_lti</span><span class="p">,</span>
+            <span class="p">)</span><span class="o">.</span><span class="n">with_for_update</span><span class="p">(</span>
+                <span class="n">read</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">of</span><span class="o">=</span><span class="n">assignment_models</span><span class="o">.</span><span class="n">Assignment</span>
             <span class="p">)</span><span class="o">.</span><span class="n">one_or_none</span><span class="p">()</span>
 
         <span class="n">found_assig</span> <span class="o">=</span> <span class="n">find</span><span class="p">(</span><span class="n">resource_id</span><span class="p">)</span>
@@ -1780,10 +1783,7 @@
         <span class="p">)</span>
         <span class="n">db</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">flush</span><span class="p">()</span>
 
-        <span class="n">token</span> <span class="o">=</span> <span class="n">flask_jwt</span><span class="o">.</span><span class="n">create_access_token</span><span class="p">(</span>
-            <span class="n">identity</span><span class="o">=</span><span class="n">user</span><span class="o">.</span><span class="n">id</span><span class="p">,</span>
-            <span class="n">fresh</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
-        <span class="p">)</span>
+        <span class="n">token</span> <span class="o">=</span> <span class="n">user</span><span class="o">.</span><span class="n">make_access_token</span><span class="p">()</span>
         <span class="k">return</span> <span class="n">user</span><span class="p">,</span> <span class="n">token</span>
 
     <span class="nd">@classmethod</span>
@@ -1887,10 +1887,7 @@
                     <span class="n">lti_user</span><span class="o">=</span><span class="n">lti_user</span>
                 <span class="p">)</span>
             <span class="c1"># LTI users are used before the current logged user.</span>
-            <span class="n">token</span> <span class="o">=</span> <span class="n">flask_jwt</span><span class="o">.</span><span class="n">create_access_token</span><span class="p">(</span>
-                <span class="n">identity</span><span class="o">=</span><span class="n">lti_user</span><span class="o">.</span><span class="n">id</span><span class="p">,</span>
-                <span class="n">fresh</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
-            <span class="p">)</span>
+            <span class="n">token</span> <span class="o">=</span> <span class="n">lti_user</span><span class="o">.</span><span class="n">make_access_token</span><span class="p">()</span>
             <span class="n">user</span> <span class="o">=</span> <span class="n">lti_user</span>
         <span class="k">elif</span> <span class="n">is_logged_in</span> <span class="ow">and</span> <span class="ow">not</span> <span class="bp">cls</span><span class="o">.</span><span class="n">user_is_linked</span><span class="p">(</span><span class="n">current_user</span><span class="p">):</span>
             <span class="c1"># TODO show some sort of screen if this linking is wanted</span>

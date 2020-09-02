@@ -537,6 +537,7 @@
         <span class="n">username</span><span class="p">:</span> <span class="n">t</span><span class="o">.</span><span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span>
         <span class="n">deadline</span><span class="p">:</span> <span class="n">t</span><span class="o">.</span><span class="n">Optional</span><span class="p">[</span><span class="n">DatetimeWithTimezone</span><span class="p">]</span>
         <span class="n">is_available</span><span class="p">:</span> <span class="n">t</span><span class="o">.</span><span class="n">Optional</span><span class="p">[</span><span class="nb">bool</span><span class="p">]</span>
+        <span class="n">available_at</span><span class="p">:</span> <span class="n">t</span><span class="o">.</span><span class="n">Optional</span><span class="p">[</span><span class="n">DatetimeWithTimezone</span><span class="p">]</span>
         <span class="n">resource_id</span><span class="p">:</span> <span class="n">t</span><span class="o">.</span><span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span></div>
 
 <div class="viewcode-block" id="CGCustomClaims.ReplacementVar"><a class="viewcode-back" href="../../../psef_api/psef.html#psef.lti.v1_3.CGCustomClaims.ReplacementVar">[docs]</a>    <span class="k">class</span> <span class="nc">ReplacementVar</span><span class="p">:</span>
@@ -752,20 +753,18 @@
         <span class="n">available_at</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_get_claim</span><span class="p">(</span>
             <span class="s1">&#39;cg_available_at&#39;</span><span class="p">,</span> <span class="n">custom_claims</span><span class="p">,</span> <span class="n">base_data</span><span class="p">,</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_parse_isoformat</span>
         <span class="p">)</span>
-        <span class="k">if</span> <span class="n">available_at</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="n">is_available</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_get_claim</span><span class="p">(</span>
-                <span class="s1">&#39;cg_is_published&#39;</span><span class="p">,</span>
-                <span class="n">custom_claims</span><span class="p">,</span>
-                <span class="n">base_data</span><span class="p">,</span>
-                <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="o">==</span> <span class="s1">&#39;true&#39;</span><span class="p">,</span>
-            <span class="p">)</span>
-        <span class="k">else</span><span class="p">:</span>
-            <span class="n">is_available</span> <span class="o">=</span> <span class="n">DatetimeWithTimezone</span><span class="o">.</span><span class="n">utcnow</span><span class="p">()</span> <span class="o">&gt;=</span> <span class="n">available_at</span>
+        <span class="n">is_available</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_get_claim</span><span class="p">(</span>
+            <span class="s1">&#39;cg_is_published&#39;</span><span class="p">,</span>
+            <span class="n">custom_claims</span><span class="p">,</span>
+            <span class="n">base_data</span><span class="p">,</span>
+            <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="o">==</span> <span class="s1">&#39;true&#39;</span><span class="p">,</span>
+        <span class="p">)</span>
 
         <span class="k">return</span> <span class="n">CGCustomClaims</span><span class="o">.</span><span class="n">ClaimResult</span><span class="p">(</span>
             <span class="n">username</span><span class="o">=</span><span class="n">username</span><span class="p">,</span>
             <span class="n">deadline</span><span class="o">=</span><span class="n">deadline</span><span class="p">,</span>
             <span class="n">is_available</span><span class="o">=</span><span class="n">is_available</span><span class="p">,</span>
+            <span class="n">available_at</span><span class="o">=</span><span class="n">available_at</span><span class="p">,</span>
             <span class="n">resource_id</span><span class="o">=</span><span class="n">resource_id</span><span class="p">,</span>
         <span class="p">)</span></div></div>
 
@@ -1182,11 +1181,14 @@
         <span class="k">if</span> <span class="n">resource_claim</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;title&#39;</span><span class="p">):</span>
             <span class="n">assignment</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="n">resource_claim</span><span class="p">[</span><span class="s1">&#39;title&#39;</span><span class="p">]</span>
 
-        <span class="k">if</span> <span class="ow">not</span> <span class="n">assignment</span><span class="o">.</span><span class="n">is_done</span><span class="p">:</span>
-            <span class="k">if</span> <span class="n">custom_claim</span><span class="o">.</span><span class="n">is_available</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">custom_claim</span><span class="o">.</span><span class="n">is_available</span><span class="p">:</span>
-                <span class="n">assignment</span><span class="o">.</span><span class="n">state</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">AssignmentStateEnum</span><span class="o">.</span><span class="n">open</span>
-            <span class="k">else</span><span class="p">:</span>
-                <span class="n">assignment</span><span class="o">.</span><span class="n">state</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">AssignmentStateEnum</span><span class="o">.</span><span class="n">hidden</span>
+        <span class="k">if</span> <span class="n">assignment</span><span class="o">.</span><span class="n">is_done</span><span class="p">:</span>
+            <span class="k">pass</span>
+        <span class="k">elif</span> <span class="n">custom_claim</span><span class="o">.</span><span class="n">available_at</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">assignment</span><span class="o">.</span><span class="n">available_at</span> <span class="o">=</span> <span class="n">custom_claim</span><span class="o">.</span><span class="n">available_at</span>
+        <span class="k">elif</span> <span class="n">custom_claim</span><span class="o">.</span><span class="n">is_available</span> <span class="ow">is</span> <span class="kc">False</span><span class="p">:</span>
+            <span class="n">assignment</span><span class="o">.</span><span class="n">state</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">AssignmentStateEnum</span><span class="o">.</span><span class="n">hidden</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">assignment</span><span class="o">.</span><span class="n">state</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">AssignmentStateEnum</span><span class="o">.</span><span class="n">open</span>
 
         <span class="k">return</span> <span class="n">assignment</span></div>
 

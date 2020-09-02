@@ -210,20 +210,25 @@
 <span class="kn">import</span> <span class="nn">typing</span> <span class="k">as</span> <span class="nn">t</span>
 
 <span class="kn">import</span> <span class="nn">structlog</span>
-<span class="kn">from</span> <span class="nn">typing_extensions</span> <span class="kn">import</span> <span class="n">TypedDict</span>
+<span class="kn">from</span> <span class="nn">celery</span> <span class="kn">import</span> <span class="n">current_task</span>
+<span class="kn">from</span> <span class="nn">typing_extensions</span> <span class="kn">import</span> <span class="n">Literal</span><span class="p">,</span> <span class="n">TypedDict</span>
 
+<span class="kn">import</span> <span class="nn">cg_enum</span>
 <span class="kn">from</span> <span class="nn">cg_json</span> <span class="kn">import</span> <span class="n">JSONResponse</span>
+<span class="kn">from</span> <span class="nn">cg_helpers</span> <span class="kn">import</span> <span class="n">handle_none</span><span class="p">,</span> <span class="n">on_not_none</span>
+<span class="kn">from</span> <span class="nn">cg_dt_utils</span> <span class="kn">import</span> <span class="n">DatetimeWithTimezone</span>
 <span class="kn">from</span> <span class="nn">cg_sqlalchemy_helpers</span> <span class="kn">import</span> <span class="n">JSONB</span>
 <span class="kn">from</span> <span class="nn">cg_sqlalchemy_helpers.mixins</span> <span class="kn">import</span> <span class="n">UUIDMixin</span><span class="p">,</span> <span class="n">TimestampMixin</span>
 
-<span class="kn">from</span> <span class="nn">.</span> <span class="kn">import</span> <span class="n">Base</span><span class="p">,</span> <span class="n">User</span><span class="p">,</span> <span class="n">db</span>
+<span class="kn">from</span> <span class="nn">.</span> <span class="kn">import</span> <span class="n">Base</span><span class="p">,</span> <span class="n">db</span>
+<span class="kn">from</span> <span class="nn">.</span> <span class="kn">import</span> <span class="n">user</span> <span class="k">as</span> <span class="n">user_models</span>
 <span class="kn">from</span> <span class="nn">..exceptions</span> <span class="kn">import</span> <span class="n">APICodes</span><span class="p">,</span> <span class="n">APIException</span>
 
 <span class="n">logger</span> <span class="o">=</span> <span class="n">structlog</span><span class="o">.</span><span class="n">get_logger</span><span class="p">()</span>
 
 
 <div class="viewcode-block" id="TaskResultState"><a class="viewcode-back" href="../../../psef_api/psef.html#psef.models.task_result.TaskResultState">[docs]</a><span class="nd">@enum</span><span class="o">.</span><span class="n">unique</span>
-<span class="k">class</span> <span class="nc">TaskResultState</span><span class="p">(</span><span class="n">enum</span><span class="o">.</span><span class="n">Enum</span><span class="p">):</span>
+<span class="k">class</span> <span class="nc">TaskResultState</span><span class="p">(</span><span class="n">cg_enum</span><span class="o">.</span><span class="n">CGEnum</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;The state of a task result.</span>
 
 <span class="sd">    :ivar not_started: The task has not been started yet.</span>
@@ -237,9 +242,7 @@
     <span class="n">finished</span> <span class="o">=</span> <span class="mi">2</span>
     <span class="n">failed</span> <span class="o">=</span> <span class="mi">3</span>
     <span class="n">crashed</span> <span class="o">=</span> <span class="mi">4</span>
-
-    <span class="k">def</span> <span class="nf">__to_json__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span></div>
+    <span class="n">skipped</span> <span class="o">=</span> <span class="mi">5</span></div>
 
 
 <div class="viewcode-block" id="TaskResultJSON"><a class="viewcode-back" href="../../../psef_api/psef.html#psef.models.task_result.TaskResultJSON">[docs]</a><span class="k">class</span> <span class="nc">TaskResultJSON</span><span class="p">(</span><span class="n">TypedDict</span><span class="p">):</span>
@@ -248,6 +251,9 @@
     <span class="nb">id</span><span class="p">:</span> <span class="nb">str</span>
     <span class="n">state</span><span class="p">:</span> <span class="n">TaskResultState</span>
     <span class="n">result</span><span class="p">:</span> <span class="n">t</span><span class="o">.</span><span class="n">Optional</span><span class="p">[</span><span class="n">t</span><span class="o">.</span><span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">object</span><span class="p">]]</span></div>
+
+
+<span class="n">TaskReturnType</span> <span class="o">=</span> <span class="n">Literal</span><span class="p">[</span><span class="n">TaskResultState</span><span class="o">.</span><span class="n">skipped</span><span class="p">,</span> <span class="n">TaskResultState</span><span class="o">.</span><span class="n">finished</span><span class="p">]</span>
 
 
 <div class="viewcode-block" id="TaskResult"><a class="viewcode-back" href="../../../psef_api/psef.html#psef.models.task_result.TaskResult">[docs]</a><span class="k">class</span> <span class="nc">TaskResult</span><span class="p">(</span><span class="n">Base</span><span class="p">,</span> <span class="n">UUIDMixin</span><span class="p">,</span> <span class="n">TimestampMixin</span><span class="p">):</span>
@@ -269,14 +275,19 @@
         <span class="s1">&#39;author_id&#39;</span><span class="p">,</span>
         <span class="n">db</span><span class="o">.</span><span class="n">Integer</span><span class="p">,</span>
         <span class="n">db</span><span class="o">.</span><span class="n">ForeignKey</span><span class="p">(</span><span class="s1">&#39;User.id&#39;</span><span class="p">,</span> <span class="n">ondelete</span><span class="o">=</span><span class="s1">&#39;CASCADE&#39;</span><span class="p">),</span>
-        <span class="n">nullable</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="n">nullable</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
     <span class="p">)</span>
-    <span class="n">user</span> <span class="o">=</span> <span class="n">db</span><span class="o">.</span><span class="n">relationship</span><span class="p">(</span><span class="n">User</span><span class="p">,</span> <span class="n">foreign_keys</span><span class="o">=</span><span class="n">user_id</span><span class="p">,</span> <span class="n">innerjoin</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">user</span> <span class="o">=</span> <span class="n">db</span><span class="o">.</span><span class="n">relationship</span><span class="p">(</span><span class="k">lambda</span><span class="p">:</span> <span class="n">user_models</span><span class="o">.</span><span class="n">User</span><span class="p">,</span> <span class="n">foreign_keys</span><span class="o">=</span><span class="n">user_id</span><span class="p">)</span>
 
-    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">user</span><span class="p">:</span> <span class="n">User</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">user</span><span class="o">=</span><span class="n">User</span><span class="o">.</span><span class="n">resolve</span><span class="p">(</span><span class="n">user</span><span class="p">))</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">user</span><span class="p">:</span> <span class="n">t</span><span class="o">.</span><span class="n">Optional</span><span class="p">[</span><span class="s1">&#39;user_models.User&#39;</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">user</span><span class="o">=</span><span class="n">on_not_none</span><span class="p">(</span><span class="n">user</span><span class="p">,</span> <span class="n">user_models</span><span class="o">.</span><span class="n">User</span><span class="o">.</span><span class="n">resolve</span><span class="p">))</span>
 
-<div class="viewcode-block" id="TaskResult.as_task"><a class="viewcode-back" href="../../../psef_api/psef.html#psef.models.task_result.TaskResult.as_task">[docs]</a>    <span class="k">def</span> <span class="nf">as_task</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">fun</span><span class="p">:</span> <span class="n">t</span><span class="o">.</span><span class="n">Callable</span><span class="p">[[],</span> <span class="kc">None</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<div class="viewcode-block" id="TaskResult.as_task"><a class="viewcode-back" href="../../../psef_api/psef.html#psef.models.task_result.TaskResult.as_task">[docs]</a>    <span class="k">def</span> <span class="nf">as_task</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">fun</span><span class="p">:</span> <span class="n">t</span><span class="o">.</span><span class="n">Callable</span><span class="p">[[],</span> <span class="n">t</span><span class="o">.</span><span class="n">Optional</span><span class="p">[</span><span class="n">TaskResultState</span><span class="p">]],</span>
+        <span class="o">*</span><span class="p">,</span>
+        <span class="n">eta</span><span class="p">:</span> <span class="n">t</span><span class="o">.</span><span class="n">Optional</span><span class="p">[</span><span class="n">DatetimeWithTimezone</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
         <span class="sd">&quot;&quot;&quot;Run the given ``fun`` as the task.</span>
 
 <span class="sd">        .. warning::</span>
@@ -286,17 +297,25 @@
 
 <span class="sd">        :param fun: The function to run as the task, catching the exceptions it</span>
 <span class="sd">            produces and storing them in this task result.</span>
-<span class="sd">        :returns: Nothing.</span>
+<span class="sd">        :param eta: The time the task should run, if the current time is before</span>
+<span class="sd">            this ETA the current celery task will be scheduled again and</span>
+<span class="sd">            ``fun`` will not be called.</span>
+
+<span class="sd">        :returns: ``True`` if the task ran, otherwise ``False``.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">state</span> <span class="o">==</span> <span class="n">TaskResultState</span><span class="o">.</span><span class="n">not_started</span><span class="p">,</span> <span class="p">(</span>
-            <span class="s1">&#39;Cannot start task that has already started, state was in </span><span class="si">{}</span><span class="s1">&#39;</span>
-        <span class="p">)</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">state</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">state</span><span class="o">.</span><span class="n">is_not_started</span><span class="p">:</span>  <span class="c1"># pragma: no cover</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span>
+                <span class="s1">&#39;Cannot start task that has already started&#39;</span><span class="p">,</span> <span class="n">task_result</span><span class="o">=</span><span class="bp">self</span>
+            <span class="p">)</span>
+            <span class="k">return</span> <span class="kc">False</span>
+        <span class="k">elif</span> <span class="n">eta</span> <span class="ow">and</span> <span class="n">current_task</span><span class="o">.</span><span class="n">maybe_delay_task</span><span class="p">(</span><span class="n">eta</span><span class="p">):</span>
+            <span class="k">return</span> <span class="kc">False</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">state</span> <span class="o">=</span> <span class="n">TaskResultState</span><span class="o">.</span><span class="n">started</span>
         <span class="n">db</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">commit</span><span class="p">()</span>
 
         <span class="k">try</span><span class="p">:</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">result</span> <span class="o">=</span> <span class="n">fun</span><span class="p">()</span>
+            <span class="n">result_code</span> <span class="o">=</span> <span class="n">fun</span><span class="p">()</span>
         <span class="k">except</span> <span class="n">APIException</span> <span class="k">as</span> <span class="n">exc</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">state</span> <span class="o">=</span> <span class="n">TaskResultState</span><span class="o">.</span><span class="n">failed</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">result</span> <span class="o">=</span> <span class="n">JSONResponse</span><span class="o">.</span><span class="n">dump_to_object</span><span class="p">(</span><span class="n">exc</span><span class="p">)</span>
@@ -311,7 +330,10 @@
                 <span class="p">)</span>
             <span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">state</span> <span class="o">=</span> <span class="n">TaskResultState</span><span class="o">.</span><span class="n">finished</span></div>
+            <span class="bp">self</span><span class="o">.</span><span class="n">result</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">state</span> <span class="o">=</span> <span class="n">handle_none</span><span class="p">(</span><span class="n">result_code</span><span class="p">,</span> <span class="n">TaskResultState</span><span class="o">.</span><span class="n">finished</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="kc">True</span></div>
 
     <span class="k">def</span> <span class="nf">__to_json__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">TaskResultJSON</span><span class="p">:</span>
         <span class="sd">&quot;&quot;&quot;Convert this task result to json.</span>

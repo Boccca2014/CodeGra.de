@@ -219,6 +219,7 @@
 <span class="kn">from</span> <span class="nn">sqlalchemy_utils</span> <span class="kn">import</span> <span class="n">UUIDType</span>
 
 <span class="kn">import</span> <span class="nn">psef</span>
+<span class="kn">from</span> <span class="nn">cg_enum</span> <span class="kn">import</span> <span class="n">CGEnum</span>
 <span class="kn">from</span> <span class="nn">cg_dt_utils</span> <span class="kn">import</span> <span class="n">DatetimeWithTimezone</span>
 <span class="kn">from</span> <span class="nn">cg_sqlalchemy_helpers</span> <span class="kn">import</span> <span class="n">hybrid_property</span>
 <span class="kn">from</span> <span class="nn">cg_sqlalchemy_helpers.types</span> <span class="kn">import</span> <span class="p">(</span>
@@ -237,7 +238,7 @@
 
 
 <div class="viewcode-block" id="FileOwner"><a class="viewcode-back" href="../../../psef_api/psef.html#psef.models.file.FileOwner">[docs]</a><span class="nd">@enum</span><span class="o">.</span><span class="n">unique</span>
-<span class="k">class</span> <span class="nc">FileOwner</span><span class="p">(</span><span class="n">enum</span><span class="o">.</span><span class="n">IntEnum</span><span class="p">):</span>
+<span class="k">class</span> <span class="nc">FileOwner</span><span class="p">(</span><span class="n">CGEnum</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Describes to which version of a submission (student&#39;s submission or</span>
 <span class="sd">    teacher&#39;s revision) a file belongs. When a student adds or changes a file</span>
 <span class="sd">    after the deadline for the assignment has passed, the original file&#39;s owner</span>
@@ -251,9 +252,9 @@
 <span class="sd">        to both versions.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
-    <span class="n">student</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1</span>
-    <span class="n">teacher</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">2</span>
-    <span class="n">both</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">3</span></div>
+    <span class="n">student</span> <span class="o">=</span> <span class="mi">1</span>
+    <span class="n">teacher</span> <span class="o">=</span> <span class="mi">2</span>
+    <span class="n">both</span> <span class="o">=</span> <span class="mi">3</span></div>
 
 
 <div class="viewcode-block" id="FileMixin"><a class="viewcode-back" href="../../../psef_api/psef.html#psef.models.file.FileMixin">[docs]</a><span class="k">class</span> <span class="nc">FileMixin</span><span class="p">(</span><span class="n">t</span><span class="o">.</span><span class="n">Generic</span><span class="p">[</span><span class="n">T</span><span class="p">]):</span>

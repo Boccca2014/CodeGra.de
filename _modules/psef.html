@@ -261,10 +261,11 @@
         <span class="n">dict_to_load</span> <span class="o">=</span> <span class="p">{}</span>
         <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">t_name</span> <span class="ow">in</span> <span class="p">[</span>
             <span class="p">(</span><span class="s1">&#39;DIRECT_NOTIFICATION_TEMPLATE_FILE&#39;</span><span class="p">,</span> <span class="s1">&#39;notification.j2&#39;</span><span class="p">),</span>
-            <span class="p">(</span><span class="s1">&#39;DIGEST_NOTIFICATION_TEMPLATE_FILE&#39;</span><span class="p">,</span> <span class="s1">&#39;digest.j2&#39;</span><span class="p">)</span>
-        <span class="p">]:</span>  <span class="c1"># pragma: no cover</span>
+            <span class="p">(</span><span class="s1">&#39;DIGEST_NOTIFICATION_TEMPLATE_FILE&#39;</span><span class="p">,</span> <span class="s1">&#39;digest.j2&#39;</span><span class="p">),</span>
+            <span class="p">(</span><span class="s1">&#39;EXAM_LOGIN_TEMPLATE_FILE&#39;</span><span class="p">,</span> <span class="s1">&#39;exam_login.j2&#39;</span><span class="p">),</span>
+        <span class="p">]:</span>
             <span class="n">template</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
-            <span class="k">if</span> <span class="n">template</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">template</span><span class="p">:</span>  <span class="c1"># pragma: no cover</span>
                 <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">template</span><span class="p">),</span> <span class="s1">&#39;r&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
                     <span class="n">dict_to_load</span><span class="p">[</span><span class="n">t_name</span><span class="p">]</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">read</span><span class="p">()</span>
 

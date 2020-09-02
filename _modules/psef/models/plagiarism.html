@@ -209,6 +209,8 @@
 <span class="kn">import</span> <span class="nn">json</span>
 <span class="kn">import</span> <span class="nn">typing</span> <span class="k">as</span> <span class="nn">t</span>
 
+<span class="kn">from</span> <span class="nn">typing_extensions</span> <span class="kn">import</span> <span class="n">Literal</span>
+
 <span class="kn">import</span> <span class="nn">psef</span>
 <span class="kn">from</span> <span class="nn">cg_dt_utils</span> <span class="kn">import</span> <span class="n">DatetimeWithTimezone</span>
 <span class="kn">from</span> <span class="nn">cg_sqlalchemy_helpers.types</span> <span class="kn">import</span> <span class="n">ColumnProxy</span>
@@ -216,7 +218,6 @@
 <span class="kn">from</span> <span class="nn">.</span> <span class="kn">import</span> <span class="n">Base</span><span class="p">,</span> <span class="n">db</span>
 <span class="kn">from</span> <span class="nn">..</span> <span class="kn">import</span> <span class="n">auth</span>
 <span class="kn">from</span> <span class="nn">.assignment</span> <span class="kn">import</span> <span class="n">Assignment</span>
-<span class="kn">from</span> <span class="nn">..exceptions</span> <span class="kn">import</span> <span class="n">PermissionException</span>
 
 
 <div class="viewcode-block" id="PlagiarismMatch"><a class="viewcode-back" href="../../../psef_api/psef.html#psef.models.plagiarism.PlagiarismMatch">[docs]</a><span class="k">class</span> <span class="nc">PlagiarismMatch</span><span class="p">(</span><span class="n">Base</span><span class="p">):</span>
@@ -314,6 +315,23 @@
         <span class="p">}</span></div>
 
 
+<div class="viewcode-block" id="PlagiarismWorks"><a class="viewcode-back" href="../../../psef_api/psef.html#psef.models.plagiarism.PlagiarismWorks">[docs]</a><span class="k">class</span> <span class="nc">PlagiarismWorks</span><span class="p">(</span><span class="n">t</span><span class="o">.</span><span class="n">NamedTuple</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;The works connected to a plagiarism case.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1">#: For this work is guaranteed that it was submitted to the assignment on</span>
+    <span class="c1">#: which the plagiarism run was done.</span>
+    <span class="n">own_work</span><span class="p">:</span> <span class="s1">&#39;psef.models.Work&#39;</span>
+    <span class="c1">#: The assignment for this work might be different.</span>
+    <span class="n">other_work</span><span class="p">:</span> <span class="s1">&#39;psef.models.Work&#39;</span>
+
+<div class="viewcode-block" id="PlagiarismWorks.get_other_index"><a class="viewcode-back" href="../../../psef_api/psef.html#psef.models.plagiarism.PlagiarismWorks.get_other_index">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">get_other_index</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n">Literal</span><span class="p">[</span><span class="mi">1</span><span class="p">]:</span>
+        <span class="sd">&quot;&quot;&quot;Get the index for the work that might not have been submitted to the</span>
+<span class="sd">        assignment on which the run was done.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="mi">1</span></div></div>
+
+
 <div class="viewcode-block" id="PlagiarismCase"><a class="viewcode-back" href="../../../psef_api/psef.html#psef.models.plagiarism.PlagiarismCase">[docs]</a><span class="k">class</span> <span class="nc">PlagiarismCase</span><span class="p">(</span><span class="n">Base</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Describe a case of possible plagiarism.</span>
 
@@ -395,6 +413,14 @@
     <span class="p">)</span>
 
     <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">works</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">PlagiarismWorks</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Get the works connected to this case.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">work2</span><span class="o">.</span><span class="n">assignment_id</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">plagiarism_run</span><span class="o">.</span><span class="n">assignment_id</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">PlagiarismWorks</span><span class="p">(</span><span class="n">own_work</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">work2</span><span class="p">,</span> <span class="n">other_work</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">work1</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">PlagiarismWorks</span><span class="p">(</span><span class="n">own_work</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">work1</span><span class="p">,</span> <span class="n">other_work</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">work2</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">any_work_deleted</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
         <span class="sd">&quot;&quot;&quot;Is any of the works connected to this case deleted.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
@@ -425,26 +451,19 @@
 
 <span class="sd">        :returns: A object as described above.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">works</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">works</span>
         <span class="n">data</span><span class="p">:</span> <span class="n">t</span><span class="o">.</span><span class="n">MutableMapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">t</span><span class="o">.</span><span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span>
             <span class="s1">&#39;id&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">id</span><span class="p">,</span>
-            <span class="s1">&#39;users&#39;</span><span class="p">:</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">work1</span><span class="o">.</span><span class="n">user</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">work2</span><span class="o">.</span><span class="n">user</span><span class="p">],</span>
+            <span class="s1">&#39;users&#39;</span><span class="p">:</span> <span class="p">[</span><span class="n">w</span><span class="o">.</span><span class="n">user</span> <span class="k">for</span> <span class="n">w</span> <span class="ow">in</span> <span class="n">works</span><span class="p">],</span>
             <span class="s1">&#39;match_avg&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">match_avg</span><span class="p">,</span>
             <span class="s1">&#39;match_max&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">match_max</span><span class="p">,</span>
-            <span class="s1">&#39;assignments&#39;</span><span class="p">:</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">work1</span><span class="o">.</span><span class="n">assignment</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">work2</span><span class="o">.</span><span class="n">assignment</span><span class="p">],</span>
-            <span class="s1">&#39;submissions&#39;</span><span class="p">:</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">work1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">work2</span><span class="p">],</span>
+            <span class="s1">&#39;assignments&#39;</span><span class="p">:</span> <span class="p">[</span><span class="n">w</span><span class="o">.</span><span class="n">assignment</span> <span class="k">for</span> <span class="n">w</span> <span class="ow">in</span> <span class="n">works</span><span class="p">],</span>
+            <span class="s1">&#39;submissions&#39;</span><span class="p">:</span> <span class="nb">list</span><span class="p">(</span><span class="n">works</span><span class="p">),</span>
         <span class="p">}</span>
-        <span class="k">try</span><span class="p">:</span>
-            <span class="n">auth</span><span class="o">.</span><span class="n">ensure_can_see_plagiarims_case</span><span class="p">(</span>
-                <span class="bp">self</span><span class="p">,</span> <span class="n">assignments</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">submissions</span><span class="o">=</span><span class="kc">False</span>
-            <span class="p">)</span>
-        <span class="k">except</span> <span class="n">PermissionException</span><span class="p">:</span>
-            <span class="n">other_work_index</span> <span class="o">=</span> <span class="p">(</span>
-                <span class="mi">1</span> <span class="k">if</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">work1</span><span class="o">.</span><span class="n">assignment_id</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">plagiarism_run</span><span class="o">.</span><span class="n">assignment_id</span>
-                <span class="k">else</span> <span class="mi">0</span>
-            <span class="p">)</span>
-            <span class="n">assig</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="s1">&#39;assignments&#39;</span><span class="p">][</span><span class="n">other_work_index</span><span class="p">]</span>
-            <span class="n">data</span><span class="p">[</span><span class="s1">&#39;assignments&#39;</span><span class="p">][</span><span class="n">other_work_index</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="n">perm_checker</span> <span class="o">=</span> <span class="n">auth</span><span class="o">.</span><span class="n">PlagiarismCasePermissions</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">perm_checker</span><span class="o">.</span><span class="n">ensure_may_see_other_assignment</span><span class="o">.</span><span class="n">as_bool</span><span class="p">():</span>
+            <span class="n">assig</span> <span class="o">=</span> <span class="n">works</span><span class="o">.</span><span class="n">other_work</span><span class="o">.</span><span class="n">assignment</span>
+            <span class="n">data</span><span class="p">[</span><span class="s1">&#39;assignments&#39;</span><span class="p">][</span><span class="n">PlagiarismWorks</span><span class="o">.</span><span class="n">get_other_index</span><span class="p">()]</span> <span class="o">=</span> <span class="p">{</span>
                 <span class="s1">&#39;name&#39;</span><span class="p">:</span> <span class="n">assig</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
                 <span class="s1">&#39;course&#39;</span><span class="p">:</span> <span class="p">{</span>
                     <span class="s1">&#39;name&#39;</span><span class="p">:</span> <span class="n">assig</span><span class="o">.</span><span class="n">course</span><span class="o">.</span><span class="n">name</span>
@@ -452,11 +471,7 @@
             <span class="p">}</span>
 
         <span class="c1"># Make sure we may actually see this file.</span>
-        <span class="k">try</span><span class="p">:</span>
-            <span class="n">auth</span><span class="o">.</span><span class="n">ensure_can_see_plagiarims_case</span><span class="p">(</span>
-                <span class="bp">self</span><span class="p">,</span> <span class="n">assignments</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">submissions</span><span class="o">=</span><span class="kc">True</span>
-            <span class="p">)</span>
-        <span class="k">except</span> <span class="n">PermissionException</span><span class="p">:</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">perm_checker</span><span class="o">.</span><span class="n">ensure_may_see_other_submission</span><span class="o">.</span><span class="n">as_bool</span><span class="p">():</span>
             <span class="n">data</span><span class="p">[</span><span class="s1">&#39;submissions&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
 
         <span class="k">return</span> <span class="n">data</span>

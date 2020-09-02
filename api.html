@@ -871,6 +871,14 @@ working.</p>
 <td><p><a class="reference external" href="#get--api-v1-linters-(linter_id)">GET /api/v1/linters/(linter_id)</a></p></td>
 <td><p>Get the state of a given linter.</p></td>
 </tr>
+<tr class="row-odd"><td><p>Login link</p></td>
+<td><p><a class="reference external" href="#post--api-v1-login_links-(uuid-login_link_id)-login">POST /api/v1/login_links/(uuid:login_link_id)/login</a></p></td>
+<td><p>Login with a login link.</p></td>
+</tr>
+<tr class="row-even"><td></td>
+<td><p><a class="reference external" href="#get--api-v1-login_links-(uuid-login_link_id)">GET /api/v1/login_links/(uuid:login_link_id)</a></p></td>
+<td><p>Get a login link and its connected assignment.</p></td>
+</tr>
 <tr class="row-odd"><td><p>Notification</p></td>
 <td><p><a class="reference external" href="#get--api-v1-notifications-">GET /api/v1/notifications/</a></p></td>
 <td><p>Get all notifications.</p></td>
@@ -3210,10 +3218,6 @@ course.</p></li>
 <dt class="field-odd">Response JSON Object</dt>
 <dd class="field-odd"><p>The newly created assignment.</p>
 </dd>
-<dt class="field-even">Possible error responses</dt>
-<dd class="field-even"><p><a class="reference internal" href="psef_api/psef.html#psef.exceptions.PermissionException" title="psef.exceptions.PermissionException"><strong>PermissionException</strong></a> – If the current user does not have the
-<code class="docutils literal notranslate"><span class="pre">can_create_assignment</span></code> permission (INCORRECT_PERMISSION).</p>
-</dd>
 </dl>
 </dd></dl>
 
@@ -4398,7 +4402,7 @@ inactive. (INACTIVE_USER)</p></li>
 
 <dl class="field-list simple">
 <dt class="field-odd">rtype</dt>
-<dd class="field-odd"><p><code class="xref py py-class docutils literal notranslate"><span class="pre">ExtendedJSONResponse</span></code>[<a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Mapping" title="(in Python v3.8)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Mapping</span></code></a>[<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.8)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>, <a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Union" title="(in Python v3.8)"><code class="xref py py-data docutils literal notranslate"><span class="pre">Union</span></code></a>[<a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.MutableMapping" title="(in Python v3.8)"><code class="xref py py-class docutils literal notranslate"><span class="pre">MutableMapping</span></code></a>[<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.8)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>, <a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.8)"><code class="xref py py-data docutils literal notranslate"><span class="pre">Any</span></code></a>], <a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.8)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>]]]</p>
+<dd class="field-odd"><p><code class="xref py py-class docutils literal notranslate"><span class="pre">ExtendedJSONResponse</span></code>[<a class="reference internal" href="psef_api/psef.html#psef.models.user.User.LoginResponse" title="psef.models.user.User.LoginResponse"><code class="xref py py-class docutils literal notranslate"><span class="pre">LoginResponse</span></code></a>]</p>
 </dd>
 </dl>
 <dl class="http get">
@@ -4430,6 +4434,58 @@ which global permissions this user has.</p></li>
 <dl class="field-list simple">
 <dt class="field-odd">rtype</dt>
 <dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Union" title="(in Python v3.8)"><code class="xref py py-data docutils literal notranslate"><span class="pre">Union</span></code></a>[<code class="xref py py-class docutils literal notranslate"><span class="pre">JSONResponse</span></code>[<a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Union" title="(in Python v3.8)"><code class="xref py py-data docutils literal notranslate"><span class="pre">Union</span></code></a>[<a class="reference internal" href="psef_api/psef.html#psef.models.user.User" title="psef.models.user.User"><code class="xref py py-class docutils literal notranslate"><span class="pre">User</span></code></a>, <a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.MutableMapping" title="(in Python v3.8)"><code class="xref py py-class docutils literal notranslate"><span class="pre">MutableMapping</span></code></a>[<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.8)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>, <a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.8)"><code class="xref py py-data docutils literal notranslate"><span class="pre">Any</span></code></a>], <a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Mapping" title="(in Python v3.8)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Mapping</span></code></a>[<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.8)"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code></a>, <a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.8)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>]]], <code class="xref py py-class docutils literal notranslate"><span class="pre">ExtendedJSONResponse</span></code>[<a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Union" title="(in Python v3.8)"><code class="xref py py-data docutils literal notranslate"><span class="pre">Union</span></code></a>[<a class="reference internal" href="psef_api/psef.html#psef.models.user.User" title="psef.models.user.User"><code class="xref py py-class docutils literal notranslate"><span class="pre">User</span></code></a>, <a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.MutableMapping" title="(in Python v3.8)"><code class="xref py py-class docutils literal notranslate"><span class="pre">MutableMapping</span></code></a>[<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.8)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>, <a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.8)"><code class="xref py py-data docutils literal notranslate"><span class="pre">Any</span></code></a>]]]]</p>
+</dd>
+</dl>
+<dl class="http get">
+<dt id="get--api-v1-login_links-(uuid-login_link_id)">
+<code class="sig-name descname">GET </code><code class="sig-name descname">/api/v1/login_links/</code><span class="sig-paren">(</span><em class="property">uuid: </em><em class="sig-param">login_link_id</em><span class="sig-paren">)</span><a class="headerlink" href="#get--api-v1-login_links-(uuid-login_link_id)" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get a login link and the connected assignment.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>login_link_id</strong> – The id of the login link you want to get.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Response JSON Object</dt>
+<dd class="field-even"><p>The requested login link, which will also contain information
+about the connected assignment.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="field-list simple">
+<dt class="field-odd">rtype</dt>
+<dd class="field-odd"><p><code class="xref py py-class docutils literal notranslate"><span class="pre">JSONResponse</span></code>[<a class="reference internal" href="psef_api/psef.html#psef.models.assignment.AssignmentLoginLink" title="psef.models.assignment.AssignmentLoginLink"><code class="xref py py-class docutils literal notranslate"><span class="pre">AssignmentLoginLink</span></code></a>]</p>
+</dd>
+</dl>
+<dl class="http post">
+<dt id="post--api-v1-login_links-(uuid-login_link_id)-login">
+<code class="sig-name descname">POST </code><code class="sig-name descname">/api/v1/login_links/</code><span class="sig-paren">(</span><em class="property">uuid: </em><em class="sig-param">login_link_id</em><span class="sig-paren">)</span><code class="sig-name descname">/login</code><a class="headerlink" href="#post--api-v1-login_links-(uuid-login_link_id)-login" title="Permalink to this definition">¶</a></dt>
+<dd><p>Login with the given login link.</p>
+<p>This will only work when the assignment connected to this link is
+available, and the deadline has not expired. The received JWT token will
+only be valid until the 30 minutes after the deadline, and only in the
+course connected to this link.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The scope of the returned token will change in the future, this will
+not be considered a breaking change.</p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>login_link_id</strong> – The id of the login link you want to use to login.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Response JSON Object</dt>
+<dd class="field-even"><p>The logged in user and an access token.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="field-list simple">
+<dt class="field-odd">rtype</dt>
+<dd class="field-odd"><p><code class="xref py py-class docutils literal notranslate"><span class="pre">ExtendedJSONResponse</span></code>[<a class="reference internal" href="psef_api/psef.html#psef.models.user.User.LoginResponse" title="psef.models.user.User.LoginResponse"><code class="xref py py-class docutils literal notranslate"><span class="pre">LoginResponse</span></code></a>]</p>
 </dd>
 </dl>
 <dl class="http get">

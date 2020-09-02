@@ -231,9 +231,7 @@
 <span class="kn">from</span> <span class="nn">..</span> <span class="kn">import</span> <span class="n">auto_test</span> <span class="k">as</span> <span class="n">auto_test_module</span>
 <span class="kn">from</span> <span class="nn">..helpers</span> <span class="kn">import</span> <span class="n">NotEqualMixin</span>
 <span class="kn">from</span> <span class="nn">..registry</span> <span class="kn">import</span> <span class="n">auto_test_handlers</span><span class="p">,</span> <span class="n">auto_test_grade_calculators</span>
-<span class="kn">from</span> <span class="nn">..exceptions</span> <span class="kn">import</span> <span class="p">(</span>
-    <span class="n">APICodes</span><span class="p">,</span> <span class="n">APIException</span><span class="p">,</span> <span class="n">PermissionException</span><span class="p">,</span> <span class="n">InvalidStateException</span>
-<span class="p">)</span>
+<span class="kn">from</span> <span class="nn">..exceptions</span> <span class="kn">import</span> <span class="n">APICodes</span><span class="p">,</span> <span class="n">APIException</span><span class="p">,</span> <span class="n">InvalidStateException</span>
 <span class="kn">from</span> <span class="nn">..permissions</span> <span class="kn">import</span> <span class="n">CoursePermission</span> <span class="k">as</span> <span class="n">CPerm</span>
 
 <span class="n">logger</span> <span class="o">=</span> <span class="n">structlog</span><span class="o">.</span><span class="n">get_logger</span><span class="p">()</span>
@@ -719,13 +717,11 @@
             <span class="p">)</span><span class="o">.</span><span class="n">count</span><span class="p">()</span>
 
         <span class="n">step_results</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">step_results</span>
-        <span class="k">try</span><span class="p">:</span>
-            <span class="n">auth</span><span class="o">.</span><span class="n">ensure_can_see_grade</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">work</span><span class="p">)</span>
-        <span class="k">except</span> <span class="n">PermissionException</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">auth</span><span class="o">.</span><span class="n">WorkPermissions</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">work</span><span class="p">)</span><span class="o">.</span><span class="n">ensure_may_see_grade</span><span class="o">.</span><span class="n">as_bool</span><span class="p">():</span>
+            <span class="n">final_result</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">final_result</span>
+        <span class="k">else</span><span class="p">:</span>
             <span class="n">step_results</span> <span class="o">=</span> <span class="p">[</span><span class="n">s</span> <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">step_results</span> <span class="k">if</span> <span class="ow">not</span> <span class="n">s</span><span class="o">.</span><span class="n">step</span><span class="o">.</span><span class="n">hidden</span><span class="p">]</span>
             <span class="n">final_result</span> <span class="o">=</span> <span class="kc">False</span>
-        <span class="k">else</span><span class="p">:</span>
-            <span class="n">final_result</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">final_result</span>
 
         <span class="n">suite_files</span> <span class="o">=</span> <span class="p">{}</span>
         <span class="n">assig</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">run</span><span class="o">.</span><span class="n">auto_test</span><span class="o">.</span><span class="n">assignment</span>
@@ -754,12 +750,10 @@
 <span class="sd">        :returns: A query that gets all results by the given user. Notice that</span>
 <span class="sd">            these results are for all :class:`.AutoTestRun` s.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">return</span> <span class="bp">cls</span><span class="o">.</span><span class="n">query</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span>
-            <span class="n">t</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">DbColumn</span><span class="p">[</span><span class="nb">int</span><span class="p">],</span> <span class="bp">cls</span><span class="o">.</span><span class="n">work_id</span><span class="p">)</span><span class="o">.</span><span class="n">in_</span><span class="p">(</span>
-                <span class="n">db</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="n">t</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">DbColumn</span><span class="p">[</span><span class="nb">int</span><span class="p">],</span> <span class="n">work_models</span><span class="o">.</span><span class="n">Work</span><span class="o">.</span><span class="n">id</span><span class="p">)</span>
-                                 <span class="p">)</span><span class="o">.</span><span class="n">filter_by</span><span class="p">(</span><span class="n">user_id</span><span class="o">=</span><span class="n">student_id</span><span class="p">)</span>
-            <span class="p">)</span>
-        <span class="p">)</span></div></div>
+        <span class="n">work_ids</span> <span class="o">=</span> <span class="n">db</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">query</span><span class="p">(</span>
+            <span class="n">work_models</span><span class="o">.</span><span class="n">Work</span><span class="o">.</span><span class="n">id</span><span class="p">,</span>
+        <span class="p">)</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">work_models</span><span class="o">.</span><span class="n">Work</span><span class="o">.</span><span class="n">user_id</span> <span class="o">==</span> <span class="n">student_id</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">cls</span><span class="o">.</span><span class="n">query</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="bp">cls</span><span class="o">.</span><span class="n">work_id</span><span class="o">.</span><span class="n">in_</span><span class="p">(</span><span class="n">work_ids</span><span class="p">))</span></div></div>
 
 
 <div class="viewcode-block" id="AutoTestRunner"><a class="viewcode-back" href="../../../psef_api/psef.html#psef.models.auto_test.AutoTestRunner">[docs]</a><span class="k">class</span> <span class="nc">AutoTestRunner</span><span class="p">(</span><span class="n">Base</span><span class="p">,</span> <span class="n">TimestampMixin</span><span class="p">,</span> <span class="n">UUIDMixin</span><span class="p">,</span> <span class="n">NotEqualMixin</span><span class="p">):</span>
@@ -1268,21 +1262,16 @@
         <span class="p">}</span>
 
     <span class="k">def</span> <span class="nf">__extended_to_json__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">t</span><span class="o">.</span><span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">object</span><span class="p">]:</span>
-        <span class="n">results</span> <span class="o">=</span> <span class="p">[]</span>
-
         <span class="n">all_results</span><span class="p">:</span> <span class="n">t</span><span class="o">.</span><span class="n">Iterable</span><span class="p">[</span><span class="n">AutoTestResult</span><span class="p">]</span>
         <span class="k">if</span> <span class="n">psef</span><span class="o">.</span><span class="n">helpers</span><span class="o">.</span><span class="n">jsonify_options</span><span class="o">.</span><span class="n">get_options</span><span class="p">()</span><span class="o">.</span><span class="n">latest_only</span><span class="p">:</span>
             <span class="n">all_results</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_results_latest_submissions</span><span class="p">()</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="n">all_results</span> <span class="o">=</span> <span class="p">[</span><span class="n">r</span> <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">results</span> <span class="k">if</span> <span class="ow">not</span> <span class="n">r</span><span class="o">.</span><span class="n">work</span><span class="o">.</span><span class="n">deleted</span><span class="p">]</span>
 
-        <span class="k">for</span> <span class="n">result</span> <span class="ow">in</span> <span class="n">all_results</span><span class="p">:</span>
-            <span class="k">try</span><span class="p">:</span>
-                <span class="n">auth</span><span class="o">.</span><span class="n">ensure_can_view_autotest_result</span><span class="p">(</span><span class="n">result</span><span class="p">)</span>
-            <span class="k">except</span> <span class="n">PermissionException</span><span class="p">:</span>
-                <span class="k">continue</span>
-            <span class="k">else</span><span class="p">:</span>
-                <span class="n">results</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">result</span><span class="p">)</span>
+        <span class="n">results</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="n">result</span> <span class="k">for</span> <span class="n">result</span> <span class="ow">in</span> <span class="n">all_results</span>
+            <span class="k">if</span> <span class="n">auth</span><span class="o">.</span><span class="n">AutoTestResultPermissions</span><span class="p">(</span><span class="n">result</span><span class="p">)</span><span class="o">.</span><span class="n">ensure_may_see</span><span class="o">.</span><span class="n">as_bool</span><span class="p">()</span>
+        <span class="p">]</span>
 
         <span class="c1"># TODO: Check permissions for setup_stdout/setup_stderr</span>
         <span class="k">return</span> <span class="p">{</span>
@@ -1745,14 +1734,10 @@
     <span class="k">def</span> <span class="nf">__to_json__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">t</span><span class="o">.</span><span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">object</span><span class="p">]:</span>
         <span class="sd">&quot;&quot;&quot;Covert this AutoTest to json.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="n">fixtures</span> <span class="o">=</span> <span class="p">[]</span>
-        <span class="k">for</span> <span class="n">fixture</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">fixtures</span><span class="p">:</span>
-            <span class="k">try</span><span class="p">:</span>
-                <span class="n">auth</span><span class="o">.</span><span class="n">ensure_can_view_fixture</span><span class="p">(</span><span class="n">fixture</span><span class="p">)</span>
-            <span class="k">except</span> <span class="n">auth</span><span class="o">.</span><span class="n">PermissionException</span><span class="p">:</span>
-                <span class="k">pass</span>
-            <span class="k">else</span><span class="p">:</span>
-                <span class="n">fixtures</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">fixture</span><span class="p">)</span>
+        <span class="n">fixtures</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="n">f</span> <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">fixtures</span>
+            <span class="k">if</span> <span class="n">auth</span><span class="o">.</span><span class="n">AutoTestFixturePermissions</span><span class="p">(</span><span class="n">f</span><span class="p">)</span><span class="o">.</span><span class="n">ensure_may_see</span><span class="o">.</span><span class="n">as_bool</span><span class="p">()</span>
+        <span class="p">]</span>
 
         <span class="k">return</span> <span class="p">{</span>
             <span class="s1">&#39;id&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">id</span><span class="p">,</span>

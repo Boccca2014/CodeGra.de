@@ -234,7 +234,6 @@
 <span class="kn">import</span> <span class="nn">cg_celery</span>
 <span class="kn">import</span> <span class="nn">cg_logger</span>
 <span class="kn">from</span> <span class="nn">cg_dt_utils</span> <span class="kn">import</span> <span class="n">DatetimeWithTimezone</span>
-<span class="kn">from</span> <span class="nn">cg_sqlalchemy_helpers.types</span> <span class="kn">import</span> <span class="n">DbColumn</span>
 
 <span class="n">logger</span> <span class="o">=</span> <span class="n">structlog</span><span class="o">.</span><span class="n">get_logger</span><span class="p">()</span>
 
@@ -500,7 +499,7 @@
     <span class="n">runs</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">models</span><span class="o">.</span><span class="n">AutoTestRun</span><span class="o">.</span><span class="n">query</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
         <span class="n">p</span><span class="o">.</span><span class="n">models</span><span class="o">.</span><span class="n">AutoTestRun</span><span class="o">.</span><span class="n">auto_test</span>
     <span class="p">)</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">models</span><span class="o">.</span><span class="n">Assignment</span><span class="p">)</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span>
-        <span class="n">t</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">DbColumn</span><span class="p">[</span><span class="nb">bool</span><span class="p">],</span> <span class="n">p</span><span class="o">.</span><span class="n">models</span><span class="o">.</span><span class="n">AutoTestRun</span><span class="o">.</span><span class="n">batch_run_done</span><span class="p">)</span><span class="o">.</span><span class="n">is_</span><span class="p">(</span><span class="kc">False</span><span class="p">),</span>
+        <span class="n">p</span><span class="o">.</span><span class="n">models</span><span class="o">.</span><span class="n">AutoTestRun</span><span class="o">.</span><span class="n">batch_run_done</span><span class="o">.</span><span class="n">is_</span><span class="p">(</span><span class="kc">False</span><span class="p">),</span>
         <span class="n">p</span><span class="o">.</span><span class="n">models</span><span class="o">.</span><span class="n">Assignment</span><span class="o">.</span><span class="n">deadline</span> <span class="o">&lt;</span> <span class="n">now</span><span class="p">,</span>
     <span class="p">)</span><span class="o">.</span><span class="n">options</span><span class="p">(</span><span class="n">contains_eager</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">models</span><span class="o">.</span><span class="n">AutoTestRun</span><span class="o">.</span><span class="n">auto_test</span><span class="p">))</span><span class="o">.</span><span class="n">order_by</span><span class="p">(</span>
         <span class="n">p</span><span class="o">.</span><span class="n">models</span><span class="o">.</span><span class="n">Assignment</span><span class="o">.</span><span class="n">deadline</span>
@@ -748,8 +747,9 @@
         <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;Could not find webhook&#39;</span><span class="p">)</span>
         <span class="k">return</span>
 
-    <span class="n">assignment</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">models</span><span class="o">.</span><span class="n">Assignment</span><span class="o">.</span><span class="n">query</span><span class="o">.</span><span class="n">filter_by</span><span class="p">(</span><span class="nb">id</span><span class="o">=</span><span class="n">webhook</span><span class="o">.</span><span class="n">assignment_id</span>
-                                                     <span class="p">)</span><span class="o">.</span><span class="n">with_for_update</span><span class="p">()</span><span class="o">.</span><span class="n">one</span><span class="p">()</span>
+    <span class="n">assignment</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">models</span><span class="o">.</span><span class="n">Assignment</span><span class="o">.</span><span class="n">query</span><span class="o">.</span><span class="n">filter_by</span><span class="p">(</span>
+        <span class="nb">id</span><span class="o">=</span><span class="n">webhook</span><span class="o">.</span><span class="n">assignment_id</span>
+    <span class="p">)</span><span class="o">.</span><span class="n">with_for_update</span><span class="p">(</span><span class="n">read</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span><span class="o">.</span><span class="n">one</span><span class="p">()</span>
 
     <span class="n">created_at</span> <span class="o">=</span> <span class="n">DatetimeWithTimezone</span><span class="o">.</span><span class="n">utcfromtimestamp</span><span class="p">(</span><span class="n">unix_timestamp</span><span class="p">)</span>
 
@@ -941,9 +941,6 @@
     <span class="k">if</span> <span class="n">task_result</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
         <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s1">&#39;Could not find task result&#39;</span><span class="p">)</span>
         <span class="k">return</span>
-    <span class="k">if</span> <span class="n">task_result</span><span class="o">.</span><span class="n">state</span> <span class="o">!=</span> <span class="n">p</span><span class="o">.</span><span class="n">models</span><span class="o">.</span><span class="n">TaskResultState</span><span class="o">.</span><span class="n">not_started</span><span class="p">:</span>
-        <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s1">&#39;Task already started or done&#39;</span><span class="p">,</span> <span class="n">task_result</span><span class="o">=</span><span class="n">task_result</span><span class="p">)</span>
-        <span class="k">return</span>
 
     <span class="k">def</span> <span class="nf">__task</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
         <span class="n">receivers</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">helpers</span><span class="o">.</span><span class="n">get_in_or_error</span><span class="p">(</span>
@@ -990,8 +987,114 @@
                 <span class="n">failed_users</span><span class="o">=</span><span class="n">failed_receivers</span><span class="p">,</span>
             <span class="p">)</span>
 
-    <span class="n">task_result</span><span class="o">.</span><span class="n">as_task</span><span class="p">(</span><span class="n">__task</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">task_result</span><span class="o">.</span><span class="n">as_task</span><span class="p">(</span><span class="n">__task</span><span class="p">):</span>
+        <span class="n">p</span><span class="o">.</span><span class="n">models</span><span class="o">.</span><span class="n">db</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">commit</span><span class="p">()</span>
+
+
+<span class="nd">@celery</span><span class="o">.</span><span class="n">task</span>
+<span class="k">def</span> <span class="nf">_maybe_open_assignment_at_1</span><span class="p">(</span><span class="n">assignment_id</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="n">assignment</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">models</span><span class="o">.</span><span class="n">Assignment</span><span class="o">.</span><span class="n">query</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span>
+        <span class="n">p</span><span class="o">.</span><span class="n">models</span><span class="o">.</span><span class="n">Assignment</span><span class="o">.</span><span class="n">id</span> <span class="o">==</span> <span class="n">assignment_id</span><span class="p">,</span>
+    <span class="p">)</span><span class="o">.</span><span class="n">with_for_update</span><span class="p">(</span><span class="n">of</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">models</span><span class="o">.</span><span class="n">Assignment</span><span class="p">)</span><span class="o">.</span><span class="n">one_or_none</span><span class="p">()</span>
+
+    <span class="k">if</span> <span class="n">assignment</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">assignment</span><span class="o">.</span><span class="n">available_at</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span>
+            <span class="s1">&#39;Could not find assignment with available_at&#39;</span><span class="p">,</span>
+            <span class="n">assignment</span><span class="o">=</span><span class="n">assignment</span><span class="p">,</span>
+            <span class="n">assignment_id</span><span class="o">=</span><span class="n">assignment_id</span>
+        <span class="p">)</span>
+        <span class="k">return</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">assignment</span><span class="o">.</span><span class="n">state</span><span class="o">.</span><span class="n">is_hidden</span><span class="p">:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;State already set to not hidden&#39;</span><span class="p">)</span>
+        <span class="k">return</span>
+
+    <span class="k">if</span> <span class="n">current_task</span><span class="o">.</span><span class="n">maybe_delay_task</span><span class="p">(</span><span class="n">assignment</span><span class="o">.</span><span class="n">available_at</span><span class="p">):</span>
+        <span class="k">return</span>
+
+    <span class="n">assignment</span><span class="o">.</span><span class="n">state</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">models</span><span class="o">.</span><span class="n">AssignmentStateEnum</span><span class="o">.</span><span class="n">open</span>
     <span class="n">p</span><span class="o">.</span><span class="n">models</span><span class="o">.</span><span class="n">db</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">commit</span><span class="p">()</span>
+
+
+<span class="nd">@celery</span><span class="o">.</span><span class="n">task</span>
+<span class="k">def</span> <span class="nf">_send_login_links_to_users_1</span><span class="p">(</span>
+    <span class="n">assignment_id</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">task_id_hex</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">scheduled_time</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">reset_token_hex</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">mail_idx</span><span class="p">:</span> <span class="nb">int</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="n">task_id</span> <span class="o">=</span> <span class="n">uuid</span><span class="o">.</span><span class="n">UUID</span><span class="p">(</span><span class="nb">hex</span><span class="o">=</span><span class="n">task_id_hex</span><span class="p">)</span>
+    <span class="n">task_result</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">models</span><span class="o">.</span><span class="n">TaskResult</span><span class="o">.</span><span class="n">query</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span>
+        <span class="n">p</span><span class="o">.</span><span class="n">models</span><span class="o">.</span><span class="n">TaskResult</span><span class="o">.</span><span class="n">id</span> <span class="o">==</span> <span class="n">task_id</span><span class="p">,</span>
+        <span class="n">p</span><span class="o">.</span><span class="n">models</span><span class="o">.</span><span class="n">TaskResult</span><span class="o">.</span><span class="n">state</span> <span class="o">==</span> <span class="n">p</span><span class="o">.</span><span class="n">models</span><span class="o">.</span><span class="n">TaskResultState</span><span class="o">.</span><span class="n">not_started</span>
+    <span class="p">)</span><span class="o">.</span><span class="n">with_for_update</span><span class="p">(</span><span class="n">of</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">models</span><span class="o">.</span><span class="n">TaskResult</span><span class="p">)</span><span class="o">.</span><span class="n">one_or_none</span><span class="p">()</span>
+    <span class="n">eta</span> <span class="o">=</span> <span class="n">DatetimeWithTimezone</span><span class="o">.</span><span class="n">fromisoformat</span><span class="p">(</span><span class="n">scheduled_time</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">task_result</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s1">&#39;Could not find task&#39;</span><span class="p">)</span>
+        <span class="k">return</span>
+
+    <span class="k">def</span> <span class="nf">__task</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n">p</span><span class="o">.</span><span class="n">models</span><span class="o">.</span><span class="n">TaskReturnType</span><span class="p">:</span>
+        <span class="n">reset_token</span> <span class="o">=</span> <span class="n">uuid</span><span class="o">.</span><span class="n">UUID</span><span class="p">(</span><span class="nb">hex</span><span class="o">=</span><span class="n">reset_token_hex</span><span class="p">)</span>
+        <span class="n">assignment</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">models</span><span class="o">.</span><span class="n">Assignment</span><span class="o">.</span><span class="n">query</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span>
+            <span class="n">p</span><span class="o">.</span><span class="n">models</span><span class="o">.</span><span class="n">Assignment</span><span class="o">.</span><span class="n">id</span> <span class="o">==</span> <span class="n">assignment_id</span><span class="p">,</span>
+        <span class="p">)</span><span class="o">.</span><span class="n">with_for_update</span><span class="p">(</span><span class="n">of</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">models</span><span class="o">.</span><span class="n">Assignment</span><span class="p">)</span><span class="o">.</span><span class="n">one_or_none</span><span class="p">()</span>
+
+        <span class="k">if</span> <span class="n">assignment</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">assignment</span><span class="o">.</span><span class="n">deadline_expired</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span>
+                <span class="s1">&#39;Could not find assignment or deadline expired&#39;</span><span class="p">,</span>
+                <span class="n">assignment_id</span><span class="o">=</span><span class="n">assignment_id</span><span class="p">,</span>
+                <span class="n">assignment</span><span class="o">=</span><span class="n">assignment</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="k">return</span> <span class="n">p</span><span class="o">.</span><span class="n">models</span><span class="o">.</span><span class="n">TaskResultState</span><span class="o">.</span><span class="n">skipped</span>
+        <span class="k">elif</span> <span class="n">reset_token</span> <span class="o">!=</span> <span class="n">assignment</span><span class="o">.</span><span class="n">send_login_links_token</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Tokens did not match&#39;</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">p</span><span class="o">.</span><span class="n">models</span><span class="o">.</span><span class="n">TaskResultState</span><span class="o">.</span><span class="n">skipped</span>
+
+        <span class="n">login_link_map</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="n">link</span><span class="o">.</span><span class="n">user</span><span class="p">:</span> <span class="n">link</span>
+            <span class="k">for</span> <span class="n">link</span> <span class="ow">in</span> <span class="n">p</span><span class="o">.</span><span class="n">models</span><span class="o">.</span><span class="n">AssignmentLoginLink</span><span class="o">.</span><span class="n">query</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span>
+                <span class="n">p</span><span class="o">.</span><span class="n">models</span><span class="o">.</span><span class="n">AssignmentLoginLink</span><span class="o">.</span><span class="n">assignment</span> <span class="o">==</span> <span class="n">assignment</span>
+            <span class="p">)</span>
+        <span class="p">}</span>
+        <span class="n">users</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="n">user</span> <span class="k">for</span> <span class="n">user</span><span class="p">,</span> <span class="n">_</span> <span class="ow">in</span> <span class="n">assignment</span><span class="o">.</span><span class="n">course</span><span class="o">.</span><span class="n">get_all_users_in_course</span><span class="p">(</span>
+                <span class="n">include_test_students</span><span class="o">=</span><span class="kc">False</span>
+            <span class="p">)</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span>
+                <span class="n">p</span><span class="o">.</span><span class="n">models</span><span class="o">.</span><span class="n">CourseRole</span><span class="o">.</span><span class="n">get_has_permission_filter</span><span class="p">(</span>
+                    <span class="n">p</span><span class="o">.</span><span class="n">permissions</span><span class="o">.</span><span class="n">CoursePermission</span><span class="o">.</span><span class="n">can_receive_login_links</span>
+                <span class="p">)</span>
+            <span class="p">)</span>
+        <span class="p">]</span>
+
+        <span class="k">for</span> <span class="n">user</span> <span class="ow">in</span> <span class="n">users</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">user</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">login_link_map</span><span class="p">:</span>
+                <span class="n">link</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">models</span><span class="o">.</span><span class="n">AssignmentLoginLink</span><span class="p">(</span>
+                    <span class="n">user_id</span><span class="o">=</span><span class="n">user</span><span class="o">.</span><span class="n">id</span><span class="p">,</span> <span class="n">assignment_id</span><span class="o">=</span><span class="n">assignment</span><span class="o">.</span><span class="n">id</span>
+                <span class="p">)</span>
+                <span class="n">p</span><span class="o">.</span><span class="n">models</span><span class="o">.</span><span class="n">db</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">link</span><span class="p">)</span>
+                <span class="n">login_link_map</span><span class="p">[</span><span class="n">user</span><span class="p">]</span> <span class="o">=</span> <span class="n">link</span>
+
+        <span class="c1"># We commit here to release the locks on all tables before we start</span>
+        <span class="c1"># emailing.</span>
+        <span class="n">p</span><span class="o">.</span><span class="n">models</span><span class="o">.</span><span class="n">db</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">commit</span><span class="p">()</span>
+
+        <span class="k">with</span> <span class="n">p</span><span class="o">.</span><span class="n">mail</span><span class="o">.</span><span class="n">mail</span><span class="o">.</span><span class="n">connect</span><span class="p">()</span> <span class="k">as</span> <span class="n">mailer</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">user</span> <span class="ow">in</span> <span class="n">users</span><span class="p">:</span>
+                <span class="n">link</span> <span class="o">=</span> <span class="n">login_link_map</span><span class="p">[</span><span class="n">user</span><span class="p">]</span>
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="n">p</span><span class="o">.</span><span class="n">mail</span><span class="o">.</span><span class="n">send_login_link_mail</span><span class="p">(</span>
+                        <span class="n">mailer</span><span class="p">,</span> <span class="n">link</span><span class="p">,</span> <span class="n">mail_idx</span><span class="o">=</span><span class="n">mail_idx</span>
+                    <span class="p">)</span>
+                <span class="c1"># pylint: disable=bare-except</span>
+                <span class="k">except</span><span class="p">:</span>  <span class="c1"># pragma: no cover</span>
+                    <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
+                        <span class="s1">&#39;Could not send email&#39;</span><span class="p">,</span>
+                        <span class="n">receiving_user_id</span><span class="o">=</span><span class="n">user</span><span class="o">.</span><span class="n">id</span><span class="p">,</span>
+                        <span class="n">exc_info</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                        <span class="n">report_to_sentry</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                    <span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">p</span><span class="o">.</span><span class="n">models</span><span class="o">.</span><span class="n">TaskResultState</span><span class="o">.</span><span class="n">finished</span>
+
+    <span class="k">if</span> <span class="n">task_result</span><span class="o">.</span><span class="n">as_task</span><span class="p">(</span><span class="n">__task</span><span class="p">,</span> <span class="n">eta</span><span class="o">=</span><span class="n">eta</span><span class="p">):</span>
+        <span class="n">p</span><span class="o">.</span><span class="n">models</span><span class="o">.</span><span class="n">db</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">commit</span><span class="p">()</span>
 
 
 <span class="n">lint_instances</span> <span class="o">=</span> <span class="n">_lint_instances_1</span><span class="o">.</span><span class="n">delay</span>  <span class="c1"># pylint: disable=invalid-name</span>
@@ -1010,6 +1113,11 @@
 <span class="n">send_direct_notification_emails</span> <span class="o">=</span> <span class="n">_send_direct_notification_emails_1</span><span class="o">.</span><span class="n">delay</span>  <span class="c1"># pylint: disable=invalid-name</span>
 <span class="n">send_email_as_user</span> <span class="o">=</span> <span class="n">_send_email_as_user_1</span><span class="o">.</span><span class="n">delay</span>  <span class="c1"># pylint: disable=invalid-name</span>
 
+<span class="n">send_login_links_to_users</span><span class="p">:</span> <span class="n">t</span><span class="o">.</span><span class="n">Callable</span><span class="p">[[</span>
+    <span class="n">t</span><span class="o">.</span><span class="n">Tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">,</span> <span class="nb">int</span><span class="p">],</span>
+    <span class="n">NamedArg</span><span class="p">(</span><span class="n">DatetimeWithTimezone</span><span class="p">,</span> <span class="s1">&#39;eta&#39;</span><span class="p">)</span>
+<span class="p">],</span> <span class="nb">object</span><span class="p">]</span> <span class="o">=</span> <span class="n">_send_login_links_to_users_1</span><span class="o">.</span><span class="n">apply_async</span>  <span class="c1"># pylint: disable=invalid-name</span>
+
 <span class="n">send_reminder_mails</span><span class="p">:</span> <span class="n">t</span><span class="o">.</span><span class="n">Callable</span><span class="p">[</span>
     <span class="p">[</span><span class="n">t</span><span class="o">.</span><span class="n">Tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">],</span>
      <span class="n">NamedArg</span><span class="p">(</span><span class="n">t</span><span class="o">.</span><span class="n">Optional</span><span class="p">[</span><span class="n">DatetimeWithTimezone</span><span class="p">],</span> <span class="s1">&#39;eta&#39;</span><span class="p">)],</span> <span class="n">t</span><span class="o">.</span>
@@ -1019,6 +1127,11 @@
     <span class="p">[</span><span class="n">t</span><span class="o">.</span><span class="n">Tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
      <span class="n">DefaultNamedArg</span><span class="p">(</span><span class="n">t</span><span class="o">.</span><span class="n">Optional</span><span class="p">[</span><span class="n">DatetimeWithTimezone</span><span class="p">],</span> <span class="s1">&#39;eta&#39;</span><span class="p">)],</span> <span class="n">t</span><span class="o">.</span>
     <span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="n">_check_heartbeat_stop_test_runner_1</span><span class="o">.</span><span class="n">apply_async</span>  <span class="c1"># pylint: disable=invalid-name</span>
+
+<span class="n">maybe_open_assignment_at</span><span class="p">:</span> <span class="n">t</span><span class="o">.</span><span class="n">Callable</span><span class="p">[[</span>
+    <span class="n">t</span><span class="o">.</span><span class="n">Tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">],</span>
+    <span class="n">DefaultNamedArg</span><span class="p">(</span><span class="n">t</span><span class="o">.</span><span class="n">Optional</span><span class="p">[</span><span class="n">DatetimeWithTimezone</span><span class="p">],</span> <span class="s1">&#39;eta&#39;</span><span class="p">)</span>
+<span class="p">],</span> <span class="kc">None</span><span class="p">]</span> <span class="o">=</span> <span class="n">_maybe_open_assignment_at_1</span><span class="o">.</span><span class="n">apply_async</span>  <span class="c1"># pylint: disable=invalid-name</span>
 </pre></div>
 
            </div>
