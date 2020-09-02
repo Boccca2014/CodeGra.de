@@ -84,6 +84,7 @@ FlaskConfig = TypedDict(
         'AUTO_TEST_MAX_CONCURRENT_BATCH_RUNS': int,
         'AUTO_TEST_RUNNER_INSTANCE_PASS': str,
         'AUTO_TEST_RUNNER_CONTAINER_URL': t.Optional[str],
+        'AUTO_TEST_SETUP_SCRIPT_TIMEOUT': int,
         'CUR_COMMIT': str,
         'VERSION': str,
         'TESTING': bool,
@@ -715,6 +716,13 @@ set_int(CONFIG, auto_test_ops, 'AUTO_TEST_CF_EXTRA_AMOUNT', 20)
 
 set_str(CONFIG, auto_test_ops, 'AUTO_TEST_RUNNER_INSTANCE_PASS', '')
 set_str(CONFIG, auto_test_ops, 'AUTO_TEST_RUNNER_CONTAINER_URL', None)
+
+set_int(
+    CONFIG,
+    auto_test_ops,
+    'AUTO_TEST_SETUP_SCRIPT_TIMEOUT',
+    int(datetime.timedelta(minutes=30).total_seconds()),
+)
 
 if CONFIG['IS_AUTO_TEST_RUNNER']:
     assert CONFIG['SQLALCHEMY_DATABASE_URI'] == 'postgresql:///codegrade_dev'

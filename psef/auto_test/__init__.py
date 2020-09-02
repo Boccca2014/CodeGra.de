@@ -2446,7 +2446,11 @@ class AutoTestRunner:
     ) -> None:
         if cmd:
             with timed_code('run_setup_script', setup_cmd=cmd):
-                res = cont.run_student_command(cmd, 900, cwd=cwd)
+                res = cont.run_student_command(
+                    cmd,
+                    timeout=self.config['AUTO_TEST_SETUP_SCRIPT_TIMEOUT'],
+                    cwd=cwd,
+                )
 
             self.req.patch(
                 url,
