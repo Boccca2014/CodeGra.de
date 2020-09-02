@@ -23,7 +23,8 @@ code style. After a run, all errors found by the linter are **automatically
 shown** in the Code Viewer on the corresponding line.
 
 .. note::
-    If you want to use a linter that is not yet integrated in CodeGrade, let us
+
+   If you want to use a linter that is not yet integrated in CodeGrade, let us
    know at `support@codegrade.com <mailto:support@codegrade.com>`_, and we’ll
    make sure to add it to CodeGrade in our next release.
 
