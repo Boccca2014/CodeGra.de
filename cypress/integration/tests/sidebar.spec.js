@@ -223,14 +223,7 @@ context('Sidebar', () => {
                 // Check that the courses are gone.
                 cy.get('.home-grid .course-wrapper')
                     .should('not.be.visible');
-                // Check that there is a "no courses" message.
-                cy.get('.home-grid')
-                    .should('be.visible')
-                    .should('contain', 'You have no courses yet');
-                // Check that the message disappears...
-                cy.get('.home-grid')
-                    .should('not.contain', 'You have no courses yet');
-                // ... and that the courses are visible again.
+                // ... and that they come back again.
                 cy.get('.course-wrapper')
                     .should('be.visible');
             });
