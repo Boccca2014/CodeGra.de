@@ -76,14 +76,13 @@ def get_all_assignments() -> JSONResponse[t.Sequence[models.Assignment]]:
         ),
         isouter=True,
     ).order_by(models.Assignment.created_at.desc())
+    if helpers.request_arg_true('only_with_rubric'):
+        query = query.filter(models.Assignment.rubric_rows.any())
 
     for assig, has_linter in query.all():
         if auth.AssignmentPermissions(assig).ensure_may_see.as_bool():
             assig.whitespace_linter_exists = has_linter
             res.append(assig)
-
-    if helpers.request_arg_true('only_with_rubric'):
-        query = query.filter(models.Assignment.rubric_rows.any())
 
     return jsonify(res)
 
