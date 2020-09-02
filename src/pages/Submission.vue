@@ -375,8 +375,8 @@ export default {
         editable() {
             return !!(
                 this.canGrade &&
-                    this.currentSubmissionIsLatest &&
-                    this.groupOfCurrentUser == null
+                this.currentSubmissionIsLatest &&
+                this.groupOfCurrentUser == null
             );
         },
 
@@ -502,9 +502,9 @@ export default {
 
             return (
                 ((canSeeUserFeedback || canSeeLinterFeedback) && !feedback) ||
-                    !fileTree ||
-                    !currentFile ||
-                    (canViewAutoTest && !autoTest)
+                !fileTree ||
+                !currentFile ||
+                (canViewAutoTest && !autoTest)
             );
         },
 
@@ -586,8 +586,8 @@ export default {
             // which would cause the CF badge to flicker on page load.
             return (
                 test &&
-                    test.results_always_visible &&
-                    ((result && result.isFinal === false) || !this.canSeeGrade)
+                test.results_always_visible &&
+                ((result && result.isFinal === false) || !this.canSeeGrade)
             );
         },
 

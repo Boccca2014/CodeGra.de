@@ -77,11 +77,11 @@ const KEYS_TO_COPY = (() => {
         'course_id',
         'cool_off_period',
     ];
-    type KeyNotToCopy = (typeof keysNotToCopy)[number];
+    type KeyNotToCopy = typeof keysNotToCopy[number];
     const lookup: Readonly<Set<string>> = new Set(keysNotToCopy);
-    return Object.freeze(keys<AssignmentServerProps>().filter(
-        key => !lookup.has(key),
-    )) as ReadonlyArray<Exclude<keyof AssignmentServerProps, KeyNotToCopy>>;
+    return Object.freeze(
+        keys<AssignmentServerProps>().filter(key => !lookup.has(key)),
+    ) as ReadonlyArray<Exclude<keyof AssignmentServerProps, KeyNotToCopy>>;
 })();
 
 export interface AssignmentPeerFeedbackSettings {

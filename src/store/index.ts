@@ -8,7 +8,6 @@ import { getStoreBuilder } from 'vuex-typex';
 
 import user from './modules/user';
 import pref from './modules/preference';
-// @ts-ignore
 import rubrics from './modules/rubrics';
 import autotest from './modules/autotest';
 import analytics from './modules/analytics';

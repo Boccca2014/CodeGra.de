@@ -250,7 +250,6 @@ export default {
         },
 
         afterCreateNewCouse({ data: course }) {
-            console.log(course);
             this.$router.push({
                 name: 'manage_course',
                 params: { courseId: course.id },

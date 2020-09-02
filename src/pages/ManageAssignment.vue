@@ -35,7 +35,8 @@
         <loader page-loader />
     </div>
 
-    <div class="page-content" :key="assignmentId"
+    <div class="page-content"
+         :key="assignmentId"
          v-show="!loadingInner">
         <div :class="{hidden: selectedCat !== 'general'}"
              v-if="visibleCats.general"
