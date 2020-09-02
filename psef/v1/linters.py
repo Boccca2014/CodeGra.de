@@ -16,7 +16,6 @@ from ..helpers import (
     JSONResponse, EmptyResponse, ExtendedJSONResponse, jsonify,
     make_empty_response
 )
-from ..permissions import CoursePermission as CPerm
 
 
 @api.route('/linters/<linter_id>', methods=['DELETE'])
@@ -43,7 +42,7 @@ def delete_linter_output(linter_id: str) -> EmptyResponse:
         also_error=lambda l: not l.assignment.is_visible
     )
 
-    auth.ensure_permission(CPerm.can_use_linter, linter.assignment.course_id)
+    auth.LinterPermissions(linter).ensure_may_delete()
 
     db.session.delete(linter)
     db.session.commit()
@@ -84,7 +83,7 @@ def get_linter_state(linter_id: str) -> t.Union[ExtendedJSONResponse[
         also_error=lambda l: not l.assignment.is_visible
     )
 
-    auth.ensure_permission(CPerm.can_use_linter, linter.assignment.course_id)
+    auth.LinterPermissions(linter).ensure_may_see()
 
     if helpers.extended_requested():
         return helpers.extended_jsonify(
@@ -116,9 +115,7 @@ def get_linter_instance_state(linter_id: str, linter_instance_id: str
         also_error=lambda l: l.work.deleted
     )
 
-    auth.ensure_permission(
-        CPerm.can_use_linter, linter_instance.work.assignment.course_id
-    )
+    auth.LinterPermissions(linter_instance.tester).ensure_may_see()
 
     return helpers.extended_jsonify(
         linter_instance, use_extended=models.LinterInstance

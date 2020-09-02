@@ -17,3 +17,4 @@ omit =
     cg_helpers/tests/*
     cg_enum/tests/*
     cg_enum/cg_enum_plugin.py
+    cg_sqlalchemy_helpers/types.py

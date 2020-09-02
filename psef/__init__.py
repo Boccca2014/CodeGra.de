@@ -60,10 +60,11 @@ class PsefFlask(Flask):
         dict_to_load = {}
         for key, t_name in [
             ('DIRECT_NOTIFICATION_TEMPLATE_FILE', 'notification.j2'),
-            ('DIGEST_NOTIFICATION_TEMPLATE_FILE', 'digest.j2')
-        ]:  # pragma: no cover
+            ('DIGEST_NOTIFICATION_TEMPLATE_FILE', 'digest.j2'),
+            ('EXAM_LOGIN_TEMPLATE_FILE', 'exam_login.j2'),
+        ]:
             template = self.config.get(key)
-            if template:
+            if template:  # pragma: no cover
                 with open(str(template), 'r') as f:
                     dict_to_load[t_name] = f.read()
 

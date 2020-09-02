@@ -103,11 +103,21 @@ def test_get_all_extended_courses(ta_user, test_client, logged_in, session):
         ('Thomas Schaper', 'Programmeertalen', 'TA'),
         ('Thomas Schaper', 'Project Software Engineering', 'Student'),
         ('Student1', 'Programmeertalen', 'Student'),
-        data_error(('Student1', 'Project Software Engineering', 'Student')),
-        data_error(('admin', 'Project Software Engineering', 'Student')),
-        perm_error(error=401)(
-            ('NOT_LOGGED_IN', 'Project Software Engineering', 'Student')
-        ),
+        perm_error(error=403)((
+            'Student1',
+            'Project Software Engineering',
+            'Student',
+        )),
+        perm_error(error=403)((
+            'admin',
+            'Project Software Engineering',
+            'Student',
+        )),
+        perm_error(error=401)((
+            'NOT_LOGGED_IN',
+            'Project Software Engineering',
+            'Student',
+        )),
     ],
     indirect=['named_user']
 )
@@ -116,11 +126,8 @@ def test_get_course_data(
     role, session, add_lti, canvas_lti1p1_provider
 ):
     perm_err = request.node.get_closest_marker('perm_error')
-    data_err = request.node.get_closest_marker('data_error')
     if perm_err:
         error = perm_err.kwargs['error']
-    elif data_err:
-        error = 404
     else:
         error = False
 
@@ -1059,10 +1066,10 @@ def test_add_assignment(
     perm_err = request.node.get_closest_marker('perm_error')
     data_err = request.node.get_closest_marker('data_error')
     course = session.query(m.Course).filter_by(name='Programmeertalen').one()
-    if perm_err:
-        error = perm_err.kwargs['error']
-    elif data_err:
+    if data_err:
         error = 400
+    elif perm_err:
+        error = perm_err.kwargs['error']
     else:
         error = False
 
@@ -1104,6 +1111,9 @@ def test_add_assignment(
                 'max_submissions': None,
                 'analytics_workspace_ids': [int],
                 'peer_feedback_settings': None,
+                'kind': 'normal',
+                'send_login_links': False,
+                'available_at': None,
             }
         )
 

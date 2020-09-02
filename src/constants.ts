@@ -56,6 +56,7 @@ export const NO_LOGIN_REQUIRED_ROUTES = new Set(<const>[
     'login_and_redirect',
     'unsubscribe',
     'lti_provider_setup',
+    'assignment_login',
     'course_enroll',
     'sso_login',
 ]);
@@ -64,6 +65,7 @@ export const NO_SIDEBAR_ROUTES = new Set(<const>[
     'lti-launch',
     'unsubscribe',
     'lti_provider_setup',
+    'assignment_login',
     'course_enroll',
     'sso_login',
 ]);

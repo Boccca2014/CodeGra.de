@@ -1,11 +1,12 @@
 from datetime import datetime, timedelta
 
 from psef import helpers
-from psef.models import Assignment
+from psef.models import Course, Assignment
 
 
 def test_deadline_expired_property(monkeypatch):
-    a = Assignment(deadline=None, is_lti=False, course=None)
+    course = Course(id=5)
+    a = Assignment(deadline=None, is_lti=False, course=course)
     assert not a.deadline_expired
 
     before = datetime.utcnow()
@@ -20,7 +21,8 @@ def test_deadline_expired_property(monkeypatch):
 
 def test_eq_of_assignment():
     def make(id=None):
-        a = Assignment(course=None, is_lti=False)
+        course = Course(id=5)
+        a = Assignment(course=course, is_lti=False)
         a.id = id
         return a
 

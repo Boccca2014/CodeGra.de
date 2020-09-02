@@ -11,7 +11,8 @@
       "can_view_autotest_step_details",
       "can_view_autotest_fixture",
       "can_add_own_inline_comments",
-      "can_view_feedback_author"
+      "can_view_feedback_author",
+      "can_receive_login_links"
     ],
     "admin_role": false,
     "initial_role": false

@@ -2,6 +2,7 @@
 
 SPDX-License-Identifier: AGPL-3.0-only
 """
+import enum
 import uuid
 import typing as t
 from functools import wraps
@@ -9,7 +10,7 @@ from collections import defaultdict
 
 import structlog
 from flask import Flask, g
-from typing_extensions import Protocol
+from typing_extensions import Literal, Protocol
 
 from cg_sqlalchemy_helpers.types import ColumnProxy
 
@@ -27,6 +28,12 @@ Z = t.TypeVar('Z')
 def _get_id_of_object(obj: T_OBJECT_WITH_ID) -> t.Tuple[uuid.UUID]:
     return (obj.id, )
 
+
+class _MissingType(enum.Enum):
+    token = 0
+
+
+_MISSING: Literal[_MissingType.token] = _MissingType.token
 
 logger = structlog.get_logger()
 
@@ -81,20 +88,31 @@ def _make_key(args: t.Tuple[object, ...],
     return res
 
 
+def _clear_cache(master_key: object, key: object = _MISSING) -> None:
+    if g:
+        cache = getattr(g, 'cg_function_cache', None)
+    else:
+        cache = None
+
+    if cache:
+        if key is _MISSING:
+            g.cg_function_cache.pop(master_key, None)
+        elif master_key in g.cg_function_cache:
+            g.cg_function_cache[master_key].pop(key, None)
+
+
 def _cache_or_call(
     master_key: object,
-    key: t.Tuple[object, ...],
+    key: object,
     fun: t.Callable,
     args: t.Tuple,
     kwargs: t.Dict,
 ) -> t.Any:
-    try:
-        if not hasattr(g, 'cg_function_cache'):
-            _set_g_vars()
-    except:  # pylint: disable=bare-except
-        # Never error because of this decorator
-        logger.error('cg_cache threw an error', exc_info=True)
+    if not g:
+        logger.error('No cache available', with_stacktrace=True)
         return fun(*args, **kwargs)
+    if not hasattr(g, 'cg_function_cache'):
+        _set_g_vars()
 
     if key in g.cg_function_cache[master_key]:
         g.cache_hits += 1
@@ -122,7 +140,7 @@ def cache_within_request_make_key(
             return _cache_or_call(master_key, key, fun, (arg, ), {})
 
         def clear_cache() -> None:
-            g.cg_function_cache[master_key] = {}
+            _clear_cache(master_key)
 
         __inner.clear_cache = clear_cache  # type: ignore
 
@@ -153,7 +171,7 @@ def cache_within_request(f: T) -> T:
         return _cache_or_call(master_key, key, f, args, kwargs)
 
     def clear_cache() -> None:  # pragma: no cover
-        g.cg_function_cache[master_key] = {}
+        _clear_cache(master_key)
 
     __decorated.clear_cache = clear_cache  # type: ignore
 
@@ -167,3 +185,52 @@ def cache_for_object_id(f: t.Callable[[T_OBJECT_WITH_ID], Y]
     For now it is only possible to cache methods that take no arguments.
     """
     return cache_within_request_make_key(_get_id_of_object)(f)
+
+
+class cached_property(t.Generic[Y, Z]):  # pylint: disable=invalid-name
+    """A decorator that converts a method into a cached property.
+
+    This class was inspired by werkzeugs ``cached_property``.
+
+    The class has to have a `__dict__` in order for this property to
+    work.
+    """
+
+    def __init__(self, func: t.Callable[[Y], Z]):
+        self.__name__ = func.__name__
+        self.__module__ = func.__module__
+        self.__doc__ = func.__doc__
+        self.func = func
+        self._master_key = object()
+
+    def clear_cache(self, obj: Y) -> None:
+        """Clear the cache for the given object.
+
+        :param obj: The object to clear the cache for.
+
+        :returns: Nothing.
+        """
+        key = obj.__dict__.get(self._master_key, _MISSING)  # type: ignore
+        if key is not _MISSING:
+            _clear_cache(self._master_key, key)
+
+    @t.overload
+    def __get__(self, obj: Y, _type: object = None) -> Z:
+        ...
+
+    @t.overload
+    def __get__(
+        self, obj: None, _type: object = None
+    ) -> 'cached_property[Y, Z]':
+        ...
+
+    def __get__(self, obj: t.Optional[Y],
+                _type: object = None) -> t.Union[Z, 'cached_property[Y, Z]']:
+        if obj is None:
+            return self
+
+        key = obj.__dict__.get(t.cast(str, self._master_key), _MISSING)
+        if key is _MISSING:
+            key = obj.__dict__[t.cast(str, self._master_key)] = object()
+
+        return _cache_or_call(self._master_key, key, self.func, (obj, ), {})

@@ -14,6 +14,10 @@ Version *Next*
 - Add support for SSO `(#1414)
   <https://github.com/CodeGra-de/CodeGra.de/pull/1414>`__. CodeGrade now supports
   SSO leveraging the SAML2.0 protocol, allowing even better integration.
+- Add CodeGrade Exam Mode `(#1415)
+  <https://github.com/CodeGra-de/CodeGra.de/pull/1415>`__. CodeGrade now has
+  even better support for exams, allowing you to schedule the start of your
+  exam, and making it possible to do exams for LTI courses without LMS access.
 
 **Updates**
 

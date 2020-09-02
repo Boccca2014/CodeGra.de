@@ -12,14 +12,14 @@ import psef
 from cg_dt_utils import DatetimeWithTimezone
 from cg_sqlalchemy_helpers import mixins, expression
 
-from . import Base, MyQuery, DbColumn, db
+from . import Base, MyQuery, db
+from .. import auth
 from .role import CourseRole
 from .user import User
 from .work import Work
 from ..helpers import NotEqualMixin
 from .assignment import Assignment
 from .link_tables import user_course
-from ..permissions import CoursePermission
 
 logger = structlog.get_logger()
 
@@ -313,18 +313,11 @@ class Course(NotEqualMixin, Base):
 
         :returns: A list of assignments the currently logged in user may see.
         """
-        if not psef.current_user.has_permission(
-            CoursePermission.can_see_assignments, self.id
-        ):
-            return []
-
-        assigs: t.Iterable[Assignment] = (
-            assig for assig in self.assignments if assig.is_visible
+        assigs = (
+            assig for assig in self.assignments
+            if auth.AssignmentPermissions(assig).ensure_may_see.as_bool()
         )
-        if not psef.current_user.has_permission(
-            CoursePermission.can_see_hidden_assignments, self.id
-        ):
-            assigs = (a for a in assigs if not a.is_hidden)
+
         return sorted(
             assigs, key=lambda item: item.deadline or DatetimeWithTimezone.max
         )
@@ -346,10 +339,7 @@ class Course(NotEqualMixin, Base):
         ).join(
             CourseRole,
             CourseRole.id == user_course.c.course_id,
-        ).filter(
-            CourseRole.course_id == self.id,
-            t.cast(DbColumn[bool], User.virtual).isnot(True)
-        )
+        ).filter(CourseRole.course_id == self.id, User.virtual.isnot(True))
 
         if not include_test_students:
             res = res.filter(~User.is_test_student)

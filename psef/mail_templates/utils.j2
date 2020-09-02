@@ -6,6 +6,10 @@
 </tr>
 {% endmacro %}
 
+{%- macro normal_link(url, text) -%}
+<a href="{{ url }}" target="_blank">{{ text }}</a>
+{%- endmacro -%}
+
 {%- macro footer_link(url, text) -%}
 <a href="{{ url }}" target="_blank" style="mso-line-height-rule: exactly;-ms-text-size-adjust: 100%;-webkit-text-size-adjust: 100%;color: #656565;font-weight: normal;text-decoration: underline;">{{ text }}</a>
 {%- endmacro -%}

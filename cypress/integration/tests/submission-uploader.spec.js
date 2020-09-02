@@ -35,7 +35,7 @@ context('Submission uploader', () => {
         return getGitCheck()
             .should(value ? 'not.be.checked' : 'be.checked')
             .click({ force: true }) // Actual <input> is invisible.
-            .parentsUntil('fieldset')
+            .parentsUpto('.assignment-submission-settings')
             .find('.submit-button')
             .submit('success');
     }
@@ -50,7 +50,7 @@ context('Submission uploader', () => {
         return getFileCheck()
             .should(value ? 'not.be.checked' : 'be.checked')
             .click({ force: true })
-            .parentsUntil('fieldset')
+            .parentsUpto('.assignment-submission-settings')
             .find('.submit-button')
             .submit('success');
     }

@@ -127,15 +127,21 @@ SPDX-License-Identifier: AGPL-3.0-only
 import typing as t
 
 import cg_sqlalchemy_helpers
+import cg_sqlalchemy_helpers.validation
 from cg_sqlalchemy_helpers import UUID_LENGTH
 from cg_cache.intra_request import cache_within_request
 from cg_sqlalchemy_helpers.types import (  # pylint: disable=unused-import
     MyDb, MyQuery, DbColumn, _MyQuery
 )
 
-from .. import PsefFlask
+from .. import PsefFlask, signals
 
 db: MyDb = cg_sqlalchemy_helpers.make_db()  # pylint: disable=invalid-name
+
+validator: cg_sqlalchemy_helpers.validation.Validator
+validator = cg_sqlalchemy_helpers.validation.Validator(db.session)
+
+signals.FINALIZE_APP.connect_immediate(lambda _: validator.finalize())
 
 
 def init_app(app: PsefFlask) -> None:
@@ -147,22 +153,10 @@ def init_app(app: PsefFlask) -> None:
     cg_sqlalchemy_helpers.init_app(db, app)
 
 
-if t.TYPE_CHECKING and getattr(
-    t, 'SPHINX', False
-) is not True:  # pragma: no cover
-    from cg_sqlalchemy_helpers.types import Base, Comparator
-    cached_property = property  # pylint: disable=invalid-name
-    hybrid_property = property  # pylint: disable=invalid-name
+if t.TYPE_CHECKING:  # pragma: no cover
+    from cg_sqlalchemy_helpers.types import Base
 else:
-    from sqlalchemy.ext.hybrid import hybrid_property, Comparator  # type: ignore
-    Base = db.Model  # type: ignore # pylint: disable=invalid-name
-    from werkzeug.utils import cached_property  # type: ignore
-
-# Sphinx has problems with resolving types when this decorator is used, we
-# simply remove it in the case of Sphinx.
-if getattr(t, 'SPHINX', False) is True:  # pragma: no cover
-    # pylint: disable=invalid-name
-    cache_within_request = lambda x: x
+    Base = db.Model  # pylint: disable=invalid-name
 
 if True:  # pylint: disable=using-constant-test
     from .course import Course, CourseSnippet, CourseRegistrationLink
@@ -170,7 +164,8 @@ if True:  # pylint: disable=using-constant-test
         Assignment, AssignmentLinter, AssignmentResult, AssignmentDoneType,
         AssignmentGraderDone, AssignmentAssignedGrader, AssignmentStateEnum,
         AssignmentAmbiguousSettingTag, AssignmentVisibilityState,
-        AssignmentPeerFeedbackSettings, AssignmentPeerFeedbackConnection
+        AssignmentPeerFeedbackSettings, AssignmentPeerFeedbackConnection,
+        AssignmentLoginLink, AssignmentKind
     )
     from .permission import Permission
     from .user import User
@@ -212,5 +207,5 @@ if True:  # pylint: disable=using-constant-test
         NotificationsSetting, SettingBase, EmailNotificationTypes,
         NotificationSettingJSON
     )
-    from .task_result import TaskResult, TaskResultState
+    from .task_result import TaskResult, TaskResultState, TaskReturnType
     from .saml_provider import Saml2Provider, UserSamlProvider

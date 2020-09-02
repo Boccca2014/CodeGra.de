@@ -49,9 +49,13 @@ def test_enabling_peer_feedback(
             test_client, course, state='open'
         )
         user_with_perm = helpers.create_user_with_perms(
-            session, [CPerm.can_edit_peer_feedback_settings], course
+            session,
+            [CPerm.can_edit_peer_feedback_settings, CPerm.can_see_assignments],
+            course
         )
-        user_without_perm = helpers.create_user_with_perms(session, [], course)
+        user_without_perm = helpers.create_user_with_perms(
+            session, [CPerm.can_see_assignments], course
+        )
 
     with describe('User without perm cannot enable'
                   ), logged_in(user_without_perm):

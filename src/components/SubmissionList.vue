@@ -329,10 +329,10 @@ export default {
         }),
 
         updateGraders(graders) {
-            const assignees = graders.map(ass => ({
-                value: ass.id,
-                text: nameOfUser(ass),
-                data: ass,
+            const assignees = graders.map(g => ({
+                value: g.user.id,
+                text: nameOfUser(g.user),
+                data: g.user,
             }));
             assignees.unshift({ value: null, text: '-', data: null });
             this.assignees = assignees;

@@ -7,20 +7,25 @@ import enum
 import typing as t
 
 import structlog
-from typing_extensions import TypedDict
+from celery import current_task
+from typing_extensions import Literal, TypedDict
 
+import cg_enum
 from cg_json import JSONResponse
+from cg_helpers import handle_none, on_not_none
+from cg_dt_utils import DatetimeWithTimezone
 from cg_sqlalchemy_helpers import JSONB
 from cg_sqlalchemy_helpers.mixins import UUIDMixin, TimestampMixin
 
-from . import Base, User, db
+from . import Base, db
+from . import user as user_models
 from ..exceptions import APICodes, APIException
 
 logger = structlog.get_logger()
 
 
 @enum.unique
-class TaskResultState(enum.Enum):
+class TaskResultState(cg_enum.CGEnum):
     """The state of a task result.
 
     :ivar not_started: The task has not been started yet.
@@ -34,9 +39,7 @@ class TaskResultState(enum.Enum):
     finished = 2
     failed = 3
     crashed = 4
-
-    def __to_json__(self) -> str:
-        return self.name
+    skipped = 5
 
 
 class TaskResultJSON(TypedDict):
@@ -45,6 +48,9 @@ class TaskResultJSON(TypedDict):
     id: str
     state: TaskResultState
     result: t.Optional[t.Mapping[str, object]]
+
+
+TaskReturnType = Literal[TaskResultState.skipped, TaskResultState.finished]
 
 
 class TaskResult(Base, UUIDMixin, TimestampMixin):
@@ -66,14 +72,19 @@ class TaskResult(Base, UUIDMixin, TimestampMixin):
         'author_id',
         db.Integer,
         db.ForeignKey('User.id', ondelete='CASCADE'),
-        nullable=False,
+        nullable=True,
     )
-    user = db.relationship(User, foreign_keys=user_id, innerjoin=True)
+    user = db.relationship(lambda: user_models.User, foreign_keys=user_id)
 
-    def __init__(self, user: User) -> None:
-        super().__init__(user=User.resolve(user))
+    def __init__(self, user: t.Optional['user_models.User']) -> None:
+        super().__init__(user=on_not_none(user, user_models.User.resolve))
 
-    def as_task(self, fun: t.Callable[[], None]) -> None:
+    def as_task(
+        self,
+        fun: t.Callable[[], t.Optional[TaskResultState]],
+        *,
+        eta: t.Optional[DatetimeWithTimezone] = None,
+    ) -> bool:
         """Run the given ``fun`` as the task.
 
         .. warning::
@@ -83,17 +94,25 @@ class TaskResult(Base, UUIDMixin, TimestampMixin):
 
         :param fun: The function to run as the task, catching the exceptions it
             produces and storing them in this task result.
-        :returns: Nothing.
+        :param eta: The time the task should run, if the current time is before
+            this ETA the current celery task will be scheduled again and
+            ``fun`` will not be called.
+
+        :returns: ``True`` if the task ran, otherwise ``False``.
         """
-        assert self.state == TaskResultState.not_started, (
-            'Cannot start task that has already started, state was in {}'
-        ).format(self.state)
+        if not self.state.is_not_started:  # pragma: no cover
+            logger.error(
+                'Cannot start task that has already started', task_result=self
+            )
+            return False
+        elif eta and current_task.maybe_delay_task(eta):
+            return False
 
         self.state = TaskResultState.started
         db.session.commit()
 
         try:
-            self.result = fun()
+            result_code = fun()
         except APIException as exc:
             self.state = TaskResultState.failed
             self.result = JSONResponse.dump_to_object(exc)
@@ -108,7 +127,10 @@ class TaskResult(Base, UUIDMixin, TimestampMixin):
                 )
             )
         else:
-            self.state = TaskResultState.finished
+            self.result = None
+            self.state = handle_none(result_code, TaskResultState.finished)
+
+        return True
 
     def __to_json__(self) -> TaskResultJSON:
         """Convert this task result to json.
