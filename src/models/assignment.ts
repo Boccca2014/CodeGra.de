@@ -69,23 +69,20 @@ export interface AssignmentUpdateableProps {
 
 const ALLOWED_UPDATE_PROPS = new Set(keys<AssignmentUpdateableProps>());
 
-type KeyNotToCopy =
-    | 'created_at'
-    | 'reminder_time'
-    | 'available_at'
-    | 'course_id'
-    | 'cool_off_period';
-const KEYS_NOT_TO_COPY: KeyNotToCopy[] = [
-    'created_at',
-    'reminder_time',
-    'available_at',
-    'course_id',
-    'cool_off_period',
-];
-const KEYS_NOT_TO_COPY_LOOKUP: Set<string> = new Set(KEYS_NOT_TO_COPY);
-const KEYS_TO_COPY = keys<AssignmentServerProps>().filter(
-    key => !KEYS_NOT_TO_COPY_LOOKUP.has(key),
-) as Exclude<keyof AssignmentServerProps, KeyNotToCopy>[];
+const KEYS_TO_COPY = (() => {
+    const keysNotToCopy = <const>[
+        'created_at',
+        'reminder_time',
+        'available_at',
+        'course_id',
+        'cool_off_period',
+    ];
+    type KeyNotToCopy = (typeof keysNotToCopy)[number];
+    const lookup: Readonly<Set<string>> = new Set(keysNotToCopy);
+    return Object.freeze(keys<AssignmentServerProps>().filter(
+        key => !lookup.has(key),
+    )) as ReadonlyArray<Exclude<keyof AssignmentServerProps, KeyNotToCopy>>;
+})();
 
 export interface AssignmentPeerFeedbackSettings {
     time: number;
