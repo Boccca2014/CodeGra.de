@@ -65,6 +65,7 @@
 
 <script>
 import { mapActions } from 'vuex';
+import moment from 'moment';
 
 import SubmitButton from './SubmitButton';
 import DescriptionPopover from './DescriptionPopover';
@@ -123,7 +124,7 @@ divided or because they were assigned work manually.`,
     },
 
     methods: {
-        ...mapActions('courses', ['updateAssignmentReminder']),
+        ...mapActions('courses', ['patchAssignment']),
 
         updateReminder() {
             if ((this.graders || this.finished) && !this.doneType) {
@@ -136,11 +137,18 @@ divided or because they were assigned work manually.`,
                 throw new Error(msg);
             }
 
-            return this.updateAssignmentReminder({
+            const newReminderTime = moment(this.reminderTime, moment.ISO_8601).utc();
+            const reminderTime = newReminderTime.isValid()
+                ? this.$utils.formatDate(newReminderTime)
+                : null;
+
+            return this.patchAssignment({
                 assignmentId: this.assignment.id,
-                doneType: this.doneType,
-                doneEmail: this.finished ? this.doneEmail : null,
-                reminderTime: this.graders ? this.reminderTime : null,
+                assignmentProps: {
+                    done_type: this.doneType,
+                    done_email: this.finished ? this.doneEmail : null,
+                    reminder_time: this.graders ? reminderTime : null,
+                },
             });
         },
     },

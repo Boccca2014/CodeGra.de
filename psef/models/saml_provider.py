@@ -7,7 +7,6 @@ import typing as t
 from datetime import timedelta
 
 from cryptography import x509
-from werkzeug.utils import cached_property
 from typing_extensions import TypedDict
 from cryptography.x509.oid import NameOID
 from werkzeug.datastructures import FileStorage
@@ -22,6 +21,7 @@ import psef
 from cg_helpers import on_not_none
 from cg_dt_utils import DatetimeWithTimezone
 from cg_sqlalchemy_helpers import UUIDType, deferred
+from cg_cache.intra_request import cached_property
 from cg_sqlalchemy_helpers.mixins import UUIDMixin, TimestampMixin
 
 from . import Base, db
@@ -268,8 +268,9 @@ class Saml2Provider(Base, UUIDMixin, TimestampMixin):
         return self._get_provider_metadata(force=False)
 
     def __to_json__(self) -> Saml2ProviderJSON:
-        ui_info = self.provider_metadata['ui_info']
-        assert isinstance(ui_info, dict)
+        _ui_info = self.provider_metadata['ui_info']
+        assert isinstance(_ui_info, dict)
+        ui_info = t.cast(SamlUiInfo, _ui_info)
 
         if ui_info.get('name') is None:
             ui_info['name'] = self.name

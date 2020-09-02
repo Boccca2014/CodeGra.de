@@ -19,3 +19,9 @@ export function getCommentsByUser(
 ): Promise<AxiosResponse<models.FeedbackLineServerData[]>> {
     return axios.get(`/api/v1/assignments/${assignmentId}/users/${userId}/comments/`);
 }
+
+export function getGraders(
+    assignmentId: number,
+): Promise<AxiosResponse<models.GraderServerData[]>> {
+    return axios.get(`/api/v1/assignments/${assignmentId}/graders/`);
+}

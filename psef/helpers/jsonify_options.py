@@ -3,15 +3,20 @@ models.
 
 SPDX-License-Identifier: AGPL-3.0-only
 """
+import typing as t
 import dataclasses
 
 import flask
+
+if t.TYPE_CHECKING:  # pragma: no cover
+    from .. import models  # pylint: disable=unused-import
 
 
 @dataclasses.dataclass
 class Options:
     """Options used for jsonification.
     """
+    add_permissions_to_user: t.Optional['models.User'] = None
     latest_only: bool = False
 
 

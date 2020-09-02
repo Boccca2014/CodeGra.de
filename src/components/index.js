@@ -1,5 +1,8 @@
 /* SPDX-License-Identifier: AGPL-3.0-only */
 export { default as AssignmentState } from './AssignmentState';
+export { default as AssignmentGeneralSettings } from './AssignmentGeneralSettings';
+export { default as AssignmentGraderSettings } from './AssignmentGraderSettings';
+export { default as AssignmentSubmissionSettings } from './AssignmentSubmissionSettings';
 export { default as CGIgnoreFile } from './CGIgnoreFile';
 export { default as CodeViewer } from './CodeViewer';
 export { default as DescriptionPopover } from './DescriptionPopover';
@@ -47,7 +50,6 @@ export { default as UserInfo } from './UserInfo';
 export { default as UsersManager } from './UsersManager';
 export { default as FileUploader } from './FileUploader';
 export { default as SubmissionUploader } from './SubmissionUploader';
-export { default as MaximumGrade } from './MaximumGrade';
 export { default as User } from './User';
 export { default as InnerCodeViewer } from './InnerCodeViewer';
 export { default as InnerIpythonViewer } from './InnerIPythonViewer.vue';

@@ -143,14 +143,15 @@
                 </span>
             </p>
 
-            <p v-if="assignment.is_lti">
+            <p v-if="ltiProvider.isJust()">
                 This assignment is connected to an assignment in your
-                {{ lmsName }}. This means that every user has to open the
-                assignment at least once through {{ lmsName }}. Every user
-                below <b>without</b> a check-mark next to their name should try
-                to (re)open the assignment. If this issue persists, please
-                contact CodeGrade support. You cannot submit while there are
-                still members without a check-mark next to their name.
+                {{ lmsName.extract() }}. This means that every user has to open
+                the assignment at least once through {{ lmsName.extract()
+                }}. Every user below <b>without</b> a check-mark next to their
+                name should try to (re)open the assignment. If this issue
+                persists, please contact CodeGrade support. You cannot submit
+                while there are still members without a check-mark next to their
+                name.
             </p>
 
             <div class="group-modal-body">
@@ -236,7 +237,7 @@
                 <router-link :to="manageAssigURL" class="inline-link">here</router-link>.
             </span>
             <span v-else-if="canEditDeadline">
-                Please update the deadline in {{ lmsName }}.
+                Please update the deadline in {{ lmsName.extract() }}.
             </span>
 
             <span v-else>
@@ -664,8 +665,8 @@ export default {
         ltiUploadDisabledMessage() {
             if (!this.isStudent) {
                 return null;
-            } else if (this.assignment.is_lti && !this.$inLTI) {
-                return `You can only submit this assignment from within ${this.lmsName}.`;
+            } else if (this.lmsName.isJust() && !this.$inLTI) {
+                return `You can only submit this assignment from within ${this.lmsName.extract()}.`;
             } else if (this.$inLTI && this.$LTIAssignmentId == null) {
                 return (
                     "You didn't launch the assignment using LTI, please " +
@@ -692,15 +693,15 @@ export default {
         },
 
         ltiProvider() {
-            return this.$utils.getProps(this.course, null, 'ltiProvider');
+            return this.$utils.getPropMaybe(this.assignment, 'ltiProvider');
         },
 
         lmsName() {
-            return this.$utils.getProps(this.ltiProvider, null, 'lms');
+            return this.ltiProvider.map(prov => prov.lms);
         },
 
         deadlineEditable() {
-            return !this.$utils.getProps(this.ltiProvider, false, 'supportsDeadline');
+            return this.ltiProvider.mapOrDefault(prov => !prov.supportsDeadline, true);
         },
 
         canEditDeadline() {

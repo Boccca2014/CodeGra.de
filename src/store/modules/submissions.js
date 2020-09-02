@@ -2,6 +2,7 @@
 import Vue from 'vue';
 import axios from 'axios';
 
+import { GradersStore } from '@/store/modules/graders';
 import * as utils from '@/utils';
 import { Submission } from '@/models/submission';
 import * as types from '../mutation-types';
@@ -298,7 +299,14 @@ const actions = {
                         return submissions.map(s => Submission.fromServerData(s, assignmentId));
                     }),
                 // TODO: Maybe not force load the graders here?
-                context.dispatch('courses/forceLoadGraders', assignmentId, { root: true }),
+                GradersStore.loadGraders({
+                    assignmentId,
+                    force: true,
+                }).catch(
+                    utils.makeHttpErrorHandler({
+                        403: () => null,
+                    }),
+                ),
             ]).then(([submissions]) => {
                 context.commit(types.UPDATE_SUBMISSIONS, {
                     assignmentId,

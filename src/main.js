@@ -107,6 +107,14 @@ moment.updateLocale('en', {
         y: 'a year',
         yy: '%d years',
     },
+    calendar: {
+        lastDay: '[yesterday at] LT',
+        sameDay: '[today at] LT',
+        nextDay: '[tomorrow at] LT',
+        lastWeek: '[last] dddd [at] LT',
+        nextWeek: 'dddd [at] LT',
+        sameElse: 'YYYY-MM-DD HH:mm',
+    },
 });
 
 axios.defaults.transformRequest.push((data, headers) => {

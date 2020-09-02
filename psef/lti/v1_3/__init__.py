@@ -332,6 +332,7 @@ class CGCustomClaims:
         username: t.Optional[str]
         deadline: t.Optional[DatetimeWithTimezone]
         is_available: t.Optional[bool]
+        available_at: t.Optional[DatetimeWithTimezone]
         resource_id: t.Optional[str]
 
     class ReplacementVar:
@@ -547,20 +548,18 @@ class CGCustomClaims:
         available_at = cls._get_claim(
             'cg_available_at', custom_claims, base_data, cls._parse_isoformat
         )
-        if available_at is None:
-            is_available = cls._get_claim(
-                'cg_is_published',
-                custom_claims,
-                base_data,
-                lambda x: x.lower() == 'true',
-            )
-        else:
-            is_available = DatetimeWithTimezone.utcnow() >= available_at
+        is_available = cls._get_claim(
+            'cg_is_published',
+            custom_claims,
+            base_data,
+            lambda x: x.lower() == 'true',
+        )
 
         return CGCustomClaims.ClaimResult(
             username=username,
             deadline=deadline,
             is_available=is_available,
+            available_at=available_at,
             resource_id=resource_id,
         )
 
@@ -977,11 +976,14 @@ class FlaskMessageLaunch(
         if resource_claim.get('title'):
             assignment.name = resource_claim['title']
 
-        if not assignment.is_done:
-            if custom_claim.is_available is None or custom_claim.is_available:
-                assignment.state = models.AssignmentStateEnum.open
-            else:
-                assignment.state = models.AssignmentStateEnum.hidden
+        if assignment.is_done:
+            pass
+        elif custom_claim.available_at is not None:
+            assignment.available_at = custom_claim.available_at
+        elif custom_claim.is_available is False:
+            assignment.state = models.AssignmentStateEnum.hidden
+        else:
+            assignment.state = models.AssignmentStateEnum.open
 
         return assignment
 

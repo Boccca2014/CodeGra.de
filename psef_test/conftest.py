@@ -32,16 +32,6 @@ from sqlalchemy import create_engine
 from werkzeug.local import LocalProxy
 from sqlalchemy_utils.functions import drop_database, create_database
 
-import psef
-import manage
-import helpers
-import psef.auth as a
-import psef.models as m
-from helpers import create_error_template, create_user_with_perms
-from lxc_stubs import lxc_stub
-from cg_dt_utils import DatetimeWithTimezone
-from psef.permissions import CoursePermission as CPerm
-
 TESTDB = 'test_project.db'
 TESTDB_PATH = "/tmp/psef/psef-{}-{}".format(TESTDB, random.random())
 TEST_DATABASE_URI = 'sqlite:///' + TESTDB_PATH
@@ -52,6 +42,20 @@ _DATABASE = None
 FreshDatabase = collections.namedtuple(
     'FreshDatabase', ['engine', 'name', 'db_name', 'run_psql']
 )
+
+sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
+
+if True:
+    import helpers
+    from helpers import create_error_template, create_user_with_perms
+    from lxc_stubs import lxc_stub
+
+    import psef
+    import psef.auth as a
+    import psef.models as m
+    from psef.permissions import CoursePermission as CPerm
+    import manage
+    from cg_dt_utils import DatetimeWithTimezone
 
 
 def get_database_name(request):
@@ -71,7 +75,7 @@ def pytest_addoption(parser):
         parser.addoption(
             "--postgresql",
             action="store",
-            default=False,
+            default='GENERATE',
             help="Run the test using postresql"
         )
     except ValueError:
@@ -372,9 +376,7 @@ def logged_in():
             res = None
         else:
             _TOKENS.append(
-                flask_jwt.create_access_token(
-                    identity=helpers.to_db_object(user, m.User).id, fresh=True
-                )
+                helpers.to_db_object(user, m.User).make_access_token()
             )
             res = user
 
@@ -582,6 +584,7 @@ def session(app, db, fresh_db, monkeypatch):
         manage.test_data(psef.models.db)
 
     try:
+        psef.models.validator._update_session(session)
         with monkeypatch.context() as context:
             context.setattr(psef.models.db, 'session', session)
             if not fresh_db:

@@ -7,13 +7,13 @@ from sys import maxsize as _maxsize
 from functools import wraps
 
 import coolname
-from werkzeug.utils import cached_property
 from sqlalchemy.sql.expression import or_ as sql_or
 from sqlalchemy.sql.expression import func as sql_func
 
 import psef
 import cg_cache.intra_request
 from cg_dt_utils import DatetimeWithTimezone
+from cg_cache.intra_request import cached_property
 from cg_sqlalchemy_helpers.types import MyQueryTuple, hybrid_property
 
 from . import Base, DbColumn, db
@@ -43,17 +43,13 @@ class Group(Base):
 
     A group is a collection of real (non virtual) users that itself is
     connected to a virtual user. A group is connected to a :class:`.GroupSet`.
-
-    :ivar ~.Group.name: The name of the group. This has to be unique in a group
-        set.
-    :ivar virtual_user: The virtual user this group is connected to. This user
-        is used to submissions as the group.
-    :ivar group_set: The :class:`.GroupSet` this group is connected to.
     """
     __tablename__ = 'Group'
 
     id = db.Column('id', db.Integer, primary_key=True)
+    #: The name of the group. This has to be unique in a group set.
     name = db.Column('name', db.Unicode)
+    #: The id of the :class:`.GroupSet` this group is connected to.
     group_set_id = db.Column(
         'group_set_id',
         db.Integer,
@@ -65,6 +61,8 @@ class Group(Base):
         default=DatetimeWithTimezone.utcnow,
         nullable=False
     )
+    #: The id of the virtual user this group is connected to. This user is used
+    #: to submissions as the group.
     virtual_user_id = db.Column(
         'virtual_user_id',
         db.Integer,
@@ -78,6 +76,19 @@ class Group(Base):
         order_by=lambda: user_models.User.name,
         uselist=True,
     )
+
+    virtual_user = db.relationship(
+        lambda: psef.models.User, foreign_keys=virtual_user_id, uselist=False
+    )
+
+    group_set = db.relationship(
+        lambda: GroupSet,
+        back_populates='groups',
+        innerjoin=True,
+        uselist=False,
+    )
+
+    __table_args__ = (db.UniqueConstraint('group_set_id', 'name'), )
 
     def __init__(
         self,
@@ -158,19 +169,6 @@ class Group(Base):
             )
 
         self._members = [u for u in self._members if u != member_to_remove]
-
-    virtual_user = db.relationship(
-        lambda: psef.models.User, foreign_keys=virtual_user_id, uselist=False
-    )
-
-    group_set = db.relationship(
-        lambda: GroupSet,
-        back_populates='groups',
-        innerjoin=True,
-        uselist=False,
-    )
-
-    __table_args__ = (db.UniqueConstraint('group_set_id', 'name'), )
 
     @cached_property
     def has_a_submission(self) -> bool:

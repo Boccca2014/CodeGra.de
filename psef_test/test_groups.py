@@ -45,10 +45,10 @@ def test_create_group_set(
     data_err = request.node.get_closest_marker('data_error')
     has_err = bool(perm_err or data_err)
 
-    if perm_err:
-        status = 403
-    elif data_err:
+    if data_err:
         status = 400
+    elif perm_err:
+        status = 403
     else:
         status = 200
 
@@ -229,7 +229,7 @@ def test_create_extended_group(
             'post',
             f'/api/v1/group_sets/{group_set["id"]}/group',
             data={'member_ids': [user_not_in_course.id]},
-            status_code=403,
+            status_code=400,
             result=error_template
         )
 
@@ -490,7 +490,7 @@ def test_update_group_set(
 
 @pytest.mark.parametrize(
     'user_with_perms', [
-        [CPerm.can_edit_group_set],
+        [CPerm.can_edit_group_set, CPerm.can_see_assignments],
         perm_error([]),
     ],
     indirect=True
@@ -594,11 +594,14 @@ def test_delete_group(
     app, monkeypatch_celery
 ):
     user_only_own = create_user_with_perms(
-        session, [CPerm.can_edit_own_groups, CPerm.can_submit_own_work],
-        prog_course
+        session, [
+            CPerm.can_edit_own_groups, CPerm.can_submit_own_work,
+            CPerm.can_see_assignments
+        ], prog_course
     )
     user_other_too = create_user_with_perms(
-        session, [CPerm.can_edit_others_groups], prog_course
+        session, [CPerm.can_edit_others_groups, CPerm.can_see_assignments],
+        prog_course
     )
 
     with logged_in(teacher_user):
@@ -730,7 +733,7 @@ def test_add_user_to_group(
         test_client.req(
             'post',
             f'/api/v1/groups/{g1["id"]}/member',
-            403,
+            400,
             data={
                 'username': m.Group.query.get(g2['id']).virtual_user.username
             }
@@ -784,12 +787,14 @@ def test_submit_with_group(
         session, [CPerm.can_submit_own_work, CPerm.can_see_assignments], course
     )
     user_empty_group = create_user_with_perms(
-        session, [CPerm.can_submit_own_work], course
+        session, [CPerm.can_submit_own_work, CPerm.can_see_assignments], course
     )
     user_no_group = create_user_with_perms(
-        session, [CPerm.can_submit_own_work], course
+        session, [CPerm.can_submit_own_work, CPerm.can_see_assignments], course
     )
-    user_no_perms = create_user_with_perms(session, [], course)
+    user_no_perms = create_user_with_perms(
+        session, [CPerm.can_see_assignments], course
+    )
 
     with logged_in(teacher_user):
         g_set = create_group_set(test_client, course.id, 2, 4)
@@ -884,10 +889,10 @@ def test_submit_with_small_group(
     assignment
 ):
     user_no_group = create_user_with_perms(
-        session, [CPerm.can_submit_own_work], course
+        session, [CPerm.can_submit_own_work, CPerm.can_see_assignments], course
     )
     user_with_group = create_user_with_perms(
-        session, [CPerm.can_submit_own_work], course
+        session, [CPerm.can_submit_own_work, CPerm.can_see_assignments], course
     )
 
     with logged_in(teacher_user):
@@ -923,8 +928,10 @@ def test_remove_user_from_group(
 ):
     def make_user():
         return create_user_with_perms(
-            session, [CPerm.can_edit_own_groups, CPerm.can_submit_own_work],
-            prog_course
+            session, [
+                CPerm.can_edit_own_groups, CPerm.can_submit_own_work,
+                CPerm.can_see_assignments
+            ], prog_course
         )
 
     u1 = make_user()
@@ -1157,17 +1164,20 @@ def test_seeing_teacher_revision_in_group(
 ):
     with describe('setup'):
         user_other_group = create_user_with_perms(
-            session,
-            [CPerm.can_submit_own_work, CPerm.can_view_own_teacher_files],
-            course
+            session, [
+                CPerm.can_submit_own_work, CPerm.can_view_own_teacher_files,
+                CPerm.can_see_assignments
+            ], course
         )
         user_with_perm = create_user_with_perms(
-            session,
-            [CPerm.can_submit_own_work, CPerm.can_view_own_teacher_files],
-            course
+            session, [
+                CPerm.can_submit_own_work, CPerm.can_view_own_teacher_files,
+                CPerm.can_see_assignments
+            ], course
         )
         user_without_perm = create_user_with_perms(
-            session, [CPerm.can_submit_own_work], course
+            session, [CPerm.can_submit_own_work, CPerm.can_see_assignments],
+            course
         )
 
         with logged_in(teacher_user):

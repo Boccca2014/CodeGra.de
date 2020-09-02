@@ -16,6 +16,7 @@
                     <icon name="times" />
                 </b-button>
                 <submit-button ref="submitButton"
+                               :confirm="confirm"
                                :submit="submit"
                                @after-success="afterSubmit">
                     <icon name="check" />
@@ -45,6 +46,10 @@ export default {
         noAutoFocus: {
             type: Boolean,
             default: false,
+        },
+        confirm: {
+            type: String,
+            default: '',
         },
     },
 

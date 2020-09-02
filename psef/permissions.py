@@ -201,6 +201,7 @@ class CoursePermission(BasePermission):
     :ivar can_view_inline_feedback_before_approved: Users with this permission can view unapproved inline comments, comments that need approval include peer feedback comments. Users still need to have the permission to see the feedback, so this permission alone is not enough to see peer feedback.
     :ivar can_approve_inline_comments: Users with this permission can approve inline comments, comments that need approval include peer feedback comments.
     :ivar can_edit_peer_feedback_settings: Users with this permission can edit the peer feedback status of an assignment.
+    :ivar can_receive_login_links: Users with this permission will receive login links if this is enabled for the assignment. You should not give this permission to users with powerful permissions (such as "Can grade work").
     """
 
     @staticmethod
@@ -266,6 +267,7 @@ class CoursePermission(BasePermission):
     can_view_inline_feedback_before_approved = _PermissionValue(item=56, default_value=False)
     can_approve_inline_comments = _PermissionValue(item=57, default_value=False)
     can_edit_peer_feedback_settings = _PermissionValue(item=58, default_value=False)
+    can_receive_login_links = _PermissionValue(item=59, default_value=True)
 
 
 @dataclasses.dataclass(frozen=True)

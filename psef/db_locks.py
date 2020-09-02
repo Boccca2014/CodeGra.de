@@ -28,6 +28,7 @@ class LockNamespaces(enum.Enum):
     comment_base = 1
     user = 2
     peer_feedback_division = 3
+    group_members = 4
 
 
 NAMESPACE_RESERVE_BITS = 8

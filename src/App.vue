@@ -51,9 +51,9 @@ export default {
     name: 'app',
 
     computed: {
-        ...mapGetters('user', ['loggedIn']),
+        ...mapGetters('user', ['loggedIn', 'jwtClaims']),
         ...mapGetters('pref', ['darkMode']),
-        ...mapGetters('courses', ['assignments']),
+        ...mapGetters('courses', ['assignments', 'courses']),
 
         canManageLTICourse() {
             return this.$utils.getProps(
@@ -76,6 +76,14 @@ export default {
 
         showFrameBorder() {
             return window !== window.top && this.$ltiProvider && this.$ltiProvider.addBorder;
+        },
+
+        forCourse() {
+            const forCourse = this.jwtClaims.for_course;
+            if (forCourse == null) {
+                return null;
+            }
+            return this.$utils.getProps(this.courses, null, forCourse, 'name');
         },
     },
 
@@ -109,11 +117,32 @@ export default {
                 }
             },
         },
+
+        forCourse: {
+            immediate: true,
+            handler(newValue, oldValue) {
+                if (oldValue != null) {
+                    this.deleteToast(this.makeForCourseToast(oldValue));
+                }
+                if (newValue != null) {
+                    this.addToast(this.makeForCourseToast(newValue));
+                }
+            },
+        },
     },
 
     methods: {
         ...mapActions('user', ['verifyLogin']),
         ...mapActions('courses', ['loadCourses']),
+
+        makeForCourseToast(courseName) {
+            return {
+                tag: 'forCourse',
+                title: 'Limited login enabled',
+                message: `You are currently only logged in for the course "${courseName}". This means you can only see data from this course.`,
+                variant: 'warning',
+            };
+        },
 
         addToast(toast) {
             if (!this.toasts.find(other => other.tag === toast.tag)) {

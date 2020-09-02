@@ -165,6 +165,8 @@ describe('Submission.vue', () => {
                 } else {
                     res = submissions.map(s => Object.assign({}, s)).slice(-1);
                 }
+            } else if (/^.api.v1.assignments.([0-9]+|NaN).graders./.test(path)) {
+                res = [];
             } else if (/^.api.v1.courses./.test(path)) {
                 res = courses;
             } else if (/^.api.v1.permissions.*type=course/.test(path)) {

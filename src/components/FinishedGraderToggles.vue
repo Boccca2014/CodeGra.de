@@ -2,7 +2,7 @@
 <template>
 <div class="finished-grader-toggles">
     <table class="table table-striped"
-            v-if="internalGraders">
+            v-if="graders">
         <thead>
             <tr>
                 <th>Grader</th>
@@ -11,37 +11,37 @@
             </tr>
         </thead>
         <tbody>
-            <tr v-for="grader, i in internalGraders"
-                :key="grader.id"
+            <tr v-for="grader, i in graders"
+                :key="grader.userId"
                 class="grader">
-                <td><user :user="grader"/></td>
+                <td><user :user="grader.user"/></td>
                 <td class="shrink">
                     <b-popover placement="top"
-                               :show="!!(warningGraders[grader.id] || errorGraders[grader.id])"
-                               :target="`grader-icon-${assignment.id}-${grader.id}`">
-                        <span v-if="errorGraders[grader.id]">
-                            {{ errorGraders[grader.id] }}
+                               :show="!!(warningGraders[grader.userId] || errorGraders[grader.userId])"
+                               :target="`grader-icon-${assignment.id}-${grader.userId}`">
+                        <span v-if="errorGraders[grader.userId]">
+                            {{ errorGraders[grader.userId] }}
                         </span>
                         <span v-else>
-                            {{ warningGraders[grader.id] }}
+                            {{ warningGraders[grader.userId] }}
                         </span>
                     </b-popover>
 
-                    <icon :name="iconStyle(grader.id)"
-                          :spin="!(errorGraders[grader.id] || warningGraders[grader.id])"
-                          :id="`grader-icon-${assignment.id}-${grader.id}`"
-                          :class="iconClass(grader.id)"
+                    <icon :name="iconStyle(grader.userId)"
+                          :spin="!(errorGraders[grader.userId] || warningGraders[grader.userId])"
+                          :id="`grader-icon-${assignment.id}-${grader.userId}`"
+                          :class="iconClass(grader.userId)"
                           :style="{
-                              opacity: warningGraders[grader.id] ||
-                                           loadingGraders[grader.id] ||
-                                           errorGraders[grader.id] ? 1 : 0,
+                              opacity: warningGraders[grader.userId] ||
+                                           loadingGraders[grader.userId] ||
+                                           errorGraders[grader.userId] ? 1 : 0,
                           }"/>
                 </td>
                 <td class="shrink">
                     <toggle label-on="Done"
                             label-off="Grading"
-                            :disabled="!others && $store.getters['user/id'] != grader.id"
-                            v-model="grader.done"
+                            :disabled="!canUpdateOthers && $store.getters['user/id'] != grader.userId"
+                            v-model="gradersDone[grader.userId]"
                             disabled-text="You cannot change the grader status of other graders"
                             @input="toggleGrader(grader)"/>
                 </td>
@@ -58,6 +58,9 @@ import 'vue-awesome/icons/times';
 import 'vue-awesome/icons/circle-o-notch';
 import 'vue-awesome/icons/exclamation-triangle';
 import { WarningHeader, waitAtLeast } from '@/utils';
+import { GradersStore } from '@/store/modules/graders';
+
+import * as models from '@/models';
 
 import Toggle from './Toggle';
 import User from './User';
@@ -66,31 +69,41 @@ export default {
     props: {
         assignment: {
             type: Object,
-            default: null,
+            required: true,
         },
 
         graders: {
             type: Array,
-            default: null,
-        },
-
-        others: {
-            type: Boolean,
-            default: false,
+            required: true,
         },
     },
 
     data() {
         return {
-            internalGraders: [],
             loadingGraders: {},
             errorGraders: {},
             warningGraders: {},
+            gradersDone: {},
         };
     },
 
-    mounted() {
-        this.internalGraders = this.graders.map(g => Object.assign({}, g));
+    computed: {
+        permissions() {
+            return new models.AssignmentCapabilities(this.assignment);
+        },
+
+        canUpdateOthers() {
+            return this.permissions.canUpdateOtherGraderStatus;
+        },
+    },
+
+    watch: {
+        graders: {
+            immediate: true,
+            handler() {
+                this.gradersDone = this.resetGradersDone();
+            },
+        },
     },
 
     methods: {
@@ -102,6 +115,7 @@ export default {
             }
             return '';
         },
+
         iconStyle(graderId) {
             if (this.errorGraders[graderId]) {
                 return 'times';
@@ -110,20 +124,22 @@ export default {
             }
             return 'circle-o-notch';
         },
+
         toggleGrader(grader) {
-            this.$set(this.warningGraders, grader.id, undefined);
-            delete this.warningGraders[grader.id];
-            this.$set(this.loadingGraders, grader.id, true);
+            const { userId } = grader;
+            this.$set(this.warningGraders, userId, undefined);
+            delete this.warningGraders[userId];
+            this.$set(this.loadingGraders, userId, true);
 
             let req;
 
-            if (grader.done) {
+            if (this.gradersDone[grader.userId]) {
                 req = this.$http.post(
-                    `/api/v1/assignments/${this.assignment.id}/graders/${grader.id}/done`,
+                    `/api/v1/assignments/${this.assignment.id}/graders/${userId}/done`,
                 );
             } else {
                 req = this.$http.delete(
-                    `/api/v1/assignments/${this.assignment.id}/graders/${grader.id}/done`,
+                    `/api/v1/assignments/${this.assignment.id}/graders/${userId}/done`,
                 );
             }
 
@@ -134,34 +150,43 @@ export default {
                             const warning = WarningHeader.fromResponse(res);
                             this.$set(
                                 this.warningGraders,
-                                grader.id,
+                                userId,
                                 warning.messages.map(w => w.text).join(' '),
                             );
                             this.$nextTick(() =>
                                 setTimeout(() => {
-                                    this.$set(this.warningGraders, grader.id, undefined);
-                                    delete this.warningGraders[grader.id];
+                                    this.$set(this.warningGraders, userId, undefined);
+                                    delete this.warningGraders[userId];
                                 }, 2000),
                             );
                         }
+
+                        GradersStore.updateGraderState({
+                            assignmentId: this.assignment.id,
+                            status: this.gradersDone,
+                        });
                     },
                     err => {
-                        this.$set(this.errorGraders, grader.id, err.response.data.message);
+                        this.$set(this.errorGraders, userId, err.response.data.message);
 
                         this.$nextTick(() =>
                             setTimeout(() => {
-                                grader.done = !grader.done;
+                                this.gradersDone[grader.userId] = !this.gradersDone[grader.userId];
 
-                                this.$set(this.errorGraders, grader.id, undefined);
-                                delete this.errorGraders[grader.id];
+                                this.$set(this.errorGraders, userId, undefined);
+                                delete this.errorGraders[userId];
                             }, 2000),
                         );
                     },
                 )
                 .then(() => {
-                    this.$set(this.loadingGraders, grader.id, undefined);
-                    delete this.loadingGraders[grader.id];
+                    this.$set(this.loadingGraders, userId, undefined);
+                    delete this.loadingGraders[userId];
                 });
+        },
+
+        resetGradersDone() {
+            return this.$utils.mapToObject(this.graders, g => [g.userId, g.done]);
         },
     },
 

@@ -9,7 +9,7 @@ import typing as t
 from flask import current_app
 from sqlalchemy.orm.collections import attribute_mapped_collection
 
-from cg_sqlalchemy_helpers.types import ColumnProxy
+from cg_sqlalchemy_helpers.types import ColumnProxy, FilterColumn
 
 from . import Base, MyQuery, db
 from . import course as course_models
@@ -109,9 +109,7 @@ class AbstractRole(t.Generic[_T]):
         else:
             assert isinstance(permission, GlobalPermission)
 
-        revert = False
-        if permission in self._permissions:
-            revert = True
+        revert = permission in self._permissions
         if current_app.do_sanity_checks:
             found_perm = Permission.get_permission(permission)
             assert (
@@ -120,7 +118,7 @@ class AbstractRole(t.Generic[_T]):
 
         res = permission.value.default_value
         if revert:
-            res = not res
+            return not res
         return res
 
     def get_all_permissions(self) -> t.Mapping['_T', bool]:
@@ -339,3 +337,39 @@ class CourseRole(AbstractRole[CoursePermission], Base):
         if not include_hidden:
             res = res.filter(~cls.hidden)
         return res
+
+    @classmethod
+    def get_has_permission_filter(
+        cls, permission: CoursePermission
+    ) -> FilterColumn:
+        """Get a DB filter that does a :py:func:`CourseRole.has_permission`
+        check in the database.
+
+        :param permission: The permission you want to check for.
+
+        :returns: A database filter column that checks if a course role has the
+                  given permission.
+        """
+        # Make extra sure this permission is not a global permission, as this
+        # would not error during runtime otherwise.
+        assert isinstance(permission, CoursePermission)
+
+        if current_app.do_sanity_checks:
+            found_perm = Permission.get_permission(permission)
+            assert (
+                found_perm.default_value == permission.value.default_value
+            ), "Wrong permission in database"
+
+        perm_id = Permission.query_permission(permission).with_entities(
+            Permission.id
+        )
+        has_link = db.session.query(course_permissions).filter(
+            course_permissions.c.permission_id == perm_id,
+            course_permissions.c.course_role_id == cls.id,
+        ).exists()
+
+        # XOR is not available in postgres (or SQLAlchemy), so we solve it with
+        # a simple if.
+        if permission.value.default_value:
+            return ~has_link
+        return has_link

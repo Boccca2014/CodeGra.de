@@ -34,6 +34,8 @@ Never = t.NewType('Never', object)
 
 
 class MySession:  # pragma: no cover
+    info: dict
+
     def bulk_save_objects(self, objs: t.Sequence['Base']) -> None:
         ...
 
@@ -122,6 +124,9 @@ class MySession:  # pragma: no cover
         ...
 
     def expunge(self, arg: 'Base') -> None:
+        ...
+
+    def expire(self, obj: 'Base') -> None:
         ...
 
     def expire_all(self) -> None:
