@@ -74,7 +74,7 @@ class User(NotEqualMixin, Base):
     """
 
     class LoginResponse(TypedDict):
-        """When logging this object will be given.
+        """When logging in this object will be given.
         """
         #: The user that was logged in.
         user: 'User'
