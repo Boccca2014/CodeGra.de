@@ -15,8 +15,9 @@
                      variant="warning">
                 <p>
                     Another user than the one trying to take the exam is
-                    currently logged in. <a href="#" @click="storeLogout">Click
-                    here</a> to log the other user out.
+                    currently logged in. <a class="inline-link" href="#"
+                    @click="storeLogout">Click here</a> to log the other user
+                out.
                 </p>
 
                 <p class="mb-0">
@@ -45,7 +46,8 @@
                 </template>
                 <template v-else-if="!isBeforeDeadline">
                     <p>
-                        The exam ended {{ deadlineIn }}.
+                        The exam ended {{ deadlineIn }}. You can not log in
+                        anymore.
                     </p>
                 </template>
                 <template v-else>

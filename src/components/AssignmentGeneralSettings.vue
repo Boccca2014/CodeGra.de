@@ -437,7 +437,10 @@ export default class AssignmentGeneralSettings extends Vue {
             return false;
         }
 
-        return this.examDuration.orDefault(Nothing).orDefault(0) > this.maxExamDuration;
+        return this.examDuration.orDefault(Nothing).mapOrDefault(
+            duration => duration > this.maxExamDuration,
+            false,
+        );
     }
 
     get nothingChanged() {

@@ -17,10 +17,10 @@
         {%- else -%}
             This is just a reminder that on
         {%- endif %}
-	{{ assignment.available_at.strftime("%Y-%m-%d %H:%M") }} the exam {{
-	assignment.name }} in the course {{ course.name }} will become
-	available. This e-mail contains a special link which you can use during
-	the time this exam will be available.
+        {{ assignment.available_at.strftime("%Y-%m-%d %H:%M") }} the exam {{
+        assignment.name }} in the course {{ course.name }} will become
+        available. This e-mail contains a special link which you can use during
+        the time this exam will be available.
     {% endcall %}
 
     {% call utils.body_row() %}
@@ -28,10 +28,10 @@
     {% endcall %}
 
     {% call utils.body_row() %}
-	 This link will only allow you to login when the exam starts, however
-	 you can already test this link now, which we advise you to do.
-	 Furthermore, this link allows you to set a password so that you do not
-	 have to use the special link during the exam.
+        This link will only allow you to login when the exam starts, however
+        you can already test this link now, which we advise you to do.
+        Furthermore, this link allows you to set a password so that you do not
+        have to use the special link during the exam.
     {% endcall %}
 
     {% call utils.body_row() %}

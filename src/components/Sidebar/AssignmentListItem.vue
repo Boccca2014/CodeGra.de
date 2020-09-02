@@ -18,7 +18,7 @@
                               v-if="!small"
                               size="sm"/>
             <small v-else-if="isNotStartedExam" class="deadline">
-                Open <cg-relative-time :date="assignment.availableAt" />
+                Starts <cg-relative-time :date="assignment.availableAt" />
             </small>
             <small v-else-if="assignment.hasDeadline" class="deadline">
                 Due <cg-relative-time :date="assignment.deadline" />
@@ -35,7 +35,7 @@
                 :title="assignment.course.name">{{ assignment.course.name }}</small>
 
             <small v-if="isNotStartedExam" class="deadline">
-                Open <cg-relative-time :date="assignment.availableAt" />
+                Starts <cg-relative-time :date="assignment.availableAt" />
             </small>
             <small v-else-if="assignment.hasDeadline" class="deadline">
                 Due <cg-relative-time :date="assignment.deadline" />
