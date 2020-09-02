@@ -271,6 +271,10 @@ object with the following keys:
   run. This value stays constant between runs of different submissions by the
   same student.
 
+If you think it would be useful some extra data available, please do not
+hesitate to contact us at `support@codegrade.com
+<mailto:support@codegrade.com>`__ so we can discuss the options.
+
 .. example:: subtracting points for late submissions
 
     You want to automatically subtract 1 point from the total rubric score for

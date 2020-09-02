@@ -191,9 +191,6 @@ download as plain text file.
 .. note:: Make sure pop-ups from CodeGrade are allowed in your browser if
    downloading fails.
 
-.. note:: Although it is possible to manually download individual submissions,
-   we recommend using the filesystem.
-
 Deleting a submission
 ~~~~~~~~~~~~~~~~~~~~~~
 CodeGrade offers the functionality to remove submissions, this can be done

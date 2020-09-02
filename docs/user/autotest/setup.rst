@@ -132,6 +132,12 @@ example a misplaced punctuation mark -- that causes the majority of the tests
 to fail. The teacher can correct this mistake and run the tests again to see
 what the score of this student would have been if such a mistake weren't made.
 
+After the teacher has made their changes, the AutoTest should be manually
+restarted if it has already started or finished, to make it run against the
+teacher's revision. You can restart an AutoTest by going to a result, clicking
+on the arrow next to the state of the result, and selecting "Restart this
+result".
+
 Uploading fixtures
 --------------------
 

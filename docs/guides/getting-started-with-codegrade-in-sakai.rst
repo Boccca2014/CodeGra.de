@@ -44,8 +44,6 @@ The following data is shared between CodeGrade and Sakai:
 
 - Grades (only passed back from CodeGrade to Sakai)
 
-.. include:: creating-a-sakai-assignment.rst
-
 Setting up your course
 ========================
 
@@ -130,10 +128,8 @@ this assignment.  This means students **know what is expected** of them.
 
 After an assignment is set to **“Done”** (:fa:`check`) grades are automatically
 sent back to Sakai. Students can then view their feedback inside the CodeGrade
-container in Sakai after
-
-**(TODO is this Blackboard specific?)**
-clicking on their grade or navigating to the assignment.
+container in Sakai after clicking on their grade or navigating to the
+assignment.
 
 .. note::
 
@@ -145,7 +141,6 @@ can browse through their handed in files), an overview of their **Feedback**
 and optionally an overview of the **AutoTest** results which can be filled in
 preliminarily with Continuous Feedback.
 
-**(TODO is this relevant for Sakai?)**
 .. note::
 
     We recommend graders to make use of the standalone CodeGrade website, but

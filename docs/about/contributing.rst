@@ -12,9 +12,7 @@ Bugs and Suggestions
 ---------------------
 We strive to make CodeGrade the best solution for programming education. If you
 encounter an bugs in the CodeGrade systems or if you have suggestions to make
-CodeGrade even better, please feel free to:
-
-* Submit an Issue on our `Github Issues page <https://github.com/CodeGra-de/CodeGra.de/issues>`_.
-* E-mail us at info@codegrade.com.
+CodeGrade even better, please feel free to e-mail us at `info@codegrade.com
+<mailto:info@codegrade.com>`__.
 
 We highly appreciate taking your time to inform us about bugs or suggestions.
