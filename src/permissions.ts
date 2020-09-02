@@ -94,7 +94,8 @@ export type CoursePermissionOptions =
     | 'can_email_students'
     | 'can_view_inline_feedback_before_approved'
     | 'can_approve_inline_comments'
-    | 'can_edit_peer_feedback_settings';
+    | 'can_edit_peer_feedback_settings'
+    | 'can_receive_login_links';
 const makeCPerm = (value: CoursePermissionOptions, name: string, description: string, warning: string | null) => ({ value, name, description, warning });
 export const CoursePermission = {
     canSubmitOthersWork: makeCPerm('can_submit_others_work', 'Submit others work', 'Users with this permission can submit work to an assignment for other users. This means they can submit work that will have another user as the author.', null),
@@ -156,6 +157,7 @@ export const CoursePermission = {
     canViewInlineFeedbackBeforeApproved: makeCPerm('can_view_inline_feedback_before_approved', 'View peer feedback before approved', 'Users with this permission can view unapproved inline comments, comments that need approval include peer feedback comments. Users still need to have the permission to see the feedback, so this permission alone is not enough to see peer feedback.', null),
     canApproveInlineComments: makeCPerm('can_approve_inline_comments', 'Approve inline comments', 'Users with this permission can approve inline comments, comments that need approval include peer feedback comments.', null),
     canEditPeerFeedbackSettings: makeCPerm('can_edit_peer_feedback_settings', 'Edit peer feedback settings', 'Users with this permission can edit the peer feedback status of an assignment.', null),
+    canReceiveLoginLinks: makeCPerm('can_receive_login_links', 'Receive login links', 'Users with this permission will receive login links if this is enabled for the assignment. You should not give this permission to users with powerful permissions (such as "Can grade work").', null),
 };
 export type CoursePermission = typeof CoursePermission[keyof typeof CoursePermission];
 /* eslint-enable */

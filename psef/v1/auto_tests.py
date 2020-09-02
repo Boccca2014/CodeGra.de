@@ -163,22 +163,24 @@ def create_auto_test() -> JSONResponse[models.AutoTest]:
         models.Assignment.is_visible,
         with_for_update=True
     )
-    auth.ensure_permission(CPerm.can_edit_autotest, assignment.course_id)
-
-    if assignment.auto_test_id:
-        raise APIException(
-            'The given assignment already has an auto test',
-            f'The assignment "{assignment.id}" already has an auto test',
-            APICodes.INVALID_STATE, 409
-        )
+    already_has = assignment.auto_test_id is not None
 
     auto_test = models.AutoTest(
         assignment=assignment,
         finalize_script='',
     )
     db.session.add(auto_test)
-
     db.session.flush()
+
+    auth.AutoTestPermissions(auto_test).ensure_may_add()
+
+    if already_has:
+        raise APIException(
+            'The given assignment already has an auto test',
+            f'The assignment "{assignment.id}" already has an auto test',
+            APICodes.INVALID_STATE, 409
+        )
+
     _update_auto_test(auto_test, json_dict)
 
     db.session.commit()
@@ -205,9 +207,7 @@ def delete_auto_test(auto_test_id: int) -> EmptyResponse:
         also_error=lambda at: not at.assignment.is_visible,
     )
 
-    auth.ensure_permission(
-        CPerm.can_edit_autotest, auto_test.assignment.course_id
-    )
+    auth.AutoTestPermissions(auto_test).ensure_may_edit()
 
     auto_test.ensure_no_runs()
 
@@ -244,7 +244,7 @@ def get_fixture_contents(
         )
     )
 
-    auth.ensure_can_view_fixture(fixture)
+    auth.AutoTestFixturePermissions(fixture).ensure_may_see()
 
     contents = files.get_file_contents(fixture)
     res: werkzeug.wrappers.Response = make_response(contents)
@@ -277,9 +277,7 @@ def hide_or_open_fixture(at_id: int, fixture_id: int) -> EmptyResponse:
         ),
     )
 
-    auth.ensure_permission(
-        CPerm.can_edit_autotest, fixture.auto_test.assignment.course_id
-    )
+    auth.AutoTestFixturePermissions(fixture).ensure_may_edit()
 
     fixture.auto_test.ensure_no_runs()
 
@@ -312,9 +310,7 @@ def update_auto_test(auto_test_id: int) -> JSONResponse[models.AutoTest]:
         auto_test_id,
         also_error=lambda at: not at.assignment.is_visible
     )
-    auth.ensure_permission(
-        CPerm.can_edit_autotest, auto_test.assignment.course_id
-    )
+    auth.AutoTestPermissions(auto_test).ensure_may_edit()
     auto_test.ensure_no_runs()
 
     content = ensure_json_dict(
@@ -345,9 +341,7 @@ def create_auto_test_set(auto_test_id: int
         auto_test_id,
         also_error=lambda at: not at.assignment.is_visible
     )
-    auth.ensure_permission(
-        CPerm.can_edit_autotest, auto_test.assignment.course_id
-    )
+    auth.AutoTestPermissions(auto_test).ensure_may_edit()
 
     auto_test.ensure_no_runs()
 
@@ -379,10 +373,7 @@ def update_auto_test_set(auto_test_id: int, auto_test_set_id: int
     """
 
     auto_test_set = _get_at_set_by_ids(auto_test_id, auto_test_set_id)
-
-    auth.ensure_permission(
-        CPerm.can_edit_autotest, auto_test_set.auto_test.assignment.course_id
-    )
+    auth.AutoTestPermissions(auto_test_set.auto_test).ensure_may_edit()
 
     auto_test_set.auto_test.ensure_no_runs()
 
@@ -427,9 +418,7 @@ def delete_auto_test_set(
         should be deleted.
     """
     auto_test_set = _get_at_set_by_ids(auto_test_id, auto_test_set_id)
-    auth.ensure_permission(
-        CPerm.can_edit_autotest, auto_test_set.auto_test.assignment.course_id
-    )
+    auth.AutoTestPermissions(auto_test_set.auto_test).ensure_may_edit()
 
     auto_test_set.auto_test.ensure_no_runs()
 
@@ -473,9 +462,7 @@ def update_or_create_auto_test_suite(auto_test_id: int, auto_test_set_id: int
     :returns: The just updated or created :class:`.models.AutoTestSuite`.
     """
     auto_test_set = _get_at_set_by_ids(auto_test_id, auto_test_set_id)
-    auth.ensure_permission(
-        CPerm.can_edit_autotest, auto_test_set.auto_test.assignment.course_id
-    )
+    auth.AutoTestPermissions(auto_test_set.auto_test).ensure_may_edit()
 
     auto_test_set.auto_test.ensure_no_runs()
 
@@ -560,10 +547,7 @@ def delete_suite(test_id: int, set_id: int, suite_id: int) -> EmptyResponse:
         models.AutoTestSet.id == set_id,
         models.AutoTest.id == test_id,
     )
-    auth.ensure_permission(
-        CPerm.can_edit_autotest,
-        suite.auto_test_set.auto_test.assignment.course_id
-    )
+    auth.AutoTestPermissions(suite.auto_test_set.auto_test).ensure_may_edit()
     suite.auto_test_set.auto_test.ensure_no_runs()
 
     db.session.delete(suite)
@@ -583,7 +567,7 @@ def get_auto_test(auto_test_id: int) -> ExtendedJSONResponse[models.AutoTest]:
         the extended serialization of its runs.
     """
     test = get_or_404(models.AutoTest, auto_test_id)
-    auth.ensure_can_view_autotest(test)
+    auth.AutoTestPermissions(test).ensure_may_see()
 
     jsonify_options.get_options(
     ).latest_only = helpers.request_arg_true('latest_only')
@@ -611,7 +595,8 @@ def get_auto_test_run(auto_test_id: int,
         models.AutoTestRun.id == run_id,
         also_error=lambda run: run.auto_test_id != auto_test_id
     )
-    auth.ensure_can_view_autotest(run.auto_test)
+    auth.AutoTestRunPermissions(run).ensure_may_see()
+
     jsonify_options.get_options(
     ).latest_only = helpers.request_arg_true('latest_only')
     return extended_jsonify(run, use_extended=models.AutoTestRun)
@@ -637,6 +622,10 @@ def start_auto_test_run(auto_test_id: int) -> t.Union[JSONResponse[
         with_for_update=True
     )
 
+    # This should really use `AutoTestRunPermissions.ensure_may_start` but as
+    # the run is created while it is scheduled (and other (revealing) state
+    # checks are done) this is not really possible.
+    auth.AssignmentPermissions(test.assignment).ensure_may_see()
     auth.ensure_permission(CPerm.can_run_autotest, test.assignment.course_id)
 
     try:
@@ -650,12 +639,10 @@ def start_auto_test_run(auto_test_id: int) -> t.Union[JSONResponse[
 
     db.session.commit()
 
-    try:
-        auth.ensure_can_view_autotest(test)
-    except exceptions.PermissionException:
-        return jsonify({})
-    else:
+    if auth.AutoTestPermissions(test).ensure_may_see.as_bool():
         return extended_jsonify(run, use_extended=models.AutoTestRun)
+    else:
+        return jsonify({})
 
 
 @api.route(
@@ -732,19 +719,15 @@ def get_auto_test_results_for_user(
         also_error=also_error,
     )
     user = get_or_404(models.User, user_id)
-    auth.ensure_enrolled(run.auto_test.assignment.course_id)
+    auth.AutoTestRunPermissions(run).ensure_may_see()
 
     results = []
     for result in models.AutoTestResult.get_results_by_user(
         user.id
-    ).filter_by(auto_test_run_id=run.id).order_by(
+    ).filter(models.AutoTestResult.run == run).order_by(
         models.AutoTestResult.created_at
     ):
-        try:
-            auth.ensure_can_view_autotest_result(result)
-        except exceptions.PermissionException:
-            continue
-        else:
+        if auth.AutoTestResultPermissions(result).ensure_may_see.as_bool():
             results.append(result)
 
     return jsonify(results)
@@ -829,9 +812,10 @@ def copy_auto_test(auto_test_id: int) -> JSONResponse[models.AutoTest]:
         auto_test_id,
         also_error=lambda at: not at.assignment.is_visible
     )
-    auth.ensure_can_view_autotest(test)
+    auth.AutoTestPermissions(test).ensure_may_see()
+
     for fixture in test.fixtures:
-        auth.ensure_can_view_fixture(fixture)
+        auth.AutoTestFixturePermissions(fixture).ensure_may_see()
     for suite in test.all_suites:
         for step in suite.steps:
             auth.ensure_can_view_autotest_step_details(step)
@@ -905,12 +889,7 @@ def get_auto_test_result_proxy(
         allow_remote_scripts = get('allow_remote_scripts', bool)
 
     result = _get_result_by_ids(auto_test_id, run_id, result_id)
-    test = result.run.auto_test
-    if not test.assignment.is_done:
-        auth.ensure_permission(
-            CPerm.can_view_autotest_output_files_before_done,
-            test.assignment.course_id,
-        )
+    auth.AutoTestResultPermissions(result).ensure_may_see_output_files()
 
     base_file = filter_single_or_404(
         models.AutoTestOutputFile,
@@ -951,7 +930,7 @@ def get_auto_test_step_result_attachment(
         auto_test_id,
         also_error=lambda at: not at.assignment.is_visible
     )
-    auth.ensure_can_view_autotest(test)
+    auth.AutoTestPermissions(test).ensure_may_see()
 
     def also_error(obj: models.AutoTestStepResult) -> bool:
         result = obj.result
@@ -967,7 +946,7 @@ def get_auto_test_step_result_attachment(
         also_error=also_error,
     )
 
-    auth.ensure_can_view_autotest_result(step_result.result)
+    auth.AutoTestResultPermissions(step_result.result).ensure_may_see()
     auth.ensure_can_view_autotest_step_details(step_result.step)
 
     if step_result.attachment_filename is None:

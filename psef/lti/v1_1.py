@@ -1013,7 +1013,6 @@ class CanvasLTI(LTI):
 
     @property
     def assignment_state(self) -> models.AssignmentStateEnum:
-        # pylint: disable=protected-access
         if self.launch_params['custom_canvas_assignment_published'] == 'true':
             return models.AssignmentStateEnum.open
         else:
@@ -1129,7 +1128,6 @@ class BareBonesLTIProvider(LTI):
 
     @property
     def assignment_state(self) -> models.AssignmentStateEnum:
-        # pylint: disable=protected-access
         return models.AssignmentStateEnum.open
 
     @property

@@ -1,32 +1,30 @@
 <!-- SPDX-License-Identifier: AGPL-3.0-only -->
 <template>
-<input :value="value"
-       @input="emitFromEvent"
+<input v-model="userInput"
        @keydown.down="decValue"
        @keydown.up="incValue"
        class="number-input form-control"
+       :name="name"
        type="tel"/>
 </template>
 
 <script lang="ts">
-import { Vue, Component, Prop } from 'vue-property-decorator';
+import { Vue, Component, Prop, Watch } from 'vue-property-decorator';
+
+import { Either, Left, Right, Maybe, Nothing } from '@/utils';
+
+export type NumberInputValue = Either<Error, Maybe<number>>
+
+export function numberInputValue(x: number | null) {
+    return Right(Maybe.fromNullable(x));
+}
 
 @Component
 export default class NumberInput extends Vue {
-    @Prop({
-        type: [Number, Object],
-        validator: x => {
-            if (x instanceof Object) {
-                return x === null;
-            } else {
-                return true;
-            }
-        },
-        default: null,
-    })
-    value!: number | null;
+    @Prop({ required: true })
+    value!: NumberInputValue;
 
-    // The <input>'s "type" attribute _must_ be "number", so we have a prop named
+    // The <input>'s "type" attribute _must_ be "tel", so we have a prop named
     // "type" to prevent the <input>'s "type" attribute to be overridden, while
     // still allowing to set other <input> attributes on the component.
     @Prop({ type: String, default: 'tel' })
@@ -41,21 +39,49 @@ export default class NumberInput extends Vue {
     @Prop({ type: Number, default: Infinity })
     max!: number;
 
-    // If the current value is a valid number, emit that number as a float.
-    // Otherwise emit `null`.
-    emitValue(value: string | number | null) {
-        let v: number | null = this.$utils.parseOrKeepFloat(value);
-        if (Number.isNaN(v)) {
-            v = null;
-        } else {
-            v = Math.min(Math.max(this.min, v), this.max);
-        }
-        this.$emit('input', v);
+    @Prop({ type: String, default: 'Value' })
+    name!: string;
+
+    @Prop({ type: Boolean, default: false })
+    required!: boolean;
+
+    userInput: string = '';
+
+    @Watch('value', { immediate: true })
+    onValueChanged() {
+        this.value.ifRight(maybeValue => {
+            const value = maybeValue.extractNullable();
+            if (value == null) {
+                this.userInput = '';
+            } else if (value !== this.internalValue.orDefault(Nothing).extractNullable()) {
+                this.userInput = value.toString(10);
+            }
+        });
     }
 
-    emitFromEvent(event: InputEvent) {
-        const el = event.target as HTMLInputElement;
-        this.emitValue(el.value);
+    @Watch('userInput', { immediate: true })
+    emitValue() {
+        this.$emit('input', this.internalValue);
+    }
+
+    get internalValue(): NumberInputValue {
+        const parsed = this.$utils.parseOrKeepFloat(this.userInput);
+
+        if (!this.userInput) {
+            if (this.required) {
+                return Left(new Error(`${this.name} may not be empty.`));
+            } else {
+                return numberInputValue(null);
+            }
+        } else if (Number.isNaN(parsed)) {
+            return Left(new Error(`${this.name} is not a number.`));
+        } else if (parsed < this.min) {
+            return Left(new Error(`${this.name} should be greater than or equal to ${this.min}.`));
+        } else if (parsed > this.max) {
+            return Left(new Error(`${this.name} should be less than or equal to ${this.max}.`));
+        } else {
+            return numberInputValue(parsed);
+        }
     }
 
     decValue() {
@@ -67,12 +93,10 @@ export default class NumberInput extends Vue {
     }
 
     maybeUpdate(f: (v: number) => number) {
-        const v = this.value;
-        if (typeof v === 'number') {
-            this.emitValue(f(v));
-        } else {
-            this.emitValue(null);
-        }
+        this.internalValue.ifRight(maybeValue => maybeValue.ifJust(value => {
+            const newValue = Math.max(this.min, Math.min(this.max, f(value)));
+            this.userInput = newValue.toString(10);
+        }));
     }
 }
 </script>

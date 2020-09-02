@@ -1,6 +1,7 @@
 /* SPDX-License-Identifier: AGPL-3.0-only */
 import Vue from 'vue';
 import axios from 'axios';
+import jwtDecode from 'jwt-decode';
 
 import * as utils from '@/utils';
 import * as types from '../mutation-types';
@@ -31,6 +32,13 @@ const getters = {
         return prefix => values.filter(({ key }) => key.startsWith(prefix));
     },
     dangerousJwtToken: state => state.jwtToken,
+    jwtClaims: (state, otherGetters) => {
+        const jwt = otherGetters.dangerousJwtToken;
+        if (!jwt) {
+            return {};
+        }
+        return utils.getProps(jwtDecode(jwt), {}, 'user_claims') || {};
+    },
 };
 
 const actions = {

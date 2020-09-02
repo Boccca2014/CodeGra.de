@@ -5,7 +5,7 @@ import type { ICompiledMode } from 'highlightjs';
 import { getLanguage, highlight } from 'highlightjs';
 import Vue from 'vue';
 
-import { Maybe } from 'purify-ts/Maybe';
+import { Maybe, Nothing } from 'purify-ts/Maybe';
 
 import * as Sentry from '@sentry/browser';
 import { User } from '@/models';
@@ -411,10 +411,38 @@ export function toMoment(date: moment.Moment | string): moment.Moment {
     }
 }
 
+export function toMomentNullable(date: moment.Moment | string | null): moment.Moment | null {
+    if (date == null) {
+        return null;
+    } else {
+        return toMoment(date);
+    }
+}
+
+export function formatMoment(date: moment.Moment | string, format: string): string {
+    return toMoment(date).local().format(format);
+}
+
 export function readableFormatDate(date: moment.Moment | string): string {
-    return toMoment(date)
-        .local()
-        .format('YYYY-MM-DD HH:mm');
+    return formatMoment(date, 'YYYY-MM-DD HH:mm');
+}
+
+export function formatDate(date: string | moment.Moment, iso: boolean = false): string {
+    if (iso) {
+        return toMoment(date).utc().toISOString();
+    } else {
+        return formatMoment(date, 'YYYY-MM-DDTHH:mm');
+    }
+}
+
+export function formatNullableDate(
+    date: string | moment.Moment | null,
+    iso: boolean = false,
+): string | null {
+    if (date == null) {
+        return null;
+    }
+    return formatDate(date, iso);
 }
 
 export function filterMap<T, TT>(
@@ -477,13 +505,17 @@ export function parseOrKeepFloat(num: string | number | null | undefined): numbe
     } else if (num == null) {
         return NaN;
     }
-    return parseFloat(num);
-}
 
-export function formatDate(date: string | moment.Moment): string {
-    return toMoment(date)
-        .local()
-        .format('YYYY-MM-DDTHH:mm');
+    // We need to parse with both parseFloat and Number because:
+    // * parseFloat('5a') -> 5  while  Number('5a') -> NaN
+    // * parseFloat('') -> NaN  while  Number('') -> 0
+    const fromParseFloat = parseFloat(num);
+    const fromNumber = Number(num);
+    if (fromParseFloat === fromNumber) {
+        return fromParseFloat;
+    } else {
+        return NaN;
+    }
 }
 
 export function mapToObject<T extends Object, Y, KK extends keyof T = keyof T>(
@@ -862,4 +894,28 @@ export function withSentry(cb: (sentry: typeof Sentry) => void): void {
 
 export function formatTimePart(num: number): string {
     return `${num < 10 ? '0' : ''}${num}`;
+}
+
+function isMaybe<T>(obj: T | Maybe<T>): obj is Maybe<T> {
+    // @ts-ignore
+    return obj != null && obj?.constructor === Maybe;
+}
+
+export function getPropMaybe(
+    obj: null | undefined,
+    prop: string,
+): typeof Nothing;
+
+export function getPropMaybe<TObj extends object, Prop extends keyof TObj>(
+    obj: TObj,
+    prop: Prop,
+): TObj[Prop] extends Maybe<any> ? TObj[Prop] : Maybe<NonNull<TObj[Prop]>>;
+
+export function getPropMaybe(obj: any, prop: any): any {
+    const res = obj?.[prop];
+    if (isMaybe(res)) {
+        return res;
+    } else {
+        return Maybe.fromNullable(res);
+    }
 }

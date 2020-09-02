@@ -63,9 +63,13 @@ def test_course_permissions(
 
     if not error:
         for course, val in zip([bs_course, pse_course, prolog_course], vals):
-            with pytest.raises(APIException) as err:
-                a.ensure_permission(perm, course_id=course.id)
-            assert err.value.api_code == APICodes.NOT_LOGGED_IN
+            with logged_in('NOT_LOGGED_IN'):
+                res = test_client.req(
+                    'get', f'/api/v1/courses/{course.id}/permissions/', 401
+                )
+                with pytest.raises(APIException) as err:
+                    a.ensure_permission(perm, course_id=course.id)
+                assert err.value.api_code == APICodes.NOT_LOGGED_IN
 
 
 @pytest.mark.parametrize('perm', ['wow_nope'])
@@ -113,10 +117,10 @@ def test_non_existing_course(ta_user, bs_course, perm):
 def test_role_permissions(
     ta_user, admin_user, perm, vals, logged_in, test_client
 ):
-    for user, val in zip([ta_user, admin_user], vals):
+    query = {'type': 'global'}
 
+    for user, val in zip([ta_user, admin_user], vals):
         with logged_in(user):
-            query = {'type': 'global'}
             res = test_client.req(
                 'get', '/api/v1/permissions/', 200, query=query
             )
@@ -130,9 +134,11 @@ def test_role_permissions(
                     a.ensure_permission(perm, course_id=None)
                 assert err.value.api_code == APICodes.INCORRECT_PERMISSION
 
-    with pytest.raises(APIException) as err:
-        a.ensure_permission(perm)
-    assert err.value.api_code == APICodes.NOT_LOGGED_IN
+    with logged_in('NOT_LOGGED_IN'):
+        test_client.req('get', '/api/v1/permissions/', 401, query=query)
+        with pytest.raises(APIException) as err:
+            a.ensure_permission(perm)
+        assert err.value.api_code == APICodes.NOT_LOGGED_IN
 
 
 def test_all_permissions(

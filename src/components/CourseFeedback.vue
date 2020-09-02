@@ -22,8 +22,16 @@
             <collapse :collapsed="settingsCollapsed">
                 <hr class="mb-2"/>
 
-                <b-form-group label="Context lines">
+                <b-form-group label="Context lines"
+                              :id="`course-feedback-context-lines-${id}`"
+                              :label-for="`course-feedback-context-lines-${id}-input`"
+                              :state="contextLines.isRight()">
+                    <template #invalid-feedback>
+                        {{ $utils.getErrorMessage(contextLines.extract()) }}
+                    </template>
+
                     <cg-number-input
+                        :id="`course-feedback-context-lines-${id}-input`"
                         v-model="contextLines"
                         placeholder="Context lines"/>
                 </b-form-group>
@@ -169,7 +177,7 @@
                             :submission="sub"
                             show-inline-feedback
                             :non-editable="true"
-                            :context-lines="contextLines"
+                            :context-lines="currentContextLines"
                             :should-render-general="shouldRenderGeneral(sub)"
                             :should-render-thread="shouldRenderThread"
                             :should-fade-reply="shouldFadeReply"
@@ -212,6 +220,7 @@ import { NONEXISTENT } from '@/constants';
 
 import { FeedbackOverview } from '@/components';
 
+import { NumberInputValue, numberInputValue } from './NumberInput';
 // @ts-ignore
 import Collapse from './Collapse';
 // @ts-ignore
@@ -313,9 +322,18 @@ export default class CourseFeedback extends Vue {
 
     public settingsCollapsed: boolean = true;
 
-    public contextLines: number = 3;
+    public currentContextLines: number = 3;
+
+    public contextLines: NumberInputValue = numberInputValue(this.currentContextLines);
 
     public hideAutoTestRubricCategories: boolean = true;
+
+    @Watch('contextLines')
+    handleContextLines() {
+        this.contextLines.orDefault(Nothing).ifJust(contextLines => {
+            this.currentContextLines = contextLines;
+        });
+    }
 
     get courseId(): number {
         return this.course.id;

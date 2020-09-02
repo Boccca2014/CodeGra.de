@@ -6,12 +6,20 @@
                  :class="{ selected: submissionsSelected || (small && selected) }"
                  :to="submissionsRoute(assignment)">
         <div class="assignment-wrapper">
-            <span :title="assignment.name" class="assignment flex-grow-1 text-truncate">{{ assignment.name }}</span>
+            <span :title="assignment.name" class="assignment text-truncate">{{ assignment.name }}</span>
+            <div class="flex-grow-1 text-small-uppercase mx-2 d-flex align-self-center">
+                <b-badge class="exam-badge" v-if="assignment.kind === 'exam'" :variant="examBadgeVariant">
+                    exam
+                </b-badge>
+            </div>
 
             <assignment-state :assignment="assignment"
                               :editable="false"
                               v-if="!small"
                               size="sm"/>
+            <small v-else-if="isNotStartedExam" class="deadline">
+                Starts <cg-relative-time :date="assignment.availableAt" />
+            </small>
             <small v-else-if="assignment.hasDeadline" class="deadline">
                 Due <cg-relative-time :date="assignment.deadline" />
             </small>
@@ -21,17 +29,25 @@
             </small>
         </div>
 
-        <small v-if="!small" class="course text-truncate" :title="assignment.course.name">{{ assignment.course.name }}</small>
+        <template v-if="!small">
+            <small v-if="showCourseName"
+                class="course text-truncate"
+                :title="assignment.course.name">{{ assignment.course.name }}</small>
 
-        <small v-if="!small && assignment.hasDeadline" class="deadline">
-            Due <cg-relative-time :date="assignment.deadline" />
-        </small>
-        <small v-else-if="!small" class="deadline text-muted">
-            <i>No deadline</i>
-        </small>
+            <small v-if="isNotStartedExam" class="deadline">
+                Starts <cg-relative-time :date="assignment.availableAt" />
+            </small>
+            <small v-else-if="assignment.hasDeadline" class="deadline">
+                Due <cg-relative-time :date="assignment.deadline" />
+            </small>
+            <small v-else class="deadline text-muted">
+                <i>No deadline</i>
+            </small>
+        </template>
     </router-link>
     <router-link class="sidebar-item manage-link"
                  v-if="assignment.canManage && !small"
+                 v-b-popover="'Manage assignment'"
                  :class="{ selected: manageSelected }"
                  :to="manageRoute(assignment)">
         <icon name="gear" />
@@ -43,6 +59,9 @@
 import Icon from 'vue-awesome/components/Icon';
 import 'vue-awesome/icons/gear';
 
+import { mapGetters } from 'vuex';
+
+import { AssignmentKind } from '@/models';
 import AssignmentState from '../AssignmentState';
 
 export default {
@@ -64,12 +83,19 @@ export default {
             default: null,
         },
 
+        showCourseName: {
+            type: Boolean,
+            default: true,
+        },
+
         sbloc: {
             default: undefined,
         },
     },
 
     computed: {
+        ...mapGetters('pref', ['darkMode']),
+
         selected() {
             return this.assignment.id === this.currentId;
         },
@@ -80,6 +106,27 @@ export default {
 
         manageSelected() {
             return this.selected && this.$route.name === 'manage_assignment';
+        },
+
+        examBadgeVariant() {
+            if (this.darkMode) {
+                // This primary will be overridden by our own css.
+                return this.selected ? 'primary' : 'light';
+            }
+            return this.selected ? 'light' : 'primary';
+        },
+
+        isNotStartedExam() {
+            const { assignment } = this;
+
+            if (assignment == null) {
+                return false;
+            }
+
+            return (
+                assignment.kind === AssignmentKind.exam &&
+                assignment.availableAt.isAfter(this.$root.$epoch)
+            );
         },
     },
 
@@ -159,6 +206,13 @@ a {
 
     .assignment {
         line-height: 1.1;
+    }
+}
+
+@{dark-mode} {
+    .light-selected .exam-badge {
+        color: white;
+        background-color: @color-primary;
     }
 }
 </style>

@@ -417,5 +417,11 @@
     "course_permission": false,
     "short_description": "Manage SSO Providers",
     "long_description": "Users with this permission can connect new SSO Identity Providers."
+  },
+  "can_receive_login_links": {
+    "default_value": true,
+    "course_permission": true,
+    "short_description": "Receive login links",
+    "long_description": "Users with this permission will receive login links if this is enabled for the assignment. You should not give this permission to users with powerful permissions (such as \"Can grade work\")."
   }
 }

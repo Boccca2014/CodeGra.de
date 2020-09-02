@@ -28,9 +28,7 @@ from .. import auth, signals
 from .. import auto_test as auto_test_module
 from ..helpers import NotEqualMixin
 from ..registry import auto_test_handlers, auto_test_grade_calculators
-from ..exceptions import (
-    APICodes, APIException, PermissionException, InvalidStateException
-)
+from ..exceptions import APICodes, APIException, InvalidStateException
 from ..permissions import CoursePermission as CPerm
 
 logger = structlog.get_logger()
@@ -516,13 +514,11 @@ class AutoTestResult(Base, TimestampMixin, IdMixin, NotEqualMixin):
             ).count()
 
         step_results = self.step_results
-        try:
-            auth.ensure_can_see_grade(self.work)
-        except PermissionException:
+        if auth.WorkPermissions(self.work).ensure_may_see_grade.as_bool():
+            final_result = self.final_result
+        else:
             step_results = [s for s in step_results if not s.step.hidden]
             final_result = False
-        else:
-            final_result = self.final_result
 
         suite_files = {}
         assig = self.run.auto_test.assignment
@@ -551,12 +547,10 @@ class AutoTestResult(Base, TimestampMixin, IdMixin, NotEqualMixin):
         :returns: A query that gets all results by the given user. Notice that
             these results are for all :class:`.AutoTestRun` s.
         """
-        return cls.query.filter(
-            t.cast(DbColumn[int], cls.work_id).in_(
-                db.session.query(t.cast(DbColumn[int], work_models.Work.id)
-                                 ).filter_by(user_id=student_id)
-            )
-        )
+        work_ids = db.session.query(
+            work_models.Work.id,
+        ).filter(work_models.Work.user_id == student_id)
+        return cls.query.filter(cls.work_id.in_(work_ids))
 
 
 class AutoTestRunner(Base, TimestampMixin, UUIDMixin, NotEqualMixin):
@@ -1065,21 +1059,16 @@ class AutoTestRun(Base, TimestampMixin, IdMixin):
         }
 
     def __extended_to_json__(self) -> t.Mapping[str, object]:
-        results = []
-
         all_results: t.Iterable[AutoTestResult]
         if psef.helpers.jsonify_options.get_options().latest_only:
             all_results = self.get_results_latest_submissions()
         else:
             all_results = [r for r in self.results if not r.work.deleted]
 
-        for result in all_results:
-            try:
-                auth.ensure_can_view_autotest_result(result)
-            except PermissionException:
-                continue
-            else:
-                results.append(result)
+        results = [
+            result for result in all_results
+            if auth.AutoTestResultPermissions(result).ensure_may_see.as_bool()
+        ]
 
         # TODO: Check permissions for setup_stdout/setup_stderr
         return {
@@ -1542,14 +1531,10 @@ class AutoTest(Base, TimestampMixin, IdMixin):
     def __to_json__(self) -> t.Mapping[str, object]:
         """Covert this AutoTest to json.
         """
-        fixtures = []
-        for fixture in self.fixtures:
-            try:
-                auth.ensure_can_view_fixture(fixture)
-            except auth.PermissionException:
-                pass
-            else:
-                fixtures.append(fixture)
+        fixtures = [
+            f for f in self.fixtures
+            if auth.AutoTestFixturePermissions(f).ensure_may_see.as_bool()
+        ]
 
         return {
             'id': self.id,

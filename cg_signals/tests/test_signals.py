@@ -1,5 +1,8 @@
+import flask
 import pytest
+from celery import signals as celery_signals
 
+import cg_celery
 from cg_signals import Signal
 
 
@@ -112,3 +115,41 @@ def test_connect_after_request():
 
     signal.connect_after_request(cb)
     assert signal.is_connected(cb)
+
+
+@pytest.mark.parametrize('prevent_recursion', [True, False])
+def test_task_signal(prevent_recursion):
+    celery = cg_celery.CGCelery(__name__, celery_signals)
+    app = flask.Flask(__name__)
+    app.config.update({
+        'CELERY_CONFIG': {
+            'CELERY_TASK_ALWAYS_EAGER': True,
+            'CELERY_TASK_EAGER_PROPAGATES': True,
+        },
+    })
+    celery.conf.update({
+        'task_always_eager': True,
+        'task_eager_propagates': True,
+    })
+    signal = Signal('CELERY_SIGNAL')
+    received_signals = []
+
+    def sender(number):
+        received_signals.append(number)
+        if len(received_signals) == 10:
+            return
+        signal.send(number + 1)
+
+    signal.connect_celery(
+        converter=lambda x: x, prevent_recursion=prevent_recursion
+    )(sender)
+    signal.finalize_celery(celery)
+    celery.init_flask_app(app)
+
+    with app.app_context():
+        sender(0)
+
+    if prevent_recursion:
+        assert received_signals == [0, 1]
+    else:
+        assert received_signals == list(range(10))

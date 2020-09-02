@@ -378,16 +378,8 @@ def get_jwt_from_success_full_login(
     db.session.delete(blob)
     db.session.commit()
 
-    return cg_json.JSONResponse.make(
-        {
-            'access_token':
-                flask_jwt.create_access_token(
-                    identity=user.id,
-                    fresh=True,
-                    expires_delta=timedelta(days=1),
-                )
-        }
-    )
+    access_token = user.make_access_token(expires_in=timedelta(days=1))
+    return cg_json.JSONResponse.make({'access_token': access_token})
 
 
 @saml.route('/metadata/<uuid:provider_id>', methods=['GET'])

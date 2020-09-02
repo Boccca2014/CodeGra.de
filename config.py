@@ -129,6 +129,11 @@ FlaskConfig = TypedDict(
         'DONE_TEMPLATE': str,
         'DIRECT_NOTIFICATION_TEMPLATE_FILE': t.Optional[str],
         'DIRECT_NOTIFICATION_SUBJECT': str,
+        'DIGEST_NOTIFICATION_SUBJECT': str,
+        'DIGEST_NOTIFICATION_TEMPLATE_FILE': t.Optional[str],
+        'EXAM_LOGIN_TEMPLATE_FILE': t.Optional[str],
+        'EXAM_LOGIN_SUBJECT': str,
+        'EXAM_LOGIN_MAX_LENGTH': datetime.timedelta,
         'MIN_PASSWORD_SCORE': int,
         'CHECKSTYLE_PROGRAM': t.List[str],
         'PMD_PROGRAM': t.List[str],
@@ -145,6 +150,7 @@ FlaskConfig = TypedDict(
         'SENTRY_DSN': t.Optional[str],
         'MIN_FREE_DISK_SPACE': int,
         'REDIS_CACHE_URL': str,
+        'LOGIN_TOKEN_BEFORE_TIME': t.Sequence[datetime.timedelta],
         'RATELIMIT_STORAGE_URL': t.Optional[str],
     },
     total=True
@@ -501,6 +507,15 @@ CONFIG['DIRECT_NOTIFICATION_TEMPLATE_FILE'] = backend_ops.get(
     'DIRECT_NOTIFICATION_TEMPLATE_FILE'
 )
 
+set_str(
+    CONFIG, backend_ops, 'EXAM_LOGIN_SUBJECT', """
+{% set assignment = link.assignment -%}
+Your CodeGrade login link for the {{ assignment.name }} in the {{ assignment.course.name }} course
+""".strip()
+)
+
+set_str(CONFIG, backend_ops, 'EXAM_LOGIN_TEMPLATE_FILE', None)
+
 set_float(CONFIG, backend_ops, 'MIN_PASSWORD_SCORE', 3, min=0, max=4)
 
 set_list(
@@ -577,6 +592,23 @@ set_str(CONFIG, backend_ops, '_TRANSIP_USERNAME', '')
 set_str(CONFIG, backend_ops, 'ADMIN_USER', default=None)
 
 set_str(CONFIG, backend_ops, 'REDIS_CACHE_URL', None)
+
+login_before_str = backend_ops.get('LOGIN_TOKEN_BEFORE_TIME', None)
+if login_before_str:
+    login_before = [
+        datetime.timedelta(seconds=int(x.strip()))
+        for x in login_before_str.split(',')
+    ]
+else:
+    # This default is also hard coded in `build/userConfig.js`
+    login_before = [datetime.timedelta(days=2), datetime.timedelta(minutes=30)]
+CONFIG['LOGIN_TOKEN_BEFORE_TIME'] = sorted(login_before, reverse=True)
+
+max_login_length = backend_ops.getfloat(
+    'EXAM_LOGIN_MAX_LENGTH',
+    fallback=datetime.timedelta(hours=12).total_seconds()
+)
+CONFIG['EXAM_LOGIN_MAX_LENGTH'] = datetime.timedelta(seconds=max_login_length)
 
 set_str(CONFIG, backend_ops, 'RATELIMIT_STORAGE_URL', 'memory://')
 

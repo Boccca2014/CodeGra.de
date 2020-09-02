@@ -55,7 +55,6 @@ logger = structlog.get_logger()
 OutputCallback = t.Callable[[bytes], None]
 URL = t.NewType('URL', str)
 
-_STOP_RUNNING = Event()
 _LXC_START_STOP_LOCK = multiprocessing.Lock()
 
 T = t.TypeVar('T')
@@ -107,6 +106,8 @@ _SYSTEMD_WAIT_CMD = [
 _REQUEST_TIMEOUT = 10
 _REQUEST_RETRIES = 5
 _REQUEST_BACKOFF_FACTOR = 1.2
+
+MaybeQuitRunning = t.Callable[[], None]
 
 
 class LXCProcessError(Exception):
@@ -251,12 +252,14 @@ def _wait_for_attach(
     raise RuntimeError  # pragma: no cover
 
 
-def _wait_for_pid(pid: int, timeout: float) -> t.Tuple[int, float]:
+def _wait_for_pid(
+    pid: int, timeout: float, maybe_quit_running: MaybeQuitRunning
+) -> t.Tuple[int, float]:
     """Wait for ``pid`` at most ``timeout`` amount of seconds.
 
     >>> from subprocess import Popen
     >>> p = Popen('sleep 5', shell=True)
-    >>> _wait_for_pid(p.pid, 0.25)
+    >>> _wait_for_pid(p.pid, 0.25, lambda: None)
     Traceback (most recent call last):
     ...
     CommandTimeoutException
@@ -265,19 +268,19 @@ def _wait_for_pid(pid: int, timeout: float) -> t.Tuple[int, float]:
 
     It also works when SIGTERM is ignored.
     >>> p = Popen("trap 'echo SIGTERM!' 15 ; sleep 5", shell=True)
-    >>> _wait_for_pid(p.pid, 0.25)
+    >>> _wait_for_pid(p.pid, 0.25, lambda: None)
     Traceback (most recent call last):
     ...
     CommandTimeoutException
 
     >>> pid = Popen('sleep 0.5 && exit 32', shell=True).pid
-    >>> _wait_for_pid(pid, 4)[0]
+    >>> _wait_for_pid(pid, 4, lambda: None)[0]
     32
 
-    >>> _wait_for_pid(Popen('sleep 0.5 && exit 20', shell=True).pid, 4)[0]
+    >>> _wait_for_pid(Popen('sleep 0.5 && exit 20', shell=True).pid, 4, lambda: None)[0]
     20
 
-    >>> exit, left = _wait_for_pid(Popen(['sleep', '0.25']).pid, 1)
+    >>> exit, left = _wait_for_pid(Popen(['sleep', '0.25']).pid, 1, lambda: None)
     >>> exit
     0
     >>> abs((1 - left) - 0.25) <= 0.05  # Waiting should be fairly accurate
@@ -286,7 +289,7 @@ def _wait_for_pid(pid: int, timeout: float) -> t.Tuple[int, float]:
     >>> import doctest
     >>> doctest.ELLIPSIS_MARKER = '-etc-'
     >>> p = Popen('kill -11 $$', shell=True)  # This segfaults
-    >>> _wait_for_pid(p.pid, 1)[0] == -1
+    >>> _wait_for_pid(p.pid, 1, lambda: None)[0] == -1
     -etc-Process signaled-etc-
     True
     """
@@ -311,6 +314,7 @@ def _wait_for_pid(pid: int, timeout: float) -> t.Tuple[int, float]:
             delay = max(min(delay * 2, get_time_left(), 0.05), 0)
             time.sleep(delay)
         else:
+            maybe_quit_running()
             return exit_code, get_time_left()
 
     logger.warning('Process took too long, killing', pid=pid)
@@ -327,7 +331,7 @@ def _wait_for_pid(pid: int, timeout: float) -> t.Tuple[int, float]:
         os.kill(pid, signal.SIGKILL)
         os.waitpid(pid, 0)
 
-    _maybe_quit_running()
+    maybe_quit_running()
     end_time = time.time()
     logger.warning('Killing done', pid=pid)
     raise CommandTimeoutException(end_time - start_time)
@@ -488,25 +492,6 @@ class CommandTimeoutException(Exception):
         self.time_spend = time_spend
 
 
-def _maybe_quit_running() -> None:
-    """Throw appropriate exception if container should stop running.
-
-    >>> _STOP_RUNNING.clear()
-    >>> _maybe_quit_running() is None
-    True
-    >>> _STOP_RUNNING.set()
-    >>> _maybe_quit_running()
-    Traceback (most recent call last):
-    ...
-    StopContainerException
-    >>> _STOP_RUNNING.clear()
-    >>> _maybe_quit_running() is None
-    True
-    """
-    if _STOP_RUNNING.is_set():
-        raise StopContainerException
-
-
 def _get_new_container_name() -> str:
     """Get a new unique container name
 
@@ -536,10 +521,14 @@ def _get_base_container(config: 'psef.FlaskConfig') -> 'AutoTestContainer':
     template_name = config['AUTO_TEST_TEMPLATE_CONTAINER']
     if template_name is None:
         logger.info('No base template set, creating new container')
-        res = AutoTestContainer(_get_new_container_name(), config)
+        res = AutoTestContainer(
+            _get_new_container_name(), config, maybe_quit_running=lambda: None
+        )
         res.create()
     else:  # pragma: no cover
-        res = AutoTestContainer(template_name, config).clone()
+        res = AutoTestContainer(
+            template_name, config, maybe_quit_running=lambda: None
+        ).clone()
     return res
 
 
@@ -559,10 +548,14 @@ def _stop_container(cont: lxc.Container) -> None:
 
 
 def _start_container(
-    cont: lxc.Container, check_network: bool = True, always: bool = False
+    cont: lxc.Container,
+    *,
+    check_network: bool = True,
+    always: bool = False,
+    maybe_quit_running: MaybeQuitRunning
 ) -> None:
     if not always:
-        _maybe_quit_running()
+        maybe_quit_running()
 
     if cont.running:
         return
@@ -609,7 +602,7 @@ def _start_container(
                     make_exception=StopRunningStudentException
                 ):
                     if not always:
-                        _maybe_quit_running()
+                        maybe_quit_running()
 
                     if not cont.get_ips():
                         continue
@@ -847,8 +840,6 @@ def start_polling(config: 'psef.FlaskConfig') -> None:
     def get_broker_session() -> helpers.BrokerSession:
         return helpers.BrokerSession('', '', broker_url, runner_pass)
 
-    _STOP_RUNNING.clear()
-
     with _get_base_container(config).started_container() as cont:
         if config['AUTO_TEST_TEMPLATE_CONTAINER'] is None:
             cont.run_command(['apt', 'update'])
@@ -889,7 +880,11 @@ class StartedContainer:
     _SNAPSHOT_LOCK = threading.Lock()
 
     def __init__(
-        self, container: lxc.Container, name: str, config: 'psef.FlaskConfig'
+        self,
+        container: lxc.Container,
+        name: str,
+        config: 'psef.FlaskConfig',
+        maybe_quit_running: MaybeQuitRunning,
     ) -> None:
         self._snapshots: t.List[str] = []
         self._dirty = False
@@ -900,6 +895,10 @@ class StartedContainer:
         self._networks: t.List[Network] = []
         self._fixtures_dir: t.Optional[str] = None
         self._extra_env: t.Dict[str, str] = {}
+        self._maybe_quit_running = maybe_quit_running
+
+    def set_maybe_quit_running(self, new_val: MaybeQuitRunning) -> None:
+        self._maybe_quit_running = new_val
 
     def _stop_container(self) -> None:
         _stop_container(self._container)
@@ -953,12 +952,18 @@ class StartedContainer:
         """
         self._stop_container()
         try:
-            yield AutoTestContainer(self._name, self._config, self._container)
+            yield AutoTestContainer(
+                self._name,
+                self._config,
+                cont=self._container,
+                maybe_quit_running=self._maybe_quit_running
+            )
         finally:
             _start_container(
                 self._container,
                 always=True,
-                check_network=self._network_is_enabled
+                check_network=self._network_is_enabled,
+                maybe_quit_running=self._maybe_quit_running,
             )
 
     def destroy_snapshots(self) -> None:
@@ -1018,7 +1023,11 @@ class StartedContainer:
             for network_idx in range(len(self._container.network)):
                 assert self._container.network.remove(network_idx)
 
-        _start_container(self._container, check_network=False)
+        _start_container(
+            self._container,
+            check_network=False,
+            maybe_quit_running=self._maybe_quit_running
+        )
 
     @timed_function
     def enable_network(self) -> None:
@@ -1038,7 +1047,11 @@ class StartedContainer:
                 for key, value in network:
                     setattr(self._container.network[last_index], key, value)
 
-        _start_container(self._container, check_network=True)
+        _start_container(
+            self._container,
+            check_network=True,
+            maybe_quit_running=self._maybe_quit_running
+        )
 
     @contextlib.contextmanager
     def as_snapshot(self, disable_network: bool = False
@@ -1056,7 +1069,7 @@ class StartedContainer:
         # function way harder to follow. As we keep a dirty flag, only one
         # snapsnot will probably be created.
 
-        _maybe_quit_running()
+        self._maybe_quit_running()
 
         if disable_network:
             self.disable_network()
@@ -1074,7 +1087,9 @@ class StartedContainer:
                     self._stop_container()
                     self._create_snapshot()
                     _start_container(
-                        self._container, check_network=not disable_network
+                        self._container,
+                        check_network=not disable_network,
+                        maybe_quit_running=self._maybe_quit_running
                     )
             else:
                 logger.info(
@@ -1091,7 +1106,9 @@ class StartedContainer:
                     self._container.snapshot_restore(self._snapshots[-1])
                 self._dirty = False
                 _start_container(
-                    self._container, check_network=not disable_network
+                    self._container,
+                    check_network=not disable_network,
+                    maybe_quit_running=self._maybe_quit_running
                 )
 
     @staticmethod
@@ -1157,7 +1174,7 @@ class StartedContainer:
 
         >>> import getpass
         >>> cur_user = getpass.getuser()
-        >>> env = StartedContainer(None, '', {})._create_env(cur_user)
+        >>> env = StartedContainer(None, '', {}, None)._create_env(cur_user)
         >>> env['USER'] == cur_user
         True
         >>> isinstance(env['USER'], str)
@@ -1570,7 +1587,7 @@ class StartedContainer:
         ), self._prepared_output(stdout, stderr, stdin) as [
             stdin_file, stdout_file, stderr_file, command_started, stop_reading
         ]:
-            _maybe_quit_running()
+            self._maybe_quit_running()
 
             pid = self._container.attach(
                 callback,
@@ -1585,7 +1602,10 @@ class StartedContainer:
             try:
                 res = _wait_for_attach(pid, command_started)
                 if res is None:
-                    res, left = _wait_for_pid(pid, timeout or sys.maxsize)
+                    self._maybe_quit_running()
+                    res, left = _wait_for_pid(
+                        pid, timeout or sys.maxsize, self._maybe_quit_running
+                    )
             except CommandTimeoutException:
                 logger.info('Exception occurred when waiting', exc_info=True)
                 # Wait for 1 second to clear all remaining output.
@@ -1597,8 +1617,6 @@ class StartedContainer:
                 stderr_file.close()
                 stdout_file.close()
                 stop_reading(left)
-
-        _maybe_quit_running()
 
         if check and res != 0:
             raise LXCProcessError(f'Command "{cmd}" crashed: {res}')
@@ -1618,7 +1636,9 @@ class AutoTestContainer:
         self,
         name: str,
         config: 'psef.FlaskConfig',
-        cont: t.Optional[lxc.Container] = None
+        *,
+        cont: t.Optional[lxc.Container] = None,
+        maybe_quit_running: MaybeQuitRunning,
     ) -> None:
         self._name = name
         self._lock = threading.RLock()
@@ -1627,6 +1647,7 @@ class AutoTestContainer:
             self._cont = lxc.Container(name)
         else:
             self._cont = cont
+        self._maybe_quit_running = maybe_quit_running
 
     @property
     def name(self) -> str:
@@ -1661,13 +1682,17 @@ class AutoTestContainer:
 
         try:
             self.start_container()
-            started = StartedContainer(self._cont, self._name, self._config)
+            started = StartedContainer(
+                self._cont, self._name, self._config, self._maybe_quit_running
+            )
             yield started
         finally:
             self._stop_container(started)
 
     def start_container(self) -> None:
-        _start_container(self._cont)
+        _start_container(
+            self._cont, maybe_quit_running=self._maybe_quit_running
+        )
 
     def destroy_container(self) -> None:
         self._cont.destroy()
@@ -1690,13 +1715,18 @@ class AutoTestContainer:
             generated if not provided.
         :returns: A clone of this container with the provided name.
         """
-        _maybe_quit_running()
+        self._maybe_quit_running()
 
         with self._lock, timed_code('clone_container'):
             new_name = new_name or _get_new_container_name()
             cont = self._cont.clone(new_name)
             assert isinstance(cont, lxc.Container)
-            return type(self)(new_name, self._config, cont)
+            return type(self)(
+                new_name,
+                self._config,
+                cont=cont,
+                maybe_quit_running=self._maybe_quit_running
+            )
 
 
 class AutoTestRunner:
@@ -1724,6 +1754,33 @@ class AutoTestRunner:
 
         self.fixtures = self.instructions['fixtures']
         self._reqs: t.Dict[t.Tuple[int, int], requests.Session] = {}
+
+        self._stop_running = multiprocessing.Event()
+
+    def _stop_running_is_set(self) -> bool:
+        return self._stop_running.is_set()
+
+    def _set_stop_running(self) -> None:
+        self._stop_running.set()
+
+    def _maybe_quit_running(self) -> None:
+        """Throw appropriate exception if container should stop running.
+
+        >>> from collections import defaultdict
+        >>> self = AutoTestRunner('', defaultdict(list), '', {})
+        >>> self._maybe_quit_running() is None
+        True
+        >>> self._set_stop_running()
+        >>> self._maybe_quit_running()
+        Traceback (most recent call last):
+        ...
+        StopContainerException
+        >>> self._stop_running.clear()
+        >>> self._maybe_quit_running() is None
+        True
+        """
+        if self._stop_running_is_set():
+            raise StopContainerException
 
     @staticmethod
     def _get_amount_of_needed_workers() -> int:
@@ -2275,7 +2332,11 @@ class AutoTestRunner:
         :param opts: The way to get work from the worker pool.
         :returns: Nothing.
         """
-        base_container = AutoTestContainer(base_container_name, self.config)
+        base_container = AutoTestContainer(
+            base_container_name,
+            self.config,
+            maybe_quit_running=self._maybe_quit_running
+        )
         student_container = base_container.clone()
 
         def retry_work(work: cg_worker_pool.Work) -> None:
@@ -2401,7 +2462,7 @@ class AutoTestRunner:
 
     def _started_heartbeat(self) -> 'RepeatedTimer':
         def push_heartbeat() -> None:
-            if not _STOP_RUNNING.is_set():
+            if not self._stop_running_is_set():
                 self.req.post(
                     f'{self.base_url}/runs/{self.instructions["run_id"]}/'
                     'heartbeats/',
@@ -2421,13 +2482,17 @@ class AutoTestRunner:
         run_result_url = f'{self.base_url}/runs/{self.instructions["run_id"]}'
         time_taken: t.Optional[float] = None
 
+        cont.set_maybe_quit_running(self._maybe_quit_running)
+
         with self._started_heartbeat():
             try:
                 with timed_code('run_complete_auto_test') as get_time_taken:
                     self._run_test(cont)
                 time_taken = get_time_taken()
+            except:  # pylint: disable=bare-except
+                logger.error('Error when running tests', exc_info=True)
             finally:
-                _STOP_RUNNING.set()
+                self._set_stop_running()
                 self.req.patch(
                     run_result_url,
                     json={
@@ -2507,7 +2572,7 @@ class AutoTestRunner:
         ), _Manager() as manager:
             # Known issue from typeshed:
             # https://github.com/python/typeshed/issues/3018
-            cpu_cores: CpuCores = CpuCores(manager)  # type: ignore
+            cpu_cores: CpuCores = CpuCores(t.cast(_Manager, manager))
             pool = self._make_worker_pool(base_container.name, cpu_cores)
 
             try:
@@ -2518,4 +2583,4 @@ class AutoTestRunner:
             else:
                 logger.info('Done with containers, cleaning up')
             finally:
-                _STOP_RUNNING.set()
+                self._set_stop_running()

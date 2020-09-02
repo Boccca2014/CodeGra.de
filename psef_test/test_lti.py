@@ -967,12 +967,18 @@ def test_lti_assignment_create_and_delete(
         test_client.req(
             'post',
             f'/api/v1/courses/{course["id"]}/assignments/',
-            400,
+            200,
             data={
                 'name': 'wow',
             },
             headers={'Authorization': f'Bearer {token}'},
-            result=error_template,
+            result={
+                'course': course,
+                '__allow_extra__': True,
+                'id': int,
+                'is_lti': False,
+                'kind': 'normal',
+            },
         )
 
         # Make sure name of course and assignment is updated with new launches
@@ -1431,7 +1437,7 @@ def test_lti_grade_passback_with_groups(
     with logged_in(teacher_user):
         assig, token = do_lti_launch()
         u1 = create_user_with_perms(
-            session, [CPerm.can_submit_own_work],
+            session, [CPerm.can_submit_own_work, CPerm.can_see_assignments],
             m.Course.query.get(assig['course']['id'])
         )
         u1_lti_id = str(uuid.uuid4())
@@ -1450,14 +1456,13 @@ def test_lti_grade_passback_with_groups(
         )
 
         u2 = create_user_with_perms(
-            session, [CPerm.can_submit_own_work],
+            session, [CPerm.can_submit_own_work, CPerm.can_see_assignments],
             m.Course.query.get(assig['course']['id'])
         )
         u3 = create_user_with_perms(
-            session, [CPerm.can_submit_own_work],
+            session, [CPerm.can_submit_own_work, CPerm.can_see_assignments],
             m.Course.query.get(assig['course']['id'])
         )
-        print(u3)
         session.commit()
 
         g_set = create_group_set(
