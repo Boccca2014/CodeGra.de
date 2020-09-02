@@ -2,8 +2,6 @@
 import Vue from 'vue';
 import axios from 'axios';
 
-import moment from 'moment';
-
 import { Assignment } from '@/models';
 import { makeProvider } from '@/lti_providers';
 
@@ -68,18 +66,6 @@ export const actions = {
         }
     },
 
-    async forceLoadGraders({ commit, dispatch }, assignmentId) {
-        await dispatch('loadCourses');
-        const graders = await axios.get(`/api/v1/assignments/${assignmentId}/graders/`).then(
-            ({ data }) => data,
-            () => null,
-        );
-        commit(types.UPDATE_ASSIGNMENT, {
-            assignmentId,
-            assignmentProps: { graders },
-        });
-    },
-
     reloadCourses({ commit, state }) {
         commit(`submissions/${types.CLEAR_SUBMISSIONS}`, null, { root: true });
         commit(types.CLEAR_COURSES);
@@ -132,53 +118,12 @@ export const actions = {
         return context.getters.assignments[data.assignmentId];
     },
 
-    async updateAssignmentReminder(
-        { commit, state, dispatch },
-        { assignmentId, reminderTime, doneType, doneEmail },
-    ) {
-        await dispatch('loadCourses');
-
-        const assig = getAssignment(state, assignmentId);
-        const newReminderTime = moment(reminderTime, moment.ISO_8601).utc();
-        const props = {
-            done_type: doneType,
-            done_email: doneEmail,
-            reminder_time: newReminderTime.isValid()
-                ? newReminderTime.format('YYYY-MM-DDTHH:mm')
-                : null,
-        };
-
-        return axios.patch(`/api/v1/assignments/${assig.id}`, props).then(response => {
-            delete props.reminder_time;
-            props.reminderTime = newReminderTime;
-            response.onAfterSuccess = () =>
-                commit(types.UPDATE_ASSIGNMENT, {
-                    assignmentId,
-                    assignmentProps: props,
-                });
-            return response;
+    async patchAssignment(context, { assignmentId, assignmentProps }) {
+        await context.dispatch('loadCourses');
+        return axios.patch(`/api/v1/assignments/${assignmentId}`, assignmentProps).then(res => {
+            context.commit(types.SET_ASSIGNMENT, res.data);
+            return res;
         });
-    },
-
-    async updateAssignmentDeadline({ commit, state, dispatch }, { assignmentId, deadline }) {
-        await dispatch('loadCourses');
-
-        const assig = getAssignment(state, assignmentId);
-        const newDeadline = moment(deadline, moment.ISO_8601).utc();
-        return axios
-            .patch(`/api/v1/assignments/${assig.id}`, {
-                deadline: newDeadline.toISOString(),
-            })
-            .then(response => {
-                response.onAfterSuccess = () =>
-                    commit(types.UPDATE_ASSIGNMENT, {
-                        assignmentId,
-                        assignmentProps: {
-                            deadline: newDeadline,
-                        },
-                    });
-                return response;
-            });
     },
 };
 
@@ -250,8 +195,20 @@ const mutations = {
     [types.UPDATE_ASSIGNMENT](state, { assignmentId, assignmentProps }) {
         const assignment = getAssignment(state, assignmentId).update(assignmentProps);
         const assigs = state.courses[assignment.courseId].assignments;
-        const assigindex = assigs.findIndex(x => x.id === assignment.id);
-        Vue.set(assigs, assigindex, assignment);
+        const assigIndex = assigs.findIndex(x => x.id === assignment.id);
+        Vue.set(assigs, assigIndex, assignment);
+    },
+
+    [types.SET_ASSIGNMENT](state, assignmentData) {
+        const oldAssig = getAssignment(state, assignmentData.id);
+        const assigs = state.courses[oldAssig.courseId].assignments;
+        const assigIndex = assigs.findIndex(x => x.id === assignmentData.id);
+        const newAssig = Assignment.fromServerData(
+            assignmentData,
+            oldAssig.courseId,
+            oldAssig.canManage,
+        );
+        Vue.set(assigs, assigIndex, newAssig);
     },
 };
 
@@ -266,3 +223,16 @@ export default {
     actions,
     mutations,
 };
+
+export function onDone(store) {
+    store.watch(
+        (_, allGetters) => allGetters['user/loggedIn'],
+        loggedIn => {
+            if (loggedIn) {
+                store.dispatch('courses/loadCourses');
+            } else {
+                store.commit(`courses/${types.CLEAR_COURSES}`, null, { root: true });
+            }
+        },
+    );
+}

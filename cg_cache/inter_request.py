@@ -13,6 +13,7 @@ from datetime import timedelta
 import flask
 import redis as redis_module
 import structlog
+from typing_extensions import Literal
 
 logger = structlog.get_logger()
 
@@ -54,7 +55,9 @@ class Backend(abc.ABC, t.Generic[T]):
         """Get the given ``key`` from the cache.
 
         :param key: The key you want get.
+
         :returns: The found value.
+
         :raises KeyError: If the ``key`` was not found in the cache.
         """
         raise NotImplementedError
@@ -64,6 +67,7 @@ class Backend(abc.ABC, t.Generic[T]):
 
         :param key: The key to get from the cache.
         :param dflt: The item to return if the key wasn't found.
+
         :returns: The found item or the default.
         """
         try:
@@ -83,20 +87,31 @@ class Backend(abc.ABC, t.Generic[T]):
 
         :param key: The key to set.
         :param value: The value to set the given ``key`` to.
+
         :returns: Nothing.
         """
         raise NotImplementedError
 
-    def get_or_set(self, key: str, get_value: t.Callable[[], T]) -> T:
+    def get_or_set(
+        self, key: str, get_value: t.Callable[[], T], *, force: bool = False
+    ) -> T:
         """Set the ``key`` to the value procured by ``get_value`` if it is not
-            present.
+        present.
 
         :param key: The key to get or set.
         :param get_value: The method called if the ``key`` was not found. Its
             result is set as the value.
+        :param force: If set to true the ``get_value`` method will always be
+            called, and the result will be stored.
+
         :returns: The found or produced value.
         """
-        found = self.get_or(key, NotSetType.token)
+        found: t.Union[T, Literal[NotSetType.token]]
+        if force:
+            found = NotSetType.token
+        else:
+            found = self.get_or(key, NotSetType.token)
+
         if found is NotSetType.token:
             # It is important that we return `value` at the end, not only
             # because it is faster, but also because the cache makes not

@@ -329,10 +329,10 @@ export default {
         }),
 
         updateGraders(graders) {
-            const assignees = graders.map(ass => ({
-                value: ass.id,
-                text: nameOfUser(ass),
-                data: ass,
+            const assignees = graders.map(g => ({
+                value: g.user.id,
+                text: nameOfUser(g.user),
+                data: g.user,
             }));
             assignees.unshift({ value: null, text: '-', data: null });
             this.assignees = assignees;
@@ -430,10 +430,15 @@ export default {
                         submissionProps: { assignee: newAssignee },
                     });
                 },
-                ({ response }) => {
-                    // TODO: visual feedback
-                    // eslint-disable-next-line
-                    console.log(response);
+                err => {
+                    this.$set(this.assigneeUpdating, submission.id, false);
+                    this.$bvToast.toast(err.response.data.message, {
+                        title: 'Error',
+                        toaster: 'b-toaster-top-right',
+                        variant: 'danger',
+                        noAutoHide: true,
+                        solid: true,
+                    });
                 },
             );
         },

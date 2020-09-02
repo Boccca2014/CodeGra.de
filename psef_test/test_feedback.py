@@ -691,6 +691,7 @@ def test_get_all_feedback(
     session, error_template, teacher_user, monkeypatch, monkeypatch_celery
 ):
     assignment, work = assignment_real_works
+    student_user = m.User.query.get(work['user']['id'])
     assig_id = assignment.id
     perm_err = request.node.get_closest_marker('perm_error')
     late_err = request.node.get_closest_marker('late_error')
@@ -799,43 +800,61 @@ def test_get_all_feedback(
 
             assert expected.match(res.data.decode('utf8'))
 
+    perm_err_out = {
+        'general': '',
+        'user': {},
+        'linter': {},
+        'authors': {},
+    }
+    no_perm_err_out = {
+        'user': {str(code_id): {
+                     '0': 'for line 0',
+                     '1': 'for line - 1',
+                 }},
+        'general': general_feedback,
+        'linter': {
+            str(code_id): {
+                '1': [
+                    [str, dict],
+                    [str, dict],
+                    [str, dict],
+                    [str, dict],
+                ]
+            }
+        },
+        'authors': {str(code_id): {
+                        '0': teacher_user,
+                        '1': teacher_user,
+                    }},
+    }
+
     with logged_in(named_user):
         if perm_err:
-            out = {
-                'general': '',
-                'user': {},
-                'linter': {},
-                'authors': {},
-            }
+            out = perm_err_out
+        elif list_err:
+            out = {**no_perm_err_out, 'authors': {}}
         else:
-            out = {
-                'user': dict,
-                'general': general_feedback,
-                'linter': dict,
-                'authors': {},
-            }
-            if not list_err:
-                out['authors'] = dict
+            out = no_perm_err_out
+
+        res = test_client.req(
+            'get',
+            f'/api/v1/submissions/{work["id"]}/feedbacks/',
+            code,
+            result=out if code == 200 else error_template,
+        )
+
+    with logged_in(student_user):
+        assig = session.query(m.Assignment).get(assig_id)
+        assig.state = m.AssignmentStateEnum.open
+        session.commit()
+        assert not assig.is_done
 
         res = test_client.req(
             'get',
             f'/api/v1/submissions/{work["id"]}/feedbacks/',
             200,
-            result=out,
+            result=perm_err_out,
         )
-
-        if not perm_err:
-            assert str(code_id) in res['user']
-            assert res['user'][str(code_id)] == {
-                '0': 'for line 0',
-                '1': 'for line - 1',
-            }
-            assert str(code_id) in res['linter']
-            assert '1' in res['linter'][str(code_id)]
-            assert isinstance(res['linter'][str(code_id)]['1'], list)
-            assert isinstance(res['linter'][str(code_id)]['1'][0], list)
-            assert isinstance(res['linter'][str(code_id)]['1'][0][0], str)
-            assert isinstance(res['linter'][str(code_id)]['1'][0][1], dict)
 
 
 @pytest.mark.parametrize('filename', ['test_flake8.tar.gz'], indirect=True)
@@ -954,7 +973,8 @@ def test_get_assignment_all_feedback(
 
     with logged_in(
         helpers.create_user_with_perms(
-            session, [CPerm.can_see_others_work], assig.course
+            session, [CPerm.can_see_others_work, CPerm.can_see_assignments],
+            assig.course
         )
     ):
         res = test_client.req(

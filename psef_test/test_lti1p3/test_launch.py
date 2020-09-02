@@ -17,6 +17,7 @@ import pylti1p3.assignments_grades
 import pylti1p3.message_validators
 from defusedxml.ElementTree import fromstring as defused_xml_fromstring
 
+import psef
 import helpers
 import psef.models as m
 import psef.signals as signals
@@ -26,6 +27,11 @@ from cg_dt_utils import DatetimeWithTimezone
 LTI_JWT_SECRET = str(uuid.uuid4())
 
 DEEP_LINK = '__CG_EXPECT_DEEP_LINK__'
+
+
+@pytest.fixture
+def monkeypatched_open_at(stub_function):
+    yield stub_function(psef.tasks, 'maybe_open_assignment_at')
 
 
 @pytest.fixture
@@ -305,7 +311,7 @@ def do_oidc_and_lti_launch(
 def test_do_simple_launch(
     test_client, describe, logged_in, admin_user, watch_signal, launch_data,
     lms, iss, monkeypatched_validate_jwt, monkeypatched_passback, yesterday,
-    tomorrow
+    tomorrow, monkeypatched_open_at, session
 ):
     with describe('setup'), logged_in(admin_user):
         provider = helpers.create_lti1p3_provider(
@@ -342,6 +348,7 @@ def test_do_simple_launch(
             ),
         )
         assert monkeypatched_validate_jwt.called_amount == 1
+        assert monkeypatched_open_at.called_amount == 1
 
         assert user_added.was_send_once
         assert monkeypatched_passback.called_amount == 1
@@ -381,6 +388,7 @@ def test_do_simple_launch(
             ),
         )
         assert monkeypatched_validate_jwt.called_amount == 1
+        assert monkeypatched_open_at.called_amount == 0
 
         assert user_added.was_not_send
 
@@ -412,9 +420,42 @@ def test_do_simple_launch(
 
         assert assig_created.was_send_once
         assert launch_result3['data']['course']['id'] == course['id']
-        assert launch_result3['data']['assignment']['id'] != assig['id']
+        new_assig = launch_result3['data']['assignment']
+        assert new_assig['id'] != assig['id']
         # Deadline was not passed so it should not be set
         assert launch_result3['data']['assignment']['deadline'] is None
+
+    with describe('Launch to done assignment does not change state'):
+        m.Assignment.query.filter_by(id=new_assig['id']).update({
+            'state': 'done',
+        })
+        session.commit()
+
+        _, launch_result4 = do_oidc_and_lti_launch(
+            test_client,
+            provider,
+            make_launch_data(
+                launch_data,
+                provider,
+                {
+                    'Course.id': lti_course_id,
+                    'Assignment.id': lti_assig_id2,
+                    'User.id': lti_user_id,
+                    'cg_deadline': new_deadline.isoformat(),
+                    'cg_available_at': tomorrow.isoformat(),
+                },
+            ),
+        )
+        assert monkeypatched_validate_jwt.called_amount == 1
+        assert user_added.was_not_send
+        assert assig_created.was_not_send
+
+        assert launch_result4['data']['course']['id'] == course['id']
+        assert launch_result4['data']['assignment']['id'] == new_assig['id']
+        # Deadline was and should update after deadline
+        assert launch_result4['data']['assignment']['deadline'] is not None
+        assert launch_result4['data']['assignment']['state'] == 'done'
+        assert launch_result4['data']['assignment']['available_at'] is None
 
 
 @pytest.mark.parametrize('with_id', [True, False])

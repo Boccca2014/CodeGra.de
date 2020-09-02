@@ -179,7 +179,7 @@ export default {
         },
 
         ltiProvider() {
-            return this.$utils.getProps(this.assignment, null, 'course', 'ltiProvider');
+            return this.$utils.getPropMaybe(this.assignment, 'ltiProvider');
         },
 
         globalPopover() {
@@ -187,9 +187,9 @@ export default {
                 let msg = `This is not the latest submission by ${this.$utils.nameOfUser(
                     this.submission.user,
                 )} so you cannot edit the grade.`;
-                if (this.ltiProvider != null) {
-                    msg += ` This grade will not be passed back to ${this.ltiProvider.lms}.`;
-                }
+                this.ltiProvider.ifJust(prov => {
+                    msg += ` This grade will not be passed back to ${prov.lms}.`;
+                });
                 return msg;
             } else if (this.groupOfUser) {
                 return `This user is member of the group "${

@@ -183,7 +183,7 @@ export class AutoTestSuiteData {
                 step.data.inputs.forEach((input, i) => {
                     const name = `${withOrdinalSuffix(i + 1)} input output case`;
                     if (isEmpty(input.name)) {
-                        errs.push(`The name of the ${name} is emtpy.`);
+                        errs.push(`The name of the ${name} is empty.`);
                     }
                     if (Number(input.weight) <= 0) {
                         errs.push(`The weight of the ${name} should be a number greater than 0.`);

@@ -10,7 +10,7 @@ else
 
     (
         sudo apt-get update &&
-        sudo apt-get install -y lxc lxc-dev lxcfs libvirt0 libssl-dev postgresql-client &&
+        sudo apt-get install -y lxc lxc-dev lxcfs libvirt0 libssl-dev postgresql-client libxmlsec1-dev &&
         python -m pip install --upgrade pip &&
         pip install 'celery[redis]' coveralls pytest-cov codecov &&
         pip install -r requirements.txt;

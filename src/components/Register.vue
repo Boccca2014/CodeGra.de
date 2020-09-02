@@ -1,62 +1,57 @@
 <!-- SPDX-License-Identifier: AGPL-3.0-only -->
 <template>
 <div class="register">
-    <b-form-fieldset>
-        <b-input-group :prepend="fieldLabels.username">
-            <input type="text"
-                   class="form-control"
-                   v-model="username"
-                   tabindex="1"
-                   ref="username"/>
-            <b-input-group-append is-text>
-                <description-popover
-                    placement="top"
-                    description="You cannot change this after registration!" />
-            </b-input-group-append>
-        </b-input-group>
-    </b-form-fieldset>
+    <b-form-group label="Username"
+                  description="You cannot change your username after the registration.">
+        <input type="text"
+               placeholder="Enter your wanted username"
+               class="form-control"
+               v-model="username"
+               tabindex="1"/>
+    </b-form-group>
 
-    <b-form-fieldset>
-        <b-input-group :prepend="fieldLabels.name">
-            <input type="text"
-                   class="form-control"
-                   v-model="name"
-                   tabindex="2"
-                   ref="name"/>
-        </b-input-group>
-    </b-form-fieldset>
+    <b-form-group label="Name">
+        <input type="text"
+               placeholder="Enter your full name"
+               class="form-control"
+               v-model="name"
+               tabindex="2" />
+    </b-form-group>
 
-    <b-form-fieldset>
-        <b-input-group :prepend="fieldLabels.firstEmail">
-            <input type="email"
-                   class="form-control"
-                   v-model="firstEmail"
-                   tabindex="2"
-                   ref="email"/>
-        </b-input-group>
-    </b-form-fieldset>
+    <b-form-group label="Email address">
+        <input type="email"
+               placeholder="Enter your email"
+               class="form-control"
+               v-model="firstEmail"
+               tabindex="3" />
+    </b-form-group>
 
-    <b-form-fieldset>
-        <b-input-group :prepend="fieldLabels.secondEmail">
-            <input type="email"
-                   class="form-control"
-                   v-model="secondEmail"
-                   tabindex="3"
-                   ref="email"/>
-        </b-input-group>
-    </b-form-fieldset>
+    <b-form-group label="Repeat email address">
+        <input type="email"
+               class="form-control"
+               placeholder="Repeat your email"
+               v-model="secondEmail"
+               tabindex="4" />
+    </b-form-group>
 
-    <password-input v-model="firstPw"
-                    :label="fieldLabels.firstPw"
-                    name="password"
-                    tabindex="4"/>
-    <password-input v-model="secondPw"
-                    :label="fieldLabels.secondPw"
-                    name="repeat-password"
-                    tabindex="5"/>
+    <b-form-group label="Password">
+        <input class="form-control"
+               placeholder="Enter a unique and secure password"
+               v-model="firstPw"
+               tabindex="5"
+               type="password" />
+    </b-form-group>
 
-    <div class="text-center">
-        <submit-button tabindex="6"
+    <b-form-group label="Repeat password">
+        <input class="form-control"
+               placeholder="Repeat your password"
+               v-model="secondPw"
+               tabindex="6"
+               type="password" />
+    </b-form-group>
+
+    <div class="text-right">
+        <submit-button tabindex="7"
                        label="Register"
                        :submit="submit"
                        @after-success="afterSubmit"
@@ -91,7 +86,6 @@ import { PASSWORD_UNIQUE_MESSAGE } from '@/constants';
 
 import SubmitButton from './SubmitButton';
 import DescriptionPopover from './DescriptionPopover';
-import PasswordInput from './PasswordInput';
 import PasswordSuggestions from './PasswordSuggestions';
 
 export default {
@@ -101,6 +95,16 @@ export default {
         registrationUrl: {
             type: String,
             required: true,
+        },
+
+        redirectRoute: {
+            type: Object,
+            default: () => ({
+                name: 'home',
+                query: {
+                    sbloc: 'm',
+                },
+            }),
         },
     },
 
@@ -115,7 +119,7 @@ export default {
 
             fieldLabels: {
                 username: 'Username',
-                name: 'Full name',
+                name: 'Name',
                 firstEmail: 'Email',
                 secondEmail: 'Repeat email',
                 firstPw: 'Password',
@@ -164,10 +168,7 @@ export default {
             const token = response.data.access_token;
             if (token) {
                 this.updateAccessToken(token).then(() => {
-                    this.$router.push({
-                        name: 'home',
-                        query: { sbloc: 'm' },
-                    });
+                    this.$router.push(this.redirectRoute);
                 });
             }
         },
@@ -176,7 +177,6 @@ export default {
     components: {
         SubmitButton,
         DescriptionPopover,
-        PasswordInput,
         PasswordSuggestions,
     },
 };

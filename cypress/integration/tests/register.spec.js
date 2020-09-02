@@ -16,19 +16,21 @@ context('Register', () => {
     }
 
     function fillField(field, value) {
-        cy.get('fieldset.form-group')
-            .contains('.input-group', field)
+        cy.get('.register')
+            .contains('fieldset.form-group', field)
             .find('input')
             .type(value);
     }
 
     function submit(state, opts = {}) {
-        cy.get('.submit-button').submit(state, Object.assign(opts, {
-            // We never wait for the default state, because after login the
-            // submit button will disappear instantly.
-            waitForDefault: false,
-            hasConfirm: true,
-        }));
+        cy.get('.register')
+            .contains('.submit-button', 'Register')
+            .submit(state, Object.assign(opts, {
+                // We never wait for the default state, because after login the
+                // submit button will disappear instantly.
+                waitForDefault: false,
+                hasConfirm: true,
+            }));
     }
 
     it('should successfully register a user if all fields are filled in', () => {
@@ -36,7 +38,7 @@ context('Register', () => {
         const password = getPassword();
 
         fillField('Username', username);
-        fillField('Full name', username);
+        fillField('Name', username);
         fillField('Email', 'email@example.com');
         fillField('Repeat email', 'email@example.com');
         fillField('Password', password);
@@ -49,7 +51,7 @@ context('Register', () => {
         const username = getUsername();
         const password = getPassword();
 
-        fillField('Full name', username);
+        fillField('Name', username);
         fillField('Email', 'email@example.com');
         fillField('Repeat email', 'email@example.com');
         fillField('Password', password);
@@ -68,7 +70,7 @@ context('Register', () => {
         fillField('Password', password);
         fillField('Repeat password', password);
 
-        submit('error', { popoverMsg: 'Field "Full name" is empty' });
+        submit('error', { popoverMsg: 'Field "Name" is empty' });
     });
 
     it('should show an error if the email is not passed', () => {
@@ -76,7 +78,7 @@ context('Register', () => {
         const password = getPassword();
 
         fillField('Username', username);
-        fillField('Full name', username);
+        fillField('Name', username);
         fillField('Repeat email', 'email@example.com');
         fillField('Password', password);
         fillField('Repeat password', password);
@@ -89,7 +91,7 @@ context('Register', () => {
         const password = getPassword();
 
         fillField('Username', username);
-        fillField('Full name', username);
+        fillField('Name', username);
         fillField('Email', 'email@example.com');
         fillField('Password', password);
         fillField('Repeat password', password);
@@ -102,7 +104,7 @@ context('Register', () => {
         const password = getPassword();
 
         fillField('Username', username);
-        fillField('Full name', username);
+        fillField('Name', username);
         fillField('Email', 'email@example.com');
         fillField('Repeat email', 'email@example.com');
         fillField('Repeat password', password);
@@ -115,7 +117,7 @@ context('Register', () => {
         const password = getPassword();
 
         fillField('Username', username);
-        fillField('Full name', username);
+        fillField('Name', username);
         fillField('Email', 'email@example.com');
         fillField('Repeat email', 'email@example.com');
         fillField('Password', password);
@@ -128,7 +130,7 @@ context('Register', () => {
         const password = getPassword();
 
         fillField('Username', username);
-        fillField('Full name', username);
+        fillField('Name', username);
         fillField('Email', 'email@example.com');
         fillField('Repeat email', 'email2@example.com');
         fillField('Password', password);
@@ -142,7 +144,7 @@ context('Register', () => {
         const password = getPassword();
 
         fillField('Username', username);
-        fillField('Full name', username);
+        fillField('Name', username);
         fillField('Email', 'email@example.com');
         fillField('Repeat email', 'email@example.com');
         fillField('Password', password);
@@ -156,7 +158,7 @@ context('Register', () => {
         const password = getPassword();
 
         fillField('Username', username);
-        fillField('Full name', username);
+        fillField('Name', username);
         fillField('Email', 'email@example.com');
         fillField('Repeat email', 'email@example.com');
         fillField('Password', password);
@@ -164,11 +166,12 @@ context('Register', () => {
 
         submit('success');
 
+        cy.reload();
         cy.logout();
         cy.visit('/register');
 
         fillField('Username', username);
-        fillField('Full name', username);
+        fillField('Name', username);
         fillField('Email', 'email@example.com');
         fillField('Repeat email', 'email@example.com');
         fillField('Password', password);
@@ -183,43 +186,86 @@ context('Register', () => {
         cy.get('.register-wrapper h4').contains('for a course name');
     });
 
-    it('should be possible to register using a course link', () => {
+    context('should be possible to register using a course link', () => {
         let course;
-        cy.login('admin', 'admin');
-        cy.createCourse(`New course ${Math.random()}`).then(res => {
-            course = res;
+        let link;
 
-            cy.authRequest({
-                url: `/api/v1/courses/${course.id}/registration_links/`,
-                method: 'PUT',
-                body: {
-                    expiration_date: moment.utc().add(1, 'y').format('YYYY-MM-DDTHH:mm:ss'),
-                    role_id: course.roles[0].id,
-                },
-            }).then(() => {
-                cy.visit(`/courses/${course.id}`);
-            })
+        before(() => {
+            cy.visit('/');
+            cy.login('admin', 'admin');
+            cy.createCourse(`New course ${Math.random()}`).then(res => {
+                course = res;
 
-            cy.get('.registration-links td:nth-child(2) code').then($el => {
-                const text = $el.text().trim();
-                cy.logout();
-                cy.visit(text);
-                cy.get('.register-wrapper h4').contains(course.name);
-
-                const username = getUsername();
-                const password = getPassword();
-                fillField('Username', username);
-                fillField('Full name', username);
-                fillField('Email', 'email@example.com');
-                fillField('Repeat email', 'email@example.com');
-                fillField('Password', password);
-                fillField('Repeat password', password);
-
-                submit('success');
-
-                cy.get('.course-name').should('have.length', 1);
-                cy.get('.course-name').contains(course.name);
+                return cy.authRequest({
+                    url: `/api/v1/courses/${course.id}/registration_links/`,
+                    method: 'PUT',
+                    body: {
+                        expiration_date: moment.utc().add(1, 'y').format('YYYY-MM-DDTHH:mm:ss'),
+                        role_id: course.roles[0].id,
+                    },
+                });
+            }).then(res => {
+                console.log(res);
+                link = `/courses/${course.id}/enroll/${res.body.id}`;
             });
+        });
+
+        beforeEach(() => {
+            cy.logout();
+            cy.visit(link);
+        });
+
+        it('should be possible to register as a new user', () => {
+            cy.get('.local-header').contains(course.name);
+
+            const username = getUsername();
+            const password = getPassword();
+            fillField('Username', username);
+            fillField('Name', username);
+            fillField('Email', 'email@example.com');
+            fillField('Repeat email', 'email@example.com');
+            fillField('Password', password);
+            fillField('Repeat password', password);
+
+            submit('success');
+
+            cy.get('.course-name').should('have.length', 1);
+            cy.get('.course-name').contains(course.name);
+        });
+
+        it('should be possible to enroll an existing user', () => {
+            cy.get('.login')
+                .contains('fieldset.form-group', 'Username')
+                .find('input')
+                .type('student1');
+            cy.get('.login')
+                .contains('fieldset.form-group', 'Password')
+                .find('input')
+                .type('Student1');
+            cy.get('.course-enroll')
+                .contains('.submit-button', 'Login and join')
+                .submit('warning');
+        });
+
+        // TODO: Couldn't get this test to work, the "Join" button is always
+        // disabled for some reason, even though the page recognizes that
+        // student2 is logged in.
+        it.skip('should be possible to enroll as a logged in user', () => {
+            cy.login('student2', 'Student2');
+            cy.visit(link);
+
+            cy.get('.course-enroll')
+                .contains('.submit-button', 'Join')
+                .submit('warning');
+        });
+
+        it('should not be possible to enroll as a logged in user that is already a member', () => {
+            cy.login('student1', 'Student1');
+            cy.visit(link);
+
+            cy.get('.course-enroll')
+                .contains('.submit-button', 'Join')
+                .should('not.be.disabled');
         });
     });
 });

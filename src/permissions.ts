@@ -18,7 +18,8 @@ export type GlobalPermissionOptions =
     | 'can_manage_site_users'
     | 'can_search_users'
     | 'can_impersonate_users'
-    | 'can_manage_lti_providers';
+    | 'can_manage_lti_providers'
+    | 'can_manage_sso_providers';
 const makeGPerm = (value: GlobalPermissionOptions, name: string, description: string, warning: string | null) => ({ value, name, description, warning });
 export const GlobalPermission = {
     canAddUsers: makeGPerm('can_add_users', 'Add users', 'Users with this permission can add other users to the website.', null),
@@ -30,6 +31,7 @@ export const GlobalPermission = {
     canSearchUsers: makeGPerm('can_search_users', 'Search users', 'Users with this permission can search for users on the side, this means they can see all other users on the site.', null),
     canImpersonateUsers: makeGPerm('can_impersonate_users', 'Impersonate users', 'Users with this permission can impersonate users, i.e. they can login as other users.', null),
     canManageLtiProviders: makeGPerm('can_manage_lti_providers', 'Manage LTI providers', 'Users with this permission can edit and list existing, and create new LTI providers.', 'This is a really powerful permission, only give to users you trust completely.'),
+    canManageSsoProviders: makeGPerm('can_manage_sso_providers', 'Manage SSO Providers', 'Users with this permission can connect new SSO Identity Providers.', null),
 };
 export type GlobalPermission = typeof GlobalPermission[keyof typeof GlobalPermission];
 
@@ -92,7 +94,8 @@ export type CoursePermissionOptions =
     | 'can_email_students'
     | 'can_view_inline_feedback_before_approved'
     | 'can_approve_inline_comments'
-    | 'can_edit_peer_feedback_settings';
+    | 'can_edit_peer_feedback_settings'
+    | 'can_receive_login_links';
 const makeCPerm = (value: CoursePermissionOptions, name: string, description: string, warning: string | null) => ({ value, name, description, warning });
 export const CoursePermission = {
     canSubmitOthersWork: makeCPerm('can_submit_others_work', 'Submit others work', 'Users with this permission can submit work to an assignment for other users. This means they can submit work that will have another user as the author.', null),
@@ -154,6 +157,7 @@ export const CoursePermission = {
     canViewInlineFeedbackBeforeApproved: makeCPerm('can_view_inline_feedback_before_approved', 'View peer feedback before approved', 'Users with this permission can view unapproved inline comments, comments that need approval include peer feedback comments. Users still need to have the permission to see the feedback, so this permission alone is not enough to see peer feedback.', null),
     canApproveInlineComments: makeCPerm('can_approve_inline_comments', 'Approve inline comments', 'Users with this permission can approve inline comments, comments that need approval include peer feedback comments.', null),
     canEditPeerFeedbackSettings: makeCPerm('can_edit_peer_feedback_settings', 'Edit peer feedback settings', 'Users with this permission can edit the peer feedback status of an assignment.', null),
+    canReceiveLoginLinks: makeCPerm('can_receive_login_links', 'Receive login links', 'Users with this permission will receive login links if this is enabled for the assignment. You should not give this permission to users with powerful permissions (such as "Can grade work").', null),
 };
 export type CoursePermission = typeof CoursePermission[keyof typeof CoursePermission];
 /* eslint-enable */

@@ -6,6 +6,8 @@ import enum
 import json
 import typing as t
 
+from typing_extensions import Literal
+
 import psef
 from cg_dt_utils import DatetimeWithTimezone
 from cg_sqlalchemy_helpers.types import ColumnProxy
@@ -13,7 +15,6 @@ from cg_sqlalchemy_helpers.types import ColumnProxy
 from . import Base, db
 from .. import auth
 from .assignment import Assignment
-from ..exceptions import PermissionException
 
 
 class PlagiarismMatch(Base):
@@ -111,6 +112,23 @@ class PlagiarismMatch(Base):
         }
 
 
+class PlagiarismWorks(t.NamedTuple):
+    """The works connected to a plagiarism case.
+    """
+    #: For this work is guaranteed that it was submitted to the assignment on
+    #: which the plagiarism run was done.
+    own_work: 'psef.models.Work'
+    #: The assignment for this work might be different.
+    other_work: 'psef.models.Work'
+
+    @staticmethod
+    def get_other_index() -> Literal[1]:
+        """Get the index for the work that might not have been submitted to the
+        assignment on which the run was done.
+        """
+        return 1
+
+
 class PlagiarismCase(Base):
     """Describe a case of possible plagiarism.
 
@@ -192,6 +210,14 @@ class PlagiarismCase(Base):
     )
 
     @property
+    def works(self) -> PlagiarismWorks:
+        """Get the works connected to this case.
+        """
+        if self.work2.assignment_id == self.plagiarism_run.assignment_id:
+            return PlagiarismWorks(own_work=self.work2, other_work=self.work1)
+        return PlagiarismWorks(own_work=self.work1, other_work=self.work2)
+
+    @property
     def any_work_deleted(self) -> bool:
         """Is any of the works connected to this case deleted.
         """
@@ -222,26 +248,19 @@ class PlagiarismCase(Base):
 
         :returns: A object as described above.
         """
+        works = self.works
         data: t.MutableMapping[str, t.Any] = {
             'id': self.id,
-            'users': [self.work1.user, self.work2.user],
+            'users': [w.user for w in works],
             'match_avg': self.match_avg,
             'match_max': self.match_max,
-            'assignments': [self.work1.assignment, self.work2.assignment],
-            'submissions': [self.work1, self.work2],
+            'assignments': [w.assignment for w in works],
+            'submissions': list(works),
         }
-        try:
-            auth.ensure_can_see_plagiarims_case(
-                self, assignments=True, submissions=False
-            )
-        except PermissionException:
-            other_work_index = (
-                1 if
-                self.work1.assignment_id == self.plagiarism_run.assignment_id
-                else 0
-            )
-            assig = data['assignments'][other_work_index]
-            data['assignments'][other_work_index] = {
+        perm_checker = auth.PlagiarismCasePermissions(self)
+        if not perm_checker.ensure_may_see_other_assignment.as_bool():
+            assig = works.other_work.assignment
+            data['assignments'][PlagiarismWorks.get_other_index()] = {
                 'name': assig.name,
                 'course': {
                     'name': assig.course.name
@@ -249,11 +268,7 @@ class PlagiarismCase(Base):
             }
 
         # Make sure we may actually see this file.
-        try:
-            auth.ensure_can_see_plagiarims_case(
-                self, assignments=False, submissions=True
-            )
-        except PermissionException:
+        if not perm_checker.ensure_may_see_other_submission.as_bool():
             data['submissions'] = None
 
         return data

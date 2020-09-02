@@ -88,7 +88,6 @@ def monkeypatch_for_run(
     poll_after_done
 ):
     old_run_command = psef.auto_test.StartedContainer._run_command
-    psef.auto_test._STOP_RUNNING.clear()
 
     monkeypatch.setattr(
         psef.auto_test, '_SYSTEMD_WAIT_CMD',
@@ -107,7 +106,9 @@ def monkeypatch_for_run(
         signal_start = psef.auto_test.StartedContainer._signal_start
         cmd, user = cmd_user
 
-        cmd[0] = re.sub('(/bin/)?bash', bash_path, cmd[0])
+        if cmd[0] in ('/bin/bash', 'bash'):
+            cmd[0] = bash_path
+            cmd_user = (cmd, user)
 
         if cmd[0] in {'adduser', 'usermod', 'deluser', 'sudo', 'apt'}:
             signal_start()
@@ -947,8 +948,7 @@ def test_run_auto_test(
             test_client.req(
                 'get',
                 f'{url}/runs/{run.id}/users/{student1.id}/results/',
-                200,
-                result=[]
+                403,
             )
 
         with logged_in(teacher):
@@ -2644,9 +2644,11 @@ def test_prefer_teacher_revision_option(
             )
 
             if with_teacher_revision:
-                file_id = test_client.get(
+                file_id = test_client.req(
+                    'get',
                     f'/api/v1/submissions/{work["id"]}/files/',
-                ).json['entries'][0]['id']
+                    200,
+                )['entries'][0]['id']
                 test_client.req(
                     'patch',
                     f'/api/v1/code/{file_id}',
@@ -2669,7 +2671,9 @@ def test_prefer_teacher_revision_option(
                                                         ).one()
 
     with describe('should run the correct code'):
+        assert res.is_finished
         step_result = res.step_results[0]
+        print(step_result.log)
 
         if prefer_teacher_revision and with_teacher_revision:
             assert step_result.log['stdout'] == 'teacher\n'
@@ -2881,18 +2885,21 @@ def test_submission_info_env_vars(
 
 def test_broker_extra_env_vars(describe):
     cur_user = getpass.getuser()
-    cont = psef.auto_test.StartedContainer(None, '', {})
+    cont = psef.auto_test.StartedContainer(None, '', {}, lambda: None)
 
     # Ensure initial conditions are as expected.
     with describe('env vars "a" and "b" should not exist by default'):
         env = cont._create_env(cur_user)
-        assert env.get('a') == None
-        assert env.get('b') == None
+        assert 'a' not in env
+        assert 'b' not in env
+        assert env.get('a') is None
+        assert env.get('b') is None
 
     with describe('should include variables in the extra env'):
         with cont.extra_env({'a': 'a'}):
             env = cont._create_env(cur_user)
             assert env.get('a') == 'a'
+            assert 'b' not in env
 
     with describe('should support nesting'):
         with cont.extra_env({'a': 'a'}):
@@ -2903,7 +2910,8 @@ def test_broker_extra_env_vars(describe):
 
             env = cont._create_env(cur_user)
             assert env.get('a') == 'a'
-            assert env.get('b') == None
+            assert env.get('b') is None
+            assert 'b' not in env
 
     with describe('inner envs should override outer envs'):
         with cont.extra_env({'a': 'a'}):

@@ -8,3 +8,4 @@ Name,Description
 **Search users** \*,"Users with this permission can search for users on the side, this means they can see all other users on the site."
 **Impersonate users**,"Users with this permission can impersonate users, i.e. they can login as other users."
 **Manage LTI providers**,"Users with this permission can edit and list existing, and create new LTI providers."
+**Manage SSO Providers**,Users with this permission can connect new SSO Identity Providers.

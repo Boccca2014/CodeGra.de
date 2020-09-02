@@ -1,6 +1,7 @@
 /* SPDX-License-Identifier: AGPL-3.0-only */
 import Vue from 'vue';
 import axios from 'axios';
+import jwtDecode from 'jwt-decode';
 
 import * as utils from '@/utils';
 import * as types from '../mutation-types';
@@ -31,6 +32,13 @@ const getters = {
         return prefix => values.filter(({ key }) => key.startsWith(prefix));
     },
     dangerousJwtToken: state => state.jwtToken,
+    jwtClaims: (state, otherGetters) => {
+        const jwt = otherGetters.dangerousJwtToken;
+        if (!jwt) {
+            return {};
+        }
+        return utils.getProps(jwtDecode(jwt), {}, 'user_claims') || {};
+    },
 };
 
 const actions = {
@@ -88,10 +96,10 @@ const actions = {
     },
 
     logout({ commit }) {
+        commit(types.LOGOUT);
         return Promise.all([
             commit(`submissions/${types.CLEAR_SUBMISSIONS}`, null, { root: true }),
             commit(`code/${types.CLEAR_CODE_CACHE}`, null, { root: true }),
-            commit(`courses/${types.CLEAR_COURSES}`, null, { root: true }),
             commit(`plagiarism/${types.CLEAR_PLAGIARISM_RUNS}`, null, {
                 root: true,
             }),
@@ -104,7 +112,6 @@ const actions = {
             commit('feedback/commitDeleteAllFeedback', null, { root: true }),
             commit('notification/commitClearNotifications', null, { root: true }),
             commit('peer_feedback/commitClearConnections', null, { root: true }),
-            commit(types.LOGOUT),
         ]);
     },
 

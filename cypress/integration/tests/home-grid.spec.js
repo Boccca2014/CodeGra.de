@@ -23,7 +23,7 @@ context('HomeGrid', () => {
         cy.login('robin', 'Robin');
         cy.visit('/');
         cy.get('.page.home .home-grid').should('exist');
-        cy.get('.course-wrapper .assig-list-item').first().click();
+        cy.get('.course-wrapper .assignment-list-item').first().click();
         cy.url().should('match', /.+assignments\/[0-9]+\/submissions.*/);
     });
 

@@ -8,7 +8,8 @@
 
         <div class="search-logo-wrapper">
             <input class="search form-control mr-3"
-                   v-model="searchString"
+                   :value="searchString"
+                   v-debounce="newSearchString => { searchString = newSearchString }"
                    ref="searchInput"
                    placeholder="Type to search"/>
             <cg-logo :small="$root.$isSmallWindow" :inverted="!darkMode" />
@@ -61,40 +62,16 @@
                     </div>
                 </b-card-header>
                 <b-card-body class="card-no-padding">
-                    <div class="card-text">
-                        <table class="table table-hover assig-list"
-                               v-if="course.assignments.length > 0">
-                            <tbody>
-                                <router-link v-for="{ assignment, filtered } in getAssignments(course)"
-                                             :key="assignment.id"
-                                             :to="submissionsRoute(assignment)"
-                                             :class="filtered ? 'text-muted' : ''"
-                                             class="assig-list-item">
-                                    <td>
-                                        <span>{{ assignment.name }}</span><br>
-
-                                        <small v-if="assignment.hasDeadline">
-                                            Due <cg-relative-time :date="assignment.deadline" />
-                                        </small>
-                                        <small v-else class="text-muted font-italic">
-                                            No deadline
-                                        </small>
-                                    </td>
-                                    <td class="shrink">
-                                        <assignment-state :assignment="assignment"
-                                                          :editable="false"
-                                                          size="sm"/>
-                                    </td>
-                                    <td v-if="assignment.canManage"
-                                        class="shrink">
-                                        <router-link :to="manageAssignmentRoute(assignment)"
-                                                     v-b-popover.window.top.hover="'Manage assignment'">
-                                            <icon name="gear" class="gear-icon"/>
-                                        </router-link>
-                                    </td>
-                                </router-link>
-                            </tbody>
-                        </table>
+                    <div class="card-text d-flex">
+                        <ul class="assig-list"
+                            v-if="course.assignments.length > 0">
+                            <assignment-list-item :assignment="assignment" v-for="{ assignment, filtered } in getAssignments(course)"
+                                                  manage-border
+                                                  :class="{ 'text-muted': filtered }"
+                                                  class="border-bottom"
+                                                  :key="assignment.id"
+                                                  :show-course-name="false"/>
+                        </ul>
 
                         <p class="m-3 font-italic text-muted" v-else>
                             No assignments for this course.
@@ -141,6 +118,7 @@ import UserInfo from './UserInfo';
 import Loader from './Loader';
 import LocalHeader from './LocalHeader';
 import CgLogo from './CgLogo';
+import AssignmentListItem from './Sidebar/AssignmentListItem';
 
 // We can't use the COLOR_PAIRS from constants.js because that one is slightly
 // different and because we use hashes to index this list that would change most
@@ -182,7 +160,7 @@ export default {
             loadingCourses: true,
             UserConfig,
             amountCoursesToShow: EXTRA_COURSES_AMOUNT,
-            searchString: '',
+            searchString: this.$route.query.filter || '',
             renderingMoreCourses: 0,
         };
     },
@@ -256,6 +234,18 @@ export default {
         if (searchInput != null) {
             searchInput.focus();
         }
+    },
+
+    watch: {
+        searchString() {
+            const newQuery = Object.assign({}, this.$route.query);
+            newQuery.filter = this.searchString || undefined;
+
+            this.$router.replace({
+                query: newQuery,
+                hash: this.$route.hash,
+            });
+        },
     },
 
     methods: {
@@ -353,6 +343,7 @@ export default {
         Loader,
         LocalHeader,
         InfiniteLoading,
+        AssignmentListItem,
     },
 };
 </script>
@@ -373,43 +364,6 @@ export default {
 .home-grid .outer-block {
     .card-body.card-no-padding {
         padding: 0;
-    }
-
-    .assig-list {
-        margin-bottom: 0;
-
-        .assig-list-item {
-            display: table-row;
-
-            @{dark-mode},
-            @{dark-mode} .fa-icon {
-                color: rgb(210, 212, 213);
-            }
-
-            &:first-child td {
-                border-top-width: 0;
-            }
-
-            &:nth-of-type(even) {
-                background-color: rgba(0, 0, 0, 0.05);
-            }
-
-            &:hover {
-                background-color: rgba(0, 0, 0, 0.075);
-            }
-        }
-
-        a:hover {
-            text-decoration: none;
-
-            .fa-icon {
-                border-bottom-color: transparent;
-            }
-        }
-
-        .fa-icon {
-            margin-top: 5px;
-        }
     }
 
     .course-wrapper {
@@ -497,5 +451,47 @@ a {
 
 .extra-load-btn {
     margin: 0 auto;
+}
+</style>
+
+<style lang="less">
+@import '~mixins.less';
+
+.home-grid  .course-wrapper .assig-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    flex: 1 1 auto;
+    overflow-y: auto;
+
+    .sidebar-list-item {
+        a {
+            @{dark-mode} {
+                color: @text-color-dark;
+
+                &:hover {
+                    color: darken(@text-color-dark, 10%);
+                }
+            }
+        }
+        &.text-muted a {
+            color: @text-color-muted !important;
+        }
+        display: flex;
+        flex-direction: row;
+
+        .sidebar-item {
+            padding: 0.75rem;
+        }
+        &:nth-child(even) {
+            background-color: rgba(0, 0, 0, 0.05);
+        }
+        .sidebar-item:hover {
+            background-color: rgba(0, 0, 0, 0.075);
+        }
+        &:last-child {
+            border-bottom: 0 !important;
+        }
+    }
 }
 </style>

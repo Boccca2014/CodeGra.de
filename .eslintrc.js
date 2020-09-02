@@ -113,6 +113,13 @@ module.exports = {
             'allowParans': 'avoid',
             'endOfLine': 'auto',
         }],
+        "no-restricted-syntax": [
+            "warn",
+            {
+                "selector": "CallExpression[callee.name='trace']",
+                "message": "Trace calls should be removed."
+            }
+        ],
     },
     globals: {
         'UserConfig': true,

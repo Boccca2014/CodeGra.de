@@ -7,26 +7,39 @@ SPDX-License-Identifier: AGPL-3.0-only
 """
 import typing as t
 
-import flask_jwt_extended as flask_jwt
 from flask import request
+from flask_limiter.util import get_remote_address
 
-from psef.exceptions import WeakPasswordException
+from psef.exceptions import (
+    APICodes, PermissionException, WeakPasswordException
+)
 
 from . import api
-from .. import auth, mail, models, helpers, current_user
+from .. import auth, mail, models, helpers, limiter, current_user
 from ..errors import APICodes, APIWarnings, APIException
 from ..models import db
 from ..helpers import (
     JSONResponse, EmptyResponse, ExtendedJSONResponse, jsonify, validate,
-    add_warning, ensure_json_dict, extended_jsonify, request_arg_true,
-    ensure_keys_in_dict, make_empty_response
+    add_warning, jsonify_options, ensure_json_dict, extended_jsonify,
+    request_arg_true, ensure_keys_in_dict, make_empty_response
 )
 from ..permissions import GlobalPermission as GPerm
 
 
+def _login_rate_limit() -> t.Tuple[str, str]:
+    try:
+        username = request.get_json()['username'].lower()
+    except:  # pylint: disable=bare-except
+        username = '?UNKNOWN?'
+
+    return (username, get_remote_address())
+
+
 @api.route("/login", methods=["POST"])
-def login() -> ExtendedJSONResponse[
-    t.Mapping[str, t.Union[t.MutableMapping[str, t.Any], str]]]:
+@limiter.limit(
+    '5 per minute', key_func=_login_rate_limit, deduct_on_err_only=True
+)
+def login() -> ExtendedJSONResponse[models.User.LoginResponse]:
     """Login a :class:`.models.User` if the request is valid.
 
     .. :quickref: User; Login a given user.
@@ -144,19 +157,14 @@ def login() -> ExtendedJSONResponse[
             )
 
     auth.set_current_user(user)
-    json_user = user.__extended_to_json__()
 
     if request_arg_true('with_permissions'):
-        json_user['permissions'] = GPerm.create_map(user.get_all_permissions())
+        jsonify_options.get_options().add_permissions_to_user = user
 
     return extended_jsonify(
         {
-            'user': json_user,
-            'access_token':
-                flask_jwt.create_access_token(
-                    identity=user.id,
-                    fresh=True,
-                )
+            'user': user,
+            'access_token': user.make_access_token(),
         }
     )
 
@@ -268,13 +276,22 @@ def user_patch_handle_send_reset_email() -> EmptyResponse:
     with helpers.get_from_map_transaction(data) as [get, _]:
         username = get('username', str)
 
-    mail.send_reset_password_email(
-        helpers.filter_single_or_404(
-            models.User,
-            ~models.User.is_test_student,
-            models.User.username == username,
-        )
+    user = helpers.filter_single_or_404(
+        models.User,
+        ~models.User.is_test_student,
+        models.User.username == username,
     )
+
+    if not user.has_permission(GPerm.can_edit_own_password):
+        raise PermissionException(
+            (
+                'This user does not have the necessary permissions to reset'
+                ' its own password'
+            ), f'The user {user.id} has insufficient permissions',
+            APICodes.INCORRECT_PERMISSION, 403
+        )
+
+    mail.send_reset_password_email(user)
     db.session.commit()
 
     return make_empty_response()
@@ -302,15 +319,7 @@ def user_patch_handle_reset_password() -> JSONResponse[t.Mapping[str, str]]:
 
     user.reset_password(token, password)
     db.session.commit()
-    return jsonify(
-        {
-            'access_token':
-                flask_jwt.create_access_token(
-                    identity=user.id,
-                    fresh=True,
-                )
-        }
-    )
+    return jsonify({'access_token': user.make_access_token()})
 
 
 def user_patch_handle_reset_on_lti() -> EmptyResponse:

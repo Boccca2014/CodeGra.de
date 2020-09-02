@@ -103,11 +103,21 @@ def test_get_all_extended_courses(ta_user, test_client, logged_in, session):
         ('Thomas Schaper', 'Programmeertalen', 'TA'),
         ('Thomas Schaper', 'Project Software Engineering', 'Student'),
         ('Student1', 'Programmeertalen', 'Student'),
-        data_error(('Student1', 'Project Software Engineering', 'Student')),
-        data_error(('admin', 'Project Software Engineering', 'Student')),
-        perm_error(error=401)(
-            ('NOT_LOGGED_IN', 'Project Software Engineering', 'Student')
-        ),
+        perm_error(error=403)((
+            'Student1',
+            'Project Software Engineering',
+            'Student',
+        )),
+        perm_error(error=403)((
+            'admin',
+            'Project Software Engineering',
+            'Student',
+        )),
+        perm_error(error=401)((
+            'NOT_LOGGED_IN',
+            'Project Software Engineering',
+            'Student',
+        )),
     ],
     indirect=['named_user']
 )
@@ -116,11 +126,8 @@ def test_get_course_data(
     role, session, add_lti, canvas_lti1p1_provider
 ):
     perm_err = request.node.get_closest_marker('perm_error')
-    data_err = request.node.get_closest_marker('data_error')
     if perm_err:
         error = perm_err.kwargs['error']
-    elif data_err:
-        error = 404
     else:
         error = False
 
@@ -1059,10 +1066,10 @@ def test_add_assignment(
     perm_err = request.node.get_closest_marker('perm_error')
     data_err = request.node.get_closest_marker('data_error')
     course = session.query(m.Course).filter_by(name='Programmeertalen').one()
-    if perm_err:
-        error = perm_err.kwargs['error']
-    elif data_err:
+    if data_err:
         error = 400
+    elif perm_err:
+        error = perm_err.kwargs['error']
     else:
         error = False
 
@@ -1104,6 +1111,9 @@ def test_add_assignment(
                 'max_submissions': None,
                 'analytics_workspace_ids': [int],
                 'peer_feedback_settings': None,
+                'kind': 'normal',
+                'send_login_links': False,
+                'available_at': None,
             }
         )
 
@@ -1435,6 +1445,8 @@ def test_register_using_registration_link(
         r1 = role1.id
         r2 = role2.id
 
+        new_user = helpers.create_user_with_role(session, 'NON_EXISTENT', [])
+
         register_data = {
             'username': 'NEW_NAME_' + uuid.uuid4().hex,
             'password': uuid.uuid4().hex,
@@ -1452,20 +1464,25 @@ def test_register_using_registration_link(
                 'id': str,
                 'role': dict,
                 'expiration_date': yesterday.isoformat(),
+                'allow_register': True,
             },
             include_response=True,
         )
         assert 'already expired' in rv.headers['Warning']
         link_id = link['id']
+        base_url = f'/api/v1/courses/{c1}/registration_links/{link_id}'
 
     with describe('cannot register with expired link'):
         res = test_client.req(
             'post',
-            f'/api/v1/courses/{c1}/registration_links/{link_id}/user',
+            f'{base_url}/user',
             409,
             data=register_data,
         )
         assert 'has expired' in res['message']
+
+    with describe('cannot retrieve single expired link without logging in'):
+        test_client.req('get', base_url, 409)
 
     with describe('can edit registration link'), logged_in(admin_user):
         link, rv = test_client.req(
@@ -1480,11 +1497,32 @@ def test_register_using_registration_link(
             result={
                 'id': link_id,
                 'role': dict,
+                'allow_register': True,
                 'expiration_date': tomorrow.isoformat(),
             },
             include_response=True,
         )
         assert 'will have the permission' in rv.headers['Warning']
+
+    with describe('can retrieve single link without logging in'):
+        test_client.req(
+            'get',
+            base_url,
+            200,
+            result={
+                'id': link_id,
+                'expiration_date': tomorrow.isoformat(),
+                'role': role2,
+                'allow_register': True,
+                'course': {
+                    'id': c1,
+                    '__allow_extra__': True,
+                },
+            }
+        )
+        test_client.req(
+            'get', f'/api/v1/courses/{c1}/registration_links/', 401
+        )
 
     with describe('can get all registration links'), logged_in(admin_user):
         test_client.req(
@@ -1534,6 +1572,43 @@ def test_register_using_registration_link(
             }]
         )
 
+    with describe('Can disable registration'):
+        with logged_in(admin_user):
+            test_client.req(
+                'put',
+                f'/api/v1/courses/{c1}/registration_links/',
+                200,
+                data={
+                    'role_id': r2,
+                    'expiration_date': tomorrow.isoformat(),
+                    'id': link_id,
+                    'allow_register': False,
+                },
+                result={**link, 'allow_register': False},
+                include_response=True,
+            )
+
+        test_client.req('post', f'{base_url}/user', 403, data=register_data)
+
+        with logged_in(new_user):
+            test_client.req('post', f'{base_url}/join', 204)
+            test_client.req(
+                'get',
+                '/api/v1/courses/?extended',
+                200,
+                result=[{
+                    '__allow_extra__': True,
+                    'id': c1,
+                    'role': role2.name,
+                }],
+            )
+            # Enrolling again changes nothing
+            test_client.req('post', f'{base_url}/join', 204)
+
+        # Cannot enroll as a user in the course but with a different role
+        with logged_in(admin_user):
+            test_client.req('post', f'{base_url}/join', 409)
+
     with describe('cannot register after link deletion'):
         with logged_in(admin_user):
             test_client.req(
@@ -1579,6 +1654,7 @@ def test_delete_role_with_register_link(
                 'id': str,
                 'role': dict,
                 'expiration_date': tomorrow.isoformat(),
+                'allow_register': True,
             },
             include_response=True,
         )
@@ -1920,3 +1996,32 @@ def test_successful_email_course_members(
             }
         )
         assert stubmailer.times_called == 4
+
+
+def test_cannot_add_registration_link_to_lti_course(
+    describe, logged_in, admin_user, session, app, tomorrow, test_client
+):
+    with describe('setup'):
+        c = helpers.create_lti_course(session, app, user=admin_user)
+        role = m.CourseRole(
+            name=str(uuid.uuid4()),
+            course=helpers.to_db_object(c, m.Course),
+            hidden=False,
+        )
+        session.add(role)
+        session.commit()
+
+    with describe('Cannot add registration link'), logged_in(admin_user):
+        err = test_client.req(
+            'put',
+            f'/api/v1/courses/{helpers.get_id(c)}/registration_links/',
+            400,
+            data={
+                'role_id': helpers.get_id(role),
+                'expiration_date': tomorrow.isoformat(),
+                'allow_register': False,
+            },
+        )
+
+        assert ('cannot create course enroll links in LTI courses'
+                ) in err['message']

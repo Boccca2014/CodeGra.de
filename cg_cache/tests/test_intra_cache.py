@@ -134,3 +134,49 @@ def test_with_object_id(app):
         assert obj2.get_self() is obj2
         assert obj1.get_self() is obj3
         assert amount_called == 4
+
+
+def test_cached_property(app):
+    calls = []
+
+    class WithCachedProp:
+        def __init__(self, number):
+            self.number = number
+
+        @c.cached_property
+        def prop(self):
+            print(self)
+            calls.append(self.number)
+            return self.number
+
+    obj1 = WithCachedProp(1)
+    obj2 = WithCachedProp(2)
+    # Can use outside of context
+    assert obj1.prop == 1
+    assert obj1.prop == 1
+    assert calls == [1, 1]
+    calls.clear()
+    obj1.__class__.prop.clear_cache(obj1)
+
+    with app.app_context():
+        assert obj1.prop == 1
+        assert obj2.prop == 2
+
+        for _ in range(100):
+            assert obj1.prop == 1
+            assert obj2.prop == 2
+
+        assert calls == [1, 2]
+
+        obj2.__class__.prop.clear_cache(obj2)
+
+        for _ in range(100):
+            assert obj1.prop == 1
+            assert obj2.prop == 2
+
+        # Should only clear cache for obj2
+        assert calls == [1, 2, 2]
+
+        # Can call ``clear_cache`` while it is not in the cache
+        obj2.__class__.prop.clear_cache(obj2)
+        obj2.__class__.prop.clear_cache(obj2)

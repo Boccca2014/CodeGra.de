@@ -193,7 +193,7 @@ export default {
         },
 
         binUnits() {
-            return ['minutes', 'hours', 'days', 'weeks', 'years'];
+            return ['minutes', 'hours', 'days', 'weeks'];
         },
 
         noSubmissionWithinRange() {

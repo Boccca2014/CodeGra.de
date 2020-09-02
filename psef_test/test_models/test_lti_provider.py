@@ -419,6 +419,11 @@ def test_passback_for_new_student(
             clear_all_but=[m.LTI1p3Provider._passback_new_user]
         )
         stub_function(
+            pylti1p3.names_roles.NamesRolesProvisioningService,
+            'get_members',
+            lambda: [],
+        )
+        stub_function(
             pylti1p3.service_connector.ServiceConnector,
             'get_access_token', lambda: ''
         )

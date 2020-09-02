@@ -312,8 +312,11 @@ def test_jplag(
             else:
                 assert False, "Row not found!"
             assert sum(row[2:4]) / 2 == case['match_avg'], "Wrong average"
-            assert case['users'][0]['name'] == row[0].split(' || ')[0]
-            assert case['users'][1]['name'] == row[1].split(' || ')[0]
+
+            found_names = sorted([u['name'] for u in case['users']])
+            row_names = sorted([col.split(' || ')[0] for col in row[:2]])
+            assert found_names == row_names
+
             case = test_client.req(
                 'get', f'/api/v1/plagiarism/{plag["id"]}/cases/{case["id"]}',
                 200

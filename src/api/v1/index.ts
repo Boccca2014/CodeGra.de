@@ -2,5 +2,6 @@
 import * as lti from './lti';
 import * as submissions from './submissions';
 import * as assignments from './assignments';
+import * as ssoProviders from './sso_providers';
 
-export { lti, submissions, assignments };
+export { lti, submissions, assignments, ssoProviders };

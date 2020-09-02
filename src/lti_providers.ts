@@ -10,7 +10,7 @@ const defaultLTIProvider = Object.freeze(<const>{
     supportsBonusPoints: false,
     supportsStateManagement: false,
 });
-type LTIProvider = {
+export type LTIProvider = {
     readonly lms: string;
     readonly addBorder: boolean;
     readonly supportsDeadline: boolean;
@@ -29,6 +29,8 @@ const blackboardProvider = makeLTI1p1Provider('Blackboard');
 const brightSpaceProvider = makeLTI1p1Provider('Brightspace');
 
 const moodleProvider = makeLTI1p1Provider('Moodle');
+
+const sakaiProvider = makeLTI1p1Provider('Sakai');
 
 const canvasProvider = makeLTI1p1Provider('Canvas', {
     addBorder: true,
@@ -81,9 +83,10 @@ const LTI1p1Lookup: Record<string, LTIProvider> = mapToObject([
     brightSpaceProvider,
     canvasProvider,
     moodleProvider,
+    sakaiProvider,
 ], prov => [prov.lms, prov]);
 
-export function makeProvider(provider: LTIProviderServerData) {
+export function makeProvider(provider: LTIProviderServerData): LTIProvider {
     switch (provider.version) {
         case 'lti1.1':
             return LTI1p1Lookup[provider.lms];
