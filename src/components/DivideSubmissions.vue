@@ -108,7 +108,7 @@ export default {
     props: {
         assignment: {
             type: models.Assignment,
-            default: null,
+            required: true,
         },
 
         graders: {
