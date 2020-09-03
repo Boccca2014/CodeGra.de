@@ -169,10 +169,9 @@ context('Submission uploader', () => {
 
             cy.get('.page.submissions')
                 .should('be.visible');
-            cy.get('.action-buttons')
-                .contains('.action-button', 'Upload files')
-                .find('.disabled')
-                .should('exist');
+            cy.get('.wizard-buttons')
+                .contains('.wizard-button', 'Upload files')
+                .should('be.disabled');
             cy.get('.submission-uploader')
                 .should('not.be.visible');
         });
@@ -440,8 +439,8 @@ context('Submission uploader', () => {
                 cy.login('student3', 'Student3');
 
                 goToSubmissions();
-                cy.get('.action-buttons')
-                    .contains('.action-button', 'Upload files')
+                cy.get('.wizard-buttons')
+                    .contains('.wizard-button', 'Upload files')
                     .click();
                 checkSubmissionText(
                     new RegExp('You have 2 submissions. You may submit twice every minute. ' +
@@ -529,8 +528,8 @@ context('Submission uploader', () => {
         }
 
         function doAction(name) {
-            cy.get('.action-buttons')
-                .contains('.action-button', name)
+            cy.get('.wizard-buttons')
+                .contains('.wizard-button', name)
                 .click();
         }
 

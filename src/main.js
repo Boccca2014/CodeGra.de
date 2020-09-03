@@ -61,6 +61,7 @@ import Collapse from './components/Collapse';
 import NumberInput from './components/NumberInput';
 import WizardWrapper from './components/WizardWrapper';
 import Error from './components/Error';
+import WizardButton from './components/WizardButton';
 /* eslint-enable import/first */
 
 Vue.component('cg-relative-time', RelativeTime);
@@ -76,6 +77,7 @@ Vue.component('cg-collapse', Collapse);
 Vue.component('cg-number-input', NumberInput);
 Vue.component('cg-wizard-wrapper', WizardWrapper);
 Vue.component('cg-error', Error);
+Vue.component('cg-wizard-button', WizardButton);
 
 Vue.use(BootstrapVue);
 Vue.use(VueMasonry);

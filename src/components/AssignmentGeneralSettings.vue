@@ -206,7 +206,7 @@
         <b-input-group v-b-popover.top.hover="deadlinePopover">
             <datetime-picker
                 v-model="deadline"
-                @input="resetExamDuration"
+                @input="recalcExamDuration"
                 :id="`assignment-deadline-${uniqueId}-input`"
                 class="assignment-deadline"
                 placeholder="None set"

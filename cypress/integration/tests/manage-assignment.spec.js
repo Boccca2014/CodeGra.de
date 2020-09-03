@@ -646,7 +646,7 @@ context('Manage Assignment', () => {
     context('Peer feedback', () => {
         it('should be disabled by default', () => {
             cy.get('.peer-feedback-settings')
-                .contains('.btn', 'Enable peer feedback')
+                .contains('.btn', 'Set up peer feedback')
                 .should('be.visible')
                 .should('not.be.disabled');
         });
@@ -654,7 +654,7 @@ context('Manage Assignment', () => {
         it('should only save after clicking the submit button', () => {
             function setAliases() {
                 cy.get('.peer-feedback-settings')
-                    .contains('.btn', 'Enable peer feedback')
+                    .contains('.btn', 'Set up peer feedback')
                     .as('enableBtn');
             }
 
@@ -692,7 +692,7 @@ context('Manage Assignment', () => {
             cy.reload();
 
             cy.get('.peer-feedback-settings')
-                .contains('.btn', 'Enable peer feedback')
+                .contains('.btn', 'Set up peer feedback')
                 .should('not.exist');
         });
 
@@ -831,7 +831,7 @@ context('Manage Assignment', () => {
                 .contains('.submit-button', 'Submit')
                 .should('not.exist');
             cy.get('.peer-feedback-settings')
-                .contains('.btn', 'Enable peer feedback')
+                .contains('.btn', 'Set up peer feedback')
                 .should('be.visible');
         });
 
@@ -847,7 +847,7 @@ context('Manage Assignment', () => {
                 .submit('success');
 
             cy.get('.peer-feedback-settings')
-                .contains('.btn', 'Enable peer feedback')
+                .contains('.btn', 'Set up peer feedback')
                 .should('be.visible')
                 .should('be.disabled');
 
@@ -859,14 +859,14 @@ context('Manage Assignment', () => {
                 .submit('success');
 
             cy.get('.peer-feedback-settings')
-                .contains('.btn', 'Enable peer feedback')
+                .contains('.btn', 'Set up peer feedback')
                 .should('be.visible')
                 .should('not.be.disabled');
         });
 
         it('should not be possible to connect a group set for peer feedback assignments', () => {
             cy.get('.peer-feedback-settings')
-                .contains('.btn', 'Enable peer feedback')
+                .contains('.btn', 'Set up peer feedback')
                 .click();
             cy.get('.peer-feedback-settings')
                 .contains('.submit-button', 'Submit')

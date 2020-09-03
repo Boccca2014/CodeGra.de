@@ -119,101 +119,72 @@
             </b-modal>
 
             <div v-if="selectedCat === 'student-start'"
-                 class="action-buttons flex-grow-1 d-flex flex-wrap">
+                 class="wizard-buttons flex-grow-1 d-flex flex-wrap">
                 <template v-if="canUploadForSomeone">
-                    <div class="action-button m-2 m-md-3 rounded text-center"
-                         :class="{ 'variant-danger': latestSubmissionAfterDeadline }"
-                         v-b-popover.top.hover="latestSubmissionDisabled">
-                        <div class="content-wrapper border rounded p-3 pt-4"
-                             :class="{ disabled: latestSubmissionDisabled }"
-                             @click.prevent="latestSubmissionDisabled || openLatestUserSubmission()">
-                            <div class="icon-wrapper mb-2">
-                                <icon name="file-o" :scale="actionIconFactor * 6" />
-                                <icon name="history" :scale="actionIconFactor * 2" class="center" />
-                            </div>
-                            <p class="mb-0">
-                                Latest submission
-                                <late-submission-icon v-if="latestSubmission"
-                                                      :submission="latestSubmission"
-                                                      :assignment="assignment" />
-                            </p>
-                            <p class="text-muted mb-0 grade"
-                               v-if="latestSubmissionGrade != null">
-                                Grade: {{ latestSubmissionGrade }}
-                            </p>
-                        </div>
-                    </div>
+                    <cg-wizard-button
+                        class="latest-submission"
+                        icon="history"
+                        is-file-icon
+                        :size="wizardButtonSize"
+                        :variant="latestSubmissionAfterDeadline ? 'danger' : ''"
+                        :disabled="!!latestSubmissionDisabled"
+                        :popover="latestSubmissionDisabled"
+                        @click="openLatestUserSubmission()">
+                        Latest submission
 
-                    <div class="action-button m-2 m-md-3 rounded text-center"
-                         v-b-popover.top.hover="uploadDisabledMessage">
-                        <div class="content-wrapper border rounded p-3 pt-4"
-                             :class="{ disabled: uploadDisabledMessage }"
-                             @click.prevent="uploadDisabledMessage || openCategory('hand-in')">
-                            <div class="icon-wrapper mb-2">
-                                <icon name="file-o" :scale="actionIconFactor * 6" />
-                                <icon name="plus" :scale="actionIconFactor * 2" class="center" />
-                            </div>
-                            <p class="mb-0">Upload files</p>
-                        </div>
-                    </div>
+                        <late-submission-icon
+                            v-if="latestSubmission"
+                            :assignment="assignment"
+                            :submission="latestSubmission"/>
 
-                    <div v-if="webhookUploadEnabled"
-                         class="action-button git m-2 m-md-3 border-0 p-0 rounded text-center"
-                         v-b-popover.top.hover="webhookDisabledMessage">
-                        <submit-button variant="secondary"
-                                       class="content-wrapper border rounded p-3 pt-4"
-                                       :disabled="webhookDisabledMessage.length > 0"
-                                       :submit="loadGitData"
-                                       @success="openCategory('git')">
-                            <div slot="pending-label">
-                                <div>
-                                    <loader :scale="3" :center="false" class="mb-2 p-0" />
-                                </div>
-                                Loading webhook data&#8230;
-                            </div>
+                        <p class="text-muted mb-0 grade"
+                           v-if="latestSubmissionGrade != null">
+                            Grade: {{ latestSubmissionGrade }}
+                        </p>
+                    </cg-wizard-button>
 
-                            <div class="icon-wrapper mb-2">
-                                <icon name="code-fork" :scale="actionIconFactor * 6" />
-                            </div>
-                            <p class="mb-0">Set up Git</p>
-                        </submit-button>
-                    </div>
+                    <cg-wizard-button
+                        class="upload-files"
+                        label="Upload files"
+                        icon="plus"
+                        is-file-icon
+                        :size="wizardButtonSize"
+                        :disabled="!!uploadDisabledMessage"
+                        :popover="uploadDisabledMessage"
+                        @click="openCategory('hand-in')"/>
+
+                    <cg-wizard-button
+                        v-if="webhookUploadEnabled"
+                        label="Set up Git"
+                        icon="code-fork"
+                        :size="wizardButtonSize"
+                        :disabled="!!webhookDisabledMessage"
+                        :popover="webhookDisabledMessage"
+                        @click="openCategory('git'); loadGitData()"/>
                 </template>
 
-                <div v-if="rubric != null"
-                     class="action-button m-2 m-md-3 rounded text-center"
-                     @click="openCategory('rubric')">
-                    <div class="content-wrapper border rounded p-3 pt-4">
-                        <div class="icon-wrapper mb-2">
-                            <icon name="th" :scale="actionIconFactor * 6" />
-                        </div>
-                        <p class="mb-0">Rubric</p>
-                    </div>
-                </div>
+                <cg-wizard-button
+                    v-if="rubric != null"
+                    label="Rubric"
+                    icon="th"
+                    :size="wizardButtonSize"
+                    @click="openCategory('rubric')" />
 
-                <div v-if="assignment.group_set != null"
-                     class="action-button m-2 m-md-3 rounded text-center"
-                     @click="openCategory('groups')">
-                    <div class="content-wrapper border rounded p-3 pt-4">
-                        <div class="icon-wrapper mb-2">
-                            <icon name="users" :scale="actionIconFactor * 6" />
-                        </div>
-                        <p class="mb-0">Groups</p>
-                    </div>
-                </div>
+                <cg-wizard-button
+                    v-if="assignment.group_set != null"
+                    label="Groups"
+                    icon="users"
+                    :size="wizardButtonSize"
+                    @click="openCategory('groups')" />
 
-                <div v-if="assignment.peer_feedback_settings != null"
-                     class="action-button m-2 m-md-3 rounded text-center"
-                     v-b-popover.top.hover="peerFeedbackDisabled">
-                    <div class="content-wrapper border rounded p-3 pt-4"
-                         :class="{ disabled: peerFeedbackDisabled }"
-                         @click="peerFeedbackDisabled || openCategory('peer-feedback')">
-                        <div class="icon-wrapper mb-2">
-                            <icon name="comments-o" :scale="actionIconFactor * 6" />
-                        </div>
-                        <p class="mb-0">Peer feedback</p>
-                    </div>
-                </div>
+                <cg-wizard-button
+                    v-if="assignment.peer_feedback_settings != null"
+                    label="Peer feedback"
+                    icon="comments-o"
+                    :size="wizardButtonSize"
+                    :disabled="!!peerFeedbackDisabled"
+                    :popover="peerFeedbackDisabled"
+                    @click="openCategory('peer-feedback')" />
             </div>
 
             <!-- We can't use v-if here because the <submission-list> MUST
@@ -294,7 +265,13 @@
 
             <div v-if="selectedCat === 'git'"
                  class="flex-grow-1">
-                <webhook-instructions :data="gitData"
+                <template v-if="gitData == null">
+                    <cg-loader page-loader />
+                    <p class="mt-3 text-center text-muted">Loading webhook data&#8230;</p>
+                </template>
+
+                <webhook-instructions v-else
+                                      :data="gitData"
                                       :style="{ margin: '0 auto', maxWidth: '42rem' }" />
             </div>
 
@@ -347,7 +324,6 @@ import { mapGetters, mapActions } from 'vuex';
 
 import Icon from 'vue-awesome/components/Icon';
 import 'vue-awesome/icons/gear';
-import 'vue-awesome/icons/file-o';
 import 'vue-awesome/icons/history';
 import 'vue-awesome/icons/plus';
 import 'vue-awesome/icons/refresh';
@@ -530,6 +506,10 @@ export default {
 
         canManageAssignment() {
             return this.$utils.getProps(this.assignment, false, 'canManage');
+        },
+
+        wizardButtonSize() {
+            return this.$root.$isMediumWindow ? 'large' : 'medium';
         },
 
         uploadDisabledMessage() {
@@ -955,7 +935,7 @@ export default {
     flex: 1 1 auto;
 }
 
-.action-buttons {
+.wizard-buttons {
     max-width: 48rem;
     width: 100%;
     margin: 0 auto;
@@ -970,69 +950,9 @@ export default {
         align-content: flex-start;
         align-items: flex-start;
     }
-}
 
-.action-button {
-    position: relative;
-    flex: 0 0 ~'calc(33.33% - 2rem)';
-    height: 12rem;
-
-    @media @media-no-large {
-        flex-basis: ~'calc(40% - 2rem)';
-        min-width: 14rem;
-    }
-
-    @media @media-small {
-        flex-basis: ~'calc(50% - 1rem)';
-        height: 10rem;
-        min-width: 10rem;
-    }
-
-    @media (max-width: 24rem) {
-        flex-grow: 1;
-    }
-
-    &.variant-danger {
-        color: @color-danger;
-        background-color: fade(@color-danger, 25%) !important;
-
-        .content-wrapper {
-            border-color: @color-danger !important;
-        }
-    }
-
-    .content-wrapper {
-        width: 100%;
-        height: 100%;
-        transition: background-color @transition-duration;
-
-        &:not(.disabled):hover {
-            cursor: pointer;
-            background-color: rgba(0, 0, 0, 0.125) !important;
-        }
-
-        &.disabled {
-            cursor: not-allowed !important;
-            opacity: 0.5;
-        }
-    }
-
-    .icon-wrapper {
-        position: relative;
-        display: inline-block;
-    }
-
-    .center {
-        position: absolute;
-        top: 50%;
-        left: 50%;
-        transform: translate(-50%, -50%);
-    }
-
-    &.git {
-        .submit-button {
-            box-shadow: none !important;
-        }
+    .wizard-button-container {
+        margin: 0.5rem;
     }
 }
 </style>
