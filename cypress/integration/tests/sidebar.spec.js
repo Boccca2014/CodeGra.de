@@ -154,7 +154,7 @@ context('Sidebar', () => {
         });
     });
 
-    context.only('Reloading stuff', () => {
+    context('Reloading stuff', () => {
         const seed = Math.floor(100000 * Math.random());
         let course;
         let assignment;
