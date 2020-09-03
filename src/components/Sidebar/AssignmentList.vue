@@ -198,7 +198,10 @@ export default {
         },
 
         showTopAssignments() {
-            return !this.filter && this.assignments.length >= TOP_ASSIGNMENTS_LENGTH + 2;
+            if (this.filter) {
+                return false;
+            }
+            return this.assignments.length >= TOP_ASSIGNMENTS_LENGTH + 2;
         },
 
         currentIsInTop() {

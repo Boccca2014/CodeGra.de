@@ -128,12 +128,7 @@ export default {
         ...mapGetters('courses', ['sortedCourses', 'getCourse', 'retrievedAllCourses']),
 
         filteredCourses() {
-            let base;
-            if (this.currentCourse) {
-                base = this.sortedCourses.filter(c => c.id !== this.currentCourse.id);
-            } else {
-                base = this.sortedCourses;
-            }
+            const base = this.sortedCourses;
             if (!this.filter) {
                 return base;
             }
