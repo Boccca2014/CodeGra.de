@@ -71,7 +71,7 @@ CodeGrade assignment in your LMS.
 
 Otherwise you can create an account by navigating to your institute's CodeGrade
 site (e.g. uva.codegra.de) and clicking the 'Register' button. Here you can
-register a new account by entering your full name, a valid e-mail address and
+register a new account by entering your full name, a valid email address and
 a password. Also a unique username has to be chosen to finish registration,
 please keep in mind that this username cannot be changed after your
 registration is complete.
@@ -101,9 +101,9 @@ you back to CodeGrade afterwards. When you return you will be logged in to
 CodeGrade.
 
 Click 'Forgot password' in the case you have forgotten your password. After
-entering your username, a temporary link will be sent in an e-mail which allows
+entering your username, a temporary link will be sent in an email which allows
 you to reset your password. Please consult your institute in the case of
-a forgotten username or an incorrect e-mail address.
+a forgotten username or an incorrect email address.
 
-.. note:: Please check your spam filter if no e-mail is received shortly after
+.. note:: Please check your spam filter if no email is received shortly after
    the request.

@@ -105,7 +105,7 @@ A CodeGrade assignment can be one of three types:
 - **Normal**: a regular assignment.
 - **Exam**: an exam. For exams you do not configure the deadline of an
   assignment but rather when it starts and a duration. Students can optionally
-  receive an e-mail with a link with which they can set a password and log into
+  receive an email with a link with which they can set a password and log into
   CodeGrade when the exam starts. During the exam students only have access to
   the course of the exam, and not any other courses.
 
@@ -380,7 +380,7 @@ assignments.
 Finished Grading and Notifications
 +++++++++++++++++++++++++++++++++++
 CodeGrade provides essential communication tools between graders in the shape of
-e-mail notifications. These notifications rely on graders indicating that they
+email notifications. These notifications rely on graders indicating that they
 are done grading by setting their state to 'Done' after all grading is finished.
 
 .. warning::
@@ -390,12 +390,12 @@ are done grading by setting their state to 'Done' after all grading is finished.
 
 E-mail Notifications
 ++++++++++++++++++++++
-CodeGrade provides two types of e-mail notifications to enable essential
+CodeGrade provides two types of email notifications to enable essential
 communication between graders:
 
-* **Graders** notification: send an e-mail at a specified date and time to all
+* **Graders** notification: send an email at a specified date and time to all
   graders that have not yet finished grading.
-* **Finished** notification: send an e-mail to a specified e-mail address to
+* **Finished** notification: send an email to a specified email address to
   notify when all graders are finished grading.
 
 .. note:: For these notifications to be sent, graders must manually update

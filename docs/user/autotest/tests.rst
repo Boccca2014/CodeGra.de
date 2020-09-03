@@ -146,6 +146,6 @@ and to figure out how to make the framework output its results to the correct
 location. We provide wrapper scripts for a growing list of frameworks at our
 `AutoTest Examples <https://github.com/CodeGra-de/AutoTest-examples>`__ GitHub
 repository that handle all of this for you. Is your preferred testing framework
-not listed or does a script not work as you need it to? Please send an e-mail
+not listed or does a script not work as you need it to? Please send an email
 to `support@codegrade.com <mailto:support@codegrade.com>`__ so we can discuss
 the possibilities!

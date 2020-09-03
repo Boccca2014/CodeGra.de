@@ -28,7 +28,7 @@ Personal account information can also be modified in the *user* menu. Additional
 
 Personal Information
 ~~~~~~~~~~~~~~~~~~~~~
-Under the *User Info* tab the full name and e-mail address can be changed. Changes are automatically applied after pressing the submit button.
+Under the *User Info* tab the full name and email address can be changed. Changes are automatically applied after pressing the submit button.
 
 .. note:: It is not possible to change your username after creating an account.
 
@@ -45,9 +45,9 @@ LMS Account Passwords
 ^^^^^^^^^^^^^^^^^^^^^^^
 If you do yet have a password because your CodeGrade account was
 created using your learning management system (e.g. Canvas), you should use our *reset password* dialog. More information on this process
-can be found by clicking the :fa:`info` icon next to the *Old Password* field. Your password can now be reset following the link sent by e-mail.
+can be found by clicking the :fa:`info` icon next to the *Old Password* field. Your password can now be reset following the link sent by email.
 
-.. note:: If your e-mail address of your CodeGrade LMS account is incorrect, please change your e-mail address in your LMS account and use the *here* button in the :fa:`info` window to force CodeGrade to change the e-mail address to the current LMS' e-mail address.
+.. note:: If your email address of your CodeGrade LMS account is incorrect, please change your email address in your LMS account and use the *here* button in the :fa:`info` window to force CodeGrade to change the email address to the current LMS' email address.
 
 Snippet Management
 ~~~~~~~~~~~~~~~~~~~

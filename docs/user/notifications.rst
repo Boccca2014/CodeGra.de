@@ -3,7 +3,7 @@
 Notifications
 =============
 
-You can select to receive e-mail notifications when you receive new feedback on
+You can select to receive email notifications when you receive new feedback on
 a submission or a new reply on one of your comments. You can find the
 notification settings in the :fa:`user-circle-o` user sidebar by clicking the
 :fa:`gear` button under "Notifications".
@@ -21,7 +21,7 @@ want to be updated. The following events may generate a notification:
 
 For each event you can select from the following options:
 
-- **Direct**: Send a notification e-mail directly after an event happens.
+- **Direct**: Send a notification email directly after an event happens.
 - **Daily**: Send a daily digest with all notifications that would have been
   sent during the day if the **direct** option would have been selected.
 - **Weekly**: Send a weekly digest with all notifications that would have been
@@ -29,7 +29,7 @@ For each event you can select from the following options:
 - **Off**: Never send a notification for this type of event.
 
 .. note:: When you set the **author** event to **direct**, you may not receive
-   an e-mail directly when the event is triggered. This can happen, for
+   an email directly when the event is triggered. This can happen, for
    example, when a teaching assistant places some feedback on your submission,
    but you do not have permission to see feedback before the assignment is set
    to "done"; by default students do not have this permission.

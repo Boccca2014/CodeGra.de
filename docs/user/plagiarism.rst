@@ -72,7 +72,7 @@ Extend JPlag with CodeGrade
 
 At CodeGrade we have extended JPlag to understand a lot more languages at the
 request of our partners. Do you need support for a language that is not on the
-list of supported languages? Send us an e-mail at `support@codegrade.com
+list of supported languages? Send us an email at `support@codegrade.com
 <mailto:support@codegrade.com>`__ and we'll see what we can do!
 
 The languages we have added so far are:
