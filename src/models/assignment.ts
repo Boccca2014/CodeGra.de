@@ -312,7 +312,7 @@ export class Assignment extends AssignmentData {
         }
 
         if (!this.hasPermission(CPerm.canUploadAfterDeadline) && this.deadlinePassed(now)) {
-            res.push("the assignment's deadline has passed");
+            res.push("the assignment's deadline has already passed");
         }
 
         return res;

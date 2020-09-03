@@ -75,6 +75,7 @@ export { default as SubmissionLimits } from './SubmissionLimits';
 export { default as HtmlViewer } from './HtmlViewer';
 export { default as CatchError } from './CatchError';
 export { default as LtiProviders } from './LtiProviders';
+export { default as WizardButton } from './WizardButton';
 export { default as WizardWrapper } from './WizardWrapper';
 export { default as PeerFeedbackSettings } from './PeerFeedbackSettings';
 export { default as PeerFeedbackOverview } from './PeerFeedbackOverview';

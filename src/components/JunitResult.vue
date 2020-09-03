@@ -50,22 +50,56 @@
                         </div>
                     </div>
 
-                    <pre v-if="testCase.message"
+                    <pre v-if="testCase.message.isJust()"
                          class="px-3 pb-2 mb-0"
                          style="white-space: pre-wrap;"
-                         >{{ testCase.message }}</pre>
-                    <div v-if="testCase.content != null">
-                        <inner-code-viewer
-                            class="border-top"
-                            v-if="testCase.content"
-                            :assignment="assignment"
-                            :code-lines="testCase.content.map($utils.htmlEscape)"
-                            file-id="-1"
-                            :feedback="{}"
-                            :start-line="0"
-                            :show-whitespace="true"
-                            :warn-no-newline="false"
-                            :empty-file-message="'No output.'" />
+                         >{{ testCase.message.extract() }}</pre>
+                    <div>
+                        <div v-if="testCase.content.isJust()"
+                             class="output-wrapper">
+                            <b v-if="testCase.stdout.isJust() || testCase.stderr.isJust()"
+                               class="output-title">Error location</b>
+                            <inner-code-viewer
+                                class="border-top"
+                                :assignment="assignment"
+                                :code-lines="testCase.content.extract().map($utils.htmlEscape)"
+                                file-id="-1"
+                                :feedback="{}"
+                                :start-line="0"
+                                :show-whitespace="true"
+                                :warn-no-newline="false"
+                                :empty-file-message="'No stack trace.'" />
+                        </div>
+
+                        <div v-if="testCase.stdout.isJust()"
+                             class="output-wrapper">
+                            <b class="output-title">Output</b>
+                            <inner-code-viewer
+                                class="border-top"
+                                :assignment="assignment"
+                                :code-lines="testCase.stdout.extract().map($utils.htmlEscape)"
+                                file-id="-1"
+                                :feedback="{}"
+                                :start-line="0"
+                                :show-whitespace="false"
+                                :warn-no-newline="false"
+                                :empty-file-message="'No output.'" />
+                        </div>
+
+                        <div v-if="testCase.stderr.isJust()"
+                             class="output-wrapper">
+                            <b class="output-title">Error output</b>
+                            <inner-code-viewer
+                                class="border-top"
+                                :assignment="assignment"
+                                :code-lines="testCase.stderr.extract().map($utils.htmlEscape)"
+                                file-id="-1"
+                                :feedback="{}"
+                                :start-line="0"
+                                :show-whitespace="false"
+                                :warn-no-newline="false"
+                                :empty-file-message="'No output.'" />
+                        </div>
                     </div>
                 </div>
             </div>
@@ -146,4 +180,17 @@ export default class JunitResult extends Vue {
     }
 }
 
+.output-wrapper .output-title {
+    display: block;
+    padding-left: 0.5rem;
+    padding-right: 0.5rem;
+    padding-bottom: 0.5rem;
+}
+.output-wrapper:not(:first-child) .output-title {
+    padding-top: 0.5rem;
+}
+
+.output-wrapper:not(:last-child) .inner-code-viewer {
+    border-bottom: 1px solid @border-color;
+}
 </style>
