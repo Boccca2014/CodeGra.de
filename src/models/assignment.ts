@@ -254,7 +254,7 @@ export class Assignment extends AssignmentData {
     }
 
     @utils.nonenumerable
-    // eslint-disable-next-line
+    // eslint-disable-next-line camelcase
     get created_at(): string {
         return utils.formatDate(this.createdAt);
     }
