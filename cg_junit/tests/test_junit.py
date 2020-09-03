@@ -18,6 +18,7 @@ def parse_fixture(name):
     [
         'test_junit_xml/valid.xml',
         'test_junit_xml/valid_many_errors.xml',
+        'test_junit_xml/valid_system_out.xml',
     ],
 )
 def test_parse_valid_xml(junit_xml):

@@ -42,6 +42,10 @@ Version *Next*
   <https://github.com/CodeGra-de/CodeGra.de>`__. Make it impossible to
   bruteforce someone's password by sending infinite requests to the login
   route.
+- Show more output in the Unit Test step `(#1425)
+  <https://github.com/CodeGra-de/CodeGra.de>`__. When a test case contains
+  a ``<system-out>`` or ``<system-err>`` node its contents will now also be
+  displayed in the output of the step.
 
 Version Mosaic
 ---------------
