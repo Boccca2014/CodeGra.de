@@ -18,6 +18,9 @@ Version *Next*
   <https://github.com/CodeGra-de/CodeGra.de/pull/1415>`__. CodeGrade now has
   even better support for exams, allowing you to schedule the start of your
   exam, and making it possible to do exams for LTI courses without LMS access.
+- Add import of hand-in requirements `(#1420)
+  <https://github.com/CodeGra-de/CodeGra.de/pull/1420>`__. You can now import the
+  hand-in requirements of other assignments that you have access to.
 
 **Updates**
 

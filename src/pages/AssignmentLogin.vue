@@ -69,20 +69,16 @@
                 </template>
 
                 <div class="my-3 text-center">
-                    <div v-b-popover.top.hover="canLogin ? '' : 'You can not log in yet.'">
-                        <cg-submit-button
-                            style="height: 10rem; width: 10rem;"
-                            variant="secondary"
-                            class="align-self-center"
-                            :icon-scale="4"
-                            :submit="login"
-                            ref="loginBtn"
-                            :disabled="!canLogin"
-                            @after-success="success">
-                            <fa-icon name="sign-in" :scale="6" />
-                            <div>Start</div>
-                        </cg-submit-button>
-                    </div>
+                    <cg-wizard-button
+                        icon="sign-in"
+                        label="Start"
+                        @click="login"
+                        :disabled="!canLogin"
+                        :popover="canLogin ? '' : 'You cannot log in yet.'" />
+
+                    <b-alert v-if="loginError" show variant="danger" class="mt-4">
+                        {{ $utils.getErrorMessage(loginError) }}
+                    </b-alert>
                 </div>
             </div>
             <cg-loader page-loader v-else />
@@ -125,6 +121,10 @@ export default class AssignmentLogin extends Vue {
     private user: models.User | null = null;
 
     private error: Error | null = null;
+
+    private loginError: Error | null = null;
+
+    private loading: boolean = false;
 
     loggedIn!: boolean;
 
@@ -244,28 +244,32 @@ export default class AssignmentLogin extends Vue {
             await this.storeLogout();
         }
 
+        this.loading = true;
+
         return this.$http.post(
             this.$utils.buildUrl(['api', 'v1', 'login_links', this.loginUuid, 'login']),
-        );
-    }
+        )
+            .then(response => this.storeLogin(response))
+            .then(
+                () => {
+                    const { assignment } = this;
 
-    success(response: AxiosResponse) {
-        this.storeLogin(response)
-            .then(() => {
-                const { assignment } = this;
-
-                if (assignment == null) {
-                    this.$router.replace({ name: 'home' });
-                } else {
-                    this.$router.replace({
-                        name: 'assignment_submissions',
-                        params: {
-                            courseId: assignment?.courseId.toString(),
-                            assignmentId: assignment?.id.toString(),
-                        },
-                    });
-                }
-            });
+                    if (assignment == null) {
+                        this.$router.replace({ name: 'home' });
+                    } else {
+                        this.$router.replace({
+                            name: 'assignment_submissions',
+                            params: {
+                                courseId: assignment?.courseId.toString(),
+                                assignmentId: assignment?.id.toString(),
+                            },
+                        });
+                    }
+                },
+                err => {
+                    this.loginError = err;
+                },
+            );
     }
 }
 </script>
