@@ -20,6 +20,8 @@ perform.
 
 - **Groups**: Create and/or join groups.
 
+- **Peer feedback**: Give feedback to your fellow students.
+
 - **Course feedback**: Show an overview of the feedback you received to all
   assignments of this course.
 
@@ -91,7 +93,52 @@ After your assignment is graded, you can view your feedback through CodeGrade.
 
 1. Navigate to the assignment, or click on your grade in the grade center.
 
-2. View your feedback. On the Feedback overview, you can view your inline
+2. View your feedback. On the Feedback Overview, you can view your inline
    feedback comments with some context. Browse to the Code to view the inline
    feedback with all of your code. Finally, on the AutoTest tab you can view
    the output of the Automated Testing system.
+
+Giving peer feedback
+---------------------
+
+When an assignment is set up as a peer feedback assignment, you can review
+assignments of your fellow students by clicking on the "Peer feedback" button.
+You are now presented with a list of the other students you have to review. At
+the bottom of the list it tells you the deadline for giving peer feedback.
+
+After you click on the student you want to review, you are taken to the Code
+Viewer page of their latest submission. Click on any line of code to comment on
+it.
+
+.. note::
+
+    It may be possible that the other student does not receive your feedback
+    immediately. This happens when your teacher has set up the assignment to
+    not automatically approve peer feedback comments. In this case a teacher or
+    teaching assistant must manually approve a comment for it to be published
+    to the other student.
+
+Number of given comments
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+On the right side of the list with students you have to review, it shows the
+number of comments you have already given to each student. It may contain two
+numbers when the other student has done another submission after you have
+already given them some feedback. If this happens, the first number is the
+amount of comments you have given on their latest submission, and the
+second is the total amount of comments you placed on all of their submissions
+(the last one included).
+
+Viewing peer feedback
+---------------------
+
+On the Code Viewer page of your own submission, the feedback you have received
+will be visible within your code, just like the feedback you receive from your
+teacher. You can also go to the feedback overview to get an overview of all
+feedback you have received, both from teachers and your peers.
+
+An extra "Peer Feedback" tab is also available on the Code Viewer page, where
+you can get an overview of all feedback you have given. Click on the entries on
+the right side of the page to move between students and files. At the bottom of
+this page it shows you a list of students you have been assigned but have not
+yet given feedback to, if any.

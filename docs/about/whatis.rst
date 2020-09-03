@@ -24,7 +24,7 @@ More information on installing and using the CodeGrade filesystem can be found
 in this `chapter <https://fs-docs.codegra.de>`__. The Github repository of the Filesystem can be
 found on https://github.com/CodeGra-de/CodeGra.fs. More
 information on getting started with the CodeGrade Filesystem at your institute can be found on
-`CodeGrade <https://codegra.de>`_.
+`CodeGrade <https://codegrade.com>`_.
 
 CodeGrade Editor Plugins
 ^^^^^^^^^^^^^^^^^^^^^^^^^^

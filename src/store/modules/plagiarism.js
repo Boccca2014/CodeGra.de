@@ -28,7 +28,7 @@ const processCase = (run, serverCase) => {
         }
     }
 
-    serverCase.canView = serverCase.can_see_details && false;
+    serverCase.canView = serverCase.can_see_details;
     if (!serverCase.canView) {
         // eslint-disable-next-line
         serverCase._rowVariant = 'warning';

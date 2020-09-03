@@ -145,6 +145,8 @@ export default Vue.component('wizard-button', {
 @import '~mixins.less';
 
 .wizard-button {
+    position: relative;
+
     &.small {
         width: 8rem;
         height: 8rem;
@@ -188,6 +190,13 @@ export default Vue.component('wizard-button', {
             left: 50%;
             transform: translate(-50%, -50%);
         }
+    }
+
+    .center-in-file {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
     }
 }
 </style>
