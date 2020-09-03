@@ -50,10 +50,6 @@ export default Vue.component('wizard-button', {
             type: String,
             default: '',
         },
-        submit: {
-            type: Function,
-            default: null,
-        },
     },
 
     render(h, ctx) {
@@ -104,17 +100,10 @@ export default Vue.component('wizard-button', {
             [slots.default || ctx.props.label],
         );
 
-        const buttonAttrs = Object.assign({}, ctx.data.attrs);
-        if (ctx.props.submit) {
-            buttonAttrs.submit = ctx.props.submit;
-            buttonAttrs.variant = 'secondary';
-            buttonAttrs.iconScale = ICON_SCALES[ctx.props.size] / 2;
-        }
-
         const wizardBtn = h(
-            ctx.props.submit ? 'cg-submit-button' : 'b-button',
+            'b-button',
             {
-                attrs: buttonAttrs,
+                attrs: ctx.data.attrs,
                 class: {
                     'wizard-button': true,
                     [ctx.props.size]: true,
