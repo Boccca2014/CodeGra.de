@@ -14,18 +14,22 @@ assignment:
 
 1. Go to the **Assignment Management** page for the assignment you want to add hand-in requirements to by clicking on the :fa:`cog` button.
 
-2. Under the **General** tab, locate the **Hand-in requirements** section. Select the policy of your requirement:
+2. Under the **General** tab, locate the **Hand-in requirements** section. You
+   can choose to copy the instructions over from another assignment, or set up
+   a new requirements schema.
+
+3. Select the policy of your requirement:
 
     - **By default** *Deny all files*: All files are denied by default, further rules (*required* or *allowed files*) determine exactly and strictly what students can or must hand in (i.e. this will allow you to whitelist certain files and deny anything else).
     - **By default** *Allow all files*: All files are allowed by default, further rules (*required* or *denied files*) determine which specific files a student cannot hand in or must hand in (i.e. this will allow you to blacklist certain files and allow anything else).
 
-3. After selecting either of the policies above, more options are displayed to further specify the behaviour of your requirements:
+4. After selecting either of the policies above, more options are displayed to further specify the behaviour of your requirements:
 
     - **Delete empty directories**: If enabled, automatically delete empty directories in submissions.
     - **Delete leading directories**: If enabled, automatically delete superfluous leading directories (i.e. top-level directories in which all files / subdirectories are located).
     - **Allow overrides by students**: If enabled, the student can, after being shown a warning, still force hand in the submission even if it violates the hand-in requirements.
 
-4. Subsequently, rules to make exceptions for the set policy can be given in the **Exceptions and requirements** section. The following rules can be created:
+5. Subsequently, rules to make exceptions for the set policy can be given in the **Exceptions and requirements** section. The following rules can be created:
 
     - **Required**: This rule is available to both default policies and can be used to require students to hand in certain files.
     - **Allowed**: This rule is available if all files are *denied* by default and can be used to make exceptions to this policy. Files and folders indicated as allowed are allowed to be handed in.
@@ -48,7 +52,7 @@ assignment:
     ``.py`` in the directory src that is directly in the top level directory of the
     submission.
 
-5. When the default policy, options and exceptions and requirement rules are set up to your wishes, press the **Submit** button to save the hand-in requirements.
+6. When the default policy, options and exceptions and requirement rules are set up to your wishes, press the **Submit** button to save the hand-in requirements.
 
 Once hand-in requirements are set up for an assignment in CodeGrade, students
 are provided with the **Hand-in instructions** tab on the assignment upload page

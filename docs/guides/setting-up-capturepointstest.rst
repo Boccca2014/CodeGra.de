@@ -6,11 +6,14 @@ test scripts. A Capture Points Test captures the output of the executed program
 with a Python3 Regular Expression. This output should be a **number between
 0 and 1**.
 
-1. Input which program you want to execute.
+1. Press the ":fa:`plus` **Capture Points**" button to add a new Capture Points
+   test to your Test Category.
 
-2. Specify the **Python3 Regex** with which you want to capture the output. By
-   default this captures a single float. This number is multiplied by the **weight**
-   to get the amount of points.
+2. Input which program you want to execute.
+
+3. Specify the **Python3 Regex** with which you want to capture the output. By
+   default this captures a single float. This number is multiplied by the
+   **weight** to get the amount of points.
 
    .. note::
 

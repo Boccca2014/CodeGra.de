@@ -46,7 +46,7 @@ Multiple options allow you to more flexibly compare the output of the program:
 Use the :fa:`plus` button in the bottom left corner to create a new input/output
 combination.
 
-Use-cases
+Use cases
 ~~~~~~~~~~
 As the name suggests, IO Tests are used to check the output of a program given
 an input. IO Tests are very useful to check the functionality of simple and
@@ -69,12 +69,11 @@ code or exit status of this program. Meaning, an exit status of 0 (or
 **success**) results in passing the test and any nonzero exit status (or
 **failure**) results in failing the test.
 
-Use-cases
+Use cases
 ~~~~~~~~~~~~
 Run Program Tests are easy to set up and effective to check program execution
 when specific output is not important. Use Run Program Tests, for instance, to
-check the successful compilation of student code or to run single unit tests
-that you provide as fixtures.
+check the successful compilation of student code.
 
 
 Capture Points Test
@@ -91,7 +90,7 @@ Test to get to the final score of the test.
     The float captured for a *Capture Points Test* is captured from the **last**
     ``32 kB`` of output data.
 
-Use-cases
+Use cases
 ~~~~~~~~~~~
 Capture Points Tests are especially useful to run programs of which the output
 is of importance. Use Capture Points Tests to execute and evaluate your own
@@ -115,9 +114,38 @@ can be put in between tests, to only execute the following tests
 if a certain percentage of points have been scored in the tests preceding to
 the Checkpoint.
 
-Use-cases
+Use cases
 ~~~~~~~~~~
 It can be necessary to add conditionality between tests in your Test Category.
 This can be done with a Checkpoint, which is for instance useful if you check
 compilation in a first test and you only want to run following tests if this
 test succeeded.
+
+Unit Test
+---------
+The Unit Test provides integration with unit testing frameworks that support
+`JUnit XML
+<https://www.ibm.com/support/knowledgecenter/SSQ2R2_14.2.0/com.ibm.rsar.analysis.codereview.cobol.doc/topics/cac_useresults_junit.html>`__
+output.  The only input for this type of test is a command to be run, which
+must produce a JUnit XML file at the location stored in the
+``$CG_JUNIT_XML_LOCATION`` environment variable. Students will then get a clear
+overview of all the tests that have been run, which ones failed, and the output
+that was produced in the case of failure.
+
+Use cases
+~~~~~~~~~
+Unit Tests are useful if you want to run many tests but condense their output
+into a single entry in the test category. They are also useful when you already
+have a unit testing setup, and do not want to translate them all into
+individual AutoTest tests.
+
+Compatibility scripts
+~~~~~~~~~~~~~~~~~~~~~
+For most unit testing frameworks it is necessary to install additional software
+and to figure out how to make the framework output its results to the correct
+location. We provide wrapper scripts for a growing list of frameworks at our
+`AutoTest Examples <https://github.com/CodeGra-de/AutoTest-examples>`__ GitHub
+repository that handle all of this for you. Is your preferred testing framework
+not listed or does a script not work as you need it to? Please send an email
+to `support@codegrade.com <mailto:support@codegrade.com>`__ so we can discuss
+the possibilities!
