@@ -219,12 +219,10 @@ export default {
                 event.target.id = `row-${item.id}`;
             }
 
-            const index = item.assignments[0].id === this.assignmentId ? 1 : 0;
-
             this.disabledPopoverContent = `You don't have the permission
-            "View plagiarism" for the course
-            "${item.assignments[index].course.name}" which is necessary to view
-            this case.`;
+            necessary permissions to view this case, as one of the submissions
+            connected to this case was submitted to another course, in which you
+            do not have the necessary permissions.`;
 
             this.$nextTick(() => {
                 this.disabledPopoverRowId = event.target.id;
