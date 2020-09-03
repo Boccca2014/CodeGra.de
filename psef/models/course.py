@@ -248,7 +248,8 @@ class Course(NotEqualMixin, Base):
         }
         if jsonify_options.get_options().add_role_to_course:
             user = psef.current_user
-            res['role'] = user.courses[self.id].name if user else None  # type: ignore
+            res['role'] = user.courses[self.id  # type: ignore
+                                       ].name if user else None
         return res
 
     def __extended_to_json__(self) -> AsExtendedJSON:

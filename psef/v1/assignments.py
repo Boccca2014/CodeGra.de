@@ -351,6 +351,19 @@ def update_assignment(assignment_id: int) -> JSONResponse[models.Assignment]:
     lms_name = on_not_none(lti_provider, lambda prov: prov.lms_name)
 
     if new_available_at is not MISSING:
+        if (
+            assig.is_lti and (
+                lti_provider is None or
+                not lti_provider.supports_setting_available_at()
+            )
+        ):
+            raise APIException(
+                (
+                    'The available at of this assignment should be set in '
+                    f'{lms_name}.'
+                ), f'{assig.name} is an LTI assignment', APICodes.UNSUPPORTED,
+                400
+            )
         perm_checker.ensure_may_edit_info()
         assig.available_at = new_available_at
 

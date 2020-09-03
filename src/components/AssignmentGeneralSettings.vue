@@ -621,25 +621,45 @@ export default class AssignmentGeneralSettings extends Vue {
     }
 
     submitGeneralSettings() {
-        let name;
-        if (!this.assignment.is_lti) {
-            name = this.name ?? undefined;
-        }
-        // TODO: Also don't add deadline and available_at when ``is_lti`` is
-        // ``true`` and the lti provider doesn't support updating these.
-
-        let deadline = this.deadline;
+        let setDeadline = this.deadline;
         if (this.isExam) {
-            deadline = this.examDeadline;
+            setDeadline = this.examDeadline;
         }
+        const formatDate = <T>(date: string | null, dflt: T) =>
+            this.$utils.formatNullableDate(date, true) ?? dflt;
+
+        const { name, availableAt, deadline }: {
+            name: string | undefined;
+            availableAt: string | undefined | null;
+            deadline: string | undefined;
+        } = this.assignment.ltiProvider.mapOrDefault(
+            prov => {
+                let avail;
+                if (!prov.supportsStateManagement) {
+                    avail = formatDate(this.availableAt, null);
+                }
+                return {
+                    name: undefined as string | undefined,
+                    deadline: (prov.supportsDeadline ?
+                        undefined :
+                        formatDate(setDeadline, undefined)),
+                    availableAt: avail,
+                };
+            },
+            {
+                name: this.name ?? undefined,
+                availableAt: formatDate(this.availableAt, null),
+                deadline: formatDate(setDeadline, undefined),
+            },
+        );
 
         return AssignmentsStore.patchAssignment({
             assignmentId: this.assignment.id,
             assignmentProps: {
                 name,
+                available_at: availableAt,
+                deadline,
                 kind: this.kind,
-                available_at: this.$utils.formatNullableDate(this.availableAt, true),
-                deadline: this.$utils.formatNullableDate(deadline, true) ?? undefined,
                 max_grade: this.maxGrade.orDefault(Nothing).extractNullable(),
                 send_login_links: this.isExam && this.sendLoginLinks,
             },
