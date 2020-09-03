@@ -118,7 +118,7 @@ def get_course_of_assignment(
 ) -> t.Union[ExtendedJSONResponse[models.Course], JSONResponse[models.Course]]:
     """Get a course of an :class:`.models.Assignment`.
 
-    .. :quickref: Assignment; Get a the course an assignment is in.
+    .. :quickref: Assignment; Get the course an assignment is in.
 
     :param int assignment_id: The id of the assignment
     :returns: A response containing the JSON serialized course.
