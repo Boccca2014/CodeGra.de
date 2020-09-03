@@ -80,12 +80,10 @@ Groups
 
 If you want to use groups, you can create group sets here. A group set can be
 used by multiple assignments in the same course. **CodeGrade does not
-synchronise groups with Sakai**, so make sure your assignments in
-
-**(TODO is this blackboard specific?)**
-Sakai are individual assignments (no group submission) and manage your
-groups in CodeGrade. **CodeGrade will automatically send back all grades and
-feedback to all individual group members to Sakai correctly.**
+synchronise groups with Sakai**, so make sure your assignments in Sakai are
+individual assignments (no group submission) and manage your groups in
+CodeGrade. **CodeGrade will automatically send back all grades and feedback to
+all individual group members to Sakai correctly.**
 
 Depending on permissions you can allow students to join a group themselves or
 only allow Teachers or TAs to add students to a group. If you want to
