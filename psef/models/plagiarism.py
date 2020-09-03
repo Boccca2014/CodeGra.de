@@ -420,7 +420,7 @@ class PlagiarismRun(Base):
 
         :returns: A object as described above.
         """
-        all_assignments = self.get_connected_assignments()
+        all_assignments = self._get_connected_assignments()
         courses: t.Mapping[int, 'PlagiarismRun._CourseJSON'] = {
             assig.course_id: {
                 'id': assig.course_id,
@@ -496,7 +496,10 @@ class PlagiarismRun(Base):
             self.provider_name,
         )
 
-    def get_connected_assignments(self) -> t.Sequence[Assignment]:
+    def _get_connected_assignments(self) -> t.Sequence[Assignment]:
+        """Get a sequence of all assignments that have a case connected to this
+        plagiarism run.
+        """
         assigs1 = PlagiarismCase.query.filter(
             PlagiarismCase.plagiarism_run == self,
         ).join(PlagiarismCase.work1).with_entities(
