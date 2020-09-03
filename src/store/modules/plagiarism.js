@@ -2,7 +2,7 @@
 import axios from 'axios';
 import Vue from 'vue';
 
-import { flatMap1 } from '@/utils/typed';
+import { flatMap1, buildUrl } from '@/utils/typed';
 import * as types from '../mutation-types';
 
 const LIMIT_FIRST_REQUEST = 250;
@@ -13,21 +13,27 @@ const getters = {
 };
 
 const processCase = (run, serverCase) => {
+    serverCase.assignments = serverCase.assignment_ids.map(assigId => {
+        const assig = run.assignments[assigId];
+        return Object.assign({ course: run.courses[assig.course_id] }, assig);
+    });
+
     if (serverCase.assignments[0].id !== run.assignment.id) {
         serverCase.assignments.reverse();
+        serverCase.assignment_ids.reverse();
         serverCase.users.reverse();
+
         if (serverCase.submissions != null) {
             serverCase.submissions.reverse();
         }
     }
-    serverCase.canView =
-        serverCase.submissions != null &&
-        serverCase.assignments[0].id != null &&
-        serverCase.assignments[1].id != null;
+
+    serverCase.canView = serverCase.can_see_details && false;
     if (!serverCase.canView) {
         // eslint-disable-next-line
         serverCase._rowVariant = 'warning';
     }
+
     return serverCase;
 };
 
@@ -47,7 +53,13 @@ const actions = {
             const promise = Promise.all([
                 axios.get(`/api/v1/plagiarism/${runId}?no_course_in_assignment=true`),
                 axios.get(
-                    `/api/v1/plagiarism/${runId}/cases/?limit=${LIMIT_FIRST_REQUEST}&no_course_in_assignment=true`,
+                    buildUrl(['api', 'v1', 'plagiarism', runId, 'cases'], {
+                        query: {
+                            limit: LIMIT_FIRST_REQUEST,
+                            no_assignment_in_case: true,
+                        },
+                        addTrailingSlash: true,
+                    }),
                 ),
             ]).then(async ([{ data: run }, { data: cases }]) => {
                 run.cases = (cases || []).map(c => processCase(run, c));
@@ -66,7 +78,14 @@ const actions = {
         const run = state.runs[runId];
         if (run.has_more_cases) {
             const { data: cases } = await axios.get(
-                `/api/v1/plagiarism/${runId}/cases/?limit=${LIMIT_PER_REQUEST}&offset=${state.runs[runId].cases.length}&no_course_in_assignment=true`,
+                buildUrl(['api', 'v1', 'plagiarism', runId, 'cases'], {
+                    query: {
+                        limit: LIMIT_FIRST_REQUEST,
+                        no_assignment_in_case: true,
+                        offset: state.runs[runId].cases.length,
+                    },
+                    addTrailingSlash: true,
+                }),
             );
             const newCases = cases.map(c => processCase(run, c));
             await addUsersToStore(dispatch, newCases);

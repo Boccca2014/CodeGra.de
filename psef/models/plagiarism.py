@@ -6,14 +6,15 @@ import enum
 import json
 import typing as t
 
-from typing_extensions import Literal
+from typing_extensions import Literal, TypedDict
 
 import psef
+import cg_enum
 from cg_dt_utils import DatetimeWithTimezone
 from cg_sqlalchemy_helpers.types import ColumnProxy
 
 from . import Base, db
-from .. import auth
+from .. import auth, helpers
 from .assignment import Assignment
 
 
@@ -249,23 +250,29 @@ class PlagiarismCase(Base):
         :returns: A object as described above.
         """
         works = self.works
+        perm_checker = auth.PlagiarismCasePermissions(self)
+        can_see_all = perm_checker.ensure_may_see_other_assignment.and_(
+            perm_checker.ensure_may_see_other_submission
+        ).as_bool()
         data: t.MutableMapping[str, t.Any] = {
             'id': self.id,
             'users': [w.user for w in works],
             'match_avg': self.match_avg,
             'match_max': self.match_max,
-            'assignments': [w.assignment for w in works],
             'submissions': list(works),
+            'can_see_details': can_see_all,
+            'assignment_ids': [w.assignment_id for w in works],
         }
-        perm_checker = auth.PlagiarismCasePermissions(self)
-        if not perm_checker.ensure_may_see_other_assignment.as_bool():
+        if not helpers.request_arg_true('no_assignment_in_case'):
+            data['assignments'] = [w.assignment for w in works]
             assig = works.other_work.assignment
-            data['assignments'][PlagiarismWorks.get_other_index()] = {
-                'name': assig.name,
-                'course': {
-                    'name': assig.course.name
+            if perm_checker.ensure_may_see_other_assignment.as_bool():
+                data['assignments'][PlagiarismWorks.get_other_index()] = {
+                    'name': assig.name,
+                    'course': {
+                        'name': assig.course.name,
+                    },
                 }
-            }
 
         # Make sure we may actually see this file.
         if not perm_checker.ensure_may_see_other_submission.as_bool():
@@ -295,7 +302,7 @@ class PlagiarismCase(Base):
 
 
 @enum.unique
-class PlagiarismState(enum.IntEnum):
+class PlagiarismState(cg_enum.CGEnum):
     """Describes in what state a :class:`.PlagiarismRun` is.
 
     :param running: The provider is currently running.
@@ -368,63 +375,81 @@ class PlagiarismRun(Base):
         uselist=True,
     )
 
-    @property
-    def provider_name(self) -> str:
-        """
-        :returns: The provider name of this plagiarism run.
-        """
-        for key, val in json.loads(self.json_config):
-            if key == 'provider':
-                return val
-        # This can never happen
-        raise KeyError  # pragma: no cover
+    class _AssignmentJSON(TypedDict):
+        id: int
+        course_id: int
+        name: str
 
-    @property
-    def plagiarism_cls(self) -> t.Type['psef.plagiarism.PlagiarismProvider']:
-        """Get the class of the plagiarism provider of this run.
+    class _CourseJSON(TypedDict):
+        id: int
+        name: str
+        virtual: bool
 
-        :returns: The class of this plagiarism provider run.
+    class AsJSON(TypedDict):
+        """The way this class will be represented in JSON.
         """
-        return psef.helpers.get_class_by_name(
-            psef.plagiarism.PlagiarismProvider,
-            self.provider_name,
-        )
+        #: The id of the run.
+        id: int
+        #: The state this run is in.
+        state: PlagiarismState
+        #: The amount of submissions that have finished the current state.
+        submissions_done: t.Optional[int]
+        #: The total amount of submissions connected to this run.
+        submissions_total: t.Optional[int]
+        #: Which provider is doing this run.
+        provider_name: str
+        #: The config used for this run.
+        config: object
+        #: The time this run was created.
+        created_at: DatetimeWithTimezone
+        #: The assignment this run was done on.
+        assignment: 'Assignment'
+        #: The log produced by the provider while running.
+        log: t.Optional[str]
+        #: A mapping between assignment id and the assignment for each
+        # assignment that is connected to this run. These are not (!) full
+        # assignment objects, but only contain the ``name`` and ``id``.
+        assignments: t.Mapping[int, 'PlagiarismRun._AssignmentJSON']
+        #: The mapping between course id and the course for each course that is
+        #: connected to this run. These are not (!) full course object, but
+        #: contain only the ``name``, ``id`` and if the course is virtual.
+        courses: t.Mapping[int, 'PlagiarismRun._CourseJSON']
 
-    def __to_json__(self) -> t.Mapping[str, object]:
+    def __to_json__(self) -> AsJSON:
         """Creates a JSON serializable representation of this object.
-
-        This object will look like this:
-
-        .. code:: python
-
-            {
-                'id': int, # The id of this run.
-                'state': str, # The name of the current state this run is in.
-                'provider_name': str, # The name of the provider used in this
-                                      # run.
-                'submissions_done': int, # The amount of submissions that have
-                                         # completed the current state.
-                'submissions_total': int, # The total amount of submissions
-                                          # that have to complete the current
-                                          # state.
-                'config': t.List[t.List[str]], # A sorted association list with
-                                               # the config used for this run.
-                'created_at': str, # ISO UTC date.
-                'assignment': Assignment, # The assignment this run belongs to.
-            }
 
         :returns: A object as described above.
         """
+        all_assignments = self.get_connected_assignments()
+        courses: t.Mapping[int, 'PlagiarismRun._CourseJSON'] = {
+            assig.course_id: {
+                'id': assig.course_id,
+                'name': assig.course.name,
+                'virtual': assig.course.virtual
+            }
+            for assig in all_assignments
+        }
+        assignments: t.Mapping[int, 'PlagiarismRun._AssignmentJSON'] = {
+            assig.id: {
+                'id': assig.id,
+                'name': assig.name,
+                'course_id': assig.course_id,
+            }
+            for assig in all_assignments
+        }
+
         return {
             'id': self.id,
-            'state': self.state.name,
+            'state': self.state,
             'submissions_done': self.submissions_done,
             'submissions_total': self.submissions_total,
             'provider_name': self.provider_name,
             'config': json.loads(self.json_config),
-            'created_at': self.created_at.isoformat(),
+            'created_at': self.created_at,
             'assignment': self.assignment,
             'log': self.log,
+            'assignments': assignments,
+            'courses': courses,
         }
 
     def __extended_to_json__(self) -> t.Mapping[str, object]:
@@ -448,3 +473,42 @@ class PlagiarismRun(Base):
             'cases': [c for c in self.cases if not c.any_work_deleted],
             **self.__to_json__(),
         }
+
+    @property
+    def provider_name(self) -> str:
+        """
+        :returns: The provider name of this plagiarism run.
+        """
+        for key, val in json.loads(self.json_config):
+            if key == 'provider':
+                return val
+        # This can never happen
+        raise KeyError  # pragma: no cover
+
+    @property
+    def plagiarism_cls(self) -> t.Type['psef.plagiarism.PlagiarismProvider']:
+        """Get the class of the plagiarism provider of this run.
+
+        :returns: The class of this plagiarism provider run.
+        """
+        return psef.helpers.get_class_by_name(
+            psef.plagiarism.PlagiarismProvider,
+            self.provider_name,
+        )
+
+    def get_connected_assignments(self) -> t.Sequence[Assignment]:
+        assigs1 = PlagiarismCase.query.filter(
+            PlagiarismCase.plagiarism_run == self,
+        ).join(PlagiarismCase.work1).with_entities(
+            psef.models.Work.assignment_id
+        ).distinct(psef.models.Work.assignment_id)
+
+        assigs2 = PlagiarismCase.query.filter(
+            PlagiarismCase.plagiarism_run == self,
+        ).join(PlagiarismCase.work2).with_entities(
+            psef.models.Work.assignment_id
+        ).distinct(psef.models.Work.assignment_id)
+
+        all_assigs = assigs1.union(assigs2)
+
+        return Assignment.query.filter(Assignment.id.in_(all_assigs)).all()
