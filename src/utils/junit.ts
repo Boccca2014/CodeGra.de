@@ -1,5 +1,6 @@
-import { getProps, sortBy, withSentry, AssertionError } from '@/utils';
+import { getProps, sortBy, withSentry, AssertionError, Just, Nothing } from '@/utils';
 import decodeBuffer from '@/utils/decode';
+import { Maybe } from 'purify-ts/Maybe';
 
 function mapHTMLCollection<T>(
     collection: HTMLCollection,
@@ -32,46 +33,62 @@ const fontAwesomeIconMap = <const>{
 
 type CGJunitCaseState = keyof typeof fontAwesomeIconMap;
 
-function isValidState(state: unknown): state is CGJunitCaseState {
-    return typeof state === 'string' && state in fontAwesomeIconMap;
+function isValidState(state: string): state is CGJunitCaseState {
+    return state in fontAwesomeIconMap;
 }
 
 class CGJunitCase {
-    public readonly content: string[] | null;
+    public readonly content: Maybe<ReadonlyArray<string>> = Nothing;
+
+    public readonly stdout: Maybe<ReadonlyArray<string>> = Nothing;
+
+    public readonly stderr: Maybe<ReadonlyArray<string>> = Nothing;
+
+    public readonly state: CGJunitCaseState;
+
+    public readonly message: Maybe<string> = Nothing;
 
     constructor(
-        content: string | null,
-        public readonly message: string | null,
-        public readonly state: CGJunitCaseState,
+        children: ReadonlyArray<Element>,
         public readonly name: string,
         public readonly classname: string,
         public readonly time: number,
         public readonly weight: number,
     ) {
-        this.content = content ? content.split('\n') : null;
+        const getText = (node: Element) => {
+            const content = node.textContent?.split('\n');
+            if (content != null && content.length > 0) {
+                return Just(content);
+            }
+            return Nothing;
+        };
+
+        let state: CGJunitCaseState | undefined;
+
+        for (const child of children) {
+            const tagName = child.tagName;
+            if (isValidState(tagName)) {
+                state = state ?? tagName;
+                this.message = Maybe.fromNullable(child.getAttribute('message'));
+                this.content = getText(child);
+            } else if (tagName === 'system-out') {
+                this.stdout = getText(child);
+            } else if (tagName === 'system-err') {
+                this.stderr = getText(child);
+            } else {
+                state = state ?? 'unknown';
+            }
+        }
+        this.state = state ?? 'success';
+
         Object.freeze(this);
     }
 
     static fromXml(node: Element) {
-        const firstChild = node.firstElementChild;
-
-        let contentType: CGJunitCaseState;
-        const maybeContentType = firstChild?.tagName;
-
-        if (isValidState(maybeContentType)) {
-            contentType = maybeContentType;
-        } else if (maybeContentType == null) {
-            contentType = 'success';
-        } else {
-            contentType = 'unknown';
-        }
-        const content: string | null = firstChild ? firstChild.textContent : null;
-        const message = firstChild ? firstChild.getAttribute('message') : null;
+        const children = node.hasChildNodes() ? Array.from(node.children) : [];
 
         return new CGJunitCase(
-            content,
-            message,
-            contentType,
+            children,
             getAttribute(node, 'name'),
             getAttribute(node, 'classname'),
             parseFloat(getAttribute(node, 'time')),
