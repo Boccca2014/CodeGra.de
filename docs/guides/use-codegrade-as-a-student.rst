@@ -103,8 +103,8 @@ Giving peer feedback
 
 When an assignment is set up as a peer feedback assignment, you can review
 assignments of your fellow students by clicking on the "Peer feedback" button.
-You are now presented a list of the other students you have to review. At the
-bottom of the list it tells you the deadline for giving peer feedback.
+You are now presented with a list of the other students you have to review. At
+the bottom of the list it tells you the deadline for giving peer feedback.
 
 After you click on the student you want to review, you are taken to the Code
 Viewer page of their latest submission. Click on any line of code to comment on
