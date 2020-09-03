@@ -81,7 +81,7 @@
                                 file-id="-1"
                                 :feedback="{}"
                                 :start-line="0"
-                                :show-whitespace="true"
+                                :show-whitespace="false"
                                 :warn-no-newline="false"
                                 :empty-file-message="'No output.'" />
                         </div>
@@ -96,10 +96,10 @@
                                 file-id="-1"
                                 :feedback="{}"
                                 :start-line="0"
-                            :show-whitespace="true"
-                            :warn-no-newline="false"
-                            :empty-file-message="'No output.'" />
-                    </div>
+                                :show-whitespace="false"
+                                :warn-no-newline="false"
+                                :empty-file-message="'No output.'" />
+                        </div>
                     </div>
                 </div>
             </div>
