@@ -12,6 +12,7 @@ describe('CGJunit', () => {
     it.each([
         'valid.xml',
         'valid_many_errors.xml',
+        'valid_system_out.xml',
     ])('should work with a valid JUnit XML file', (xmlFile) => {
         const xml = fixture(xmlFile);
         const res = CGJunit.fromXml('1', xml);
@@ -33,10 +34,10 @@ describe('CGJunit', () => {
                 expect(c.state).not.toBe('unknown');
 
                 if (c.state === 'success') {
-                    expect(c.content).toBeNull();
+                    expect(c.content.extract()).toBeUndefined();
                 } else {
-                    expect(c.content).toBeArray();
-                    expect(c.content).not.toHaveLength(0);
+                    expect(c.content.extract()).toBeArray();
+                    expect(c.content.extract()).not.toHaveLength(0);
                 }
 
                 expect(c.fontAwesomeIcon).toEqual(

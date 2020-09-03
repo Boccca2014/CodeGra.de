@@ -2,12 +2,11 @@
 <div class="peer-feedback-settings">
     <div v-if="!enabled"
          class="d-flex flex-column align-items-center">
-        <b-button style="height: 12rem; width: 12rem;"
-                  @click="enable"
-                  :disabled="hasGroupSet">
-            <fa-icon name="comments-o" :scale="6" />
-            <p>Enable peer feedback</p>
-        </b-button>
+        <cg-wizard-button
+            icon="comments-o"
+            label="Set up peer feedback"
+            @click="enable"
+            :disabled="hasGroupSet" />
 
         <div v-if="hasGroupSet"
              class="mt-3">

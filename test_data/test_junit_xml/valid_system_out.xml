@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<testsuites>
+  <testsuite errors="0" failures="1" hostname="Libertus" name="pytest" skipped="0" tests="2" time="0.099" timestamp="2020-09-02T16:15:52.936894">
+    <testcase classname="test" file="test.py" line="0" name="test_a" time="0.002">
+      <failure message="assert 0">def test_a():
+        print('Hello a')
+&gt;       assert 0
+E       assert 0
+
+test.py:3: AssertionError</failure>
+      <system-out>--------------------------------- Captured Log ---------------------------------
+
+--------------------------------- Captured Out ---------------------------------
+Hello a
+
+</system-out>
+      <system-err>--------------------------------- Captured Err ---------------------------------
+
+</system-err>
+    </testcase>
+    <testcase classname="test" file="test.py" line="4" name="test_b" time="0.001"/>
+  </testsuite>
+</testsuites>

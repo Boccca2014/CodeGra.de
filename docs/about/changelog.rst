@@ -18,6 +18,9 @@ Version *Next*
   <https://github.com/CodeGra-de/CodeGra.de/pull/1415>`__. CodeGrade now has
   even better support for exams, allowing you to schedule the start of your
   exam, and making it possible to do exams for LTI courses without LMS access.
+- Add import of hand-in requirements `(#1420)
+  <https://github.com/CodeGra-de/CodeGra.de/pull/1420>`__. You can now import the
+  hand-in requirements of other assignments that you have access to.
 
 **Updates**
 
@@ -39,6 +42,10 @@ Version *Next*
   <https://github.com/CodeGra-de/CodeGra.de>`__. Make it impossible to
   bruteforce someone's password by sending infinite requests to the login
   route.
+- Show more output in the Unit Test step `(#1425)
+  <https://github.com/CodeGra-de/CodeGra.de>`__. When a test case contains
+  a ``<system-out>`` or ``<system-err>`` node its contents will now also be
+  displayed in the output of the step.
 
 Version Mosaic
 ---------------
