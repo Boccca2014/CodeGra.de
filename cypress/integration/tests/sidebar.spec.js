@@ -162,7 +162,7 @@ context('Sidebar', () => {
         function delayCoursesRoute(delay = 1000) {
             return cy.delayRoute(
                 {
-                    url: '/api/v1/courses/?extended=true&no_course_in_assignment=true&limit=1&offset=10',
+                    url: '/api/v1/courses/?extended=true&no_course_in_assignment=true&limit=1&offset=3',
                     method: 'GET',
                 },
                 delay,
