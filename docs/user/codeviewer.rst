@@ -71,7 +71,7 @@ for instructions on generating output in an AutoTest.
 
 Inline feedback
 ~~~~~~~~~~~~~~~
-Oftentimes, feedback for specific lines or blocks of code is wanted to make
+Oftentimes, feedback for specific lines or blocks of code is desired to make
 specific errors clear to students. CodeGrade enables this with inline feedback.
 
 Feedback on a specific line can be given by clicking on this line of code in
@@ -106,10 +106,10 @@ reply..." box, allowing the entire discussion to be held in one place.
 
 Snippets
 ^^^^^^^^^
-It is not unusual that identical line feedback comments apply to multiple cases
-or students. Snippets can be used to efficiently but thoroughly cover all these
-reoccurring comments. Snippets are named saved comments that can be quickly
-added in the reviewing process.
+It is not unusual that identical inline feedback comments apply to multiple
+cases or students. Snippets can be used to efficiently but thoroughly cover all
+these reoccurring comments. Snippets are named saved comments that can be
+quickly added in the reviewing process.
 
 .. note:: Personal (:fa:`user-circle-o`) snippets are saved to your CodeGrade
    account and can be used on any assignment in any course you grade. Course
@@ -185,8 +185,8 @@ Download feedback or assignment
 It is sometimes necessary to manually download the submission or its feedback.
 These can both be separately downloaded using the :fa:`download` button. The
 assignment can be downloaded as archive.  An overview of all feedback,
-including line feedback, linter comments and general grade and feedback can be
-download as plain text file.
+including inline feedback, linter comments and general grade and feedback can
+be download as plain text file.
 
 .. note:: Make sure pop-ups from CodeGrade are allowed in your browser if
    downloading fails.

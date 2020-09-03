@@ -122,10 +122,10 @@ in the continuous rubric category.
 Running a teacher's revision
 ----------------------------
 
-When the preferred revision is set to "Teacher" and a teacher's revision is
-available for a submission AutoTest is run against the teacher revision instead
-of the code submitted by the student. If no teacher's revision is present
-AutoTest will be run against the code of the student.
+When the preferred revision is set to "Teacher", and a teacher's revision is
+available for a submission, AutoTest is run against the teacher revision
+instead of the code submitted by the student. If no teacher's revision is
+present AutoTest will be run against the code of the student.
 
 This can be useful if a student has made a tiny mistake in their code -- for
 example a misplaced punctuation mark -- that causes the majority of the tests
