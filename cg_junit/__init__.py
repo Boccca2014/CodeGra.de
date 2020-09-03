@@ -78,47 +78,31 @@ class _CGJunitCase:
         if the case was not successful.
     :ivar attribs: Attributes of this test case.
     """
-    __slots__ = ('content', 'attribs')
+    __slots__ = (
+        'content', 'attribs', 'is_error', 'is_failure', 'is_skipped',
+        'is_success'
+    )
+
+    _ALLOWED_CONTENT_TAGS = {
+        'error', 'failure', 'skipped', 'system-out', 'system-err'
+    }
 
     def __init__(
         self,
-        content: t.Optional[ET.Element],
+        content: t.Sequence[ET.Element],
         attribs: _CGJunitCaseAttribs,
     ) -> None:
         self.content = content
         self.attribs = attribs
 
-    @property
-    def is_error(self) -> bool:
-        """Is this an error case.
-
-        :returns: Boolean indicating whether this is an error case.
-        """
-        return self.content is not None and self.content.tag == 'error'
-
-    @property
-    def is_failure(self) -> bool:
-        """Is this a failure case.
-
-        :returns: Boolean indicating whether this is a failure case.
-        """
-        return self.content is not None and self.content.tag == 'failure'
-
-    @property
-    def is_skipped(self) -> bool:
-        """Is this a skipped case.
-
-        :returns: Boolean indicating whether this is a skipped case.
-        """
-        return self.content is not None and self.content.tag == 'skipped'
-
-    @property
-    def is_success(self) -> bool:
-        """Is this a success case.
-
-        :returns: Boolean indicating whether this is a success case.
-        """
-        return self.content is None
+        found_tags = set(child.tag for child in content)
+        self.is_error = 'error' in found_tags
+        self.is_failure = 'failure' in found_tags
+        self.is_skipped = 'skipped' in found_tags
+        self.is_success = not (
+            self.is_error or self.is_failure or self.is_skipped or
+            any(t not in self._ALLOWED_CONTENT_TAGS for t in found_tags)
+        )
 
     @classmethod
     def from_xml(cls, xml_el: ET.Element) -> '_CGJunitCase':
@@ -140,7 +124,7 @@ class _CGJunitCase:
 
         children = list(xml_el)
         return cls(
-            content=children[0] if children else None,
+            content=children,
             attribs=_CGJunitCaseAttribs(
                 name=xml_el.attrib['name'],
                 classname=xml_el.attrib['classname'],
