@@ -3,7 +3,7 @@ import Vue from 'vue';
 import { getErrorMessage } from '@/utils';
 
 export default Vue.extend({
-    name: 'cg-logo',
+    name: 'cg-error',
     functional: true,
 
     props: {
