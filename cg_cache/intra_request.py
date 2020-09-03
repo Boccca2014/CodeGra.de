@@ -109,7 +109,7 @@ def _cache_or_call(
     kwargs: t.Dict,
 ) -> t.Any:
     try:
-        cache = g._get_current_object()
+        cache = g._get_current_object()  # pylint: disable=protected-access
     except RuntimeError:
         cache = False
 

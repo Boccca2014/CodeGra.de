@@ -5,6 +5,7 @@ import json
 
 import pytest
 
+import helpers
 import psef.auth as a
 import psef.models as m
 from helpers import create_marker
@@ -219,3 +220,51 @@ def test_get_all_permissions(
                 assert p_val[p.name] == named_user.has_permission(
                     CoursePermission.get_by_name(p.name), int(course_id)
                 )
+
+
+def test_ensure_may_see_filter(
+    logged_in, test_client, describe, admin_user, session
+):
+    with describe('setup'), logged_in(admin_user):
+        course1 = helpers.create_course(test_client)
+        course2 = helpers.create_course(test_client)
+        course3 = helpers.create_course(test_client)
+        user = helpers.create_user_with_role(
+            session, 'Student', [course1, course2]
+        )
+
+    with describe('Returns no courses when not logged in'):
+        assert not m.Course.query.filter(
+            a.CoursePermissions.ensure_may_see_filter()
+        ).all()
+
+    with describe('Returns all courses when logged in'):
+        with a.as_current_user(user):
+            query = m.Course.query.filter(
+                a.CoursePermissions.ensure_may_see_filter()
+            ).with_entities(m.Course.id)
+            course_ids = sorted(c_id for c_id, in query)
+            assert course_ids == sorted([
+                helpers.get_id(c) for c in [course1, course2]
+            ])
+
+    with describe('Returns single courses when logged in for a single course'):
+        with a.as_current_user(
+            user, jwt_claims={'for_course': helpers.get_id(course2)}
+        ):
+            course_id = m.Course.query.filter(
+                a.CoursePermissions.ensure_may_see_filter()
+            ).with_entities(m.Course.id).all()
+            assert len(course_id) == 1
+            assert course_id[0] == (helpers.get_id(course2), )
+
+    with describe(
+        'Returns no courses when logged in for course that the user is not'
+        ' enrolled in'
+    ):
+        with a.as_current_user(
+            user, jwt_claims={'for_course': helpers.get_id(course3)}
+        ):
+            assert not m.Course.query.filter(
+                a.CoursePermissions.ensure_may_see_filter()
+            ).with_entities(m.Course.id).all()

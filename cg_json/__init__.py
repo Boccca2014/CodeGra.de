@@ -105,7 +105,7 @@ def get_extended_encoder_class(
             :param o: The object that should be converted to JSON.
             """
             if isinstance(o, LocalProxy):
-                o = o._get_current_object()
+                o = o._get_current_object()  # pylint: disable=protected-access
 
             if hasattr(o, '__extended_to_json__') and use_extended(o):
                 return o.__extended_to_json__()

@@ -370,6 +370,8 @@ class AssignmentLinter(Base):
 
     @classmethod
     def get_whitespace_linter_query(cls) -> MyQuery['AssignmentLinter']:
+        """Get a query that selects all ``MixedWhitespace`` linters.
+        """
         return cls.query.filter(AssignmentLinter.name == 'MixedWhitespace')
 
     @property

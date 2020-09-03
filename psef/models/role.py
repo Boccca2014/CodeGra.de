@@ -216,6 +216,9 @@ class CourseRole(AbstractRole[CoursePermission], Base):
 
     @classmethod
     def eager_load_permissions(cls) -> object:
+        """Get the selectinload option to eagerly load all permissions of this
+        ``CourseRole`` by using a ``selectinload``.
+        """
         return selectinload(cls._permissions)
 
     @property

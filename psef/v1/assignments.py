@@ -111,7 +111,7 @@ def delete_assignment(assignment_id: int) -> EmptyResponse:
     return make_empty_response()
 
 
-@api.route("/assignments/<int:assignment_id>/course", methods=['GET'])
+@api.route('/assignments/<int:assignment_id>/course', methods=['GET'])
 @auth.login_required
 def get_course_of_assignment(
     assignment_id: int
