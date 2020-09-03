@@ -436,7 +436,7 @@ export function formatDate(date: string | moment.Moment, iso: boolean = false): 
 }
 
 export function formatNullableDate(
-    date: string | moment.Moment | null,
+    date: string | moment.Moment | null | undefined,
     iso: boolean = false,
 ): string | null {
     if (date == null) {

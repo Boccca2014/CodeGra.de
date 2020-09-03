@@ -69,7 +69,8 @@
                                                   manage-border
                                                   :class="{ 'text-muted': filtered }"
                                                   class="border-bottom"
-                                                  :key="assignment.id"/>
+                                                  :key="assignment.id"
+                                                  :show-course-name="false"/>
                         </ul>
 
                         <p class="m-3 font-italic text-muted" v-else>

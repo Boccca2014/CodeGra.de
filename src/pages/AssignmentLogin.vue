@@ -10,6 +10,21 @@
 
     <div class="row justify-content-center">
         <div class="col" style="max-width: 25rem;">
+            <b-alert v-if="loggedIn && user && loggedInUserId != user.id"
+                     show
+                     variant="warning">
+                <p>
+                    Another user than the one trying to take the exam is
+                    currently logged in. <a class="inline-link" href="#"
+                    @click="storeLogout">Click here</a> to log the other user
+                out.
+                </p>
+
+                <p class="mb-0">
+                    Starting the exam by clicking the "Start" button below will
+                    also log out the other user.
+                </p>
+            </b-alert>
             <b-alert v-if="error" show variant="danger">
                 {{ $utils.getErrorMessage(error) }}
             </b-alert>
@@ -20,34 +35,25 @@
 
                 <template v-if="canLogin">
                     <p>
-                        <template v-if="isExam">
-                            You can start the exam by clicking the button
-                            below.
-                        </template>
-                        <template v-else>
-                            You can access the assignment by clicking the
-                            button below.
-                        </template>
+                        You can start the exam by clicking the button below.
                     </p>
 
-                    <p v-if="isExam">
-                        The exam started {{ canLoginIn }} and ends {{ deadlineIn }}.
+                    <p>
+                        The exam started {{ canLoginIn }} and ends {{
+                        deadlineIn }}; you have {{ examDuration }} to complete
+                        the exam.
                     </p>
-                    <p v-else>
-                        The assignment became available {{ canLoginIn }} and the
-                        deadline of this assignment is {{ deadlineIn }}.
+                </template>
+                <template v-else-if="!isBeforeDeadline">
+                    <p>
+                        The exam ended {{ deadlineIn }}. You can not log in
+                        anymore.
                     </p>
                 </template>
                 <template v-else>
                     <p>
-                        <template v-if="isExam">
-                            You can log in to start the exam from this page once it
-                            has started.
-                        </template>
-                        <template v-else>
-                            You can access the assignment from this page once it has
-                            become available.
-                        </template>
+                        You can log in to start the exam from this page once it
+                        has started.
 
                         Please do not delete the e-mail you received with the
                         link to this page as you will need it when the exam
@@ -55,39 +61,29 @@
                     </p>
 
                     <p>
-                        The {{ assignmentType }} will become available
-                        {{ canLoginIn }} and ends {{ deadlineIn }}. You can
-                        click the button below to log in once the
-                        {{ assignmentType }} is available.
+                        The exam will become available {{ canLoginIn }} and
+                        ends {{ deadlineIn }}; you have {{ examDuration }} to
+                        complete the exam. You can click the button below to
+                        log in once the exam is available.
                     </p>
                 </template>
 
                 <div class="my-3 text-center">
                     <div v-b-popover.top.hover="canLogin ? '' : 'You can not log in yet.'">
-                        <cg-submit-button style="height: 10rem; width: 10rem;"
-                                        variant="secondary"
-                                        class="align-self-center"
-                                        :icon-scale="4"
-                                        :submit="login"
-                                        ref="loginBtn"
-                                        :disabled="!canLogin"
-                                        @after-success="success">
+                        <cg-submit-button
+                            style="height: 10rem; width: 10rem;"
+                            variant="secondary"
+                            class="align-self-center"
+                            :icon-scale="4"
+                            :submit="login"
+                            ref="loginBtn"
+                            :disabled="!canLogin"
+                            @after-success="success">
                             <fa-icon name="sign-in" :scale="6" />
                             <div>Start</div>
                         </cg-submit-button>
                     </div>
                 </div>
-
-                <template v-if="!canLogin && canLoginInSeconds < 60 * 60">
-                    <p>
-                        Set the toggle below to "Yes" to log in automatically
-                        when the {{ assignmentType }} starts.
-                    </p>
-
-                    <cg-toggle v-model="autoLogin"
-                                label-on="Yes"
-                                label-off="No"/>
-                </template>
             </div>
             <cg-loader page-loader v-else />
         </div>
@@ -97,21 +93,29 @@
 
 <script lang="ts">
 import { Vue, Component, Watch } from 'vue-property-decorator';
+import moment from 'moment';
 
 import 'vue-awesome/icons/sign-in';
 
 // @ts-ignore
 import LocalHeader from '@/components/LocalHeader';
-import { mapActions } from 'vuex';
+import { mapActions, mapGetters } from 'vuex';
 import { AxiosResponse } from 'axios';
 
 import * as models from '@/models';
 
 @Component({
     components: { LocalHeader },
+    computed: {
+        ...mapGetters('user', {
+            loggedIn: 'loggedIn',
+            loggedInUserId: 'id',
+        }),
+    },
     methods: {
         ...mapActions('user', {
             storeLogin: 'login',
+            storeLogout: 'logout',
         }),
     },
 })
@@ -122,9 +126,11 @@ export default class AssignmentLogin extends Vue {
 
     private error: Error | null = null;
 
-    public autoLogin: boolean = false;
+    loggedIn!: boolean;
 
     storeLogin!: (response: AxiosResponse) => Promise<unknown>;
+
+    storeLogout!: () => Promise<unknown>;
 
     get assignmentId(): number {
         return parseInt(this.$route.params.assignmentId, 10);
@@ -139,20 +145,16 @@ export default class AssignmentLogin extends Vue {
         return this.$route.params.loginUuid;
     }
 
-    get isExam(): boolean {
-        if (this.assignment == null) {
-            return false;
-        } else {
-            return this.assignment.kind === 'exam';
-        }
+    get isAfterLoginTime() {
+        return this.loginTime?.isBefore(this.$root.$epoch) ?? false;
     }
 
-    get assignmentType(): string {
-        return this.isExam ? 'exam' : 'assignment';
+    get isBeforeDeadline() {
+        return this.assignment?.deadline?.isAfter(this.$root.$epoch) ?? false;
     }
 
     get canLogin(): boolean {
-        return this.loginTime?.isBefore(this.$root.$epoch) ?? false;
+        return this.isAfterLoginTime && this.isBeforeDeadline;
     }
 
     get canLoginInSeconds(): number | null {
@@ -188,7 +190,7 @@ export default class AssignmentLogin extends Vue {
         const now = this.$root.$epoch;
         // moment.diff returns a value in milliseconds.
         const diff = deadline.diff(now) / 1000;
-        if (diff < 45) {
+        if (diff >= 0 && diff < 45) {
             return `in ${diff.toFixed(0)} seconds`;
         } else if (diff <= 15 * 60) {
             return deadline.from(now);
@@ -197,15 +199,15 @@ export default class AssignmentLogin extends Vue {
         }
     }
 
-    @Watch('canLogin')
-    async onCanLoginChange() {
-        if (this.canLogin && this.autoLogin) {
-            this.autoLogin = false;
-            const btn = await this.$waitForRef('loginBtn');
-            if (btn) {
-                (btn as any).onClick();
-            }
+    get examDuration() {
+        const available = this.assignment?.availableAt;
+        const deadline = this.assignment?.deadline;
+
+        if (available == null || deadline == null) {
+            return null;
         }
+
+        return moment.duration(available.diff(deadline)).humanize();
     }
 
     @Watch('assignmentId', { immediate: true })
@@ -234,14 +236,33 @@ export default class AssignmentLogin extends Vue {
         });
     }
 
-    login() {
-        return this.$http.post(this.$utils.buildUrl(['api', 'v1', 'login_links', this.loginUuid, 'login']));
+    async login() {
+        if (this.loggedIn) {
+            await this.storeLogout();
+        }
+
+        return this.$http.post(
+            this.$utils.buildUrl(['api', 'v1', 'login_links', this.loginUuid, 'login']),
+        );
     }
 
     success(response: AxiosResponse) {
-        this.storeLogin(response).then(() => {
-            this.$router.replace({ name: 'home' });
-        });
+        this.storeLogin(response)
+            .then(() => {
+                const { assignment } = this;
+
+                if (assignment == null) {
+                    this.$router.replace({ name: 'home' });
+                } else {
+                    this.$router.replace({
+                        name: 'assignment_submissions',
+                        params: {
+                            courseId: assignment?.courseId.toString(),
+                            assignmentId: assignment?.id.toString(),
+                        },
+                    });
+                }
+            });
     }
 }
 </script>

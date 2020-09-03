@@ -127,10 +127,10 @@ if (beforeTime == null) {
 }
 
 const examLoginMaxLength = backendOpts ? backendOpts.exam_login_max_length : null;
-if (examLoginMaxLength == null) {
-    config.examLoginMaxLength = hours(12);
-} else {
+if (examLoginMaxLength) {
     config.examLoginMaxLength = parseInt(examLoginMaxLength);
+} else {
+    config.examLoginMaxLength = hours(12);
 }
 
 if (!config.proxyBaseDomain && config.isProduction) {

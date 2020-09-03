@@ -20,6 +20,7 @@
                 :current-id="currentAssignment.extract().id"
                 no-popover
                 :sbloc="sbloc"
+                :show-course-name="currentCourse == null"
                 :assignment="currentAssignment.extract()"/>
             <li>
                 <hr class="separator" />
@@ -41,6 +42,7 @@
                                 :current-id="currentAssignment.mapOrDefault(a => a.id, null)"
                                 no-popover
                                 :sbloc="sbloc"
+                                :show-course-name="currentCourse == null"
                                 :assignment="assignment"/>
 
             <li v-if="showTopAssignments">
@@ -52,6 +54,7 @@
                                 :assignment="assignment"
                                 no-popover
                                 :current-id="currentAssignment.mapOrDefault(a => a.id, null)"
+                                :show-course-name="currentCourse == null"
                                 :sbloc="sbloc"/>
 
             <li class="d-flex mx-2 my-1" v-if="moreAssignmentsAvailable">

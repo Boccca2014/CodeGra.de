@@ -2047,7 +2047,7 @@ class Assignment(helpers.NotEqualMixin, Base):  # pylint: disable=too-many-publi
     def is_hidden(self) -> bool:
         """Is the assignment hidden.
         """
-        return self.state == AssignmentStateEnum.hidden
+        return self.state.is_hidden
 
     @property
     def is_done(self) -> bool:

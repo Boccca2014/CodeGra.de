@@ -225,8 +225,7 @@ export class Assignment extends AssignmentData {
 
     @utils.nonenumerable
     get ltiProvider(): utils.Maybe<LTIProvider> {
-        const course = this.course;
-        if (course == null || !this.is_lti) {
+        if (!this.is_lti) {
             return utils.Nothing;
         }
         return this.course.ltiProvider;
@@ -397,7 +396,7 @@ export class Assignment extends AssignmentData {
 }
 
 export class AssignmentCapabilities {
-    constructor(private assignment: Assignment) {}
+    constructor(private readonly assignment: Assignment) {}
 
     get canEditState() {
         return this.canEditInfo;

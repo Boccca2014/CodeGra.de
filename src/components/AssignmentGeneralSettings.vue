@@ -11,7 +11,7 @@
         <template #description v-if="isLTI">
             Some settings of this assignment are managed through {{ lmsName.extract() }}.
         </template>
-        <template #description v-else>
+        <template #description v-else-if="isExam">
             In exam mode students receive an e-mail with a link to access the exam.
 
             <cg-description-popover hug-text>
@@ -126,12 +126,12 @@
 
         <template #invalid-feedback>
             <div v-if="examDuration.isLeft()">
-                {{ $utils.getErrorMessage(examDuration.extract()) }}
+                <template v-for="err in examDuration.extract()">
+                    {{ $utils.getErrorMessage(err) }}
+                </template>
             </div>
 
-            <!-- We can always extract twice because the cg-number-input has the
-                 required attribute and as such the Maybe is always a Just. -->
-            <div v-else-if="sendLoginLinks && examDuration.extract().extract() > maxExamDuration">
+            <div v-if="examTooLong">
                 With "Send login mails" enabled, exams can take at most
                 {{ maxExamDuration }} hours.
 
@@ -144,16 +144,34 @@
             </div>
         </template>
 
-        <b-input-group append="hours">
+        <b-input-group>
             <cg-number-input
-                :id="`assignment-deadline-${uniqueId}-input`"
-                name="Exam duration"
+                :id="`assignment-deadline-hours-${uniqueId}-input`"
+                name="Exam duration hours"
                 :required="true"
                 :min="0"
                 :step="1"
-                v-model="examDuration"
+                v-model="examDurationHours"
                 @input="deadline = examDeadline"
                 @keydown.native.ctrl.enter="$refs.submitGeneralSettings.onClick"/>
+
+            <b-input-group-append is-text>
+                hours
+            </b-input-group-append>
+
+            <cg-number-input
+                :id="`assignment-deadline-minutes-${uniqueId}-input`"
+                name="Exam duration minutes"
+                :required="true"
+                :min="0"
+                :step="1"
+                v-model="examDurationMinutes"
+                @input="deadline = examDeadline"
+                @keydown.native.ctrl.enter="$refs.submitGeneralSettings.onClick"/>
+
+            <b-input-group-append is-text>
+                minutes
+            </b-input-group-append>
         </b-input-group>
     </b-form-group>
 
@@ -188,7 +206,7 @@
         <b-input-group v-b-popover.top.hover="deadlinePopover">
             <datetime-picker
                 v-model="deadline"
-                @input="examDuration = calcExamDuration()"
+                @input="resetExamDuration"
                 :id="`assignment-deadline-${uniqueId}-input`"
                 class="assignment-deadline"
                 placeholder="None set"
@@ -252,9 +270,9 @@ import { Vue, Component, Prop, Watch } from 'vue-property-decorator';
 import moment from 'moment';
 
 import * as models from '@/models';
-import { Nothing } from '@/utils';
+import { Either, Left, Maybe, Nothing } from '@/utils';
 
-import { AssignmentsStore } from '@/store/modules/assignments';
+import { AssignmentsStore } from '@/store';
 
 // @ts-ignore
 import DatetimePicker from './DatetimePicker';
@@ -281,7 +299,9 @@ export default class AssignmentGeneralSettings extends Vue {
 
     deadline: string | null = null;
 
-    examDuration: NumberInputValue = numberInputValue(null);
+    examDurationHours: NumberInputValue = numberInputValue(null);
+
+    examDurationMinutes: NumberInputValue = numberInputValue(null);
 
     maxGrade: NumberInputValue = numberInputValue(null);
 
@@ -294,16 +314,34 @@ export default class AssignmentGeneralSettings extends Vue {
         if (this.isExam) {
             this.deadline = this.examDeadline;
         } else {
-            this.examDuration = this.calcExamDuration();
+            this.recalcExamDuration();
         }
-    }
-
-    get isNormal() {
-        return this.kind === models.AssignmentKind.normal;
     }
 
     get isExam() {
         return this.kind === models.AssignmentKind.exam;
+    }
+
+    get examDuration(): Either<Error[], Maybe<number>> {
+        const errors = Either.lefts([
+            this.examDurationHours,
+            this.examDurationMinutes,
+        ]);
+
+        if (errors.length > 0) {
+            return Left(errors);
+        }
+
+        const hours = this.examDurationHours.orDefault(Nothing).orDefault(0);
+        const minutes = this.examDurationMinutes.orDefault(Nothing).orDefault(0);
+
+        if (hours === 0 && minutes === 0) {
+            return Left([
+                new Error('The exam must take longer than 0 minutes!'),
+            ]);
+        }
+
+        return numberInputValue(hours + minutes / 60);
     }
 
     get kindOptions() {
@@ -340,7 +378,7 @@ export default class AssignmentGeneralSettings extends Vue {
             this.assignment.deadline,
             true,
         );
-        this.examDuration = this.calcExamDuration();
+        this.recalcExamDuration();
         this.maxGrade = numberInputValue(this.assignment.max_grade);
         this.sendLoginLinks = this.assignment.send_login_links;
     }
@@ -383,6 +421,17 @@ export default class AssignmentGeneralSettings extends Vue {
         return this.maxGrade.either(
             () => false,
             maybeMaxGrade => maybeMaxGrade.extractNullable() !== this.assignment.max_grade,
+        );
+    }
+
+    get examTooLong() {
+        if (!this.sendLoginLinks) {
+            return false;
+        }
+
+        return this.examDuration.orDefault(Nothing).mapOrDefault(
+            duration => duration > this.maxExamDuration,
+            false,
         );
     }
 
@@ -461,13 +510,7 @@ export default class AssignmentGeneralSettings extends Vue {
         }
 
         return this.examDuration.orDefault(Nothing).mapOrDefault(
-            examDuration => {
-                if (this.sendLoginLinks) {
-                    return examDuration <= this.maxExamDuration;
-                } else {
-                    return true;
-                }
-            },
+            duration => (this.sendLoginLinks ? duration <= this.maxExamDuration : true),
             false,
         );
     }
@@ -532,14 +575,18 @@ export default class AssignmentGeneralSettings extends Vue {
         this.maxGrade = numberInputValue(null);
     }
 
-    calcExamDuration() {
+    recalcExamDuration() {
         const { deadline, availableAt } = this;
 
         if (deadline == null || availableAt == null) {
-            return numberInputValue(null);
+            this.examDurationHours = numberInputValue(null);
+            this.examDurationMinutes = numberInputValue(null);
         } else {
             const d = this.$utils.toMoment(deadline).diff(availableAt);
-            return numberInputValue(moment.duration(d).asHours());
+            const hours = moment.duration(d).asHours();
+
+            this.examDurationHours = numberInputValue(Math.floor(hours));
+            this.examDurationMinutes = numberInputValue(Math.round(60 * (hours % 1)));
         }
     }
 
@@ -574,6 +621,13 @@ export default class AssignmentGeneralSettings extends Vue {
     }
 
     submitGeneralSettings() {
+        let name;
+        if (!this.assignment.is_lti) {
+            name = this.name ?? undefined;
+        }
+        // TODO: Also don't add deadline and available_at when ``is_lti`` is
+        // ``true`` and the lti provider doesn't support updating these.
+
         let deadline = this.deadline;
         if (this.isExam) {
             deadline = this.examDeadline;
@@ -582,9 +636,9 @@ export default class AssignmentGeneralSettings extends Vue {
         return AssignmentsStore.patchAssignment({
             assignmentId: this.assignment.id,
             assignmentProps: {
-                name: this.name as string,
+                name,
                 kind: this.kind,
-                available_at: this.$utils.formatNullableDate(this.availableAt, true) ?? undefined,
+                available_at: this.$utils.formatNullableDate(this.availableAt, true),
                 deadline: this.$utils.formatNullableDate(deadline, true) ?? undefined,
                 max_grade: this.maxGrade.orDefault(Nothing).extractNullable(),
                 send_login_links: this.isExam && this.sendLoginLinks,
