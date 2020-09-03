@@ -138,6 +138,8 @@
 <li class="toctree-l1"><a class="reference internal" href="lms.html">LMS Integration</a></li>
 <li class="toctree-l1"><a class="reference internal" href="autotest/overview.html">AutoTest</a></li>
 <li class="toctree-l1"><a class="reference internal" href="analytics-dashboard.html">Analytics Dashboard</a></li>
+<li class="toctree-l1"><a class="reference internal" href="exam-mode.html">Exam mode</a></li>
+<li class="toctree-l1"><a class="reference internal" href="notifications.html">Notifications</a></li>
 </ul>
 <p class="caption"><span class="caption-text">About CodeGrade</span></p>
 <ul>
@@ -216,7 +218,7 @@
 <p>CodeGrade can be used both as a stand-alone web application and as a module in
 your LMS. The following chapters apply to both situations. Please consult the
 <a class="reference internal" href="lms.html#lms-chapter"><span class="std std-ref">LMS Integration</span></a> chapter for detailed information of
-integrating CodeGrade into your Learning Management System.</p>
+integrating CodeGrade with your Learning Management System.</p>
 <p>This chapter provides a brief overview of the components and navigation in
 CodeGrade.</p>
 <div class="admonition note">
@@ -229,7 +231,8 @@ that may allow certain features to be disabled on your CodeGrade account.</p>
 <p>CodeGrade allows for the <a class="reference internal" href="management.html#management-chapter"><span class="std std-ref">creation of courses and assignments</span></a>.</p>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
-<p>CodeGrade assignments can also be created in co-operative Learning Management Systems.</p>
+<p>CodeGrade assignments can also be created in co-operative Learning
+Management Systems.</p>
 </div>
 <p>Each assignment is part of a course and each course can have multiple
 assignments linked to it. All courses and assignments have individual settings
@@ -265,27 +268,46 @@ used for most popular editors to enable this.</p>
 <h2>Account Management<a class="headerlink" href="#account-management" title="Permalink to this headline">¶</a></h2>
 <div class="section" id="creating-a-new-account">
 <h3>Creating a new account<a class="headerlink" href="#creating-a-new-account" title="Permalink to this headline">¶</a></h3>
-<p>A CodeGrade account has to be created in order to use CodeGrade and follow
-courses. This can be done by navigating to your institute’s CodeGrade site
-(e.g. uva.codegra.de) and clicking the ‘Register’ button.
-Here you can register a new account by entering your full name,
-valid e-mail address and a password. Also a unique username has to be chosen to
-finish registration, please keep in mind that this username cannot be changed
-after your registration is complete.</p>
+<p>You must have a CodeGrade account in order to use CodeGrade and follow courses.
+If your CodeGrade instance is linked with a Learning Management System (LMS)
+a new account will automatically be registered when you visit your first
+CodeGrade assignment in your LMS.</p>
+<p>Otherwise you can create an account by navigating to your institute’s CodeGrade
+site (e.g. uva.codegra.de) and clicking the ‘Register’ button. Here you can
+register a new account by entering your full name, a valid email address and
+a password. Also a unique username has to be chosen to finish registration,
+please keep in mind that this username cannot be changed after your
+registration is complete.</p>
 <p>You are now registered and logged in to CodeGrade!</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Registering a new account in this way may not be available on your
+CodeGrade instance.</p>
+</div>
 </div>
 <div class="section" id="logging-in-to-an-existing-account">
 <h3>Logging in to an existing account<a class="headerlink" href="#logging-in-to-an-existing-account" title="Permalink to this headline">¶</a></h3>
-<p>If you already have a CodeGrade account, you can use this to log in to the online
-environment.  After clicking the ‘Login’ button, enter your username and password
-and click ‘Login’. You are now logged in to CodeGrade!</p>
-<p>Use the ‘Forgot password’ button in the case you have forgotten your password.
-After entering your username, a temporary link will be e-mailed which allows you
-to reset your password. Please consult your institute in the case of a forgotten
-username or wrong e-mail address.</p>
+<p>There are multiple ways to log in to CodeGrade. If you visit CodeGrade via your
+Learning Management System (Blackboard, Canvas, etc.) you do not need to enter
+any password as you will automatically be logged in. If you are on a standalone
+CodeGrade instance, you can log in either with a username and password
+combination or via a single sign-on (SSO) provider.</p>
+<p>To log in with your username and password, you need to already have registered
+an account. Visit &lt;instance&gt;.codegra.de, click ‘Login’ in the sidebar, and
+enter your username and password. After clicking the ‘Login’ button you are now
+logged in to CodeGrade!</p>
+<p>To log in with SSO select your institution in the list of SSO providers. You
+will be taken to a page where you can log in to the SSO system, which will take
+you back to CodeGrade afterwards. When you return you will be logged in to
+CodeGrade.</p>
+<p>Click ‘Forgot password’ in the case you have forgotten your password. After
+entering your username, a temporary link will be sent in an email which allows
+you to reset your password. Please consult your institute in the case of
+a forgotten username or an incorrect email address.</p>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
-<p>Please check your spam filter if no e-mail is received shortly after the request.</p>
+<p>Please check your spam filter if no email is received shortly after
+the request.</p>
 </div>
 </div>
 </div>

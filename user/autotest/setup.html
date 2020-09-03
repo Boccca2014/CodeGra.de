@@ -136,6 +136,7 @@
 <li class="toctree-l4"><a class="reference internal" href="#continuous-categories">Continuous Categories</a></li>
 </ul>
 </li>
+<li class="toctree-l3"><a class="reference internal" href="#running-a-teacher-s-revision">Running a teacher’s revision</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#uploading-fixtures">Uploading fixtures</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="#limiting-student-access">Limiting student access</a></li>
 </ul>
@@ -154,6 +155,8 @@
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../analytics-dashboard.html">Analytics Dashboard</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../exam-mode.html">Exam mode</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../notifications.html">Notifications</a></li>
 </ul>
 <p class="caption"><span class="caption-text">About CodeGrade</span></p>
 <ul>
@@ -334,6 +337,22 @@ points for this level, in the continuous rubric category the student will
 receive <span class="math notranslate nohighlight">\(5 \times \frac{7}{10} = 3.5\)</span> points.</p>
 </div>
 </div>
+</div>
+<div class="section" id="running-a-teacher-s-revision">
+<h2>Running a teacher’s revision<a class="headerlink" href="#running-a-teacher-s-revision" title="Permalink to this headline">¶</a></h2>
+<p>When the preferred revision is set to “Teacher”, and a teacher’s revision is
+available for a submission, AutoTest is run against the teacher revision
+instead of the code submitted by the student. If no teacher’s revision is
+present AutoTest will be run against the code of the student.</p>
+<p>This can be useful if a student has made a tiny mistake in their code – for
+example a misplaced punctuation mark – that causes the majority of the tests
+to fail. The teacher can correct this mistake and run the tests again to see
+what the score of this student would have been if such a mistake weren’t made.</p>
+<p>After the teacher has made their changes, the AutoTest should be manually
+restarted if it has already started or finished, to make it run against the
+teacher’s revision. You can restart an AutoTest by going to a result, clicking
+on the arrow next to the state of the result, and selecting “Restart this
+result”.</p>
 </div>
 <div class="section" id="uploading-fixtures">
 <h2>Uploading fixtures<a class="headerlink" href="#uploading-fixtures" title="Permalink to this headline">¶</a></h2>

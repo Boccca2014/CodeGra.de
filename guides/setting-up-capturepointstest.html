@@ -106,6 +106,7 @@
 <li class="toctree-l2"><a class="reference internal" href="setting-up-runprogramtest.html">Add Run Program tests</a></li>
 <li class="toctree-l2 current"><a class="current reference internal" href="#">Add Capture Points tests</a></li>
 <li class="toctree-l2"><a class="reference internal" href="setting-up-checkpoints.html">Add Checkpoints</a></li>
+<li class="toctree-l2"><a class="reference internal" href="setting-up-unittest.html">Add Unit Tests</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="enabling-continuous-feedback-for-an-assignment.html">Enabling Continuous Feedback for an assignment</a></li>
@@ -135,6 +136,8 @@
 <li class="toctree-l1"><a class="reference internal" href="../user/lms.html">LMS Integration</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../user/autotest/overview.html">AutoTest</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../user/analytics-dashboard.html">Analytics Dashboard</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../user/exam-mode.html">Exam mode</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../user/notifications.html">Notifications</a></li>
 </ul>
 <p class="caption"><span class="caption-text">About CodeGrade</span></p>
 <ul>
@@ -217,10 +220,12 @@ test scripts. A Capture Points Test captures the output of the executed program
 with a Python3 Regular Expression. This output should be a <strong>number between
 0 and 1</strong>.</p>
 <ol class="arabic">
+<li><p>Press the “<em class="fa codegrade fa-plus"></em> <strong>Capture Points</strong>” button to add a new Capture Points
+test to your Test Category.</p></li>
 <li><p>Input which program you want to execute.</p></li>
 <li><p>Specify the <strong>Python3 Regex</strong> with which you want to capture the output. By
-default this captures a single float. This number is multiplied by the <strong>weight</strong>
-to get the amount of points.</p>
+default this captures a single float. This number is multiplied by the
+<strong>weight</strong> to get the amount of points.</p>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
 <p>A <strong>Python3 Regex</strong> may contain <code class="docutils literal notranslate"><span class="pre">\f</span></code>, which will capture a float.</p>

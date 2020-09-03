@@ -37,6 +37,40 @@ tests you can add to this.
   special test is high enough to continue with the tests after the Check Points
   test. This makes it possible to have certain tests only execute if tests
   before it were successful.
+- **Unit Test** for integration with unit testing frameworks that support JUnit
+  compatible XML output.
+
+Advanced options
+~~~~~~~~~~~~~~~~
+
+Each category has a few settings that will be active for all tests within the
+category.
+
+- **Timeout per step**: When a single test in the category is taking longer
+  than this amount of seconds, the process is killed, the status of the test
+  will be set to :fa:`exclamation-triangle` **timeout** and no points are given
+  for this test.
+
+  It is preferred to keep this value low -- while giving the student's code
+  enough time to run of course! -- so that code that contains an accidental
+  infinite loop will not fill up the AutoTest queue.
+- **Network disabled**: Disable the network while the tests in this category
+  are running.
+- **Submission information environment variables**: Include information about
+  the submission being tested in the ``$CG_INFO`` enfironment variable. The
+  value is a JSON object with the following keys:
+
+  - ``deadline`` The deadline of this assignment.
+  - ``submitted_at`` The date and time the student submitted their work.
+  - ``result_id`` An identifier unique to this AutoTest result. This value changes
+    every time the AutoTest is run, even if it is run multiple times for the same
+    submission of the same student.
+  - ``student_id`` An identifier unique to the student for which the AutoTest is
+    run. This value stays constant between runs of different submissions by the
+    same student.
+
+  See the :ref:`AutoTest Best Practices <best-practices-submission-metadata>`
+  guide for some concrete examples of how this can be used.
 
 Running
 --------------------

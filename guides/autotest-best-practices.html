@@ -145,6 +145,8 @@
 <li class="toctree-l1"><a class="reference internal" href="../user/lms.html">LMS Integration</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../user/autotest/overview.html">AutoTest</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../user/analytics-dashboard.html">Analytics Dashboard</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../user/exam-mode.html">Exam mode</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../user/notifications.html">Notifications</a></li>
 </ul>
 <p class="caption"><span class="caption-text">About CodeGrade</span></p>
 <ul>
@@ -223,7 +225,7 @@
 <p>This is a list of common questions and best practices for CodeGrade AutoTest.
 This is by no means a complete list, if you have any other questions, please
 consult the <a class="reference internal" href="../user/autotest/overview.html#autotest-overview"><span class="std std-ref">AutoTest User Documenation</span></a> or the
-CodeGrade Support Team at <a class="reference external" href="mailto:support&#37;&#52;&#48;codegra&#46;de">support<span>&#64;</span>codegra<span>&#46;</span>de</a>.</p>
+CodeGrade Support Team at <a class="reference external" href="mailto:support&#37;&#52;&#48;codegrade&#46;com">support<span>&#64;</span>codegrade<span>&#46;</span>com</a>.</p>
 <div class="section" id="when-to-use-hidden-steps">
 <h2>When to use hidden steps?<a class="headerlink" href="#when-to-use-hidden-steps" title="Permalink to this headline">¶</a></h2>
 <p>For each step you create, you can toggle whether to hide it or not by clicking
@@ -402,7 +404,7 @@ the end of the tests. In this way you can use a Capture Points test in AutoTest
 to capture the score of the unit tests.</p>
 <p>For common unit testing frameworks, we already have written frameworks to
 easily and seamlessly use them in CodeGrade, please contact us at
-<a class="reference external" href="mailto:support&#37;&#52;&#48;codegra&#46;de">support<span>&#64;</span>codegra<span>&#46;</span>de</a> for details.</p>
+<a class="reference external" href="mailto:support&#37;&#52;&#48;codegrade&#46;com">support<span>&#64;</span>codegrade<span>&#46;</span>com</a> for details.</p>
 </div>
 <div class="section" id="how-to-integrate-existing-grading-scripts">
 <h2>How to integrate existing grading scripts?<a class="headerlink" href="#how-to-integrate-existing-grading-scripts" title="Permalink to this headline">¶</a></h2>
@@ -414,7 +416,7 @@ script and capture the score.</p>
 <p class="admonition-title">Note</p>
 <p>If you need any help converting your existing grading scripts to CodeGrade
 grading scripts, feel free to contact us at
-<a class="reference external" href="mailto:support&#37;&#52;&#48;codegra&#46;de">support<span>&#64;</span>codegra<span>&#46;</span>de</a>.</p>
+<a class="reference external" href="mailto:support&#37;&#52;&#48;codegrade&#46;com">support<span>&#64;</span>codegrade<span>&#46;</span>com</a>.</p>
 </div>
 <div class="admonition warning">
 <p class="admonition-title">Warning</p>
@@ -480,7 +482,7 @@ directory. The files will then be accessible through the “Autotest output”
 section of the file browser in the Code Viewer.</p>
 </div>
 <div class="section" id="how-to-access-submission-metadata-from-the-tests">
-<h2>How to access submission metadata from the tests<a class="headerlink" href="#how-to-access-submission-metadata-from-the-tests" title="Permalink to this headline">¶</a></h2>
+<span id="best-practices-submission-metadata"></span><h2>How to access submission metadata from the tests<a class="headerlink" href="#how-to-access-submission-metadata-from-the-tests" title="Permalink to this headline">¶</a></h2>
 <p>You may want to access some submission metadata in your tests, for example to
 automatically subtract points when a student submitted after the deadline, or
 you maybe you need to generate input for the tests but want it to be different
@@ -500,6 +502,8 @@ submission of the same student.</p></li>
 run. This value stays constant between runs of different submissions by the
 same student.</p></li>
 </ul>
+<p>If you think it would be useful to have some extra data available, please do
+not hesitate to contact us at <a class="reference external" href="mailto:support&#37;&#52;&#48;codegrade&#46;com">support<span>&#64;</span>codegrade<span>&#46;</span>com</a> so we can discuss the options.</p>
 <div class="admonition example-directive">
 <div class="first"><p class="first admonition-title" id="Example-subtracting-points-for-late-submissions">Example: subtracting points for late submissions<a class="headerlink" href="#Example-subtracting-points-for-late-submissions" title="Permalink to this example">¶</a><p></div><p>You want to automatically subtract 1 point from the total rubric score for
 each day after the deadline, up to a maximum of 10 points subtracted.</p>

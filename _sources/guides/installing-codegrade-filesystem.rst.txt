@@ -13,7 +13,7 @@ Installing the CodeGrade Filesystem is very straightforward by using our
 supplied installer or installer script. This will install
 the CodeGrade Filesystem and all required software to successfully run it.
 
-1. Download the latest CodeGrade Filesystem installer for your operating system from https://codegra.de/filesystem/.
+1. Download the latest CodeGrade Filesystem installer for your operating system from https://codegrade.com/filesystem/.
 
 2. Open the installer (or run the installer script) and follow the instructions to install CodeGrade Filesystem.
 

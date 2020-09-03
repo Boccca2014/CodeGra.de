@@ -42,6 +42,19 @@ and select *CodeGrade* from the *Build Content* menu.
     Blackboard will then scale the grade it received from CodeGrade
     linearly to this value.
 
+Brightspace
+-----------
+CodeGrade integrates with the `Brightspace <https://www.brightspace.com/>`__
+Learning management system through LTI. New CodeGrade assignments can then
+be created from within Brightspace.
+
+.. warning::
+
+    Setting a deadline, or other visibility rules in Brightspace, are **not**
+    synchronized with CodeGrade. You should set a deadline in CodeGrade after
+    creating an assignment, as otherwise students will not be able to submit
+    their work.
+
 Canvas
 --------
 CodeGrade works together with the popular open-source learning management system
@@ -55,7 +68,7 @@ in the *Find* menu.
 .. note::
 
     We recommend grading assignments in CodeGrade's stand-alone environment so
-    more *screen-space* is be used for grading. Your are automatically logged in
+    more *screen-space* is used for grading. Your are automatically logged in
     to this environment with a linked CodeGrade account after opening CodeGrade
     through Canvas.
 
@@ -77,6 +90,17 @@ Moodle.
     graded on a scale from 0 to 10 in CodeGrade. Scaling, and maximum points can
     be set in Moodle.
 
+Sakai
+-----
+CodeGrade integrates with the `Sakai <https://sakailms.org/>`__ learning management
+system through LTI. New CodeGrade assignments can be created from within Sakai.
+
+.. warning::
+
+    Setting a deadline, or other visibility rules in Sakai, do **not** sync to
+    CodeGrade. You should set a deadline in CodeGrade after creating an
+    assignment, as otherwise students will not be able to submit their work.
+
 Other LMS
 -----------
 CodeGrade is currently working on adding support for more learning management
@@ -96,12 +120,20 @@ Creating Courses or Assignments
 Course and assignment creation is done using your learning management
 system environment. A corresponding CodeGrade course will automatically be
 created When creating a CodeGrade assignment in your LMS. Management of your
-assignment is mainly done in CodeGrade, however the assignment name, deadline
-and state (e.g. *published* or *unpublished*) are managed in your LMS.
+assignment is mainly done in CodeGrade. The assignment name and deadline,
+however, are managed in your LMS, and optionally the state (e.g. *published*
+or *unpublished*) if your LMS supports it.
 
-.. note:: Assignment and course names do not have to be unique.
+.. note::
 
-.. note:: The LMS assignment states *published* and *unpublished* correspond respectively with CodeGrade's *open* and *hidden* states. CodeGrade's *done* state does not correspond with any LMS state and does not automatically change with LMS assignment management.
+    Assignment and course names do not have to be unique.
+
+.. note::
+
+    The LMS assignment states *unpublished* and *published* correspond with
+    CodeGrade's *hidden* and *open* states, respectively. CodeGrade's *done*
+    state does not correspond with any LMS state and does not automatically
+    change with LMS assignment management.
 
 Users are not added to the CodeGrade course right away, however only added to
 CodeGrade after opening the CodeGrade assignment in the LMS.
@@ -117,7 +149,10 @@ manually setting the assignment state to *done* in CodeGrade (see
 :ref:`Assignment States <manage-assignment-state>`). Grades saved when the
 assignment state already is *done* are automatically passed back to the LMS.
 
-.. warning:: Grades are **not** automatically passed back to the LMS but require the CodeGrade assignment state to be set to *done*.
+.. warning::
+
+    Grades are **not** automatically passed back to the LMS but require the
+    CodeGrade assignment state to be set to *done*.
 
 Setting the CodeGrade assignment state back to *not done* will not automatically
 hide grades in your LMS, but only hide the grades in CodeGrade. Setting the
@@ -131,13 +166,19 @@ automatically change with LMS assignment management yet.
 Account Linking
 ~~~~~~~~~~~~~~~~~
 Accounts in your LMS are automatically linked or synchronised to CodeGrade
-accounts. Opening a CodeGrade assignment in your LMS results in automatically
-logging into CodeGrade with a CodeGrade account that is linked to your LMS
-account. CodeGrade has specified behaviour for multiple cases:
+accounts. Opening a CodeGrade assignment in your LMS will automatically log you
+in to CodeGrade with a CodeGrade account that is linked to your LMS account.
+CodeGrade has specified behaviour for multiple cases:
 
-* A new CodeGrade account will be created and linked to your LMS account if you open a CodeGrade assignment in your LMS and no existing CodeGrade account is linked yet.
-* Your current CodeGrade account will be linked to your LMS account if you are logged in to CodeGrade and open a CodeGrade assignment in your LMS and your current CodeGrade account is not yet linked.
-* You will automatically log in to the CodeGrade account linked to your LMS account if you open a CodeGrade assignment in your LMS and you are currently not logged into CodeGrade.
-* You will switch CodeGrade accounts if you are currently logged in to a CodeGrade account but *another* CodeGrade account is linked to your LMS account while opening a CodeGrade assignment in your LMS.
-
-.. note:: After opening a CodeGrade assignment in your LMS, you are automatically logged into CodeGrade with your linked account and can also open CodeGrade's stand-alone environment.
+* A new CodeGrade account will be created and linked to your LMS account if you
+  open a CodeGrade assignment in your LMS and no existing CodeGrade account is
+  linked yet.
+* Your current CodeGrade account will be linked to your LMS account if you are
+  logged in to CodeGrade and open a CodeGrade assignment in your LMS and your
+  current CodeGrade account is not yet linked.
+* You will automatically log in to the CodeGrade account linked to your LMS
+  account if you open a CodeGrade assignment in your LMS and you are currently
+  not logged in to CodeGrade.
+* You will switch CodeGrade accounts if you are currently logged in to
+  a CodeGrade account but *another* CodeGrade account is linked to your LMS
+  account while opening a CodeGrade assignment in your LMS.

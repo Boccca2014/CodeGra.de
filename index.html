@@ -128,6 +128,8 @@
 <li class="toctree-l1"><a class="reference internal" href="user/lms.html">LMS Integration</a></li>
 <li class="toctree-l1"><a class="reference internal" href="user/autotest/overview.html">AutoTest</a></li>
 <li class="toctree-l1"><a class="reference internal" href="user/analytics-dashboard.html">Analytics Dashboard</a></li>
+<li class="toctree-l1"><a class="reference internal" href="user/exam-mode.html">Exam mode</a></li>
+<li class="toctree-l1"><a class="reference internal" href="user/notifications.html">Notifications</a></li>
 </ul>
 <p class="caption"><span class="caption-text">About CodeGrade</span></p>
 <ul>
@@ -216,13 +218,16 @@ details on <a class="reference external" href="https://codegrade.com">the CodeGr
 <li class="toctree-l1"><a class="reference internal" href="guides/use-codegrade-as-a-student.html">How to use CodeGrade as a student</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="guides/use-codegrade-as-a-student.html#handing-in">Handing in</a></li>
 <li class="toctree-l2"><a class="reference internal" href="guides/use-codegrade-as-a-student.html#viewing-feedback">Viewing feedback</a></li>
+<li class="toctree-l2"><a class="reference internal" href="guides/use-codegrade-as-a-student.html#giving-peer-feedback">Giving peer feedback</a></li>
+<li class="toctree-l2"><a class="reference internal" href="guides/use-codegrade-as-a-student.html#viewing-peer-feedback">Viewing peer feedback</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="guides/getting-started-with-codegrade.html">Getting started with CodeGrade</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="guides/getting-started-with-codegrade-in-canvas.html">In Canvas</a></li>
 <li class="toctree-l2"><a class="reference internal" href="guides/getting-started-with-codegrade-in-blackboard.html">In Blackboard</a></li>
-<li class="toctree-l2"><a class="reference internal" href="guides/getting-started-with-codegrade-in-moodle.html">In Moodle</a></li>
 <li class="toctree-l2"><a class="reference internal" href="guides/getting-started-with-codegrade-in-brightspace.html">In BrightSpace</a></li>
+<li class="toctree-l2"><a class="reference internal" href="guides/getting-started-with-codegrade-in-canvas.html">In Canvas</a></li>
+<li class="toctree-l2"><a class="reference internal" href="guides/getting-started-with-codegrade-in-moodle.html">In Moodle</a></li>
+<li class="toctree-l2"><a class="reference internal" href="guides/getting-started-with-codegrade-in-sakai.html">In Sakai</a></li>
 <li class="toctree-l2"><a class="reference internal" href="guides/getting-started-with-codegrade-standalone.html">Standalone</a></li>
 </ul>
 </li>
@@ -257,6 +262,7 @@ details on <a class="reference external" href="https://codegrade.com">the CodeGr
 <li class="toctree-l2"><a class="reference internal" href="guides/setting-up-runprogramtest.html">Add Run Program tests</a></li>
 <li class="toctree-l2"><a class="reference internal" href="guides/setting-up-capturepointstest.html">Add Capture Points tests</a></li>
 <li class="toctree-l2"><a class="reference internal" href="guides/setting-up-checkpoints.html">Add Checkpoints</a></li>
+<li class="toctree-l2"><a class="reference internal" href="guides/setting-up-unittest.html">Add Unit Tests</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="guides/enabling-continuous-feedback-for-an-assignment.html">Enabling Continuous Feedback for an assignment</a></li>
@@ -296,7 +302,7 @@ details on <a class="reference external" href="https://codegrade.com">the CodeGr
 <li class="toctree-l1"><a class="reference internal" href="user/codeviewer.html">Code Viewer</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="user/codeviewer.html#code-viewer-for-teachers">Code Viewer for Teachers</a></li>
 <li class="toctree-l2"><a class="reference internal" href="user/codeviewer.html#code-viewer-for-students">Code Viewer for Students</a></li>
-<li class="toctree-l2"><a class="reference internal" href="user/codeviewer.html#settings-tab">Settings Tab</a></li>
+<li class="toctree-l2"><a class="reference internal" href="user/codeviewer.html#settings">Settings</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="user/management.html">Course and Assignment Management</a><ul>
@@ -328,8 +334,10 @@ details on <a class="reference external" href="https://codegrade.com">the CodeGr
 <li class="toctree-l1"><a class="reference external" href="https://fs-docs.codegra.de">Filesystem</a></li>
 <li class="toctree-l1"><a class="reference internal" href="user/lms.html">LMS Integration</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="user/lms.html#blackboard">Blackboard</a></li>
+<li class="toctree-l2"><a class="reference internal" href="user/lms.html#brightspace">Brightspace</a></li>
 <li class="toctree-l2"><a class="reference internal" href="user/lms.html#canvas">Canvas</a></li>
 <li class="toctree-l2"><a class="reference internal" href="user/lms.html#moodle">Moodle</a></li>
+<li class="toctree-l2"><a class="reference internal" href="user/lms.html#sakai">Sakai</a></li>
 <li class="toctree-l2"><a class="reference internal" href="user/lms.html#other-lms">Other LMS</a></li>
 <li class="toctree-l2"><a class="reference internal" href="user/lms.html#codegrade-lms-behaviour">CodeGrade LMS Behaviour</a></li>
 </ul>
@@ -354,6 +362,12 @@ details on <a class="reference external" href="https://codegrade.com">the CodeGr
 <li class="toctree-l2"><a class="reference internal" href="user/analytics-dashboard.html#examples">Examples</a></li>
 </ul>
 </li>
+<li class="toctree-l1"><a class="reference internal" href="user/exam-mode.html">Exam mode</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="user/exam-mode.html#exam-duration">Exam duration</a></li>
+<li class="toctree-l2"><a class="reference internal" href="user/exam-mode.html#student-login-links">Student login links</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="user/notifications.html">Notifications</a></li>
 </ul>
 </div>
 <div class="toctree-wrapper compound">

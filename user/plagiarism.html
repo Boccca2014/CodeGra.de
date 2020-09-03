@@ -124,6 +124,7 @@
 <li class="toctree-l1 current"><a class="current reference internal" href="#">Plagiarism Detection</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="#running-the-plagiarism-checker">Running the Plagiarism Checker</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#jplag-characteristics">JPlag Characteristics</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#extend-jplag-with-codegrade">Extend JPlag with CodeGrade</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="#reviewing-plagiarism">Reviewing Plagiarism</a><ul>
@@ -139,6 +140,8 @@
 <li class="toctree-l1"><a class="reference internal" href="lms.html">LMS Integration</a></li>
 <li class="toctree-l1"><a class="reference internal" href="autotest/overview.html">AutoTest</a></li>
 <li class="toctree-l1"><a class="reference internal" href="analytics-dashboard.html">Analytics Dashboard</a></li>
+<li class="toctree-l1"><a class="reference internal" href="exam-mode.html">Exam mode</a></li>
+<li class="toctree-l1"><a class="reference internal" href="notifications.html">Notifications</a></li>
 </ul>
 <p class="caption"><span class="caption-text">About CodeGrade</span></p>
 <ul>
@@ -228,10 +231,20 @@ runs can be done and previous runs can be examined for plagiarism.</p>
 Alternative plagiarism tools will be supported in the near future.</p>
 <p>Multiple settings can be set when checking for plagiarism:</p>
 <ul class="simple">
-<li><p>The programming language has to be selected from a list of supported languages. If the required language is not present in the list, it is no problem to select a language with similar syntax and structure.</p></li>
-<li><p>Suffixes, separated by commas, of the files to include can be given. Set to <code class="docutils literal notranslate"><span class="pre">.*</span></code> to include files with all suffixes and leave empty to automatically select suffixes based on the chosen programming language.</p></li>
-<li><p>The minimal average similarity of a case to include in the results can be set. For JPlag this is a percentage: <code class="docutils literal notranslate"><span class="pre">100</span></code> means exactly the same and <code class="docutils literal notranslate"><span class="pre">50</span></code> means an average of 50%. This is default set to <code class="docutils literal notranslate"><span class="pre">25</span></code>.</p></li>
-<li><p>Finally an old assignment can be selected to include in the plagiarism check. This can for instance be the same assignment from a previous year or course. Submissions from previous assignments are only used to check with current submissions and cases between two previous submissions are not included in the results.</p></li>
+<li><p>The programming language has to be selected from a list of supported
+languages. If the required language is not present in the list, it is no
+problem to select a language with similar syntax and structure.</p></li>
+<li><p>Suffixes, separated by commas, of the files to include can be given. Set to
+<code class="docutils literal notranslate"><span class="pre">.*</span></code> to include files with all suffixes and leave empty to automatically
+select suffixes based on the chosen programming language.</p></li>
+<li><p>The minimal average similarity of a case to include in the results can be
+set. For JPlag this is a percentage: <code class="docutils literal notranslate"><span class="pre">100</span></code> means exactly the same and
+<code class="docutils literal notranslate"><span class="pre">50</span></code> means an average of 50%. This is default set to <code class="docutils literal notranslate"><span class="pre">25</span></code>.</p></li>
+<li><p>Finally an old assignment can be selected to include in the plagiarism check.
+This can for instance be the same assignment from a previous year or course.
+Submissions from previous assignments are only used to check with current
+submissions and cases between two previous submissions are not included in
+the results.</p></li>
 </ul>
 <p>Additionally, instead of selecting an old CodeGrade assignment to check against,
 an archive with old submissions to check against can be uploaded.
@@ -243,25 +256,44 @@ entire submission.</p>
 be excluded in the plagiarism check to reduce the amount of false positives.</p>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
-<p>It is often a good practice to upload template code or provided code snippets as <em>base code</em> to be excluded.</p>
+<p>It is often a good practice to upload template code or provided code
+snippets as <em>base code</em> to be excluded.</p>
 </div>
 <div class="section" id="jplag-characteristics">
 <h3>JPlag Characteristics<a class="headerlink" href="#jplag-characteristics" title="Permalink to this headline">¶</a></h3>
 <p>JPlag is an open source software plagiarism detection tool that is developed by
 the Karlsruhe Institute of Technology, who describe JPlag as:</p>
 <blockquote>
-<div><p>JPlag is a system that finds similarities among multiple sets of source code files.
-This way it can detect software plagiarism. JPlag does not merely compare bytes of
-text, but is aware of programming language syntax and program structure and hence is
-robust against many kinds of attempts to disguise similarities between plagiarized files.
-JPlag currently supports Java, C#, C, C++, Scheme and natural language text.</p>
-<p>JPlag is typically used to detect and thus discourage the unallowed copying of student
-exercise programs in programming education. But in principle it can also be used to detect
-stolen software parts among large amounts of source text or modules that have been duplicated
-(and only slightly modified). JPlag has already played a part in several intellectual
-property cases where it has been successfully used by expert witnesses.</p>
+<div><p>JPlag is a system that finds similarities among multiple sets of source
+code files.  This way it can detect software plagiarism. JPlag does not
+merely compare bytes of text, but is aware of programming language syntax
+and program structure and hence is robust against many kinds of attempts to
+disguise similarities between plagiarized files.  JPlag currently supports
+Java, C#, C, C++, Scheme and natural language text.</p>
+<p>JPlag is typically used to detect and thus discourage the unallowed copying
+of student exercise programs in programming education. But in principle it
+can also be used to detect stolen software parts among large amounts of
+source text or modules that have been duplicated (and only slightly
+modified). JPlag has already played a part in several intellectual property
+cases where it has been successfully used by expert witnesses.</p>
 </div></blockquote>
-<p>Taken from <a class="reference external" href="https://jplag.ipd.kit.edu/">JPlag</a>, please consult for more information.</p>
+<p>Taken from <a class="reference external" href="https://jplag.ipd.kit.edu/">JPlag</a>, please consult for more
+information.</p>
+</div>
+<div class="section" id="extend-jplag-with-codegrade">
+<h3>Extend JPlag with CodeGrade<a class="headerlink" href="#extend-jplag-with-codegrade" title="Permalink to this headline">¶</a></h3>
+<p>At CodeGrade we have extended JPlag to understand a lot more languages at the
+request of our partners. Do you need support for a language that is not on the
+list of supported languages? Send us an email at <a class="reference external" href="mailto:support&#37;&#52;&#48;codegrade&#46;com">support<span>&#64;</span>codegrade<span>&#46;</span>com</a> and we’ll see what we can do!</p>
+<p>The languages we have added so far are:</p>
+<ul class="simple">
+<li><p>JavaScript</p></li>
+<li><p>JSON</p></li>
+<li><p>Jupyter notebooks</p></li>
+<li><p>PHP</p></li>
+<li><p>R</p></li>
+<li><p>Scala</p></li>
+</ul>
 </div>
 </div>
 <div class="section" id="reviewing-plagiarism">
@@ -285,9 +317,9 @@ the code. This page can be used to review the individual plagiarism cases.</p>
 <div class="section" id="exporting-plagiarism-cases">
 <h3>Exporting Plagiarism Cases<a class="headerlink" href="#exporting-plagiarism-cases" title="Permalink to this headline">¶</a></h3>
 <p>A report for an individual potential plagiarism case can be exported from the
-individual plagiarism comparison page. A
-<a class="reference external" href="https://www.latex-project.org/">LaTeX</a> <code class="docutils literal notranslate"><span class="pre">.tex</span></code> file that includes the
-code segments and can be supplemented with additional comments can be exported.</p>
+individual plagiarism comparison page. Either a <a class="reference external" href="https://www.latex-project.org/">LaTeX</a> <code class="docutils literal notranslate"><span class="pre">.tex</span></code> or a <a class="reference external" href="https://docs.microsoft.com/en-us/openspecs/office_standards/ms-docx/b839fe1f-e1ca-4fa6-8c26-5954d0abbccd">Docx</a>
+file that includes the code segments and can be supplemented with additional
+comments can be exported.</p>
 <p>Select the plagiarism correspondences to be included in the report and press the
 <em>Export</em> button to generate the <cite>.tex</cite> file.</p>
 <p>Optionally, select the <em>Each listing on a separate page</em> option under <strong>Options</strong>

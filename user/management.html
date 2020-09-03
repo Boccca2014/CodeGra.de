@@ -129,12 +129,15 @@
 <li class="toctree-l2"><a class="reference internal" href="#assignment-management">Assignment Management</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#assignment-state">Assignment State</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#general">General</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#assignment-type">Assignment type</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#available-at">Available at</a></li>
 <li class="toctree-l4"><a class="reference internal" href="#upload-types">Upload types</a></li>
 <li class="toctree-l4"><a class="reference internal" href="#limiting-the-amount-of-submissions">Limiting the amount of submissions</a></li>
-<li class="toctree-l4"><a class="reference internal" href="#hand-in-requirements">Hand-in Requirements</a></li>
-<li class="toctree-l4"><a class="reference internal" href="#group-assignment">Group assignment</a></li>
 <li class="toctree-l4"><a class="reference internal" href="#uploading-submissions">Uploading Submissions</a></li>
-<li class="toctree-l4"><a class="reference internal" href="#uploading-blackboard-archives">Uploading Blackboard Archives</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#peer-feedback">Peer feedback</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#group-assignment">Group assignment</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#hand-in-requirements">Hand-in Requirements</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#id3">Group assignment</a></li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="#graders">Graders</a><ul>
@@ -156,6 +159,7 @@
 <li class="toctree-l4"><a class="reference internal" href="#continuous-rubric-categories">Continuous rubric categories</a></li>
 </ul>
 </li>
+<li class="toctree-l3"><a class="reference internal" href="#autotest">AutoTest</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#creating-a-new-assignment">Creating a new Assignment</a></li>
 </ul>
 </li>
@@ -169,6 +173,8 @@
 <li class="toctree-l1"><a class="reference internal" href="lms.html">LMS Integration</a></li>
 <li class="toctree-l1"><a class="reference internal" href="autotest/overview.html">AutoTest</a></li>
 <li class="toctree-l1"><a class="reference internal" href="analytics-dashboard.html">Analytics Dashboard</a></li>
+<li class="toctree-l1"><a class="reference internal" href="exam-mode.html">Exam mode</a></li>
+<li class="toctree-l1"><a class="reference internal" href="notifications.html">Notifications</a></li>
 </ul>
 <p class="caption"><span class="caption-text">About CodeGrade</span></p>
 <ul>
@@ -325,15 +331,45 @@ is finished.</p></li>
 </div>
 <div class="section" id="general">
 <h3>General<a class="headerlink" href="#general" title="Permalink to this headline">¶</a></h3>
-<p>In this tab you can edit basic settings, as the assignment name and
+<p>In this tab you can edit basic settings, such as the assignment name and
 deadline, but also some more advanced settings.</p>
+<div class="section" id="assignment-type">
+<h4>Assignment type<a class="headerlink" href="#assignment-type" title="Permalink to this headline">¶</a></h4>
+<p>A CodeGrade assignment can be one of three types:</p>
+<ul>
+<li><p><strong>Normal</strong>: a regular assignment.</p></li>
+<li><p><strong>Exam</strong>: an exam. For exams you do not configure the deadline of an
+assignment but rather when it starts and a duration. Students can optionally
+receive an email with a link with which they can set a password and log into
+CodeGrade when the exam starts. During the exam students only have access to
+the course of the exam, and not any other courses.</p>
+<p>See the <a class="reference internal" href="exam-mode.html#exam-mode"><span class="std std-ref">Exam mode documentation</span></a> documentation for more
+information about exams in CodeGrade.</p>
+</li>
+<li><p><strong>LTI</strong>: an assignment managed via a Learning Management System. You cannot
+switch to one of the other types of assignment.</p></li>
+</ul>
+</div>
+<div class="section" id="available-at">
+<h4>Available at<a class="headerlink" href="#available-at" title="Permalink to this headline">¶</a></h4>
+<p>The available at date of an assignment automates the transition from the
+<strong>hidden</strong> state of the assignment to the <strong>open</strong> state. Set a date and time
+and at that moment the assignment will become visible to students, so you don’t
+have to think about it anymore.</p>
+</div>
 <div class="section" id="upload-types">
 <h4>Upload types<a class="headerlink" href="#upload-types" title="Permalink to this headline">¶</a></h4>
 <p>CodeGrade offers two means of handing in for students: via the file uploader
 in CodeGrade or using Git (GitHub or GitLab).</p>
 <ul class="simple">
-<li><p><strong>File Uploader</strong>: this option allows students to hand in their submission through CodeGrade’s file uploader. Students can hand in one or multiple files and can even hand in archives (e.g. <code class="docutils literal notranslate"><span class="pre">.zip</span></code> or <code class="docutils literal notranslate"><span class="pre">.tar.gz</span></code>) which will be extracted automatically.</p></li>
-<li><p><strong>Git</strong>: this option allows students to configure their GitHub or GitLab repository to upload to CodeGrade with every <code class="docutils literal notranslate"><span class="pre">push</span></code>. Configuration instructions can be found on the hand-in page, the unique deploy key and webhook have to be configured for each separate assignment once per student.</p></li>
+<li><p><strong>File Uploader</strong>: this option allows students to hand in their submission
+through CodeGrade’s file uploader. Students can hand in one or multiple files
+and can even hand in archives (e.g. <code class="docutils literal notranslate"><span class="pre">.zip</span></code> or <code class="docutils literal notranslate"><span class="pre">.tar.gz</span></code>) which will be
+extracted automatically.</p></li>
+<li><p><strong>Git</strong>: this option allows students to configure their GitHub or GitLab
+repository to upload to CodeGrade with every <code class="docutils literal notranslate"><span class="pre">push</span></code>. Configuration
+instructions can be found on the hand-in page, the unique deploy key and
+webhook have to be configured for each separate assignment once per student.</p></li>
 </ul>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
@@ -414,6 +450,69 @@ could allow you, for example, to enforce a small wait period between two
 submissions, but also enforce a total amount of submissions.</p>
 </div>
 </div>
+<div class="section" id="uploading-submissions">
+<h4>Uploading Submissions<a class="headerlink" href="#uploading-submissions" title="Permalink to this headline">¶</a></h4>
+<p>Submissions can be uploaded via the assignment management page too. Using the
+<em>Upload submission</em> tool submissions can be uploaded as any requested user:
+hand in submissions for students or hand in as administrator by selecting
+a user via the search bar. Submissions can be uploaded as an archive, which is
+automatically extracted by CodeGrade, or as multiple individual files.</p>
+<p>You can also do a submission as a test student to check if your assignment
+setup works as expected. It can be useful to test your hand-in requirements,
+AutoTest configuration, linter configuration, you name it. You can even do test
+submissions before you have set a deadline on the assignment.</p>
+</div>
+<div class="section" id="peer-feedback">
+<h4>Peer feedback<a class="headerlink" href="#peer-feedback" title="Permalink to this headline">¶</a></h4>
+<p>Who knows better what problems students run into than the students themselves?
+This is why CodeGrade offers peer feedback, a way for students to review and
+learn from each other’s code. When peer feedback is enabled for an assignment
+students get assigned to a number of other students and get access to their
+submissions.</p>
+<p>You can enable peer feedback by clicking the <em class="fa codegrade fa-comments-o"></em> button,
+configuring the peer feedback settings, and finally pressing the “Submit”
+button.</p>
+<div class="section" id="amount-of-students">
+<h5>Amount of students<a class="headerlink" href="#amount-of-students" title="Permalink to this headline">¶</a></h5>
+<p>This is the amount of submissions each student should review. Students are
+distributed randomly amongst each other. This happens in an auomated fashion
+once the deadline of the assignment has passed.</p>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>This setting should be treated with care, <em>especially after the assignment’s
+deadline</em>, because changing it will cause all students to be reassigned. The
+process of reassigning does not guarantee that students are assigned to the
+same peers as before the change, even when the number has increased. On the
+contrary, it is quite likely that almost all students are assigned to
+someone else than they had been.</p>
+</div>
+</div>
+<div class="section" id="time-to-give-peer-feedback">
+<h5>Time to give peer feedback<a class="headerlink" href="#time-to-give-peer-feedback" title="Permalink to this headline">¶</a></h5>
+<p>The amount of time students have to give feedback to their peers. During this
+time students can place comments on the submissions they were assigned to.
+Students will still be able to view the submissions even after this time has
+passed.</p>
+</div>
+<div class="section" id="automatically-approve-comments">
+<h5>Automatically approve comments<a class="headerlink" href="#automatically-approve-comments" title="Permalink to this headline">¶</a></h5>
+<p>By default when a student places peer feedback on another student’s submission
+the other student will not be able to see it immediately. The comment first has
+to be approved by the teacher or teaching assistant. Enabling this option
+changes that behavior so that each comment is automatically approved.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Comments can still be disapproved even with this setting turned on.</p>
+</div>
+</div>
+</div>
+<div class="section" id="group-assignment">
+<h4>Group assignment<a class="headerlink" href="#group-assignment" title="Permalink to this headline">¶</a></h4>
+<p>Here you can select which group set to use for this assignment. When a group set
+is selected the assignment becomes a group assignment. Group sets are a
+key concept for group assignments in CodeGrade, more information about them can
+be found in the <a class="reference internal" href="groups.html#groups-chapter"><span class="std std-ref">groups chapter</span></a>.</p>
+</div>
 <div class="section" id="hand-in-requirements">
 <h4>Hand-in Requirements<a class="headerlink" href="#hand-in-requirements" title="Permalink to this headline">¶</a></h4>
 <p>The hand-in requirements make it possible to set up strict rules to the
@@ -426,9 +525,14 @@ third part of the specifications.</p>
 <p>Secondly, numerous options can be selected to further specify the behaviour of
 your requirements. These options are:</p>
 <ul class="simple">
-<li><p><strong>Delete empty directories</strong>: If enabled, automatically delete empty directories in submissions.</p></li>
-<li><p><strong>Delete leading directories</strong>: If enabled, automatically delete superfluous leading directories (i.e. top-level directories in which all files / subdirectories are located).</p></li>
-<li><p><strong>Allow overrides by students</strong>: If enabled, the student can, after being shown a warning, still force hand in the submission even if it violates the hand-in requirements.</p></li>
+<li><p><strong>Delete empty directories</strong>: If enabled, automatically delete empty
+directories in submissions.</p></li>
+<li><p><strong>Delete leading directories</strong>: If enabled, automatically delete superfluous
+leading directories (i.e. top-level directories in which all files
+/ subdirectories are located).</p></li>
+<li><p><strong>Allow overrides by students</strong>: If enabled, the student can, after being
+shown a warning, still force hand in the submission even if it violates the
+hand-in requirements.</p></li>
 </ul>
 <p>Thirdly, rules can be given that consist of exceptions to the default rule and
 requiring certain files. These rules can apply to files anywhere in the
@@ -448,39 +552,16 @@ submission.</p>
 <p>More information on setting up hand-in requirements can be found in the
 <a class="reference internal" href="../guides/setting-up-hand-in-requirements.html#guide-hand-in-requirements"><span class="std std-ref">step-by-step guide</span></a>.</p>
 </div>
-<div class="section" id="group-assignment">
-<h4>Group assignment<a class="headerlink" href="#group-assignment" title="Permalink to this headline">¶</a></h4>
+<div class="section" id="id3">
+<h4>Group assignment<a class="headerlink" href="#id3" title="Permalink to this headline">¶</a></h4>
 <p>Here you can select which group set to use for this assignment. When a group set
 is selected the assignment becomes a group assignment. Group sets are a
 key concept for group assignments in CodeGrade, more information about them can
 be found in the <a class="reference internal" href="groups.html#groups-chapter"><span class="std std-ref">groups chapter</span></a>.</p>
 </div>
-<div class="section" id="uploading-submissions">
-<h4>Uploading Submissions<a class="headerlink" href="#uploading-submissions" title="Permalink to this headline">¶</a></h4>
-<p>Submissions can be uploaded via the assignment management page too. Using the <em>Upload submission</em> tool submissions can be uploaded as
-any requested user: hand in submissions for students or hand in as administrator by selecting a user via the search bar.
-Submissions can be uploaded as an archive, which is automatically extracted by CodeGrade, or as multiple individual files.</p>
-</div>
-<div class="section" id="uploading-blackboard-archives">
-<span id="upload-blackboard-zip"></span><h4>Uploading Blackboard Archives<a class="headerlink" href="#uploading-blackboard-archives" title="Permalink to this headline">¶</a></h4>
-<p>It is possible to combine CodeGrade with the Blackboard learning management
-system: handing in is done via Blackboard and grading and presenting feedback
-via the stand-alone CodeGrade application. After exporting the submissions on
-Blackboard (see Blackboard documentation
-<a class="reference external" href="https://help.blackboard.com/Learn/Instructor/Assignments/Download_Assignments">here</a>),
-the downloaded archive can be uploaded using Blackboard Zip tool in CodeGrade.</p>
-<p>By uploading this archive, CodeGrade will add all students’ corresponding
-CodeGrade accounts to the course and link their submissions correctly.  If a
-student does not yet have a CodeGrade account, a new account will be created.</p>
-<div class="admonition warning">
-<p class="admonition-title">Warning</p>
-<p>BlackBoard uploading is an experimental feature that was tested working with
-BlackBoard 9, if an error occurs please contact us at <a class="reference external" href="mailto:help&#37;&#52;&#48;codegra&#46;de">help<span>&#64;</span>codegra<span>&#46;</span>de</a>.</p>
-</div>
-</div>
 </div>
 <div class="section" id="graders">
-<h3>Graders<a class="headerlink" href="#graders" title="Permalink to this headline">¶</a></h3>
+<span id="upload-blackboard-zip"></span><h3>Graders<a class="headerlink" href="#graders" title="Permalink to this headline">¶</a></h3>
 <p>In this tab you can edit all settings regarding graders, like dividing and
 setting up notifications for them.</p>
 <div class="section" id="dividing-submissions">
@@ -516,7 +597,7 @@ this.</p>
 <div class="section" id="finished-grading-and-notifications">
 <h4>Finished Grading and Notifications<a class="headerlink" href="#finished-grading-and-notifications" title="Permalink to this headline">¶</a></h4>
 <p>CodeGrade provides essential communication tools between graders in the shape of
-e-mail notifications. These notifications rely on graders indicating that they
+email notifications. These notifications rely on graders indicating that they
 are done grading by setting their state to ‘Done’ after all grading is finished.</p>
 <div class="admonition warning">
 <p class="admonition-title">Warning</p>
@@ -526,17 +607,18 @@ grading all assigned submissions, a warning is shown in this case.</p>
 </div>
 <div class="section" id="e-mail-notifications">
 <h4>E-mail Notifications<a class="headerlink" href="#e-mail-notifications" title="Permalink to this headline">¶</a></h4>
-<p>CodeGrade provides two types of e-mail notifications to enable essential
+<p>CodeGrade provides two types of email notifications to enable essential
 communication between graders:</p>
 <ul class="simple">
-<li><p><strong>Graders</strong> notification: send an e-mail at a specified date and time to all
+<li><p><strong>Graders</strong> notification: send an email at a specified date and time to all
 graders that have not yet finished grading.</p></li>
-<li><p><strong>Finished</strong> notification: send an e-mail to a specified e-mail address to
+<li><p><strong>Finished</strong> notification: send an email to a specified email address to
 notify when all graders are finished grading.</p></li>
 </ul>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
-<p>Notifications rely on the manually set status by the graders.</p>
+<p>For these notifications to be sent, graders must manually update
+their status.</p>
 </div>
 </div>
 </div>
@@ -646,6 +728,12 @@ precise grading. Continuous rubric categories are also very useful for
 to occasionally save the rubric to prevent losing work.</p>
 </div>
 </div>
+</div>
+<div class="section" id="autotest">
+<h3>AutoTest<a class="headerlink" href="#autotest" title="Permalink to this headline">¶</a></h3>
+<p>The AutoTest configuration and results can be viewed and edited in the AutoTest
+tab. For more information on how to set up AutoTest refer to
+<a class="reference internal" href="autotest/overview.html#autotest-overview"><span class="std std-ref">the AutoTest documentation</span></a>.</p>
 </div>
 <div class="section" id="creating-a-new-assignment">
 <h3>Creating a new Assignment<a class="headerlink" href="#creating-a-new-assignment" title="Permalink to this headline">¶</a></h3>

@@ -139,12 +139,15 @@
 <li class="toctree-l4"><a class="reference internal" href="#individual-steps">Individual Steps</a></li>
 </ul>
 </li>
+<li class="toctree-l3"><a class="reference internal" href="#rerunning-individual-runs">Rerunning individual runs</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="student-experience.html">Student Experience</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../analytics-dashboard.html">Analytics Dashboard</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../exam-mode.html">Exam mode</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../notifications.html">Notifications</a></li>
 </ul>
 <p class="caption"><span class="caption-text">About CodeGrade</span></p>
 <ul>
@@ -227,24 +230,25 @@ AutoTest tests, you can run it on all students at once. Press the <strong>“Run
 button on the top right corner to start the AutoTest run.</p>
 <p>After preliminary processes are done and a runner picked up the job, the code
 of students will subsequently be tested. An overview of all students eligible
-for this AutoTest will be shown after the button is pressed, these are accompanied
-by a score (ratio of number of points passed to the number of points possible)
-and a state.</p>
-<p>After AutoTest is started, all newly handed in submissions will automatically be run
-immediately.</p>
+for this AutoTest will be shown after the button is pressed, these are
+accompanied by a score (ratio of number of points passed to the number of
+points possible) and a state.</p>
+<p>After AutoTest is started, all newly handed in submissions will automatically
+be run immediately.</p>
 <div class="section" id="autotest-states">
 <h2>AutoTest States<a class="headerlink" href="#autotest-states" title="Permalink to this headline">¶</a></h2>
 <p>The multiple components of an AutoTest run can be in different states. Mouse
 over over the icons in AutoTest to find more information on the specific state.</p>
 <div class="section" id="student-runs">
 <h3>Student Runs<a class="headerlink" href="#student-runs" title="Permalink to this headline">¶</a></h3>
-<p>All individual student runs have a state that indicates whether a run is waiting,
-running or finished with or without any problems.</p>
+<p>All individual student runs have a state that indicates whether a run is
+waiting, running or finished with or without any problems.</p>
 <ul class="simple">
 <li><p><em class="fa codegrade fa-clock-o"></em>: Waiting to be started.</p></li>
 <li><p><em class="fa codegrade fa-circle-o-notch"></em>: Running.</p></li>
 <li><p><em class="fa codegrade fa-check"></em>: Test is finished without problems.</p></li>
-<li><p><em class="fa codegrade fa-exclamation-triangle"></em>: Test crashed, timed out, something unknown went wrong.</p></li>
+<li><p><em class="fa codegrade fa-exclamation-triangle"></em>: Test crashed, timed out, something unknown went
+wrong.</p></li>
 </ul>
 <div class="admonition warning">
 <p class="admonition-title">Warning</p>
@@ -262,12 +266,18 @@ whether a single test is passed or failed.</p>
 <li><p><em class="fa codegrade fa-clock-o"></em>: Waiting to be started.</p></li>
 <li><p><em class="fa codegrade fa-circle-o-notch"></em>: Running.</p></li>
 <li><p><em class="fa codegrade fa-check"></em>: Test is finished and passed.</p></li>
+<li><p><em class="fa codegrade"><svg version="1.1" width="1em" height="1em" viewBox="0 0 24 24"><path d="M2,15C2,15 2,9 8,9C12,9 12.5,12.5 15.5,12.5C19.5,12.5 19.5,9 19.5,9H22C22,9 22,15 16,15C12,15 10.5,11.5 8.5,11.5C4.5,11.5 4.5,15 4.5,15H2"></path></svg></em>: Test is finished but did not score full points.</p></li>
 <li><p><em class="fa codegrade fa-times"></em>: Test is finished and failed.</p></li>
 <li><p><em class="fa codegrade fa-exclamation-triangle"></em>: Test is timed out.</p></li>
 <li><p><em class="fa codegrade fa-ban"></em>: Test is skipped because it is hidden or a previous checkpoint
 failed.</p></li>
 </ul>
 </div>
+</div>
+<div class="section" id="rerunning-individual-runs">
+<h2>Rerunning individual runs<a class="headerlink" href="#rerunning-individual-runs" title="Permalink to this headline">¶</a></h2>
+<p>An individual student run can be restarted by opening their result and clicking
+the arrow next to the state of the run and selecting “Restart this result”.</p>
 </div>
 </div>
 

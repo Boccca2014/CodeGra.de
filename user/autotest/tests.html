@@ -133,19 +133,24 @@
 <li class="toctree-l2"><a class="reference internal" href="categories.html">Categories</a></li>
 <li class="toctree-l2 current"><a class="current reference internal" href="#">Tests</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#io-test">IO Test</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="#use-cases">Use-cases</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#use-cases">Use cases</a></li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="#run-program-test">Run Program Test</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="#id1">Use-cases</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#id1">Use cases</a></li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="#capture-points-test">Capture Points Test</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="#id2">Use-cases</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#id2">Use cases</a></li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="#checkpoint">Checkpoint</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="#id3">Use-cases</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#id3">Use cases</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#unit-test">Unit Test</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#id4">Use cases</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#compatibility-scripts">Compatibility scripts</a></li>
 </ul>
 </li>
 </ul>
@@ -156,6 +161,8 @@
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../analytics-dashboard.html">Analytics Dashboard</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../exam-mode.html">Exam mode</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../notifications.html">Notifications</a></li>
 </ul>
 <p class="caption"><span class="caption-text">About CodeGrade</span></p>
 <ul>
@@ -276,7 +283,7 @@ together.</p>
 <p>Use the <em class="fa codegrade fa-plus"></em> button in the bottom left corner to create a new input/output
 combination.</p>
 <div class="section" id="use-cases">
-<h3>Use-cases<a class="headerlink" href="#use-cases" title="Permalink to this headline">¶</a></h3>
+<h3>Use cases<a class="headerlink" href="#use-cases" title="Permalink to this headline">¶</a></h3>
 <p>As the name suggests, IO Tests are used to check the output of a program given
 an input. IO Tests are very useful to check the functionality of simple and
 advanced programs. From checking for <code class="docutils literal notranslate"><span class="pre">Hello,</span> <span class="pre">World!</span></code> to checking if a sudoku
@@ -298,11 +305,10 @@ code or exit status of this program. Meaning, an exit status of 0 (or
 <strong>success</strong>) results in passing the test and any nonzero exit status (or
 <strong>failure</strong>) results in failing the test.</p>
 <div class="section" id="id1">
-<h3>Use-cases<a class="headerlink" href="#id1" title="Permalink to this headline">¶</a></h3>
+<h3>Use cases<a class="headerlink" href="#id1" title="Permalink to this headline">¶</a></h3>
 <p>Run Program Tests are easy to set up and effective to check program execution
 when specific output is not important. Use Run Program Tests, for instance, to
-check the successful compilation of student code or to run single unit tests
-that you provide as fixtures.</p>
+check the successful compilation of student code.</p>
 </div>
 </div>
 <div class="section" id="capture-points-test">
@@ -319,7 +325,7 @@ Test to get to the final score of the test.</p>
 <code class="docutils literal notranslate"><span class="pre">32</span> <span class="pre">kB</span></code> of output data.</p>
 </div>
 <div class="section" id="id2">
-<h3>Use-cases<a class="headerlink" href="#id2" title="Permalink to this headline">¶</a></h3>
+<h3>Use cases<a class="headerlink" href="#id2" title="Permalink to this headline">¶</a></h3>
 <p>Capture Points Tests are especially useful to run programs of which the output
 is of importance. Use Capture Points Tests to execute and evaluate your own
 unit test scripts or any other specific programs you want to use to evaluate
@@ -342,11 +348,39 @@ can be put in between tests, to only execute the following tests
 if a certain percentage of points have been scored in the tests preceding to
 the Checkpoint.</p>
 <div class="section" id="id3">
-<h3>Use-cases<a class="headerlink" href="#id3" title="Permalink to this headline">¶</a></h3>
+<h3>Use cases<a class="headerlink" href="#id3" title="Permalink to this headline">¶</a></h3>
 <p>It can be necessary to add conditionality between tests in your Test Category.
 This can be done with a Checkpoint, which is for instance useful if you check
 compilation in a first test and you only want to run following tests if this
 test succeeded.</p>
+</div>
+</div>
+<div class="section" id="unit-test">
+<h2>Unit Test<a class="headerlink" href="#unit-test" title="Permalink to this headline">¶</a></h2>
+<p>The Unit Test provides integration with unit testing frameworks that support
+<a class="reference external" href="https://www.ibm.com/support/knowledgecenter/SSQ2R2_14.2.0/com.ibm.rsar.analysis.codereview.cobol.doc/topics/cac_useresults_junit.html">JUnit XML</a>
+output.  The only input for this type of test is a command to be run, which
+must produce a JUnit XML file at the location stored in the
+<code class="docutils literal notranslate"><span class="pre">$CG_JUNIT_XML_LOCATION</span></code> environment variable. Students will then get a clear
+overview of all the tests that have been run, which ones failed, and the output
+that was produced in the case of failure.</p>
+<div class="section" id="id4">
+<h3>Use cases<a class="headerlink" href="#id4" title="Permalink to this headline">¶</a></h3>
+<p>Unit Tests are useful if you want to run many tests but condense their output
+into a single entry in the test category. They are also useful when you already
+have a unit testing setup, and do not want to translate them all into
+individual AutoTest tests.</p>
+</div>
+<div class="section" id="compatibility-scripts">
+<h3>Compatibility scripts<a class="headerlink" href="#compatibility-scripts" title="Permalink to this headline">¶</a></h3>
+<p>For most unit testing frameworks it is necessary to install additional software
+and to figure out how to make the framework output its results to the correct
+location. We provide wrapper scripts for a growing list of frameworks at our
+<a class="reference external" href="https://github.com/CodeGra-de/AutoTest-examples">AutoTest Examples</a> GitHub
+repository that handle all of this for you. Is your preferred testing framework
+not listed or does a script not work as you need it to? Please send an email
+to <a class="reference external" href="mailto:support&#37;&#52;&#48;codegrade&#46;com">support<span>&#64;</span>codegrade<span>&#46;</span>com</a> so we can discuss
+the possibilities!</p>
 </div>
 </div>
 </div>

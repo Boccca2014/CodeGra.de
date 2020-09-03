@@ -131,7 +131,10 @@
 <li class="toctree-l2"><a class="reference internal" href="setup.html">Setup</a></li>
 <li class="toctree-l2"><a class="reference internal" href="levels.html">Levels</a></li>
 <li class="toctree-l2 current"><a class="current reference internal" href="#">Categories</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="#setup">Setup</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#setup">Setup</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#advanced-options">Advanced options</a></li>
+</ul>
+</li>
 <li class="toctree-l3"><a class="reference internal" href="#running">Running</a></li>
 </ul>
 </li>
@@ -142,6 +145,8 @@
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../analytics-dashboard.html">Analytics Dashboard</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../exam-mode.html">Exam mode</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../notifications.html">Notifications</a></li>
 </ul>
 <p class="caption"><span class="caption-text">About CodeGrade</span></p>
 <ul>
@@ -249,7 +254,42 @@ points.</p></li>
 special test is high enough to continue with the tests after the Check Points
 test. This makes it possible to have certain tests only execute if tests
 before it were successful.</p></li>
+<li><p><strong>Unit Test</strong> for integration with unit testing frameworks that support JUnit
+compatible XML output.</p></li>
 </ul>
+<div class="section" id="advanced-options">
+<h3>Advanced options<a class="headerlink" href="#advanced-options" title="Permalink to this headline">¶</a></h3>
+<p>Each category has a few settings that will be active for all tests within the
+category.</p>
+<ul>
+<li><p><strong>Timeout per step</strong>: When a single test in the category is taking longer
+than this amount of seconds, the process is killed, the status of the test
+will be set to <em class="fa codegrade fa-exclamation-triangle"></em> <strong>timeout</strong> and no points are given
+for this test.</p>
+<p>It is preferred to keep this value low – while giving the student’s code
+enough time to run of course! – so that code that contains an accidental
+infinite loop will not fill up the AutoTest queue.</p>
+</li>
+<li><p><strong>Network disabled</strong>: Disable the network while the tests in this category
+are running.</p></li>
+<li><p><strong>Submission information environment variables</strong>: Include information about
+the submission being tested in the <code class="docutils literal notranslate"><span class="pre">$CG_INFO</span></code> enfironment variable. The
+value is a JSON object with the following keys:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">deadline</span></code> The deadline of this assignment.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">submitted_at</span></code> The date and time the student submitted their work.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">result_id</span></code> An identifier unique to this AutoTest result. This value changes
+every time the AutoTest is run, even if it is run multiple times for the same
+submission of the same student.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">student_id</span></code> An identifier unique to the student for which the AutoTest is
+run. This value stays constant between runs of different submissions by the
+same student.</p></li>
+</ul>
+<p>See the <a class="reference internal" href="../../guides/autotest-best-practices.html#best-practices-submission-metadata"><span class="std std-ref">AutoTest Best Practices</span></a>
+guide for some concrete examples of how this can be used.</p>
+</li>
+</ul>
+</div>
 </div>
 <div class="section" id="running">
 <h2>Running<a class="headerlink" href="#running" title="Permalink to this headline">¶</a></h2>
