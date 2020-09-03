@@ -146,11 +146,12 @@ Cypress.Commands.add('formRequest', (options) => {
     });
 });
 
-Cypress.Commands.add('delayRoute', (route, delay = 1000) => {
+Cypress.Commands.add('delayRoute', (route, delay = 1000, matchRoute = undefined) => {
+    matchRoute = matchRoute || route;
     const reqOpts = Object.assign({}, route);
 
     function makeResponse(res) {
-        return Object.assign({}, route, {
+        return Object.assign({}, matchRoute, {
             delay,
             headers: res.headers,
             response: res.body,

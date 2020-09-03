@@ -159,6 +159,20 @@ context('Sidebar', () => {
         let course;
         let assignment;
 
+        function delayCoursesRoute(delay = 1000) {
+            return cy.delayRoute(
+                {
+                    url: '/api/v1/courses/?extended=true&no_course_in_assignment=true&limit=1&offset=10',
+                    method: 'GET',
+                },
+                delay,
+                {
+                    url: /^\/api\/v1\/courses\/\?.*/,
+                    method: 'GET',
+                },
+            );
+        }
+
         before(() => {
             cy.createCourse(
                 `Sidebar Reload ${seed}`,
@@ -186,10 +200,7 @@ context('Sidebar', () => {
                 .find('.course-wrapper')
                 .should('be.visible');
 
-            cy.delayRoute({
-                url: '/api/v1/courses/?extended=true',
-                method: 'GET',
-            }).then(() => {
+            delayCoursesRoute().then(() => {
                 // Reload from the courses submenu.
                 cy.get('.sidebar .sidebar-entry-courses')
                     .click();
@@ -241,70 +252,67 @@ context('Sidebar', () => {
                 .should('not.have.length', 0)
                 .should('be.visible');
 
-            cy.delayRoute({
-                url: '/api/v1/courses/?extended=true',
-                method: 'GET',
+            delayCoursesRoute().then(() => {
+                // Reload from the courses submenu. It is already opened, but on
+                // the assignments of the current course. Let's test for that by
+                // closing and reopening it.
+                cy.get('.sidebar .submenu:last .assignment-list')
+                    .should('exist');
+                cy.get('.sidebar .sidebar-entry-courses.selected')
+                    .click();
+                cy.get('.sidebar .sidebar-entry-courses')
+                    .click();
+                cy.get('.sidebar .submenu:last .course-list')
+                    .should('be.visible');
+                cy.get('.sidebar .submenu:last .refresh-button')
+                    .click();
+
+                // Perform the check that an actual reload happens.
+                // First check that the submission list disappears.
+                cy.get('.submission-list')
+                    .should('not.exist')
+                // Then that a loader appears.
+                cy.get('.page.submissions')
+                    .find('.loader.page-loader')
+                    .should('be.visible');
+                // Then that the loader disappears again.
+                cy.get('.page.submissions')
+                    .find('.loader.page-loader')
+                    .should('not.exist');
+                // Then that the submissions become visible again.
+                cy.get('.submission-list')
+                    .should('be.visible')
+                    .find('tbody tr')
+                    .should('not.have.length', 0)
+                    .should('be.visible');
+
+                // Reload from the assignments submenu.
+                cy.get('.sidebar .sidebar-entry-assignments')
+                    .click();
+                cy.get('.sidebar .submenu:last .assignment-list')
+                    .should('be.visible');
+                cy.get('.sidebar .submenu:last .refresh-button')
+                    .click();
+
+                // Perform the check that an actual reload happens.
+                // First check that the submission list disappears.
+                cy.get('.submission-list')
+                    .should('not.exist')
+                // Then that a loader appears.
+                cy.get('.page.submissions')
+                    .find('.loader.page-loader')
+                    .should('be.visible');
+                // Then that the loader disappears again.
+                cy.get('.page.submissions')
+                    .find('.loader.page-loader')
+                    .should('not.exist');
+                // Then that the submissions become visible again.
+                cy.get('.submission-list')
+                    .should('be.visible')
+                    .find('tbody tr')
+                    .should('not.have.length', 0)
+                    .should('be.visible');
             });
-
-            // Reload from the courses submenu. It is already opened, but on
-            // the assignments of the current course. Let's test for that by
-            // closing and reopening it.
-            cy.get('.sidebar .submenu:last .assignment-list')
-                .should('exist');
-            cy.get('.sidebar .sidebar-entry-courses.selected')
-                .click();
-            cy.get('.sidebar .sidebar-entry-courses')
-                .click();
-            cy.get('.sidebar .submenu:last .course-list')
-                .should('be.visible');
-            cy.get('.sidebar .submenu:last .refresh-button')
-                .click();
-
-            // Perform the check that an actual reload happens.
-            // First check that the submission list disappears.
-            cy.get('.submission-list')
-                .should('not.exist')
-            // Then that a loader appears.
-            cy.get('.page.submissions')
-                .find('.loader.page-loader')
-                .should('be.visible');
-            // Then that the loader disappears again.
-            cy.get('.page.submissions')
-                .find('.loader.page-loader')
-                .should('not.exist');
-            // Then that the submissions become visible again.
-            cy.get('.submission-list')
-                .should('be.visible')
-                .find('tbody tr')
-                .should('not.have.length', 0)
-                .should('be.visible');
-
-            // Reload from the assignments submenu.
-            cy.get('.sidebar .sidebar-entry-assignments')
-                .click();
-            cy.get('.sidebar .submenu:last .assignment-list')
-                .should('be.visible');
-            cy.get('.sidebar .submenu:last .refresh-button')
-                .click();
-
-            // Perform the check that an actual reload happens.
-            // First check that the submission list disappears.
-            cy.get('.submission-list')
-                .should('not.exist')
-            // Then that a loader appears.
-            cy.get('.page.submissions')
-                .find('.loader.page-loader')
-                .should('be.visible');
-            // Then that the loader disappears again.
-            cy.get('.page.submissions')
-                .find('.loader.page-loader')
-                .should('not.exist');
-            // Then that the submissions become visible again.
-            cy.get('.submission-list')
-                .should('be.visible')
-                .find('tbody tr')
-                .should('not.have.length', 0)
-                .should('be.visible');
         });
 
         it('should not crash the submission page', () => {
@@ -329,115 +337,112 @@ context('Sidebar', () => {
                 .find('.loader')
                 .should('not.exist');
 
-            cy.delayRoute({
-                url: '/api/v1/courses/?extended=true',
-                method: 'GET',
+            delayCoursesRoute().then(() => {
+                // Reload from the courses submenu.
+                cy.get('.sidebar .sidebar-entry-courses')
+                    .click();
+                cy.get('.sidebar .submenu:last .course-list')
+                    .should('be.visible');
+                cy.get('.sidebar .submenu:last .refresh-button')
+                    .click();
+
+                // First check that the file viewer disappears.
+                cy.get('.page.submission .file-viewer')
+                    .should('not.exist');
+                // Then check that the page loader appears.
+                cy.get('.submission-page-loader')
+                    .should('exist');
+                // Then check that the page loader disappears again.
+                cy.get('.submission-page-loader')
+                    .should('not.exist');
+                // And that the file viewer is visible again and that it loads
+                // a file.
+                cy.get('.page.submission')
+                    .should('be.visible')
+                    .find('.file-viewer')
+                    .should('be.visible')
+                    .find('.loader')
+                    .should('not.exist');
+
+                // Reload from the assignments submenu.
+                cy.get('.sidebar .sidebar-entry-assignments')
+                    .click();
+                cy.get('.sidebar .submenu:last .assignment-list')
+                    .should('be.visible');
+                cy.get('.sidebar .submenu:last .refresh-button')
+                    .click();
+
+                // First check that the file viewer disappears.
+                cy.get('.page.submission .file-viewer')
+                    .should('not.exist');
+                // Then check that the page loader appears.
+                cy.get('.submission-page-loader')
+                    .should('exist');
+                // Then check that the page loader disappears again.
+                cy.get('.submission-page-loader')
+                    .should('not.exist');
+                // And that the file viewer is visible again and that it loads
+                // a file.
+                cy.get('.page.submission')
+                    .should('be.visible')
+                    .find('.file-viewer')
+                    .should('be.visible')
+                    .find('.loader')
+                    .should('not.exist');
+
+                cy.url().then(url => {
+                    const subId = url.match(/\/submissions\/(\d+)\//)[1];
+
+                    cy.delayRoute({
+                        url: `/api/v1/submissions/${subId}/root_file_trees/`,
+                        method: 'GET',
+                    }).as('filesRoute');
+                    cy.delayRoute({
+                        url: `/api/v1/submissions/${subId}/feedbacks/?with_replies`,
+                        method: 'GET',
+                    }).as('feedbackRoute');
+                    cy.delayRoute({
+                        url: `/api/v1/assignments/${assignment.id}/submissions/?extended&latest_only`,
+                        method: 'GET',
+                    }).as('subsRoute');
+                });
+
+                // I could not get the timing right for this case (and what good is
+                // a test anyway if it depends on very specific timings...); for
+                // some reason Cypress _can_ detect that the .file-viewer is gone,
+                // but if we check for a .submission-page-loader to be visible
+                // directly after that, that fails because the .file-viewer is
+                // already visible again. Even with the delay set very high (5
+                // seconds).
+                cy.get('.sidebar .sidebar-entry-submissions')
+                    .click();
+                cy.get('.sidebar .submenu:last .submissions-sidebar-list')
+                    .should('be.visible');
+                cy.get('.sidebar .submenu:last .refresh-button')
+                    .click();
+
+                // First check that the file viewer disappears.
+                cy.get('.page.submission .file-viewer')
+                    .should('not.exist');
+
+                // Wait until the submissions have been reloaded (and make sure
+                // this happens _after_ the .file-viewer has disappeared).
+                cy.wait('@filesRoute');
+                cy.wait('@feedbackRoute');
+                cy.wait('@subsRoute');
+
+                // Then that the loader disappears again.
+                cy.get('.page.submission .submission-page-inner-loader')
+                    .should('not.exist');
+                // And that the file viewer is visible again and that it loads
+                // a file.
+                cy.get('.page.submission')
+                    .should('be.visible')
+                    .find('.file-viewer')
+                    .should('be.visible')
+                    .find('.loader')
+                    .should('not.exist');
             });
-
-            // Reload from the courses submenu.
-            cy.get('.sidebar .sidebar-entry-courses')
-                .click();
-            cy.get('.sidebar .submenu:last .course-list')
-                .should('be.visible');
-            cy.get('.sidebar .submenu:last .refresh-button')
-                .click();
-
-            // First check that the file viewer disappears.
-            cy.get('.page.submission .file-viewer')
-                .should('not.exist');
-            // Then check that the page loader appears.
-            cy.get('.submission-page-loader')
-                .should('exist');
-            // Then check that the page loader disappears again.
-            cy.get('.submission-page-loader')
-                .should('not.exist');
-            // And that the file viewer is visible again and that it loads
-            // a file.
-            cy.get('.page.submission')
-                .should('be.visible')
-                .find('.file-viewer')
-                .should('be.visible')
-                .find('.loader')
-                .should('not.exist');
-
-            // Reload from the assignments submenu.
-            cy.get('.sidebar .sidebar-entry-assignments')
-                .click();
-            cy.get('.sidebar .submenu:last .assignment-list')
-                .should('be.visible');
-            cy.get('.sidebar .submenu:last .refresh-button')
-                .click();
-
-            // First check that the file viewer disappears.
-            cy.get('.page.submission .file-viewer')
-                .should('not.exist');
-            // Then check that the page loader appears.
-            cy.get('.submission-page-loader')
-                .should('exist');
-            // Then check that the page loader disappears again.
-            cy.get('.submission-page-loader')
-                .should('not.exist');
-            // And that the file viewer is visible again and that it loads
-            // a file.
-            cy.get('.page.submission')
-                .should('be.visible')
-                .find('.file-viewer')
-                .should('be.visible')
-                .find('.loader')
-                .should('not.exist');
-
-            cy.url().then(url => {
-                const subId = url.match(/\/submissions\/(\d+)\//)[1];
-
-                cy.delayRoute({
-                    url: `/api/v1/submissions/${subId}/root_file_trees/`,
-                    method: 'GET',
-                }).as('filesRoute');
-                cy.delayRoute({
-                    url: `/api/v1/submissions/${subId}/feedbacks/?with_replies`,
-                    method: 'GET',
-                }).as('feedbackRoute');
-                cy.delayRoute({
-                    url: `/api/v1/assignments/${assignment.id}/submissions/?extended&latest_only`,
-                    method: 'GET',
-                }).as('subsRoute');
-            });
-
-            // I could not get the timing right for this case (and what good is
-            // a test anyway if it depends on very specific timings...); for
-            // some reason Cypress _can_ detect that the .file-viewer is gone,
-            // but if we check for a .submission-page-loader to be visible
-            // directly after that, that fails because the .file-viewer is
-            // already visible again. Even with the delay set very high (5
-            // seconds).
-            cy.get('.sidebar .sidebar-entry-submissions')
-                .click();
-            cy.get('.sidebar .submenu:last .submissions-sidebar-list')
-                .should('be.visible');
-            cy.get('.sidebar .submenu:last .refresh-button')
-                .click();
-
-            // First check that the file viewer disappears.
-            cy.get('.page.submission .file-viewer')
-                .should('not.exist');
-
-            // Wait until the submissions have been reloaded (and make sure
-            // this happens _after_ the .file-viewer has disappeared).
-            cy.wait('@filesRoute');
-            cy.wait('@feedbackRoute');
-            cy.wait('@subsRoute');
-
-            // Then that the loader disappears again.
-            cy.get('.page.submission .submission-page-inner-loader')
-                .should('not.exist');
-            // And that the file viewer is visible again and that it loads
-            // a file.
-            cy.get('.page.submission')
-                .should('be.visible')
-                .find('.file-viewer')
-                .should('be.visible')
-                .find('.loader')
-                .should('not.exist');
         });
 
         it('should not crash the manage assignment page', () => {
@@ -449,58 +454,55 @@ context('Sidebar', () => {
                 .should('not.have.length', 0)
                 .should('be.visible');
 
-            cy.delayRoute({
-                url: '/api/v1/courses/?extended=true',
-                method: 'GET',
-            }, 3000)
+            delayCoursesRoute(3000).then(() => {
+                // Reload from the courses submenu. It is already opened, but on
+                // the assignments of the current course. Let's test for that by
+                // closing and reopening it.
+                cy.get('.sidebar .submenu:last .assignment-list')
+                    .should('exist');
+                cy.get('.sidebar .sidebar-entry-courses.selected')
+                    .click();
+                cy.get('.sidebar .sidebar-entry-courses')
+                    .click();
+                cy.get('.sidebar .submenu:last .course-list')
+                    .should('be.visible');
+                cy.get('.sidebar .submenu:last .refresh-button')
+                    .click();
 
-            // Reload from the courses submenu. It is already opened, but on
-            // the assignments of the current course. Let's test for that by
-            // closing and reopening it.
-            cy.get('.sidebar .submenu:last .assignment-list')
-                .should('exist');
-            cy.get('.sidebar .sidebar-entry-courses.selected')
-                .click();
-            cy.get('.sidebar .sidebar-entry-courses')
-                .click();
-            cy.get('.sidebar .submenu:last .course-list')
-                .should('be.visible');
-            cy.get('.sidebar .submenu:last .refresh-button')
-                .click();
+                // Check that the inputs disappear.
+                cy.get('.manage-assignment input')
+                    .should('not.exist');
+                // Check that a loader appears.
+                cy.get('.manage-assignment .page-content > .loader')
+                    .should('be.visible');
+                // Then check that the page loader disappears again.
+                cy.get('.manage-assignment .page-content > .loader')
+                    .should('not.exist');
+                // And that the inputs are visible again.
+                cy.get('.manage-assignment input')
+                    .should('be.visible');
 
-            // Check that the inputs disappear.
-            cy.get('.manage-assignment input')
-                .should('not.exist');
-            // Check that a loader appears.
-            cy.get('.manage-assignment .page-content > .loader')
-                .should('be.visible');
-            // Then check that the page loader disappears again.
-            cy.get('.manage-assignment .page-content > .loader')
-                .should('not.exist');
-            // And that the inputs are visible again.
-            cy.get('.manage-assignment input')
-                .should('be.visible');
+                // Reload from the assignments submenu.
+                cy.get('.sidebar .sidebar-entry-assignments')
+                    .click();
+                cy.get('.sidebar .submenu:last .assignment-list')
+                    .should('be.visible');
+                cy.get('.sidebar .submenu:last .refresh-button')
+                    .click();
 
-            // Reload from the assignments submenu.
-            cy.get('.sidebar .sidebar-entry-assignments')
-                .click();
-            cy.get('.sidebar .submenu:last .assignment-list')
-                .should('be.visible');
-            cy.get('.sidebar .submenu:last .refresh-button')
-                .click();
-
-            // Check that the inputs disappear.
-            cy.get('.manage-assignment input')
-                .should('not.exist');
-            // Check that a loader appears.
-            cy.get('.manage-assignment .page-content > .loader')
-                .should('be.visible');
-            // Then check that the page loader disappears again.
-            cy.get('.manage-assignment .page-content > .loader')
-                .should('not.exist');
-            // And that the inputs are visible again.
-            cy.get('.manage-assignment input')
-                .should('be.visible');
+                // Check that the inputs disappear.
+                cy.get('.manage-assignment input')
+                    .should('not.exist');
+                // Check that a loader appears.
+                cy.get('.manage-assignment .page-content > .loader')
+                    .should('be.visible');
+                // Then check that the page loader disappears again.
+                cy.get('.manage-assignment .page-content > .loader')
+                    .should('not.exist');
+                // And that the inputs are visible again.
+                cy.get('.manage-assignment input')
+                    .should('be.visible');
+            });
         });
 
         it('should not crash the manage course page', () => {
@@ -511,58 +513,55 @@ context('Sidebar', () => {
                 .find('.users-manager')
                 .should('be.visible');
 
-            cy.delayRoute({
-                url: '/api/v1/courses/?extended=true',
-                method: 'GET',
-            })
+            delayCoursesRoute().then(() => {
+                // Reload from the courses submenu. It is already opened, but on
+                // the assignments of the current course. Let's test for that by
+                // closing and reopening it.
+                cy.get('.sidebar .submenu:last .assignment-list')
+                    .should('exist');
+                cy.get('.sidebar .sidebar-entry-courses.selected')
+                    .click();
+                cy.get('.sidebar .sidebar-entry-courses')
+                    .click();
+                cy.get('.sidebar .submenu:last .course-list')
+                    .should('be.visible');
+                cy.get('.sidebar .submenu:last .refresh-button')
+                    .click();
 
-            // Reload from the courses submenu. It is already opened, but on
-            // the assignments of the current course. Let's test for that by
-            // closing and reopening it.
-            cy.get('.sidebar .submenu:last .assignment-list')
-                .should('exist');
-            cy.get('.sidebar .sidebar-entry-courses.selected')
-                .click();
-            cy.get('.sidebar .sidebar-entry-courses')
-                .click();
-            cy.get('.sidebar .submenu:last .course-list')
-                .should('be.visible');
-            cy.get('.sidebar .submenu:last .refresh-button')
-                .click();
+                // Check that the inputs disappear.
+                cy.get('.manage-course .users-manager')
+                    .should('not.exist');
+                // Check that a loader appears.
+                cy.get('.manage-course > .loader')
+                    .should('be.visible');
+                // Then check that the page loader disappears again.
+                cy.get('.manage-course > .loader')
+                    .should('not.exist');
+                // And that the inputs are visible again.
+                cy.get('.manage-course .users-manager')
+                    .should('be.visible');
 
-            // Check that the inputs disappear.
-            cy.get('.manage-course .users-manager')
-                .should('not.exist');
-            // Check that a loader appears.
-            cy.get('.manage-course > .loader')
-                .should('be.visible');
-            // Then check that the page loader disappears again.
-            cy.get('.manage-course > .loader')
-                .should('not.exist');
-            // And that the inputs are visible again.
-            cy.get('.manage-course .users-manager')
-                .should('be.visible');
+                // Reload from the assignments submenu.
+                cy.get('.sidebar .sidebar-entry-assignments')
+                    .click();
+                cy.get('.sidebar .submenu:last .assignment-list')
+                    .should('be.visible');
+                cy.get('.sidebar .submenu:last .refresh-button')
+                    .click();
 
-            // Reload from the assignments submenu.
-            cy.get('.sidebar .sidebar-entry-assignments')
-                .click();
-            cy.get('.sidebar .submenu:last .assignment-list')
-                .should('be.visible');
-            cy.get('.sidebar .submenu:last .refresh-button')
-                .click();
-
-            // Check that the inputs disappear.
-            cy.get('.manage-course .users-manager')
-                .should('not.exist');
-            // Check that a loader appears.
-            cy.get('.manage-course > .loader')
-                .should('be.visible');
-            // Then check that the page loader disappears again.
-            cy.get('.manage-course > .loader')
-                .should('not.exist');
-            // And that the inputs are visible again.
-            cy.get('.manage-course .users-manager')
-                .should('be.visible');
+                // Check that the inputs disappear.
+                cy.get('.manage-course .users-manager')
+                    .should('not.exist');
+                // Check that a loader appears.
+                cy.get('.manage-course > .loader')
+                    .should('be.visible');
+                // Then check that the page loader disappears again.
+                cy.get('.manage-course > .loader')
+                    .should('not.exist');
+                // And that the inputs are visible again.
+                cy.get('.manage-course .users-manager')
+                    .should('be.visible');
+            });
         });
     });
 });
