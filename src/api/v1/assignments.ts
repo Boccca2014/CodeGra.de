@@ -26,12 +26,12 @@ interface PatchablePropsBase {
     amount_in_cool_off_period?: number;
 }
 
-type PatchagePropsWithCGIgnore = PatchablePropsBase & {
+type PatchablePropsWithCGIgnore = PatchablePropsBase & {
     ignore: any;
     ignore_verison: 'IgnoreFilterManager' | 'EmptySubmissionFilter' | 'SubmissionValidator';
 };
 
-export type PatchableProps = PatchablePropsBase | PatchagePropsWithCGIgnore;
+export type PatchableProps = PatchablePropsBase | PatchablePropsWithCGIgnore;
 /* eslint-enable camelcase */
 
 export function getPeerFeedbackSubjects(
