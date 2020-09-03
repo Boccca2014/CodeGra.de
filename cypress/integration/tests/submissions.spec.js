@@ -655,8 +655,8 @@ context('Submissions page', () => {
 
                     loginStudent();
                     getAction('Latest submission')
-                        .contains('p.grade', 'Grade')
-                        .should('contain', '6.66');
+                        .contains('.badge', '6.66')
+                        .should('be.visible');
                 });
 
                 it('should indicate whether the submission is late', () => {

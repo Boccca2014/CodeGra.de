@@ -123,8 +123,8 @@
                 <template v-if="canUploadForSomeone">
                     <cg-wizard-button
                         class="latest-submission"
-                        icon="history"
-                        is-file-icon
+                        :icon="latestSubmissionGrade == null ? 'history' : 'file-o'"
+                        :is-file-icon="latestSubmissionGrade == null"
                         :size="wizardButtonSize"
                         :variant="latestSubmissionAfterDeadline ? 'danger' : ''"
                         :disabled="!!latestSubmissionDisabled"
@@ -137,10 +137,17 @@
                             :assignment="assignment"
                             :submission="latestSubmission"/>
 
-                        <p class="text-muted mb-0 grade"
-                           v-if="latestSubmissionGrade != null">
-                            Grade: {{ latestSubmissionGrade }}
-                        </p>
+                        <div v-if="latestSubmission">
+                            Submitted <cg-relative-time :date="latestSubmission.createdAt" />
+                        </div>
+
+                        <b-badge v-if="latestSubmissionGrade != null"
+                                 class="center-in-file"
+                                 :variant="latestSubmissionAfterDeadline ? 'danger' : 'dark'"
+                                 style="font-size: 112.5%;"
+                                 title="Your grade for this assignment">
+                            {{ latestSubmissionGrade }}
+                        </b-badge>
                     </cg-wizard-button>
 
                     <cg-wizard-button
@@ -332,6 +339,7 @@ import 'vue-awesome/icons/users';
 import 'vue-awesome/icons/code-fork';
 import 'vue-awesome/icons/envelope';
 import 'vue-awesome/icons/comments-o';
+import 'vue-awesome/icons/file-o';
 
 import { NONEXISTENT } from '@/constants';
 import { GradersStore } from '@/store/modules/graders';
