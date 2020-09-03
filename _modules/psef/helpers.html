@@ -1407,12 +1407,13 @@
 
 <span class="sd">    :param arg_name: The name of the argument to check.</span>
 <span class="sd">    :returns: ``True`` if and only iff the requested get parameter ``arg_name``</span>
-<span class="sd">        is present and it value equals (case insensitive) ``&#39;true&#39;``, ``&#39;1&#39;``,</span>
-<span class="sd">        or ``&#39;&#39;`` (empty string).</span>
+<span class="sd">        is present and it value equals (case insensitive) ``&#39;true&#39;``, ``&#39;t&#39;``,</span>
+<span class="sd">        ``&#39;1&#39;``, or ``&#39;&#39;`` (empty string).</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">if</span> <span class="n">request_args</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
         <span class="n">request_args</span> <span class="o">=</span> <span class="n">flask</span><span class="o">.</span><span class="n">request</span><span class="o">.</span><span class="n">args</span>
-    <span class="k">return</span> <span class="n">request_args</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">arg_name</span><span class="p">,</span> <span class="s1">&#39;false&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="ow">in</span> <span class="p">{</span><span class="s1">&#39;true&#39;</span><span class="p">,</span> <span class="s1">&#39;1&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">}</span></div>
+    <span class="k">return</span> <span class="n">request_args</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">arg_name</span><span class="p">,</span>
+                            <span class="s1">&#39;false&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="ow">in</span> <span class="p">{</span><span class="s1">&#39;true&#39;</span><span class="p">,</span> <span class="s1">&#39;t&#39;</span><span class="p">,</span> <span class="s1">&#39;1&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">}</span></div>
 
 
 <div class="viewcode-block" id="extended_requested"><a class="viewcode-back" href="../../psef_api/psef.html#psef.helpers.extended_requested">[docs]</a><span class="k">def</span> <span class="nf">extended_requested</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
