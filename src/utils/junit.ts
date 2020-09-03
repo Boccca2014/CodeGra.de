@@ -69,7 +69,7 @@ class CGJunitCase {
             const tagName = child.tagName;
             if (isValidState(tagName)) {
                 state = state ?? tagName;
-                this.message = Just(getAttribute<string>(child, 'message'));
+                this.message = Maybe.fromNullable(child.getAttribute('message'));
                 this.content = getText(child);
             } else if (tagName === 'system-out') {
                 this.stdout = getText(child);
