@@ -380,7 +380,7 @@ export default {
                 {
                     key: 'delete_empty_directories',
                     description:
-                    'If this option is enabled, this will automatically delete empty directories without any files in submissions.',
+                        'If this option is enabled, this will automatically delete empty directories without any files in submissions.',
                     value: false,
                     name: 'Delete empty directories',
                     options: onOff,
