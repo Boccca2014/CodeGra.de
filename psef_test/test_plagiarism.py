@@ -240,6 +240,8 @@ def test_jplag(
                 'submissions_done': 0,
                 'submissions_total': int,
                 'log': None,
+                'assignments': {str(assignment.id): dict},
+                'courses': {str(assignment.course_id): dict}
             }
         )
         if code >= 400:

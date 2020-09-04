@@ -117,9 +117,10 @@ def test_get_all_assignments(
     ],
     indirect=['named_user', 'course_name', 'state_is_hidden']
 )
+@pytest.mark.parametrize('no_course', [True, False])
 def test_get_assignment(
     named_user, course_name, state_is_hidden, perm_err, test_client, logged_in,
-    session, error_template, assignment, analytics
+    session, error_template, assignment, analytics, no_course
 ):
     with logged_in(named_user):
         if named_user == 'NOT_LOGGED_IN':
@@ -139,6 +140,7 @@ def test_get_assignment(
                 'cgignore': None,
                 'cgignore_version': None,
                 'course': dict,
+                'course_id': assignment.course_id,
                 'whitespace_linter': False,
                 'done_type': None,
                 'reminder_time': None,
@@ -159,10 +161,24 @@ def test_get_assignment(
                 'send_login_links': False,
                 'available_at': None,
             }
+            if no_course:
+                del res['course']
         else:
             res = error_template
+        url = f'/api/v1/assignments/{assignment.id}'
+        if no_course:
+
+            url += '?no_course_in_assignment=true'
+
+        show_warn = no_course or status != 200
         test_client.req(
-            'get', f'/api/v1/assignments/{assignment.id}', status, result=res
+            'get',
+            url,
+            status,
+            result=res,
+            expected_warning=(
+                False if show_warn else 'course.*will be removed.*release.*'
+            )
         )
 
 
@@ -4942,7 +4958,7 @@ def test_limiting_submissions(
             with logged_in(user):
                 res, rv = test_client.req(
                     'patch',
-                    f'/api/v1/assignments/{assig}',
+                    f'/api/v1/assignments/{assig}?no_course_in_assignment=1',
                     code,
                     data={'max_submissions': 2},
                     include_response=True,
@@ -4970,7 +4986,7 @@ def test_limiting_submissions(
         with logged_in(teacher):
             _, rv = test_client.req(
                 'patch',
-                f'/api/v1/assignments/{assig}',
+                f'/api/v1/assignments/{assig}?no_course_in_assignment=1',
                 200,
                 data={'max_submissions': None},
                 include_response=True,
@@ -4988,7 +5004,7 @@ def test_limiting_submissions(
                   ), logged_in(teacher):
         _, rv = test_client.req(
             'patch',
-            f'/api/v1/assignments/{assig}',
+            f'/api/v1/assignments/{assig}?no_course_in_assignment=1',
             200,
             data={'max_submissions': 1},
             include_response=True,
@@ -5003,7 +5019,7 @@ def test_limiting_submissions(
 
         _, rv = test_client.req(
             'patch',
-            f'/api/v1/assignments/{assig}',
+            f'/api/v1/assignments/{assig}?no_course_in_assignment=1',
             200,
             data={'max_submissions': 10},
             include_response=True,
@@ -5017,7 +5033,7 @@ def test_limiting_submissions(
     with describe('Enabling webhooks gives a warning'), logged_in(teacher):
         _, rv = test_client.req(
             'patch',
-            f'/api/v1/assignments/{assig}',
+            f'/api/v1/assignments/{assig}?no_course_in_assignment=1',
             200,
             data={'webhook_upload_enabled': True},
             include_response=True,
@@ -5088,7 +5104,7 @@ def test_cool_off_period(
             with logged_in(user):
                 res, rv = test_client.req(
                     'patch',
-                    f'/api/v1/assignments/{assig}',
+                    f'/api/v1/assignments/{assig}?no_course_in_assignment=1',
                     code,
                     data={'cool_off_period': 15},
                     include_response=True,
@@ -5127,7 +5143,7 @@ def test_cool_off_period(
         )
         _, rv = test_client.req(
             'patch',
-            f'/api/v1/assignments/{assig2}',
+            f'/api/v1/assignments/{assig2}?no_course_in_assignment=1',
             200,
             data={'cool_off_period': 5.5},
             include_response=True,

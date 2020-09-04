@@ -264,6 +264,7 @@ class PlagiarismCase(Base):
             'assignment_ids': [w.assignment_id for w in works],
         }
         if not helpers.request_arg_true('no_assignment_in_case'):
+            # TODO: Add deprecation warning
             data['assignments'] = [w.assignment for w in works]
             assig = works.other_work.assignment
             if perm_checker.ensure_may_see_other_assignment.as_bool():

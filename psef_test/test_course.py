@@ -1090,6 +1090,7 @@ def test_add_assignment(
                 'is_lti': False,
                 'lms_name': None,
                 'course': dict,
+                'course_id': course.id,
                 'state': 'hidden',
                 'deadline': None,
                 'description': str,
