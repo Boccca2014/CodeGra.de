@@ -23,6 +23,7 @@ from psef.helpers import (
     ensure_keys_in_dict, make_empty_response, get_from_map_transaction,
     get_json_dict_from_request
 )
+from cg_sqlalchemy_helpers import expression as sql_expression
 
 from . import api
 from .. import helpers, limiter, parsers, features
@@ -60,13 +61,12 @@ def delete_role(course_id: int, role_id: int) -> EmptyResponse:
     :raises PermissionException: If the user can not manage the course with the
         given id. (INCORRECT_PERMISSION)
     """
-    auth.CoursePermissions(course_id=course_id).ensure_may_edit_roles()
-
     course = helpers.get_or_404(
         models.Course,
         course_id,
         also_error=lambda c: c.virtual,
     )
+    auth.CoursePermissions(course).ensure_may_edit_roles()
     role = helpers.filter_single_or_404(
         models.CourseRole,
         models.CourseRole.course_id == course_id,
@@ -132,18 +132,15 @@ def add_role(course_id: int) -> EmptyResponse:
     :raises PermissionException: If the user can not manage the course with the
                                  given id. (INCORRECT_PERMISSION)
     """
-    auth.CoursePermissions(course_id=course_id).ensure_may_edit_roles()
-
-    content = get_json_dict_from_request()
-
-    ensure_keys_in_dict(content, [('name', str)])
-    name = t.cast(str, content['name'])
+    with helpers.get_from_request_transaction() as [get, _]:
+        name = get('name', str)
 
     course = helpers.get_or_404(
         models.Course,
         course_id,
         also_error=lambda c: c.virtual,
     )
+    auth.CoursePermissions(course).ensure_may_edit_roles()
 
     if models.CourseRole.query.filter_by(
         name=name, course_id=course_id
@@ -186,18 +183,16 @@ def update_role(course_id: int, role_id: int) -> EmptyResponse:
     :raises PermissionException: If the user can not manage the course with the
                                  given id. (INCORRECT_PERMISSION)
     """
-    content = get_json_dict_from_request()
+    course = helpers.get_or_404(models.Course, course_id)
+    auth.CoursePermissions(course).ensure_may_edit_roles()
 
-    auth.CoursePermissions(course_id=course_id).ensure_may_edit_roles()
-
-    ensure_keys_in_dict(content, [('value', bool), ('permission', str)])
-    value = t.cast(bool, content['value'])
-    permission_name = t.cast(str, content['permission'])
-    permission = CPerm.get_by_name(permission_name)
+    with helpers.get_from_request_transaction() as [get, _]:
+        value = get('value', bool)
+        permission = get('permission', CPerm)
 
     role = helpers.filter_single_or_404(
         models.CourseRole,
-        models.CourseRole.course_id == course_id,
+        models.CourseRole.course == course,
         models.CourseRole.id == role_id,
         also_error=lambda r: r.hidden,
     )
@@ -245,11 +240,11 @@ def get_all_course_roles(
     :raises PermissionException: If the user can not manage the course with the
                                  given id. (INCORRECT_PERMISSION)
     """
-    auth.CoursePermissions(course_id=course_id).ensure_may_see_roles()
+    course = helpers.get_or_404(models.Course, course_id)
+    auth.CoursePermissions(course).ensure_may_see_roles()
 
-    course_roles: t.Sequence[models.CourseRole]
-    course_roles = models.CourseRole.query.filter_by(
-        course_id=course_id, hidden=False
+    course_roles = models.CourseRole.query.filter(
+        models.CourseRole.course == course, ~models.CourseRole.hidden
     ).order_by(models.CourseRole.name).all()
 
     if request.args.get('with_roles') == 'true':
@@ -296,23 +291,22 @@ def set_course_permission_user(
     .. todo::
         This function should probability be splitted.
     """
-    auth.CoursePermissions(course_id=course_id).ensure_may_edit_users()
-
-    content = get_json_dict_from_request()
-    ensure_keys_in_dict(content, [('role_id', int)])
-    role_id = t.cast(int, content['role_id'])
+    course = helpers.get_or_404(models.Course, course_id)
+    auth.CoursePermissions(course).ensure_may_edit_users()
+    with helpers.get_from_request_transaction() as [get, opt_get]:
+        role_id = get('role_id', int)
+        user_id = opt_get('user_id', int, None)
+        username = opt_get('username', str, None)
 
     role = helpers.filter_single_or_404(
-        models.CourseRole, models.CourseRole.id == role_id,
-        models.CourseRole.course_id == course_id
+        models.CourseRole,
+        models.CourseRole.id == role_id,
+        models.CourseRole.course == course,
     )
 
     res: t.Union[EmptyResponse, JSONResponse[_UserCourse]]
 
-    if 'user_id' in content:
-        with get_from_map_transaction(content) as [get, _]:
-            user_id = get('user_id', int)
-
+    if user_id is not None:
         user = helpers.get_or_404(models.User, user_id)
 
         if user.id == current_user.id:
@@ -323,10 +317,7 @@ def set_course_permission_user(
             )
 
         res = make_empty_response()
-    elif 'username' in content:
-        with get_from_map_transaction(content) as [get, _]:
-            username = get('username', str)
-
+    elif username is not None:
         user = helpers.filter_single_or_404(
             models.User, models.User.username == username
         )
@@ -344,10 +335,11 @@ def set_course_permission_user(
         }, status_code=201)
     else:
         raise APIException(
-            'None of the keys "user_id" or "role_id" were found', (
+            'None of the keys "user_id" or "username" were found', (
                 'The given content ({})'
-                ' does  not contain "user_id" or "user_email"'
-            ).format(content), APICodes.MISSING_REQUIRED_PARAM, 400
+                ' does  not contain "user_id" or "username"'
+            ).format(helpers.get_json_dict_from_request()),
+            APICodes.MISSING_REQUIRED_PARAM, 400
         )
 
     if user.is_test_student:
@@ -384,8 +376,8 @@ def get_all_course_users(
     :>jsonarr CourseRole: The role that this user has.
     :>jsonarrtype CourseRole: :py:class:`~.models.CourseRole`
     """
-    auth.CoursePermissions(course_id=course_id).ensure_may_see_users()
     course = helpers.get_or_404(models.Course, course_id)
+    auth.CoursePermissions(course).ensure_may_see_users()
 
     if 'q' in request.args:
 
@@ -433,13 +425,12 @@ def get_all_course_assignments(
     :raises PermissionException: If the user can not see assignments in the
                                  given course. (INCORRECT_PERMISSION)
     """
-    auth.CoursePermissions(course_id=course_id).ensure_may_see()
-
     course = helpers.get_or_404(
         models.Course,
         course_id,
         also_error=lambda c: c.virtual,
     )
+    auth.CoursePermissions(course).ensure_may_see()
 
     return jsonify(course.get_all_visible_assignments())
 
@@ -526,7 +517,17 @@ def get_courses() -> t.Union[JSONResponse[t.List[models.Course]],
         models.Course.query.filter(
             auth.CoursePermissions.ensure_may_see_filter()
         )
-    ).order_by(models.Course.created_at.desc(), models.Course.name)
+    ).order_by(
+        sql_expression.case(
+            [
+                (models.Course.state.is_visible, 0),
+                (models.Course.state.is_archived, 1)
+            ],
+            else_=2,
+        ),
+        models.Course.created_at.desc(),
+        models.Course.name,
+    )
 
     psef.current_user.load_all_permissions()
 
@@ -727,9 +728,8 @@ def get_course_snippets(course_id: int
     :raises PermissionException: If the user can not manage snippets for this
         course. (INCORRECT_PERMISSION)
     """
-    auth.CoursePermissions(course_id=course_id).ensure_may_see_snippets()
-
     course = helpers.get_or_404(models.Course, course_id)
+    auth.CoursePermissions(course).ensure_may_see_snippets()
     return jsonify(course.snippets)
 
 
@@ -744,8 +744,8 @@ def create_course_snippet(course_id: int
 
     :returns: A response containing the JSON serialized snippet and return
               code 201.
-    :<json str value: The new value of the snippet.
-    :<json str key: The key of the new or existing snippet.
+    :>json str value: The new value of the snippet.
+    :>json str key: The key of the new or existing snippet.
 
     :raises APIException: If the parameters "key", "value", and/or "course_id"
         were not in the request. (MISSING_REQUIRED_PARAM)
@@ -753,12 +753,9 @@ def create_course_snippet(course_id: int
     :raises PermissionException: If the user can not use snippets
         (INCORRECT_PERMISSION)
     """
-    auth.CoursePermissions(course_id=course_id).ensure_may_edit_snippets()
-
-    content = get_json_dict_from_request()
-    ensure_keys_in_dict(content, [('value', str), ('key', str)])
-    key = t.cast(str, content['key'])
-    value = t.cast(str, content['value'])
+    with helpers.get_from_request_transaction() as [get, _]:
+        value = get('value', str)
+        key = get('key', str)
 
     course = helpers.get_or_404(
         models.Course,
@@ -766,6 +763,8 @@ def create_course_snippet(course_id: int
         with_for_update=True,
         with_for_update_of=models.Course,
     )
+    auth.CoursePermissions(course).ensure_may_edit_snippets()
+
     snippet = models.CourseSnippet.query.filter_by(
         course=course,
         key=key,
@@ -799,8 +798,8 @@ def patch_course_snippet(course_id: int, snippet_id: int) -> EmptyResponse:
     :param int snippet_id: The id of the snippet to change.
     :returns: An empty response with return code 204.
 
-    :<json str key: The new key of the snippet.
-    :<json str value: The new value of the snippet.
+    :>json str key: The new key of the snippet.
+    :>json str value: The new value of the snippet.
 
     :raises APIException: If the parameters "key" and/or "value" were not in
         the request. (MISSING_REQUIRED_PARAM)
@@ -812,12 +811,9 @@ def patch_course_snippet(course_id: int, snippet_id: int) -> EmptyResponse:
     :raises APIException: If another snippet with the same key already exists.
         (OBJECT_ALREADY_EXISTS)
     """
-    auth.CoursePermissions(course_id=course_id).ensure_may_edit_snippets()
-
-    content = get_json_dict_from_request()
-    ensure_keys_in_dict(content, [('key', str), ('value', str)])
-    key = t.cast(str, content['key'])
-    value = t.cast(str, content['value'])
+    with helpers.get_from_request_transaction() as [get, _]:
+        value = get('value', str)
+        key = get('key', str)
 
     course = helpers.get_or_404(
         models.Course,
@@ -825,6 +821,8 @@ def patch_course_snippet(course_id: int, snippet_id: int) -> EmptyResponse:
         with_for_update=True,
         with_for_update_of=models.Course
     )
+    auth.CoursePermissions(course).ensure_may_edit_snippets()
+
     snip = helpers.get_or_404(
         models.CourseSnippet,
         snippet_id,
@@ -873,14 +871,14 @@ def delete_course_snippets(course_id: int, snippet_id: int) -> EmptyResponse:
     :raises PermissionException: If the user can not use snippets.
         (INCORRECT_PERMISSION)
     """
-    auth.CoursePermissions(course_id=course_id).ensure_may_edit_snippets()
-
     course = helpers.get_or_404(
         models.Course,
         course_id,
         with_for_update=True,
         with_for_update_of=models.Course
     )
+    auth.CoursePermissions(course).ensure_may_edit_snippets()
+
     snip = helpers.get_or_404(
         models.CourseSnippet,
         snippet_id,
@@ -903,10 +901,10 @@ def get_registration_links(
     :param course_id: The course id for which to get the registration links.
     :returns: An array of registration links.
     """
-    auth.CoursePermissions(course_id=course_id).ensure_may_edit_users()
     course = helpers.get_or_404(
         models.Course, course_id, also_error=lambda c: c.virtual
     )
+    auth.CoursePermissions(course).ensure_may_edit_users()
     return jsonify(course.registration_links)
 
 
@@ -926,10 +924,10 @@ def delete_registration_link(
     :param link_id: The id of the registration link.
     :returns: Nothing.
     """
-    auth.CoursePermissions(course_id=course_id).ensure_may_edit_users()
     course = helpers.get_or_404(
         models.Course, course_id, also_error=lambda c: c.virtual
     )
+    auth.CoursePermissions(course).ensure_may_edit_users()
     link = helpers.get_or_404(
         models.CourseRegistrationLink,
         link_id,
@@ -958,10 +956,10 @@ def create_or_edit_registration_link(
         will be interpret as a UTC date.
     :returns: The created or edited link.
     """
-    auth.CoursePermissions(course_id=course_id).ensure_may_edit_users()
     course = helpers.get_or_404(
         models.Course, course_id, also_error=lambda c: c.virtual
     )
+    auth.CoursePermissions(course).ensure_may_edit_users()
     if course.is_lti:
         raise APIException(
             'You cannot create course enroll links in LTI courses',
@@ -1271,8 +1269,8 @@ def get_user_submissions(
         and the logged in user does not have the permission to see others work.
         (INCORRECT_PERMISSION)
     """
-    auth.CoursePermissions(course_id=course_id).ensure_may_see()
     course = helpers.get_or_404(models.Course, course_id)
+    auth.CoursePermissions(course).ensure_may_see()
     assignments = course.get_all_visible_assignments()
 
     user = helpers.get_or_404(models.User, user_id)

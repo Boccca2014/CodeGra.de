@@ -3,6 +3,7 @@
 SPDX-License-Identifier: AGPL-3.0-only
 """
 import copy
+import enum
 import uuid
 import typing as t
 
@@ -11,6 +12,7 @@ from sqlalchemy.orm import selectinload
 from typing_extensions import TypedDict
 
 import psef
+import cg_enum
 from cg_dt_utils import DatetimeWithTimezone
 from cg_typing_extensions import make_typed_dict_extender
 from cg_sqlalchemy_helpers import mixins, expression
@@ -122,7 +124,16 @@ class CourseSnippet(Base):
         }
 
 
-class Course(NotEqualMixin, Base):
+@enum.unique
+class CourseState(cg_enum.CGEnum):
+    """Describes in what state a :class:`.Course` is.
+    """
+    visible = 'visible'
+    archived = 'archived'
+    deleted = 'deleted'
+
+
+class Course(NotEqualMixin, Base, mixins.TimestampMixin, mixins.IdMixin):
     """This class describes a course.
 
     A course can hold a collection of :class:`.Assignment` objects.
@@ -132,13 +143,14 @@ class Course(NotEqualMixin, Base):
     :param lti_provider: The LTI provider
     """
     __tablename__ = "Course"
-    id = db.Column('id', db.Integer, primary_key=True)
     name = db.Column('name', db.Unicode, nullable=False)
 
-    created_at = db.Column(
-        db.TIMESTAMP(timezone=True),
-        default=DatetimeWithTimezone.utcnow,
+    state = db.Column(
+        'state',
+        cg_enum.CGDbEnum(CourseState),
         nullable=False,
+        default=CourseState.visible,
+        server_default=CourseState.visible.name,
     )
 
     course_lti_provider = db.relationship(
@@ -169,6 +181,7 @@ class Course(NotEqualMixin, Base):
         cascade='all,delete',
         uselist=True,
         order_by=lambda: psef.models.GroupSet.created_at,
+        lazy='select',
     )
 
     snippets = db.relationship(
@@ -186,6 +199,7 @@ class Course(NotEqualMixin, Base):
         cascade='all,delete',
         uselist=True,
         order_by=lambda: CourseRegistrationLink.created_at,
+        lazy='select',
     )
 
     assignments = db.relationship(
@@ -193,6 +207,7 @@ class Course(NotEqualMixin, Base):
         back_populates="course",
         cascade='all,delete',
         uselist=True,
+        lazy='select',
     )
 
     class AsJSON(TypedDict, total=True):

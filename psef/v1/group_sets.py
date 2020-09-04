@@ -38,7 +38,7 @@ def create_group(group_set_id: int) -> ExtendedJSONResponse[models.Group]:
     # The permissions in this function are not really easy to fit into the
     # permission checker class model. So simply check if the user can see the
     # course here.
-    auth.CoursePermissions(course_id=group_set.course_id).ensure_may_see()
+    auth.CoursePermissions(group_set.course).ensure_may_see()
     auth.ensure_permission(CPerm.can_create_groups, group_set.course_id)
 
     with helpers.get_from_request_transaction() as [get, opt_get]:

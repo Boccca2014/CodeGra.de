@@ -212,12 +212,13 @@ class PermissionChecker:
 class CoursePermissionChecker(PermissionChecker):
     """The base permission checker class for course related permissions.
     """
-    __slots__ = ('course_id', )
+    __slots__ = ('course', 'course_id')
 
-    def __init__(self, course_id: int) -> None:
+    def __init__(self, course: 'psef.models.Course') -> None:
         super().__init__()
 
-        self.course_id: Final = course_id
+        self.course: Final = course
+        self.course_id: Final = course.id
 
     @staticmethod
     def as_ensure_function(
@@ -238,7 +239,7 @@ class CoursePermissionChecker(PermissionChecker):
         return _PermissionCheckFunction(__inner)
 
     def _ensure_course_visible(self) -> None:
-        _ensure_course_visible_for_current_user(self.course_id)
+        _ensure_course_visible_for_current_user(self.course)
 
     def _global_ensure(self, perm: GPerm) -> None:
         ensure_permission(perm, user=self.user)
@@ -312,7 +313,11 @@ class GlobalPermissionChecker(PermissionChecker):
 
 @jwt.user_loader_callback_loader
 def _load_user(user_id: int) -> t.Optional['psef.models.User']:
-    return psef.models.User.query.get(int(user_id))
+    return psef.models.User.query.options(
+        sqlalchemy.orm.selectinload(psef.models.User.courses).joinedload(
+            psef.models.CourseRole.course
+        )
+    ).get(int(user_id))
 
 
 def _resolve_user(user: t.Union[None, LocalProxy, 'psef.models.User']
@@ -386,7 +391,9 @@ def ensure_logged_in(
 
 
 @cache_within_request
-def _ensure_course_visible_for_current_user(course_id: int) -> None:
+def _ensure_course_visible_for_current_user(
+    course: 'psef.models.Course'
+) -> None:
     """Ensure that the current user is enrolled in the given course.
 
     This function also checks if the scope of the logged in user is correct for
@@ -400,12 +407,19 @@ def _ensure_course_visible_for_current_user(course_id: int) -> None:
     err_msg = None
     user = _get_cur_user()
 
-    if user.is_enrolled(course_id):
+    if user.is_enrolled(course):
         for_course = flask_jwt.get_jwt_claims().get('for_course')
-        if for_course is not None and for_course != course_id:
+        state = course.state
+        if for_course is not None and for_course != course.id:
             err_msg = (
                 'You are not allowed to see this course with the provided'
                 ' token'
+            )
+        elif state.is_deleted:
+            err_msg = 'This course is deleted, so you may not see it'
+        elif state.is_archived:
+            ensure_permission(
+                CPerm.can_see_archived_courses, course_id=course.id, user=user
             )
     else:
         err_msg = 'You are not enrolled in this course'
@@ -413,7 +427,7 @@ def _ensure_course_visible_for_current_user(course_id: int) -> None:
     if err_msg is not None:
         raise PermissionException(
             err_msg,
-            f'The user "{user.id}" is not enrolled in course "{course_id}"',
+            f'The user "{user.id}" is not enrolled in course "{course.id}"',
             APICodes.INCORRECT_PERMISSION, 403
         )
 
@@ -707,12 +721,12 @@ def ensure_can_view_autotest_step_details(
     :param step: The step for which we have to check the permission.
     :returns: Nothing.
     """
-    course_id = step.suite.auto_test_set.auto_test.assignment.course_id
-    _ensure_course_visible_for_current_user(course_id)
+    course = step.suite.auto_test_set.auto_test.assignment.course
+    _ensure_course_visible_for_current_user(course)
 
-    ensure_permission(CPerm.can_view_autotest_step_details, course_id)
+    ensure_permission(CPerm.can_view_autotest_step_details, course.id)
     if step.hidden:
-        ensure_permission(CPerm.can_view_hidden_autotest_steps, course_id)
+        ensure_permission(CPerm.can_view_hidden_autotest_steps, course.id)
 
 
 @login_required
@@ -728,23 +742,23 @@ def ensure_can_view_files(
         files.
     """
     cur_user = _get_cur_user()
-    course_id = work.assignment.course_id
+    course = work.assignment.course
 
     if teacher_files:
         if work.has_as_author(cur_user) and work.assignment.is_done:
-            ensure_permission(CPerm.can_view_own_teacher_files, course_id)
+            ensure_permission(CPerm.can_view_own_teacher_files, course.id)
         else:
             # If the assignment is not done you can only view teacher files
             # if you can edit somebodies work.
-            ensure_permission(CPerm.can_edit_others_work, course_id)
+            ensure_permission(CPerm.can_edit_others_work, course.id)
 
     try:
-        _ensure_course_visible_for_current_user(course_id)
+        _ensure_course_visible_for_current_user(course)
         if not work.has_as_author(cur_user):
             try:
                 ensure_any_of_permissions(
                     [CPerm.can_see_others_work, CPerm.can_view_plagiarism],
-                    course_id,
+                    course.id,
                 )
             except PermissionException:
                 if not work.is_peer_reviewed_by(cur_user):
@@ -782,8 +796,8 @@ def ensure_can_edit_members_of_group(
     :raises PermissionException: If the current user cannot edit the given
         group.
     """
-    course_id = group.group_set.course_id
-    _ensure_course_visible_for_current_user(course_id)
+    course = group.group_set.course
+    _ensure_course_visible_for_current_user(course)
 
     perms = [CPerm.can_edit_others_groups]
     if all(member.id == _get_cur_user().id for member in members):
@@ -791,13 +805,13 @@ def ensure_can_edit_members_of_group(
 
     ensure_any_of_permissions(
         perms,
-        group.group_set.course_id,
+        course.id,
     )
 
-    if not all(member.is_enrolled(course_id) for member in members):
+    if not all(member.is_enrolled(course) for member in members):
         raise APIException(
             'The given user is not enrolled in this course',
-            f'Some members are not enrolled in course {course_id}',
+            f'Some members are not enrolled in course {course.id}',
             APICodes.INVALID_PARAM, 400
         )
     elif any(member.is_test_student for member in members):
@@ -829,7 +843,7 @@ class WorksByUserPermissions(CoursePermissionChecker):
     def __init__(
         self, assignment: 'psef.models.Assignment', author: 'psef.models.User'
     ):
-        super().__init__(course_id=assignment.course_id)
+        super().__init__(assignment.course)
         self.assignment = assignment
         self.author = author
 
@@ -860,7 +874,7 @@ class WorkPermissions(CoursePermissionChecker):
     __slots__ = ('work', )
 
     def __init__(self, work: 'psef.models.Work'):
-        super().__init__(course_id=work.assignment.course_id)
+        super().__init__(work.assignment.course)
         self.work = work
 
     def _is_my_work(self) -> bool:
@@ -974,7 +988,7 @@ class CodePermisisons(CoursePermissionChecker):
     __slots__ = ('code', )
 
     def __init__(self, code: 'psef.models.File') -> None:
-        super().__init__(code.work.assignment.course_id)
+        super().__init__(code.work.assignment.course)
         self.code: Final = code
 
     def ensure_may_see(self) -> None:
@@ -1000,7 +1014,7 @@ class FeedbackBasePermissions(CoursePermissionChecker):
     __slots__ = ('base', )
 
     def __init__(self, base: 'psef.models.CommentBase'):
-        super().__init__(course_id=base.work.assignment.course_id)
+        super().__init__(base.work.assignment.course)
         self.base: Final = base
 
     @CoursePermissionChecker.as_ensure_function
@@ -1022,9 +1036,7 @@ class FeedbackReplyPermissions(CoursePermissionChecker):
     __slots__ = ('reply', )
 
     def __init__(self, reply: 'psef.models.CommentReply'):
-        super().__init__(
-            course_id=reply.comment_base.work.assignment.course_id
-        )
+        super().__init__(reply.comment_base.work.assignment.course)
         self.reply: Final = reply
 
     @property
@@ -1167,7 +1179,7 @@ class NotificationPermissions(CoursePermissionChecker):
 
     def __init__(self, notification: 'psef.models.Notification'):
         work = notification.comment_reply.comment_base.work
-        super().__init__(course_id=work.assignment.course_id)
+        super().__init__(work.assignment.course)
 
         self.work: Final = work
         self.notification: Final = notification
@@ -1205,7 +1217,7 @@ class AnalyticsWorkspacePermissions(CoursePermissionChecker):
     def __init__(
         self, analytics_workspace: 'psef.models.AnalyticsWorkspace'
     ) -> None:
-        super().__init__(analytics_workspace.assignment.course_id)
+        super().__init__(analytics_workspace.assignment.course)
         self.workspace = analytics_workspace
 
     @CoursePermissionChecker.as_ensure_function
@@ -1221,22 +1233,8 @@ class CoursePermissions(CoursePermissionChecker):
     """
     __slots__ = ('_course', )
 
-    @t.overload
-    def __init__(self, *, course_id: int) -> None:
-        ...
-
-    @t.overload
     def __init__(self, course: 'psef.models.Course') -> None:
-        ...
-
-    def __init__(
-        self, course: 'psef.models.Course' = None, *, course_id: int = None
-    ) -> None:
-        if course_id is None:
-            assert course is not None
-            course_id = course.id
-        super().__init__(course_id)
-        self._course = course
+        super().__init__(course)
 
     @staticmethod
     def ensure_may_see_filter() -> FilterColumn:
@@ -1248,15 +1246,30 @@ class CoursePermissions(CoursePermissionChecker):
             return sql_expression.false()
 
         course_ids = [cr.course_id for cr in user.courses.values()]
-        base = psef.models.Course.id.in_(course_ids)
+        conditions = [
+            psef.models.Course.id.in_(course_ids),
+            sql_expression.case(
+                [
+                    (
+                        psef.models.Course.state.is_visible,
+                        True,
+                    ),
+                    (
+                        psef.models.Course.state.is_archived,
+                        psef.models.CourseRole.get_has_permission_filter(
+                            CPerm.can_see_archived_courses
+                        ),
+                    ),
+                ],
+                else_=False,
+            ),
+        ]
 
         for_course = flask_jwt.get_jwt_claims().get('for_course')
         if for_course is not None:
-            return sql_expression.and_(
-                base,
-                psef.models.Course.id == for_course,
-            )
-        return base
+            conditions.append(psef.models.Course.id == for_course)
+
+        return sql_expression.and_(*conditions)
 
     @CoursePermissionChecker.as_ensure_function
     def ensure_may_see(self) -> None:
@@ -1313,7 +1326,7 @@ class AssignmentPermissions(CoursePermissionChecker):
     __slots__ = ('assignment', )
 
     def __init__(self, assignment: 'psef.models.Assignment') -> None:
-        super().__init__(assignment.course_id)
+        super().__init__(assignment.course)
         self.assignment: Final = assignment
 
     @CoursePermissionChecker.as_ensure_function
@@ -1426,7 +1439,7 @@ class LinterPermissions(CoursePermissionChecker):
     __slots__ = ('linter', )
 
     def __init__(self, linter: 'psef.models.AssignmentLinter') -> None:
-        super().__init__(linter.assignment.course_id)
+        super().__init__(linter.assignment.course)
         self.linter: Final = linter
 
     @CoursePermissionChecker.as_ensure_function
@@ -1448,7 +1461,7 @@ class GroupSetPermissions(CoursePermissionChecker):
     __slots__ = ('group_set', )
 
     def __init__(self, group_set: 'psef.models.GroupSet') -> None:
-        super().__init__(group_set.course_id)
+        super().__init__(group_set.course)
         self.group_set: Final = group_set
 
     @CoursePermissionChecker.as_ensure_function
@@ -1482,7 +1495,7 @@ class GroupPermissions(CoursePermissionChecker):
     __slots__ = ('group', )
 
     def __init__(self, group: 'psef.models.Group') -> None:
-        super().__init__(group.group_set.course_id)
+        super().__init__(group.group_set.course)
         self.group: Final = group
 
     @property
@@ -1521,7 +1534,7 @@ class AutoTestPermissions(CoursePermissionChecker):
     __slots__ = ('auto_test', )
 
     def __init__(self, auto_test: 'psef.models.AutoTest') -> None:
-        super().__init__(auto_test.assignment.course_id)
+        super().__init__(auto_test.assignment.course)
         self.auto_test: Final = auto_test
 
     @CoursePermissionChecker.as_ensure_function
@@ -1556,7 +1569,7 @@ class AutoTestFixturePermissions(CoursePermissionChecker):
 
     def __init__(self, fixture: 'psef.models.AutoTestFixture') -> None:
         auto_test = fixture.auto_test
-        super().__init__(auto_test.assignment.course_id)
+        super().__init__(auto_test.assignment.course)
         self.fixture: Final = fixture
         self._auto_test_checker: Final = AutoTestPermissions(auto_test)
 
@@ -1586,7 +1599,7 @@ class AutoTestRunPermissions(CoursePermissionChecker):
     __slots__ = ('run', )
 
     def __init__(self, run: 'psef.models.AutoTestRun') -> None:
-        super().__init__(run.auto_test.assignment.course_id)
+        super().__init__(run.auto_test.assignment.course)
         self.run: Final = run
 
     @CoursePermissionChecker.as_ensure_function
@@ -1614,7 +1627,7 @@ class AutoTestResultPermissions(CoursePermissionChecker):
     __slots__ = ('result', )
 
     def __init__(self, result: 'psef.models.AutoTestResult') -> None:
-        super().__init__(result.run.auto_test.assignment.course_id)
+        super().__init__(result.run.auto_test.assignment.course)
         self.result: Final = result
 
     @CoursePermissionChecker.as_ensure_function
@@ -1659,7 +1672,7 @@ class PlagiarismCasePermissions(CoursePermissionChecker):
     __slots__ = ('case', '_assignment_id')
 
     def __init__(self, case: 'psef.models.PlagiarismCase') -> None:
-        super().__init__(case.plagiarism_run.assignment.course_id)
+        super().__init__(case.plagiarism_run.assignment.course)
         self._assignment_id: Final = case.plagiarism_run.assignment_id
         self.case: Final = case
 

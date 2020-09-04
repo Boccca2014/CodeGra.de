@@ -159,7 +159,9 @@ else:
     Base = db.Model  # pylint: disable=invalid-name
 
 if True:  # pylint: disable=using-constant-test
-    from .course import Course, CourseSnippet, CourseRegistrationLink
+    from .course import (
+        Course, CourseSnippet, CourseRegistrationLink, CourseState
+    )
     from .assignment import (
         Assignment, AssignmentLinter, AssignmentResult, AssignmentDoneType,
         AssignmentGraderDone, AssignmentAssignedGrader, AssignmentStateEnum,

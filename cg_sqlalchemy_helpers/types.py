@@ -14,6 +14,7 @@ from datetime import timedelta
 
 from typing_extensions import Literal, Protocol
 
+import cg_enum
 import cg_dt_utils
 
 T = t.TypeVar('T')
@@ -268,6 +269,19 @@ class MyDb:  # pragma: no cover
         index: bool = False,
         nullable: Literal[False] = False,
     ) -> 'ColumnProxy[T]':
+        ...
+
+    @t.overload
+    def Column(
+        self,
+        name: str,
+        type_: 'cg_enum.CGDbEnum[cg_enum.ENUM]',
+        *,
+        default: 'cg_enum.ENUM',
+        index: bool = False,
+        nullable: Literal[False] = False,
+        server_default: str = None,
+    ) -> '_ImmutableColumnProxy[cg_enum.ENUM, CGDbColumn[cg_enum.ENUM]]':
         ...
 
     @t.overload
@@ -606,6 +620,11 @@ class IndexedJSONColumn(DbColumn[Never]):
         ...
 
 
+class CGDbColumn(t.Generic[cg_enum.ENUM], DbColumn[cg_enum.ENUM]):
+    def __getattr__(self, name: str) -> Never:
+        ...
+
+
 class ExistsColumn:
     def __invert__(self) -> 'ExistsColumn':
         ...
@@ -909,6 +928,15 @@ if t.TYPE_CHECKING and MYPY:
         @staticmethod
         def literal(value: T) -> DbColumn[T]:
             ...
+
+        @staticmethod
+        def case(
+            whens: t.List[t.Tuple[FilterColumn, t.Union[T, DbColumn[T]]]],
+            *,
+            else_: ZZ = None
+        ) -> DbColumn[t.Union[T, ZZ]]:
+            ...
+
 else:
     from sqlalchemy.ext.hybrid import hybrid_property
     from sqlalchemy.ext.hybrid import Comparator as _Comparator

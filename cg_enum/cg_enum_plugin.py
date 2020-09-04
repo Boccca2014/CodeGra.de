@@ -21,6 +21,38 @@ def _enum_has(enum: t.Any, attr: str) -> bool:
         return False
 
 
+def analyze_is_method_for_db(ctx: AttributeContext) -> Type:
+    """Callback to analyze the ``is_*`` methods on ``CGEnum``s.
+    """
+    typ = ctx.type
+    assert isinstance(ctx.context, MemberExpr)
+    assert isinstance(
+        typ,
+        Instance,
+    ), f'Got strange type: {typ} ({type(typ)})'
+
+    name = ctx.context.name
+    first_arg = typ.args[0]
+    assert isinstance(first_arg, Instance)
+    enum_type = first_arg.type
+    if not name.startswith('is_'):
+        ctx.api.fail(f'The enum {enum_type.name} has no attribute "{name}"',
+                     ctx.context)
+
+    enum_value = name[len('is_'):]
+
+    if not _enum_has(enum_type, enum_value):
+        ctx.api.fail((
+            f'The enum {enum_type.name} has no attribute "{name}" as the enum'
+            f' has no member "{enum_value}"'
+        ), ctx.context)
+
+    return ctx.api.named_generic_type(
+        'cg_sqlalchemy_helpers.types.DbColumn',
+        [ctx.api.named_generic_type('builtins.bool', [])]
+    )
+
+
 def analyze_is_method(ctx: AttributeContext) -> Type:
     """Callback to analyze the ``is_*`` methods on ``CGEnum``s.
     """
@@ -65,6 +97,8 @@ class CgEnumPlugin(Plugin):
     ) -> t.Optional[t.Callable[[AttributeContext], Type]]:
         if fullname.startswith('cg_enum.CGEnum.is_'):
             return analyze_is_method
+        if fullname.startswith(r'cg_sqlalchemy_helpers.types.CGDbColumn'):
+            return analyze_is_method_for_db
         return None
 
 
