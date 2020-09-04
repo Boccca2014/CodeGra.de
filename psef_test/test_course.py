@@ -196,6 +196,9 @@ def test_add_course(
                 'virtual': False,
                 'is_lti': False,
                 'lti_provider': None,
+                'assignments': [],
+                'snippets': [],
+                'group_sets': [],
             }
         )
 

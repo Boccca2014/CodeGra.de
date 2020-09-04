@@ -114,6 +114,8 @@ def init_app(app: 'psef.Flask') -> None:
             res.headers.add('Warning', warning)
         return res
 
+    jsonify_options.init_app(app)
+
 
 def add_warning(warning: str, code: psef.exceptions.APIWarnings) -> None:
     """Add a warning to the current request.
