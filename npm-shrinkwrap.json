@@ -12282,12 +12282,6 @@
             "strip-eof": "^1.0.0"
           }
         },
-        "extend": {
-          "version": "3.0.2",
-          "resolved": "https://registry.npmjs.org/extend/-/extend-3.0.2.tgz",
-          "integrity": "sha512-fjquC59cD7CyW6urNXK0FBufkZcoiGG80wTuPujX590cB5Ttln20E2UB4S/WARVqhXffZl2LNgS+gQdPIIim/g==",
-          "dev": true
-        },
         "extract-zip": {
           "version": "1.6.7",
           "resolved": "https://registry.npmjs.org/extract-zip/-/extract-zip-1.6.7.tgz",
@@ -14901,9 +14895,9 @@
       }
     },
     "extend": {
-      "version": "3.0.1",
-      "resolved": "https://registry.npmjs.org/extend/-/extend-3.0.1.tgz",
-      "integrity": "sha1-p1Xqe8Gt/MWjHOfnYtuq3F5jZEQ="
+      "version": "3.0.2",
+      "resolved": "https://registry.npmjs.org/extend/-/extend-3.0.2.tgz",
+      "integrity": "sha512-fjquC59cD7CyW6urNXK0FBufkZcoiGG80wTuPujX590cB5Ttln20E2UB4S/WARVqhXffZl2LNgS+gQdPIIim/g=="
     },
     "extend-shallow": {
       "version": "3.0.2",
@@ -16467,12 +16461,6 @@
           "requires": {
             "jsbn": "~0.1.0"
           }
-        },
-        "extend": {
-          "version": "3.0.1",
-          "bundled": true,
-          "dev": true,
-          "optional": true
         },
         "extsprintf": {
           "version": "1.0.2",
@@ -22854,12 +22842,6 @@
           "integrity": "sha512-eGuFFw7Upda+g4p+QHvnW0RyTX/SVeJBDM/gCtMARO0cLuT2HcEKnTPvhjV6aGeqrCB/sbNop0Kszm0jsaWU4A==",
           "dev": true
         },
-        "extend": {
-          "version": "3.0.2",
-          "resolved": "https://registry.npmjs.org/extend/-/extend-3.0.2.tgz",
-          "integrity": "sha512-fjquC59cD7CyW6urNXK0FBufkZcoiGG80wTuPujX590cB5Ttln20E2UB4S/WARVqhXffZl2LNgS+gQdPIIim/g==",
-          "dev": true
-        },
         "form-data": {
           "version": "2.3.3",
           "resolved": "https://registry.npmjs.org/form-data/-/form-data-2.3.3.tgz",
@@ -23478,13 +23460,6 @@
           "requires": {
             "delayed-stream": "~1.0.0"
           }
-        },
-        "extend": {
-          "version": "3.0.2",
-          "resolved": "https://registry.npmjs.org/extend/-/extend-3.0.2.tgz",
-          "integrity": "sha512-fjquC59cD7CyW6urNXK0FBufkZcoiGG80wTuPujX590cB5Ttln20E2UB4S/WARVqhXffZl2LNgS+gQdPIIim/g==",
-          "dev": true,
-          "optional": true
         },
         "fast-deep-equal": {
           "version": "3.1.1",
@@ -34399,12 +34374,6 @@
           "version": "2.6.10",
           "resolved": "https://registry.npmjs.org/core-js/-/core-js-2.6.10.tgz",
           "integrity": "sha512-I39t74+4t+zau64EN1fE5v2W31Adtc/REhzWN+gWRRXg6WH5qAsZm62DHpQ1+Yhe4047T55jvzz7MUqF/dBBlA==",
-          "dev": true
-        },
-        "extend": {
-          "version": "3.0.2",
-          "resolved": "https://registry.npmjs.org/extend/-/extend-3.0.2.tgz",
-          "integrity": "sha512-fjquC59cD7CyW6urNXK0FBufkZcoiGG80wTuPujX590cB5Ttln20E2UB4S/WARVqhXffZl2LNgS+gQdPIIim/g==",
           "dev": true
         },
         "fast-deep-equal": {
