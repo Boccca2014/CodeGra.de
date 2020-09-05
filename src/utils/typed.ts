@@ -3,14 +3,14 @@ import moment from 'moment';
 // eslint-disable-next-line
 import type { ICompiledMode } from 'highlightjs';
 import { getLanguage, highlight } from 'highlightjs';
-import Vue from 'vue';
+import Vue, { VNode } from 'vue';
 
 import { Maybe, Nothing } from 'purify-ts/Maybe';
 
 import * as Sentry from '@sentry/browser';
 import { User } from '@/models';
 import { visualizeWhitespace } from './visualize';
-import { defaultdict } from './defaultdict';
+import { DefaultMap } from './defaultdict';
 
 export * from 'purify-ts/Either';
 export * from 'purify-ts/EitherAsync';
@@ -849,12 +849,12 @@ export function sortBy<
 export function groupBy<Y, KK extends KeyLike>(
     arr: ReadonlyArray<Y>,
     mapper: (el: Y, index: number) => KK,
-): Record<KK, Y[]> {
+): ReadonlyMap<KK, Y[]> {
     return arr.reduce((acc, el, index) => {
         const key = mapper(el, index);
-        acc[key].push(el);
+        acc.get(key).push(el);
         return acc;
-    }, defaultdict(() => <Y[]>[]));
+    }, new DefaultMap((_: KK) => <Y[]>[])).getData();
 }
 
 export function vueSet<T extends object, K extends keyof T>(obj: T, key: K, value: T[K]): unknown {
@@ -925,4 +925,8 @@ export function pickKeys<T, K extends keyof T>(obj: T, keys: readonly K[]): Pick
         acc[key] = obj[key];
         return acc;
     }, {} as Pick<T, K>);
+}
+
+export function emptyVNode(): VNode {
+    return { isRootInsert: false, isComment: true };
 }

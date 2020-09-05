@@ -1,0 +1,57 @@
+/* SPDX-License-Identifier: AGPL-3.0-only */
+import { VNode, CreateElement } from 'vue';
+import * as models from '@/models';
+import * as tsx from 'vue-tsx-support';
+import { BBadge } from 'bootstrap-vue'
+import { CoursesStore } from '@/store';
+import { emptyVNode } from '@/utils';
+import p from 'vue-strict-prop';
+
+const maybeMakeBadge = (h: CreateElement, course: models.Course) => {
+    const state = course.state;
+    const cls = "text-small-uppercase align-middle ml-1";
+
+    switch (state) {
+        case models.CourseState.visible:
+            return emptyVNode();
+        case models.CourseState.archived:
+            return <BBadge class={cls}>archived</BBadge>;
+        case models.CourseState.deleted:
+            return <BBadge class={cls}>deleted</BBadge >;
+    }
+};
+
+const CourseName = tsx.component({
+    functional: true,
+
+    props: {
+        course: p(models.Course).required,
+        bold: p(Boolean).default(false),
+    },
+
+    render(h, { props }): VNode {
+        const { course, bold } = props;
+
+        const counts = CoursesStore.courseCounts()[course.name];
+        let extra;
+        if (counts.total.length > 1 && (counts.byYear.get(course.createdAt.year()) ?? []).length > 1) {
+            extra = ` (${course.createdAt.format('YYYY-MM-DD')})`;
+        } else if (counts.total.length > 1) {
+            extra = ` (${course.createdAt.format('YYYY')})`;
+        }
+
+        const title = `${course.name}${extra ?? ''}`
+
+        return <span title={title} class="course-name">
+            <span class="align-middle" style={bold ? 'font-weight: bold' : ''}>
+                {course.name}
+            </span>
+            {maybeMakeBadge(h, course)}
+            {extra && <i class="align-middle">{extra}</i>}
+        </span>
+
+    },
+});
+
+
+export default CourseName;

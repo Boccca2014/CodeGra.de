@@ -435,5 +435,11 @@
     "course_permission": true,
     "short_description": "Archive courses",
     "long_description": "Users will be able to archive courses. After archiving a course users that do not have the \"See archived courses\" permission will no longer be able too see the course."
+  },
+  "can_edit_course_info": {
+    "default_value": false,
+    "course_permission": true,
+    "short_description": "Edit course info",
+    "long_description": "Users with this permission can edit general information of a course, for example the name."
   }
 }

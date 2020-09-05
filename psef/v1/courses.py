@@ -595,6 +595,36 @@ def get_course_by_id(
         return JSONResponse.make(course)
 
 
+@api.route('/courses/<int:course_id>', methods=['PATCH'])
+@auth.login_required
+def update_course(course_id: int) -> ExtendedJSONResponse[models.Course]:
+    course = helpers.get_or_404(models.Course, course_id)
+    checker = auth.CoursePermissions(course)
+    checker.ensure_may_see()
+    with helpers.get_from_request_transaction() as [_, opt_get]:
+        name = opt_get('name', str, None)
+        state = opt_get('state', models.CourseState, None)
+
+    if name is not None:
+        # TODO: disallow this for LTI courses
+        checker.ensure_may_edit_info()
+        course.name = name
+
+    if state is not None:
+        if state.is_deleted:
+            raise APIException(
+                'It is not yet possible to delete a course',
+                'Deleting courses in the API is not yet possible',
+                APICodes.INVALID_PARAM, 409
+            )
+        checker.ensure_may_edit_state()
+        course.state = state
+
+    db.session.commit()
+
+    return ExtendedJSONResponse.make(course, use_extended=models.Course)
+
+
 @api.route('/courses/<int:course_id>/permissions/', methods=['GET'])
 @auth.login_required
 def get_permissions_for_course(

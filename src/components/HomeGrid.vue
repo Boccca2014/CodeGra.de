@@ -48,10 +48,7 @@
                                :style="{ backgroundColor: `${getColorPair(course.name).background} !important` }">
                     <div style="display: flex">
                         <div class="course-name">
-                            <b>{{ course.name }}</b>
-                            <i v-if="courseExtraDataToDisplay[course.id]">
-                                ({{ courseExtraDataToDisplay[course.id] }})
-                            </i>
+                            <course-name :course="course" :bold="true" />
                         </div>
                         <router-link v-if="course.canManage"
                                      :to="manageCourseRoute(course)"
@@ -113,7 +110,6 @@ import 'vue-awesome/icons/gear';
 import InfiniteLoading from 'vue-infinite-loading';
 
 import { hashString } from '@/utils';
-import { Counter } from '@/utils/counter';
 import { INITIAL_COURSES_AMOUNT } from '@/constants';
 
 import AssignmentState from './AssignmentState';
@@ -122,6 +118,7 @@ import Loader from './Loader';
 import LocalHeader from './LocalHeader';
 import CgLogo from './CgLogo';
 import AssignmentListItem from './Sidebar/AssignmentListItem';
+import CourseName from './CourseName';
 
 // We can't use the COLOR_PAIRS from constants.js because that one is slightly
 // different and because we use hashes to index this list that would change most
@@ -151,7 +148,7 @@ const COLOR_PAIRS = [
 
 // The amount of extra courses that should be loaded when we reach the end of
 // the infinite scroll list.
-const EXTRA_COURSES_AMOUNT = INITIAL_COURSES_AMOUNT / 2;
+const EXTRA_COURSES_AMOUNT = INITIAL_COURSES_AMOUNT / 3;
 
 export default {
     name: 'home-grid',
@@ -170,28 +167,6 @@ export default {
         ...mapGetters('courses', { courses: 'sortedCourses', retrievedAllCourses: 'retrievedAllCourses' }),
         ...mapGetters('user', { nameOfUser: 'name' }),
         ...mapGetters('pref', ['darkMode']),
-
-        // TODO: This is duplicated in Sidebar/CourseList.vue. We should factor
-        // it out into a Course or CourseCollection model or something.
-        courseExtraDataToDisplay() {
-            const getNameAndYear = c => `${c.name} (${c.created_at.slice(0, 4)})`;
-
-            const courseName = new Counter(this.courses.map(c => c.name));
-            const courseNameAndYear = new Counter(this.courses.map(getNameAndYear));
-
-            return this.courses.reduce((acc, course) => {
-                if (courseName.getCount(course.name) > 1) {
-                    if (courseNameAndYear.getCount(getNameAndYear(course)) > 1) {
-                        acc[course.id] = course.created_at.slice(0, 10);
-                    } else {
-                        acc[course.id] = course.created_at.slice(0, 4);
-                    }
-                } else {
-                    acc[course.id] = null;
-                }
-                return acc;
-            }, {});
-        },
 
         filteredCourses() {
             if (!this.searchString) {
@@ -217,6 +192,9 @@ export default {
         // Are there more courses available. If this is true we should show the
         // infinite loader.
         moreCoursesAvailable() {
+            if (this.courses.length < INITIAL_COURSES_AMOUNT) {
+                return false;
+            }
             if (!this.retrievedAllCourses) {
                 return true;
             }
@@ -321,7 +299,7 @@ export default {
 
             const promises = [this.$afterRerender()];
             const nextToShow = this.amountCoursesToShow + EXTRA_COURSES_AMOUNT;
-            if (Math.min(nextToShow, this.courses.length) > INITIAL_COURSES_AMOUNT) {
+            if (nextToShow > INITIAL_COURSES_AMOUNT) {
                 promises.push(this.loadAllCourses());
             }
 
@@ -349,6 +327,7 @@ export default {
         LocalHeader,
         InfiniteLoading,
         AssignmentListItem,
+        CourseName,
     },
 };
 </script>

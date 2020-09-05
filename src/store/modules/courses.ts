@@ -63,13 +63,43 @@ export namespace CoursesStore {
         'allCourses',
     );
 
-    export const sortedCourses = moduleBuilder.read(
-        state =>
-            utils.sortBy(Object.values(state.courses), course => [course.createdAt, course.name], {
-                reversePerKey: [true, false],
-            }),
-        'sortedCourses',
-    );
+    export const sortedCourses = moduleBuilder.read(state => {
+        const getVisibleNumber = (course: models.Course) => {
+            switch (course.state) {
+                case models.CourseState.visible:
+                    return 0;
+                case models.CourseState.archived:
+                    return 1;
+                case models.CourseState.deleted:
+                    return 2;
+                default:
+                    return utils.AssertionError.assertNever(course.state);
+            }
+        };
+
+        return utils.sortBy(
+            Object.values(state.courses),
+            course => [getVisibleNumber(course), course.createdAt, course.name],
+            { reversePerKey: [false, true, false] },
+        );
+    }, 'sortedCourses');
+
+    export const courseCounts = moduleBuilder.read(() => {
+        const byName = utils.groupBy(sortedCourses(), course => course.name);
+        const res: {
+            [name: string]: {
+                total: models.Course[];
+                byYear: ReadonlyMap<number, models.Course[]>;
+            };
+        } = {};
+        byName.forEach(courses => {
+            res[courses[0].name] = {
+                total: courses,
+                byYear: utils.groupBy(courses, course => course.createdAt.year()),
+            };
+        });
+        return res;
+    }, 'courseCounts');
 
     export const retrievedAllCourses = moduleBuilder.read(
         state => state.gotAllCourses,
@@ -345,6 +375,15 @@ export namespace CoursesStore {
         addCourse({ course: response.data });
         return response;
     }, 'createCourse');
+
+    export const patchCourse = moduleBuilder.dispatch(
+        async (_, payload: { courseId: number; data: api.courses.PatchableProps }) => {
+            const response = await api.courses.patch(payload.courseId, payload.data);
+            addCourse({ course: response.data });
+            return response;
+        },
+        'patchCourse',
+    );
 }
 
 export function onDone(store: Store<RootState>) {

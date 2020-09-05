@@ -97,7 +97,8 @@ export type CoursePermissionOptions =
     | 'can_edit_peer_feedback_settings'
     | 'can_receive_login_links'
     | 'can_see_archived_courses'
-    | 'can_archive_courses';
+    | 'can_archive_courses'
+    | 'can_edit_course_info';
 const makeCPerm = (value: CoursePermissionOptions, name: string, description: string, warning: string | null) => ({ value, name, description, warning });
 export const CoursePermission = {
     canSubmitOthersWork: makeCPerm('can_submit_others_work', 'Submit others work', 'Users with this permission can submit work to an assignment for other users. This means they can submit work that will have another user as the author.', null),
@@ -162,6 +163,7 @@ export const CoursePermission = {
     canReceiveLoginLinks: makeCPerm('can_receive_login_links', 'Receive login links', 'Users with this permission will receive login links if this is enabled for the assignment. You should not give this permission to users with powerful permissions (such as "Can grade work").', null),
     canSeeArchivedCourses: makeCPerm('can_see_archived_courses', 'See archived courses', 'Users will be able to see a course that is archived. Users that do not have this permission will not be able to see any data (e.g. submissions) connected to an archived course.', null),
     canArchiveCourses: makeCPerm('can_archive_courses', 'Archive courses', 'Users will be able to archive courses. After archiving a course users that do not have the "See archived courses" permission will no longer be able too see the course.', null),
+    canEditCourseInfo: makeCPerm('can_edit_course_info', 'Edit course info', 'Users with this permission can edit general information of a course, for example the name.', null),
 };
 export type CoursePermission = typeof CoursePermission[keyof typeof CoursePermission];
 /* eslint-enable */

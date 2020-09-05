@@ -1279,6 +1279,20 @@ class CoursePermissions(CoursePermissionChecker):
         # this permission.
 
     @CoursePermissionChecker.as_ensure_function
+    def ensure_may_edit_info(self) -> None:
+        """Make sure the current user may edit this course's general info.
+        """
+        self.ensure_may_see()
+        self._ensure(CPerm.can_edit_course_info)
+
+    @CoursePermissionChecker.as_ensure_function
+    def ensure_may_edit_state(self) -> None:
+        """Make sure the current user may edit this course's visibility state.
+        """
+        self.ensure_may_see()
+        self._ensure(CPerm.can_archive_courses)
+
+    @CoursePermissionChecker.as_ensure_function
     def ensure_may_see_roles(self) -> None:
         """Ensure the current user may see the roles in this course.
         """

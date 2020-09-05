@@ -31,8 +31,7 @@
 
         <template v-if="!small">
             <small v-if="showCourseName"
-                class="course text-truncate"
-                :title="assignment.course.name">{{ assignment.course.name }}</small>
+                class="course text-truncate"><course-name :course="assignment.course" /></small>
 
             <small v-if="isNotStartedExam" class="deadline">
                 Starts <cg-relative-time :date="assignment.availableAt" />
@@ -62,7 +61,9 @@ import 'vue-awesome/icons/gear';
 import { mapGetters } from 'vuex';
 
 import { AssignmentKind } from '@/models';
-import AssignmentState from '../AssignmentState';
+
+import CourseName from '@/components/CourseName';
+import AssignmentState from '@/components/AssignmentState';
 
 export default {
     name: 'assignment-list-item',
@@ -166,6 +167,7 @@ export default {
     components: {
         Icon,
         AssignmentState,
+        CourseName,
     },
 };
 </script>

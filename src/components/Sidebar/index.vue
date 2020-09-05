@@ -106,9 +106,7 @@
                         <icon :name="i ? 'arrow-left' : 'times'"/>
                     </div>
 
-                    <h4 class="submenu-header">
-                        {{ maybeCall(subMenu.header) }}
-                    </h4>
+                    <h4 class="submenu-header">{{ maybeCall(subMenu.header) }}</h4>
 
                     <div v-if="subMenu.reload || loading"
                          @click="refreshItems"

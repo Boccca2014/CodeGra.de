@@ -228,6 +228,8 @@ class Course(NotEqualMixin, Base, mixins.TimestampMixin, mixins.IdMixin):
         #: The lti provider that manages this course, if ``null`` this is not a
         #: LTI course.
         lti_provider: t.Optional['psef.models.LTIProviderBase']
+        #: The state this course is in.
+        state: CourseState
 
     class AsExtendedJSON(AsJSON, total=True):
         """The way this class will be represented in extended JSON.
@@ -260,6 +262,7 @@ class Course(NotEqualMixin, Base, mixins.TimestampMixin, mixins.IdMixin):
             'is_lti': self.is_lti,
             'virtual': self.virtual,
             'lti_provider': self.lti_provider,
+            'state': self.state,
         }
         if jsonify_options.get_options().add_role_to_course:
             user = psef.current_user

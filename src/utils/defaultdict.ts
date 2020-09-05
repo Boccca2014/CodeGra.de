@@ -14,3 +14,20 @@ export function defaultdict<K extends string | number, V>(factory: (key: K) => V
         },
     });
 }
+
+export class DefaultMap<K, V> {
+    private readonly map: Map<K, V> = new Map();
+
+    constructor(private readonly factory: (key: K) => V) {}
+
+    public get(key: K): V {
+        if (!this.map.has(key)) {
+            this.map.set(key, this.factory(key));
+        }
+        return this.map.get(key) as V;
+    }
+
+    public getData(): ReadonlyMap<K, V> {
+        return this.map;
+    }
+}

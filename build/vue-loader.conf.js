@@ -9,5 +9,9 @@ module.exports = {
             img: 'src',
             image: 'xlink:href'
         }
-    }
+    },
+    // loaders: {
+    //     "ts": "ts-loader",
+    //     "tsx": "babel-loader!ts-loader",
+    // },
 }
