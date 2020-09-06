@@ -70,7 +70,7 @@ module.exports = {
                 {
                     "passPerPreset": false,
                     "presets": [
-                        "@vue/babel-preset-jsx",
+                        "@babel/preset-env",
                     ]
                 }
             ]
