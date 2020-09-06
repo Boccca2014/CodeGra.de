@@ -1,7 +1,7 @@
 import flask
 import pytest
 
-from cg_enum import CGEnum
+from cg_enum import CGEnum, named_equally
 from cg_json import JSONResponse
 
 
@@ -28,3 +28,25 @@ def test_jsonify():
     with flask.Flask(__name__).app_context():
         assert JSONResponse.dump_to_object(Enum.name_a) == 'name_a'
         assert JSONResponse.dump_to_object(Enum.name_b) == 'name_b'
+
+
+def test_name_equally():
+    class EnumOK(CGEnum):
+        name_a = 'name_a'
+        name_b = 'name_b'
+
+    assert named_equally(EnumOK) is EnumOK
+
+    class EnumMisspell(CGEnum):
+        name_a = 'name_a'
+        name_b = 'namee_b'
+
+    with pytest.raises(ValueError):
+        named_equally(EnumMisspell)
+
+    class EnumDups(CGEnum):
+        name_a = 'name_a'
+        name_b = 'name_a'
+
+    with pytest.raises(ValueError):
+        named_equally(EnumDups)

@@ -806,7 +806,7 @@ def _try_to_run_job(
                                 'url': url
                             },
                         ).raise_for_status()
-                    except requests.exceptions.RequestException:
+                    except requests.exceptions.RequestException:  # pragma: no cover
                         pass
                     else:
                         break
