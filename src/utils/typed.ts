@@ -849,12 +849,12 @@ export function sortBy<
 export function groupBy<Y, KK extends KeyLike>(
     arr: ReadonlyArray<Y>,
     mapper: (el: Y, index: number) => KK,
-): ReadonlyMap<KK, Y[]> {
+): DefaultMap<KK, Y[]> {
     return arr.reduce((acc, el, index) => {
         const key = mapper(el, index);
         acc.get(key).push(el);
         return acc;
-    }, new DefaultMap((_: KK) => <Y[]>[])).getData();
+    }, new DefaultMap((_: KK) => <Y[]>[]));
 }
 
 export function vueSet<T extends object, K extends keyof T>(obj: T, key: K, value: T[K]): unknown {

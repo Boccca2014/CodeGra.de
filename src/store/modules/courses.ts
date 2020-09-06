@@ -10,6 +10,7 @@ import * as models from '@/models';
 import { RootState } from '@/store/state';
 import { INITIAL_COURSES_AMOUNT } from '@/constants';
 
+import { DefaultMap } from '@/utils/defaultdict';
 import { AssignmentsStore } from './assignments';
 
 const storeBuilder = getStoreBuilder<RootState>();
@@ -84,22 +85,35 @@ export namespace CoursesStore {
         );
     }, 'sortedCourses');
 
-    export const courseCounts = moduleBuilder.read(() => {
-        const byName = utils.groupBy(sortedCourses(), course => course.name);
-        const res: {
-            [name: string]: {
-                total: models.Course[];
-                byYear: ReadonlyMap<number, models.Course[]>;
-            };
-        } = {};
-        byName.forEach(courses => {
-            res[courses[0].name] = {
-                total: courses,
-                byYear: utils.groupBy(courses, course => course.createdAt.year()),
+    type CourseCounts = Readonly<{
+        total: readonly number[];
+        byYear: DefaultMap<number, readonly number[]>;
+    }>;
+
+    // eslint-disable-next-line
+    function _getCourseCounts(_: CoursesState): (course: models.Course) => CourseCounts {
+        // eslint-disable-next-line
+        const lookup = new DefaultMap((name: string) => {
+            // eslint-disable-next-line
+            const byYear: DefaultMap<number, number[]> = new DefaultMap((year: number) => []);
+            return {
+                total: [] as number[],
+                byYear,
             };
         });
-        return res;
-    }, 'courseCounts');
+
+        sortedCourses().forEach(course => {
+            const value = lookup.get(course.name);
+            value.total.push(course.id);
+            value.byYear.get(course.createdAt.year()).push(course.id);
+        });
+
+        return function getCourseCounts(course: models.Course) {
+            return lookup.get(course.name);
+        };
+    }
+
+    export const getCourseCounts = moduleBuilder.read(_getCourseCounts, 'getCourseCounts');
 
     export const retrievedAllCourses = moduleBuilder.read(
         state => state.gotAllCourses,

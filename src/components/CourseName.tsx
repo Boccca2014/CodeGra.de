@@ -32,9 +32,14 @@ const CourseName = tsx.component({
     render(h, { props }): VNode {
         const { course, bold } = props;
 
-        const counts = CoursesStore.courseCounts()[course.name];
+        const counts = CoursesStore.getCourseCounts()(course);
+        // XXX: This has a problem: we don't load all courses at once, so we
+        // don't actually know if these counts are correct. However with
+        // archiving it might be way more clear which course is which. We could
+        // also simply add the year to the course unconditionally (maybe check
+        // if it isn't already in the name?).
         let extra;
-        if (counts.total.length > 1 && (counts.byYear.get(course.createdAt.year()) ?? []).length > 1) {
+        if (counts.total.length > 1 && counts.byYear.get(course.createdAt.year()).length > 1) {
             extra = ` (${course.createdAt.format('YYYY-MM-DD')})`;
         } else if (counts.total.length > 1) {
             extra = ` (${course.createdAt.format('YYYY')})`;

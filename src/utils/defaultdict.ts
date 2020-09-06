@@ -15,7 +15,7 @@ export function defaultdict<K extends string | number, V>(factory: (key: K) => V
     });
 }
 
-export class DefaultMap<K, V> {
+export class DefaultMap<K, V> implements ReadonlyMap<K, V> {
     private readonly map: Map<K, V> = new Map();
 
     constructor(private readonly factory: (key: K) => V) {}
@@ -27,7 +27,34 @@ export class DefaultMap<K, V> {
         return this.map.get(key) as V;
     }
 
-    public getData(): ReadonlyMap<K, V> {
-        return this.map;
+    public has(key: K): boolean {
+        return this.map.has(key);
+    }
+
+    public forEach(
+        callbackfn: (value: V, key: K, map: ReadonlyMap<K, V>) => void,
+        thisArg?: any,
+    ): void {
+        this.map.forEach(callbackfn, thisArg);
+    }
+
+    get size(): number {
+        return this.map.size;
+    }
+
+    public entries() {
+        return this.map.entries();
+    }
+
+    public keys() {
+        return this.map.keys();
+    }
+
+    public values() {
+        return this.map.values();
+    }
+
+    public [Symbol.iterator]() {
+        return this.map[Symbol.iterator]();
     }
 }
