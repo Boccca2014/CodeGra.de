@@ -47,9 +47,7 @@
                 <b-card-header :class="`text-${getColorPair(course.name).color}`"
                                :style="{ backgroundColor: `${getColorPair(course.name).background} !important` }">
                     <div style="display: flex">
-                        <div class="course-name">
-                            <course-name :course="course" :bold="true" />
-                        </div>
+                        <course-name :course="course" :bold="true" />
                         <router-link v-if="course.canManage"
                                      :to="manageCourseRoute(course)"
                                      v-b-popover.window.top.hover="'Manage course'"

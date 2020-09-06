@@ -47,6 +47,7 @@ context('Manage Course', () => {
     it('should be possible to add users to the course without the can_search_users permission', () => {
         cy.setSitePermission('can_search_users', 'Admin', false);
         cy.reload();
+        cy.openCategory('Members');
 
         cy.get('input.user-selector').type('Devin');
         cy.get('.add-student .dropdown .btn').click();

@@ -11,7 +11,6 @@ export default Vue.extend({
 
     props: {
         date: p(Object as () => moment.Moment).validator(moment.isMoment).required,
-        now: p(Object as () => moment.Moment).validator(moment.isMoment).required,
     },
 
     render(h, ctx) {

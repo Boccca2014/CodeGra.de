@@ -508,6 +508,8 @@ context('Sidebar', () => {
         it('should not crash the manage course page', () => {
             cy.login('admin', 'admin', `/courses/${course.id}`);
 
+            cy.openCategory('Members');
+
             cy.get('.page.manage-course')
                 .should('be.visible')
                 .find('.users-manager')

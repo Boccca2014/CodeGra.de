@@ -48,15 +48,15 @@ context('HomeGrid', () => {
         }).then(() => {
             cy.visit('/');
 
-            cy.get(`.course-name:contains(${name1})`).should('have.length', 2);
-            cy.get(`.course-name:contains(${name1})`).should('contain', now);
+            cy.get(`.home-grid .course-name:contains(${name1})`).should('have.length', 2);
+            cy.get(`.home-grid .course-name:contains(${name1})`).should('contain', now);
 
             // There should be a course with name2
-            cy.get(`.course-name:contains(${name2})`).should('have.length', 1);
+            cy.get(`.home-grid .course-name:contains(${name2})`).should('have.length', 1);
 
             // But it should not include the date in any way
-            cy.get(`.course-name:contains(${name2})`).should('not.contain', '()');
-            cy.get(`.course-name:contains(${name2})`).should('not.contain', now);
+            cy.get(`.home-grid .course-name:contains(${name2})`).should('not.contain', '()');
+            cy.get(`.home-grid .course-name:contains(${name2})`).should('not.contain', now);
         });
     });
 });
