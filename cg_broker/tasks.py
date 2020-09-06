@@ -62,11 +62,8 @@ def maybe_kill_unneeded_runner(runner_hex_id: str) -> None:
                 app.config['RUNNER_MAX_TIME_ALIVE'] + random.randint(0, 15)
             )
         )
-        if not runner.is_before_run:
-            logger.info(
-                'Runner has already finished running',
-                runner_state=runner.state
-            )
+        if runner.state not in models.RunnerState.get_before_running_states():
+            logger.info('Runner is running', runner_state=runner.state)
             return
         elif utils.maybe_delay_current_task(should_run_date):
             return

@@ -620,7 +620,7 @@ class AutoTestRunner(Base, TimestampMixin, UUIDMixin, NotEqualMixin):
         """
         return self._job_id or f'INVALID-{uuid.uuid4().hex}'
 
-    @property
+    @hybrid_property
     def ipaddr(self) -> str:
         """The ip address of this runner."""
         return self._ipaddr

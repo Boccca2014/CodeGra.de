@@ -11,6 +11,7 @@ import dataclasses
 from datetime import timedelta
 
 import boto3
+import flask
 import structlog
 import sqlalchemy
 import transip.service
@@ -18,6 +19,7 @@ from suds import WebFault
 from sqlalchemy_utils import UUIDType
 from botocore.exceptions import ClientError
 
+import cg_enum
 import cg_broker
 import cg_sqlalchemy_helpers as cgs
 from cg_logger import bound_to_logger
@@ -26,7 +28,7 @@ from cg_dt_utils import DatetimeWithTimezone
 from cg_flask_helpers import callback_after_this_request
 from cg_sqlalchemy_helpers import JSONB, types, mixins, hybrid_property
 
-from . import BrokerFlask, app, utils
+from . import BrokerFlask, app, utils, exceptions
 
 logger = structlog.get_logger()
 
@@ -49,18 +51,19 @@ _T = t.TypeVar('_T', bound='Base')
 _Y = t.TypeVar('_Y', bound='Runner')
 
 
-@enum.unique
-class RunnerState(enum.IntEnum):
+@cg_enum.named_equally
+class RunnerState(cg_enum.CGEnum):
     """This enum the possible states a runner can be in.
 
     A runner should never decrease its state.
     """
-    not_running = 1
-    creating = 2
-    started = 3
-    running = 4
-    cleaning = 5
-    cleaned = 6
+    not_running = 'not_running'
+    creating = 'creating'
+    started = 'started'
+    assigned = 'assigned'
+    running = 'running'
+    cleaning = 'cleaning'
+    cleaned = 'cleaned'
 
     @classmethod
     def get_before_started_states(cls) -> t.List['RunnerState']:
@@ -70,7 +73,7 @@ class RunnerState(enum.IntEnum):
         return [cls.not_running, cls.creating]
 
     @classmethod
-    def get_before_running_states(cls) -> t.List['RunnerState']:
+    def get_before_assigned_states(cls) -> t.List['RunnerState']:
         """Get the states in which a is runner before it has ever done any
             work.
 
@@ -80,10 +83,21 @@ class RunnerState(enum.IntEnum):
         return [*cls.get_before_started_states(), cls.started]
 
     @classmethod
+    def get_before_running_states(cls) -> t.List['RunnerState']:
+        """Get the states in which a is runner before it has ever done any
+        work.
+
+        This states are considered "trusted", i.e. we can still believe the
+        things the runner say, i.e. no untrusted code has been executed on the
+        runner.
+        """
+        return [*cls.get_before_assigned_states(), cls.assigned]
+
+    @classmethod
     def get_active_states(cls) -> t.List['RunnerState']:
         """Get the states in which a runner is considered active.
         """
-        return [*cls.get_before_running_states(), cls.running]
+        return [*cls.get_before_running_states(), cls.assigned, cls.running]
 
 
 @enum.unique
@@ -197,12 +211,6 @@ class Runner(Base, mixins.TimestampMixin, mixins.UUIDMixin):
         return not self == other
 
     @property
-    def is_before_run(self) -> bool:
-        """Is this runner in a state before it started executing any code.
-        """
-        return self.state in RunnerState.get_before_running_states()
-
-    @property
     def should_clean(self) -> bool:
         """Is this runner in a state where it still needs cleaning.
 
@@ -274,7 +282,7 @@ class Runner(Base, mixins.TimestampMixin, mixins.UUIDMixin):
         assigned.
         """
         return db.session.query(cls).filter(
-            cls.state.in_(RunnerState.get_before_running_states()),
+            cls.state.in_(RunnerState.get_before_assigned_states()),
             cls.job_id.is_(None)
         )
 
@@ -322,6 +330,12 @@ class Runner(Base, mixins.TimestampMixin, mixins.UUIDMixin):
             'job_id': self.job_id,
             'ipaddr': self.ipaddr,
         }
+
+    def verify_password(self) -> None:
+        """Verify the password in the current request, if this runner type
+        needs a correct password.
+        """
+        pass
 
     __mapper_args__ = {
         'polymorphic_on': _runner_type,
@@ -480,6 +494,12 @@ chmod 777 "$F"
         else:
             client.terminate_instances(InstanceIds=[self.instance_id])
 
+    def verify_password(self) -> None:
+        runner_pass = flask.request.headers.get('CG-Broker-Runner-Pass', '')
+        if not self.is_pass_valid(runner_pass):
+            logger.warning('Got wrong password', found_password=runner_pass)
+            raise exceptions.NotFoundException
+
     __mapper_args__ = {'polymorphic_identity': RunnerType.aws}
 
 
@@ -636,6 +656,11 @@ class Job(Base, mixins.TimestampMixin, mixins.IdMixin):
         """
         if runner in self.runners:
             return True
+        elif runner.state not in RunnerState.get_before_assigned_states():
+            # Never steal a runner that in the assigned (or later) state, as
+            # the backend probably already thinks it has the right to use this
+            # runner.
+            return False
 
         active_runners = self.get_active_runners()
         before_active = set(RunnerState.get_before_running_states())
@@ -746,6 +771,15 @@ class Job(Base, mixins.TimestampMixin, mixins.IdMixin):
         callback_after_this_request(start_runners)
 
         return len(created)
+
+    def __structlog__(self) -> t.Dict[str, t.Union[str, int, None]]:
+        return {
+            'type': str(type(self)),
+            'id': self.id,
+            'remote_id': self.remote_id,
+            'state': self.state.name,
+            'cg_url': self.cg_url,
+        }
 
 
 @dataclasses.dataclass(frozen=True)

@@ -111,11 +111,12 @@ def register_job() -> cg_json.JSONResponse:
             metadata=job.job_metadata,
         )
 
+        before_assigned = set(models.RunnerState.get_before_assigned_states())
         for runner in active_runners:
             if too_many <= 0:
                 break
 
-            if runner.state in models.RunnerState.get_before_running_states():
+            if runner.state in before_assigned:
                 runner.make_unassigned()
                 too_many -= 1
 
@@ -148,8 +149,9 @@ def remove_runner_of_job(job_id: str) -> EmptyResponse:
     if job is None:
         raise NotFoundException
 
-    runner = db.session.query(models.Runner).filter_by(
-        ipaddr=g.data['ipaddr'], job=job
+    runner = db.session.query(models.Runner).filter(
+        models.Runner.ipaddr == g.data['ipaddr'],
+        models.Runner.job == job,
     ).with_for_update().one_or_none()
     if runner is None:
         raise NotFoundException
@@ -194,8 +196,9 @@ def delete_job(job_id: str) -> EmptyResponse:
     ).with_for_update().all()
     job.state = models.JobState.finished
     job.wanted_runners = 0
+    before_assigned = set(models.RunnerState.get_before_assigned_states())
     for runner in runners:
-        if runner.state in models.RunnerState.get_before_running_states():
+        if runner.state in before_assigned:
             runner.make_unassigned()
 
     db.session.commit()
@@ -205,12 +208,12 @@ def delete_job(job_id: str) -> EmptyResponse:
     return EmptyResponse.make()
 
 
-@api.route('/jobs/<job_id>/runners/', methods=['POST'])
+@api.route('/jobs/<job_id>/runners/', methods=['POST', 'PUT'])
 @expects_json({
     'type': 'object',
     'properties': {'runner_ip': {'type': 'string'}},
-    "additionalProperties": False,
-    "minProperties": 1,
+    'minProperties': 1,
+    'required': ['runner_ip'],
 })
 @instance_route
 def register_runner_for_job(job_id: str) -> EmptyResponse:
@@ -219,7 +222,7 @@ def register_runner_for_job(job_id: str) -> EmptyResponse:
     """
     runner_ip = g.data['runner_ip']
     job = db.session.query(models.Job).filter_by(remote_id=job_id).filter(
-        ~models.Job.state.in_(models.JobState.get_finished_states()),
+        models.Job.state.notin_(models.JobState.get_finished_states()),
     ).with_for_update().one_or_none()
     if job is None:
         logger.info('Job not found!', job_id=job_id)
@@ -232,11 +235,12 @@ def register_runner_for_job(job_id: str) -> EmptyResponse:
     )
 
     runner = db.session.query(models.Runner).filter(
-        t.cast(DbColumn[models.RunnerState], models.Runner.state).in_(
+        models.Runner.state.in_(
             models.RunnerState.get_before_running_states()
         ),
         models.Runner.ipaddr == runner_ip,
     ).with_for_update().one_or_none()
+
     if runner is None:
         logger.warning('Runner could not be found')
         raise NotFoundException
@@ -247,10 +251,52 @@ def register_runner_for_job(job_id: str) -> EmptyResponse:
         )
         raise NotFoundException
 
-    runner.state = models.RunnerState.running
-    job.state = models.JobState.started
+    # We don't mark the job as started here, as there might be a connection
+    # problem back to the server (or the runner). Then the server might think
+    # that the job has not yet started, but as the broker thinks that
+    # everything is fine it won't assign more runners. See DEV-252 in Jira for
+    # more information.
+    runner.state = models.RunnerState.assigned
     db.session.commit()
 
+    return EmptyResponse.make()
+
+
+@api.route('/runners/<uuid:public_runner_id>/jobs/', methods=['POST'])
+@expects_json({
+    'type': 'object',
+    'properties': {'url': {'type': 'string'}},
+    'minProperties': 1,
+    'required': ['url'],
+})
+def confirm_runner_for_job(public_runner_id: uuid.UUID) -> EmptyResponse:
+    runner = db.session.query(models.Runner).filter(
+        models.Runner.ipaddr == request.remote_addr,
+        models.Runner.public_id == public_runner_id,
+    ).one_or_none()
+    if runner is None:
+        raise NotFoundException
+
+    runner.verify_password()
+
+    if runner.state.is_running:
+        # We might want to retry this request because of dropped packets. In
+        # this case simply do nothing and return.
+        return EmptyResponse.make()
+    if not runner.state.is_assigned:
+        raise NotFoundException
+
+    if runner.job is None or runner.job.cg_url != g.data['url']:
+        logger.info(
+            'Tried to register for wrong job',
+            found_url=g.data['url'],
+            assigned_job=runner.job
+        )
+        raise NotFoundException
+
+    runner.state = models.RunnerState.running
+    runner.job.state = models.JobState.started
+    db.session.commit()
     return EmptyResponse.make()
 
 
@@ -260,7 +306,7 @@ def mark_runner_as_alive() -> cg_json.JSONResponse[models.Runner]:
     """
     runner = db.session.query(models.Runner).filter(
         models.Runner.ipaddr == request.remote_addr,
-        t.cast(DbColumn[models.RunnerState], models.Runner.state).in_([
+        models.Runner.state.in_([
             models.RunnerState.creating,
             models.RunnerState.started,
         ])
@@ -269,11 +315,7 @@ def mark_runner_as_alive() -> cg_json.JSONResponse[models.Runner]:
         logger.info('Could not find runner', runner_ip=request.remote_addr)
         raise NotFoundException
 
-    if isinstance(runner, models.AWSRunner):
-        runner_pass = request.headers.get('CG-Broker-Runner-Pass', '')
-        if not runner.is_pass_valid(runner_pass):
-            logger.warning('Got wrong password', found_password=runner_pass)
-            raise NotFoundException
+    runner.verify_password()
 
     runner.state = models.RunnerState.started
     runner.started_at = DatetimeWithTimezone.utcnow()
@@ -289,30 +331,27 @@ def get_jobs_for_runner(public_runner_id: uuid.UUID
     runner = db.session.query(models.Runner).filter(
         models.Runner.ipaddr == request.remote_addr,
         models.Runner.public_id == public_runner_id,
-        t.cast(DbColumn[models.RunnerState], models.Runner.state).in_(
+        models.Runner.state.in_(
             models.RunnerState.get_before_running_states()
         ),
     ).one_or_none()
     if runner is None:
         raise NotFoundException
 
-    if isinstance(runner, models.AWSRunner):
-        runner_pass = request.headers.get('CG-Broker-Runner-Pass', '')
-        if not runner.is_pass_valid(runner_pass):
-            logger.warning('Got wrong password', found_password=runner_pass)
-            raise NotFoundException
+    runner.verify_password()
 
-    urls = set(
-        url for url, in db.session.query(
-            t.cast(DbColumn[str], models.Job.cg_url),
-        ).filter(
-            ~t.cast(
-                DbColumn[models.JobState],
-                models.Job.state,
-            ).in_(models.JobState.get_finished_states())
+    urls: t.Iterable[str]
+    if runner.state in models.RunnerState.get_before_assigned_states():
+        urls = set(
+            url for url, in db.session.query(models.Job.cg_url).filter(
+                models.Job.state.notin_(
+                    models.JobState.get_finished_states(),
+                )
+            )
         )
-    )
 
+    else:
+        urls = [] if runner.job is None else [runner.job.cg_url]
     return cg_json.jsonify([{'url': url} for url in urls])
 
 

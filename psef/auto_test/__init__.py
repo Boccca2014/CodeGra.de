@@ -626,7 +626,7 @@ class StepInstructions(TypedDict, total=True):
     id: int
     weight: float
     test_type_name: str
-    data: 'psef.helpers.JSONType'
+    data: 'helpers.JSONType'
     command_time_limit: float
 
 
@@ -768,50 +768,69 @@ def _try_to_run_job(
             logger.info('Got jobs from broker', response=response)
             items = response.json()
 
-    for item in items:
-        url = item['url']
-        headers = {
-            'CG-Internal-Api-Password':
-                config['AUTO_TEST_RUNNER_INSTANCE_PASS'],
-        }
-        logger.bind(server=url)
-        logger.info('Checking next server')
-
-        try:
-            response = requests.get(
-                f'{url}/api/v-internal/auto_tests/',
-                params={
-                    'get': 'tests_to_run',
-                },
-                headers=headers,
-                timeout=_REQUEST_TIMEOUT,
-            )
-            response.raise_for_status()
-        except requests.exceptions.RequestException:
-            logger.error('Failed to get server', exc_info=True)
-            continue
-
-        if response.status_code == 200:
-            data = response.json()
-            logger.info(
-                'Got test',
-                response=response,
-                auto_test_id=data.get('auto_test_id')
-            )
+        for item in items:
+            url = item['url']
+            headers = {
+                'CG-Internal-Api-Password':
+                    config['AUTO_TEST_RUNNER_INSTANCE_PASS'],
+            }
+            logger.bind(server=url)
+            logger.info('Checking next server')
 
             try:
-                AutoTestRunner(
-                    URL(get_url(url)),
-                    data,
-                    config['AUTO_TEST_RUNNER_INSTANCE_PASS'],
-                    config,
-                ).run_test(cont)
-            except:  # pylint: disable=bare-except
-                logger.error('Error while running tests', exc_info=True)
-            return True
-        else:
-            logger.info('No tests found', response=response)
-    return False
+                response = requests.get(
+                    f'{url}/api/v-internal/auto_tests/',
+                    params={'get': 'tests_to_run'},
+                    headers=headers,
+                    timeout=_REQUEST_TIMEOUT,
+                )
+                response.raise_for_status()
+            except requests.exceptions.RequestException:
+                logger.error('Failed to get server', exc_info=True)
+                continue
+
+            if response.status_code == 200:
+                for _ in helpers.retry_loop(
+                    sys.maxsize,
+                    make_exception=AssertionError,
+                    sleep_time=_REQUEST_TIMEOUT,
+                ):
+                    # Confirm to the broker we are doing this job. We can no
+                    # longer switch from job as the backend thinks we are doing
+                    # this one.
+                    try:
+                        ses.post(
+                            f'/api/v1/runners/{runner_id}/jobs/',
+                            timeout=_REQUEST_TIMEOUT,
+                            json={
+                                'url': url
+                            },
+                        ).raise_for_status()
+                    except requests.exceptions.RequestException:
+                        pass
+                    else:
+                        break
+
+                data = response.json()
+                logger.info(
+                    'Got test',
+                    response=response,
+                    auto_test_id=data.get('auto_test_id')
+                )
+
+                try:
+                    AutoTestRunner(
+                        URL(get_url(url)),
+                        data,
+                        config['AUTO_TEST_RUNNER_INSTANCE_PASS'],
+                        config,
+                    ).run_test(cont)
+                except:  # pylint: disable=bare-except
+                    logger.error('Error while running tests', exc_info=True)
+                return True
+            else:
+                logger.info('No tests found', response=response)
+        return False
 
 
 def start_polling(config: 'psef.FlaskConfig') -> None:
@@ -838,7 +857,9 @@ def start_polling(config: 'psef.FlaskConfig') -> None:
         )
 
     def get_broker_session() -> helpers.BrokerSession:
-        return helpers.BrokerSession('', '', broker_url, runner_pass)
+        return helpers.BrokerSession(
+            '', '', broker_url, runner_pass, retries=_REQUEST_RETRIES
+        )
 
     with _get_base_container(config).started_container() as cont:
         if config['AUTO_TEST_TEMPLATE_CONTAINER'] is None:
@@ -1852,22 +1873,6 @@ class AutoTestRunner:
         """
         return os.getpid(), threading.get_ident()
 
-    @staticmethod
-    def _get_retry_adapter() -> HTTPAdapter:
-        return HTTPAdapter(
-            max_retries=Retry(
-                total=_REQUEST_RETRIES,
-                read=_REQUEST_RETRIES,
-                connect=_REQUEST_RETRIES,
-                status=_REQUEST_RETRIES,
-                backoff_factor=_REQUEST_BACKOFF_FACTOR,
-                method_whitelist=frozenset(
-                    [*Retry.DEFAULT_METHOD_WHITELIST, 'PATCH']
-                ),
-                status_forcelist=(500, 501, 502, 503, 504),
-            )
-        )
-
     @property
     def req(self) -> requests.Session:
         """Get a request session unique for this thread and process.
@@ -1886,9 +1891,11 @@ class AutoTestRunner:
                     'CG-Internal-Api-Runner-Password': self._local_password,
                 }
             )
-            adapter = self._get_retry_adapter()
-            req.mount('http://', adapter)
-            req.mount('https://', adapter)
+            helpers.mount_retry_adapter(
+                req,
+                retries=_REQUEST_RETRIES,
+                backoff_fator=_REQUEST_BACKOFF_FACTOR
+            )
             self._reqs[key] = req
         return self._reqs[key]
 
