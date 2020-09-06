@@ -36,8 +36,9 @@ def analyze_is_method_for_db(ctx: AttributeContext) -> Type:
     assert isinstance(first_arg, Instance)
     enum_type = first_arg.type
     if not name.startswith('is_'):
-        ctx.api.fail(f'The enum {enum_type.name} has no attribute "{name}"',
-                     ctx.context)
+        ctx.api.fail(
+            f'The enum {enum_type.name} has no attribute "{name}"', ctx.context
+        )
 
     enum_value = name[len('is_'):]
 

@@ -1231,6 +1231,7 @@ class AnalyticsWorkspacePermissions(CoursePermissionChecker):
 class CoursePermissions(CoursePermissionChecker):
     """The permission checker for :class:`psef.models.Course`.
     """
+
     @staticmethod
     def ensure_may_see_filter() -> FilterColumn:
         """Get a database filter that filters out all courses the current user
