@@ -232,17 +232,11 @@ def test_jplag(
             query={'no_course_in_assignment': True},
             data=data,
             result=None if code >= 400 else {
-                'id': int,
-                'state': str,
-                'provider_name': str,
-                'config': list,
-                'created_at': str,
-                'assignment': dict,
-                'submissions_done': 0,
-                'submissions_total': int,
-                'log': None,
-                'assignments': {str(assignment.id): dict},
-                'courses': {str(assignment.course_id): dict}
+                'id': int, 'state': str, 'provider_name': str, 'config': list,
+                'created_at': str, 'assignment': dict, 'submissions_done': 0,
+                'submissions_total': int, 'log': None, 'assignments': {
+                    str(assignment.id): dict
+                }, 'courses': {str(assignment.course_id): dict}
             }
         )
         if code >= 400:
@@ -589,7 +583,8 @@ def test_jplag_old_assignments(
         )
         for idx, case in enumerate(cases):
             for idx2, assig_id in enumerate(case['assignment_ids']):
-                if run['assignments'][str(assig_id)]['course_id'] == other_course.id:
+                if run['assignments'][str(assig_id)
+                                      ]['course_id'] == other_course.id:
                     break
             else:
                 continue

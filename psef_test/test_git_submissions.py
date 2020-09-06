@@ -101,7 +101,7 @@ def test_disabling_files_upload(basic, test_client, logged_in, describe):
             'patch',
             url,
             200,
-                query=query,
+            query=query,
             data={
                 'files_upload_enabled': True,
                 'webhook_upload_enabled': False,
@@ -114,7 +114,7 @@ def test_disabling_files_upload(basic, test_client, logged_in, describe):
             'patch',
             url,
             200,
-                query=query,
+            query=query,
             data={
                 'files_upload_enabled': True,
                 'webhook_upload_enabled': True,

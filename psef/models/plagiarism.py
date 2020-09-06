@@ -516,5 +516,6 @@ class PlagiarismRun(Base):
         all_assigs = assigs1.union(assigs2)
 
         return Assignment.query.filter(
-            Assignment.id.in_(all_assigs) | (Assignment.id == self.assignment_id),
+            Assignment.id.in_(all_assigs) |
+            (Assignment.id == self.assignment_id),
         ).all()

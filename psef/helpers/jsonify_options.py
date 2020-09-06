@@ -13,7 +13,11 @@ if t.TYPE_CHECKING:  # pragma: no cover
 
 
 def init_app(app: flask.Flask) -> None:
-    def init_jsonify_options():
+    """Init app for jsonify options.
+
+    This places a global mutable options object in the ``g`` variable.
+    """
+    def init_jsonify_options() -> None:
         flask.g.jsonify_options = Options()
 
     app.before_request(init_jsonify_options)
