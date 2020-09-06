@@ -62,7 +62,7 @@ class CGEnum(enum.Enum, metaclass=_CGEnumMeta):
         return self.name
 
 
-if t.TYPE_CHECKING:
+if t.TYPE_CHECKING:  # pragma: no cover
     # pylint: disable=missing-class-docstring,unused-argument
     class CGDbEnum(t.Generic[ENUM]):
         def __init__(self, enums: t.Type[ENUM], *, name: str = None) -> None:

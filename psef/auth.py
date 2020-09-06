@@ -417,9 +417,12 @@ def _ensure_course_visible_for_current_user(
             )
         elif state.is_deleted:
             err_msg = 'This course is deleted, so you may not see it'
-        elif state.is_archived:
-            ensure_permission(
-                CPerm.can_see_archived_courses, course_id=course.id, user=user
+        elif state.is_archived and not user.has_permission(
+            CPerm.can_see_archived_courses, course_id=course
+        ):
+            err_msg = (
+                'This course has been archived, and you do not have permission'
+                ' to view archived courses'
             )
     else:
         err_msg = 'You are not enrolled in this course'

@@ -5461,24 +5461,66 @@ def test_changing_kind_of_lti_assignment(
 
 def test_set_available_at_for_lti_assignment(
     describe, test_client, logged_in, admin_user, error_template, app,
-    tomorrow, session
+    yesterday, session
 ):
     with describe('setup'), logged_in(admin_user):
-        course = helpers.create_lti_course(session, app, admin_user)
-        assig = helpers.create_lti_assignment(session, course)
-        url = f'/api/v1/assignments/{helpers.get_id(assig)}'
+        canvas_course = helpers.create_lti_course(session, app, admin_user)
+        canvas_assig = helpers.create_lti_assignment(session, canvas_course)
+        canvas_url = f'/api/v1/assignments/{helpers.get_id(canvas_assig)}'
 
-    with describe('cannot change mode to exam'), logged_in(admin_user):
+        bb_course = helpers.create_lti_course(
+            session, app, admin_user, lms='Blackboard'
+        )
+        bb_assig = helpers.create_lti_assignment(session, bb_course)
+        bb_url = f'/api/v1/assignments/{helpers.get_id(bb_assig)}'
+
+        lti1p3_prov = helpers.create_lti1p3_provider(
+            test_client, lms='Brightspace'
+        )
+        lti1p3_course, _ = helpers.create_lti1p3_course(
+            test_client, session, lti1p3_prov
+        )
+        lti1p3_assig = helpers.create_lti_assignment(session, lti1p3_course)
+        lti1p3_url = f'/api/v1/assignments/{helpers.get_id(lti1p3_assig)}'
+
+    with describe('cannot change available at for canvas assignment'
+                  ), logged_in(admin_user):
         test_client.req(
             'patch',
-            url,
+            canvas_url,
             400,
-            data={'available_at': tomorrow.isoformat()},
+            data={'available_at': yesterday.isoformat()},
             result={
                 **error_template,
                 'message': (
                     'The available at of this assignment should be set in'
                     ' Canvas.'
+                ),
+            }
+        )
+
+    with describe('can change available at for bb assignment'
+                  ), logged_in(admin_user):
+        test_client.req(
+            'patch',
+            bb_url,
+            200,
+            data={'available_at': yesterday.isoformat()},
+        )
+
+    with describe(
+        'cannot change available at for lti1p3 brightspace assignment'
+    ), logged_in(admin_user):
+        test_client.req(
+            'patch',
+            lti1p3_url,
+            400,
+            data={'available_at': yesterday.isoformat()},
+            result={
+                **error_template,
+                'message': (
+                    'The available at of this assignment should be set in'
+                    ' Brightspace.'
                 ),
             }
         )

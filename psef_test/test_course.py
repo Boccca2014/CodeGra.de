@@ -2208,3 +2208,18 @@ def test_archiving_of_course(
                 'message': 'It is not yet possible to delete a course',
             },
         )
+
+        # But when deleted we cannot see it.
+        m.Course.query.filter_by(id=helpers.get_id(course)).update({
+            'state': 'deleted'
+        })
+        session.flush()
+        test_client.req(
+            'get',
+            url,
+            403,
+            result={
+                **error_template, 'message':
+                    'This course is deleted, so you may not see it'
+            },
+        )

@@ -318,6 +318,12 @@ def test_sending_login_links(
                     'id': helpers.get_id(course), '__allow_extra__': True
                 }],
             )
+            test_client.req(
+                'get',
+                f'/api/v1/courses/{helpers.get_id(other_course)}',
+                403,
+                headers=headers,
+            )
 
     with describe('cannot login if deadline has expired'
                   ), freeze_time(tomorrow + timedelta(hours=2)):
