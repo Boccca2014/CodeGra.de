@@ -270,7 +270,7 @@ import { Vue, Component, Prop, Watch } from 'vue-property-decorator';
 import moment from 'moment';
 
 import * as models from '@/models';
-import { Either, Left, Maybe, Nothing } from '@/utils';
+import { Either, Left, Maybe, Nothing, formatNullableDate } from '@/utils';
 
 import { AssignmentsStore } from '@/store';
 
@@ -625,8 +625,9 @@ export default class AssignmentGeneralSettings extends Vue {
         if (this.isExam) {
             setDeadline = this.examDeadline;
         }
-        const formatDate = <T>(date: string | null, dflt: T) =>
-            this.$utils.formatNullableDate(date, true) ?? dflt;
+        function formatDate<T>(date: string | null, dflt: T) {
+            return formatNullableDate(date, true) ?? dflt;
+        }
 
         const { name, availableAt, deadline }: {
             name: string | undefined;

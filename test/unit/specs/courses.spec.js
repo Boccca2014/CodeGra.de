@@ -36,6 +36,7 @@ const initialCourses = [
         }],
         name: 'hello',
         id: 1,
+        state: 'visible',
     }, {
         assignments: [{
             id: 5,
@@ -44,6 +45,7 @@ const initialCourses = [
         }],
         name: 'bye',
         id: 4,
+        state: 'visible',
     },
 ];
 
@@ -58,8 +60,8 @@ describe('getters', () => {
 
     beforeEach(() => setInitialState());
 
-    describe('courses', () => {
-        it('should return the state object', () => {
+    describe('sortedCourses', () => {
+        it('should return sorted courses', () => {
             expect(CoursesStore.sortedCourses()).toHaveLength(2);
             expect(CoursesStore.sortedCourses()).toMatchObject([{
                 id: 1,
