@@ -9,7 +9,7 @@ import { Rubric } from '@/models';
 
 import { CoursesStore, store } from '@/store';
 
-import { NONEXISTENT, MANAGE_GENERAL_COURSE_PERMISSIONS, MANAGE_ASSIGNMENT_PERMISSIONS } from '@/constants';
+import { NONEXISTENT, MANAGE_ASSIGNMENT_PERMISSIONS } from '@/constants';
 import * as utils from '@/utils/typed';
 import { LTIProvider } from '@/lti_providers';
 
