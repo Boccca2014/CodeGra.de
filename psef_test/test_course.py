@@ -155,6 +155,7 @@ def test_get_course_data(
             'is_lti': add_lti,
             'virtual': False,
             'lti_provider': canvas_lti1p1_provider if add_lti else None,
+            'state': 'visible',
         }
 
         if extended:
@@ -229,6 +230,7 @@ def test_add_course(
                 'assignments': [],
                 'snippets': [],
                 'group_sets': [],
+                'state': 'visible',
             }
         )
 
@@ -245,6 +247,7 @@ def test_add_course(
                     'is_lti': False,
                     'virtual': False,
                     'lti_provider': None,
+                    'state': 'visible',
                 }
             )
 
@@ -746,6 +749,7 @@ def test_get_courseroles(
                     'is_lti': False,
                     'virtual': False,
                     'lti_provider': None,
+                    'state': 'visible',
                 },
             }
             if extended:
@@ -870,7 +874,7 @@ def test_add_courseroles(
         'can_edit_course_roles',
         missing_error(error=400)(None),
         'can_grade_work',
-        data_error(error=404)('non_existing'),
+        data_error(error=400)('non_existing'),
     ]
 )
 def test_update_courseroles(
@@ -1372,6 +1376,7 @@ def test_course_snippets(
             f'{url_base}/snippet',
             403,
             result=error_template,
+            data={'key': snips[0]['key'], 'value': 'new value'},
         )
         test_client.req(
             'patch',
@@ -1402,6 +1407,7 @@ def test_course_snippets(
             f'{url_base}/snippet',
             403,
             result=error_template,
+            data={'key': snips[0]['key'], 'value': 'new value'},
         )
         test_client.req(
             'patch',
@@ -2090,13 +2096,14 @@ def test_update_name_of_course(
         with logged_in(ta):
             test_client.req('patch', url, 403, data={'name': 'TA name'})
 
-        test_client.req(
-            'get',
-            url,
-            200,
-            result={
-                '__allow_extra__': True,
-                'id': helpers.get_id(course),
-                'name': 'Teacher name',
-            }
-        )
+        with logged_in(teacher):
+            test_client.req(
+                'get',
+                url,
+                200,
+                result={
+                    '__allow_extra__': True,
+                    'id': helpers.get_id(course),
+                    'name': 'Teacher name',
+                }
+            )

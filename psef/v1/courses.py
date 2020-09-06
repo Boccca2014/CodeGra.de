@@ -131,15 +131,15 @@ def add_role(course_id: int) -> EmptyResponse:
     :raises PermissionException: If the user can not manage the course with the
                                  given id. (INCORRECT_PERMISSION)
     """
-    with helpers.get_from_request_transaction() as [get, _]:
-        name = get('name', str)
-
     course = helpers.get_or_404(
         models.Course,
         course_id,
         also_error=lambda c: c.virtual,
     )
     auth.CoursePermissions(course).ensure_may_edit_roles()
+
+    with helpers.get_from_request_transaction() as [get, _]:
+        name = get('name', str)
 
     if models.CourseRole.query.filter_by(
         name=name, course_id=course_id
@@ -715,7 +715,7 @@ def create_group_set(course_id: int) -> JSONResponse[models.GroupSet]:
         )
 
     if old_id is helpers.MISSING:
-        group_set = models.GroupSet(course_id=course.id)
+        group_set = models.GroupSet(course_id=course.id, course=course)
         models.db.session.add(group_set)
         auth.GroupSetPermissions(group_set).ensure_may_add()
     else:
