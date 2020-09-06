@@ -383,7 +383,6 @@ class LTI(AbstractLTIConnector):  # pylint: disable=too-many-public-methods
         """
         return False
 
-
     @staticmethod
     def supports_deadline() -> bool:
         """Determines whether this LMS sends the deadline of an assignment
