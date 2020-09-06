@@ -2,22 +2,21 @@
 import { VNode, CreateElement } from 'vue';
 import * as models from '@/models';
 import * as tsx from 'vue-tsx-support';
-import { BBadge } from 'bootstrap-vue'
 import { CoursesStore } from '@/store';
 import { emptyVNode } from '@/utils';
 import p from 'vue-strict-prop';
 
 const maybeMakeBadge = (h: CreateElement, course: models.Course) => {
     const state = course.state;
-    const cls = "text-small-uppercase align-middle ml-1";
+    const cls = "text-small-uppercase align-middle ml-2";
 
     switch (state) {
         case models.CourseState.visible:
             return emptyVNode();
         case models.CourseState.archived:
-            return <BBadge class={cls}>archived</BBadge>;
+            return <b-badge class={cls} variant="primary">archived</b-badge>;
         case models.CourseState.deleted:
-            return <BBadge class={cls}>deleted</BBadge >;
+            return <b-badge class={cls} variant="primary">deleted</b-badge>;
     }
 };
 
@@ -45,14 +44,15 @@ const CourseName = tsx.component({
             extra = ` (${course.createdAt.format('YYYY')})`;
         }
 
-        const title = `${course.name}${extra ?? ''}`
+        const badge = maybeMakeBadge(h, course);
+        const title = `${course.name}${extra ?? ''}${course.isArchived ? ' [archived]' : ''}`;
 
         return <span title={title} class="course-name">
             <span class="align-middle" style={bold ? 'font-weight: bold' : ''}>
                 {course.name}
             </span>
-            {maybeMakeBadge(h, course)}
             {extra && <i class="align-middle">{extra}</i>}
+            {badge}
         </span>
 
     },
