@@ -591,7 +591,19 @@ class DbColumn(t.Generic[T]):  # pragma: no cover
     def __or__(self, other: 'DbColumn[bool]') -> 'DbColumn[bool]':
         ...
 
+    def __truediv__(
+        self: 'DbColumn[T_NUM]', other: 'DbColumn[T_NUM]'
+    ) -> 'DbColumn[T_NUM]':
+        ...
+
     def cast(self, other: DbType[Y]) -> 'DbColumn[Y]':
+        ...
+
+
+class FilterableDbColumn(t.Generic[T], DbColumn[T]):  # pragma: no cover
+    def filter(
+        self: 'FilterableDbColumn[T]', *criterion: 'FilterColumn'
+    ) -> 'FilterableDbColumn[T]':
         ...
 
 
@@ -861,20 +873,29 @@ if t.TYPE_CHECKING and MYPY:
                              coltype: object) -> t.Callable[[object], object]:
             return lambda x: x
 
-    class _func:
-        def count(self, _to_count: DbColumn[t.Any] = None) -> DbColumn[int]:
+    class func:
+        @staticmethod
+        def count(_to_count: DbColumn[t.Any] = None) -> DbColumn[int]:
             ...
 
-        def random(self) -> DbColumn[object]:
+        @staticmethod
+        def random() -> DbColumn[object]:
             ...
 
-        def max(self, col: DbColumn[T]) -> DbColumn[T]:
+        @staticmethod
+        def min(col: DbColumn[T]) -> FilterableDbColumn[t.Optional[T]]:
             ...
 
-        def sum(self, col: DbColumn[T_NUM]) -> DbColumn[T_NUM]:
+        @staticmethod
+        def max(col: DbColumn[T]) -> FilterableDbColumn[t.Optional[T]]:
             ...
 
-        def lower(self, col: DbColumn[str]) -> DbColumn[str]:
+        @staticmethod
+        def sum(col: DbColumn[T_NUM]) -> DbColumn[t.Optional[T_NUM]]:
+            ...
+
+        @staticmethod
+        def lower(col: DbColumn[str]) -> DbColumn[str]:
             ...
 
     def distinct(_distinct: T_DB_COLUMN) -> T_DB_COLUMN:
@@ -885,7 +906,7 @@ if t.TYPE_CHECKING and MYPY:
         ...
 
     class expression:
-        func: _func
+        func: func
 
         @staticmethod
         def and_(*to_and: FilterColumn) -> DbColumn[bool]:
@@ -912,6 +933,7 @@ else:
     from sqlalchemy import TypeDecorator, TIMESTAMP
     from sqlalchemy.dialects.postgresql import JSONB, ARRAY
     from sqlalchemy.sql import expression
+    from sqlalchemy import func
     from citext import CIText
     from sqlalchemy import distinct, tuple_
 
