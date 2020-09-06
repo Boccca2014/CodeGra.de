@@ -17,25 +17,37 @@ def test_has_permission_filter(
             helpers.create_course(test_client), m.Course
         )
 
-        role = m.CourseRole('rol1', course, hidden=False)
-        session.add(role)
+        rol1 = m.CourseRole('rol1', course, hidden=False)
+        rol2 = m.CourseRole('rol2', course, hidden=False)
+        session.add(rol1)
+        session.add(rol2)
+        session.commit()
 
-        session.flush()
+        user1 = helpers.create_user_with_role(session, 'rol1', course)
+        user2 = helpers.create_user_with_role(session, 'rol2', course)
 
-    with describe('Shows up if permission is true'):
-        role.set_permission(perm, True)
-        session.flush()
+        rol1.set_permission(perm, True)
+        rol2.set_permission(perm, False)
+        session.commit()
 
-        assert role in m.CourseRole.query.filter(
-            m.CourseRole.course == course,
-            m.CourseRole.get_has_permission_filter(perm),
+    with describe('Role is include up if permission is true not otherwise'):
+        roles = m.CourseRole.get_roles_with_permission(perm).all()
+        assert rol1 in roles
+        assert rol2 not in roles
+
+    with describe('Can be filtered further'):
+        roles = m.CourseRole.get_roles_with_permission(perm).filter(
+            m.CourseRole.course == course
         ).all()
+        assert all(r.course_id == course.id for r in roles)
+        assert 'rol1' in [r.name for r in roles]
+        assert 'Teacher' in [r.name for r in roles]
 
-    with describe('Does not show up if permission is true'):
-        role.set_permission(perm, False)
-        session.flush()
+    with describe('User show up if permission is true not otherwise'):
 
-        assert role not in m.CourseRole.query.filter(
-            m.CourseRole.course == course,
-            m.CourseRole.get_has_permission_filter(perm),
-        ).all()
+        query = course.get_all_users_in_course(
+            include_test_students=False,
+            with_permission=perm,
+        )
+        assert sorted([user1.id,
+                       admin_user.id]) == sorted(user.id for user, _ in query)

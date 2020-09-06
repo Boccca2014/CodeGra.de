@@ -25,6 +25,7 @@ from .work import Work
 from ..helpers import NotEqualMixin, jsonify_options
 from .assignment import Assignment
 from .link_tables import user_course
+from ..permissions import CoursePermission
 
 logger = structlog.get_logger()
 
@@ -414,20 +415,36 @@ class Course(NotEqualMixin, Base, mixins.TimestampMixin, mixins.IdMixin):
     def get_assignments(self) -> MyQuery['Assignment']:
         return Assignment.query.filter(Assignment.course == self)
 
-    def get_all_users_in_course(self, *, include_test_students: bool
-                                ) -> MyQuery['t.Tuple[User, CourseRole]']:
+    def get_all_users_in_course(
+        self,
+        *,
+        include_test_students: bool,
+        with_permission: CoursePermission = None
+    ) -> MyQuery['t.Tuple[User, CourseRole]']:
         """Get a query that returns all users in the current course and their
             role.
 
         :returns: A query that contains all users in the current course and
             their role.
         """
+        join_conds = [CourseRole.id == user_course.c.course_id]
+        if with_permission is not None:
+            join_conds.append(
+                CourseRole.id.in_(
+                    CourseRole.get_roles_with_permission(
+                        with_permission,
+                    ).filter(CourseRole.course_id == self.id).with_entities(
+                        CourseRole.id
+                    )
+                )
+            )
+
         res = db.session.query(User, CourseRole).join(
             user_course,
             user_course.c.user_id == User.id,
         ).join(
             CourseRole,
-            CourseRole.id == user_course.c.course_id,
+            expression.and_(*join_conds),
         ).filter(CourseRole.course_id == self.id, User.virtual.isnot(True))
 
         if not include_test_students:

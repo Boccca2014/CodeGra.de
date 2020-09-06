@@ -8,7 +8,7 @@ import { CourseSnippet } from '@/interfaces';
 import { Maybe, nonenumerable, filterMap, formatDate } from '@/utils';
 import { AssignmentsStore, CoursesStore } from '@/store';
 import { makeCache } from '@/utils/cache';
-import { MANAGE_COURSE_PERMISSIONS } from '@/constants';
+import { MANAGE_GENERAL_COURSE_PERMISSIONS } from '@/constants';
 
 export enum CourseState {
     visible = 'visible',
@@ -85,7 +85,7 @@ export class Course {
     get canManage() {
         return this._cache.get('canManage', () => {
             const perms = this.permissions;
-            return MANAGE_COURSE_PERMISSIONS.some(x => perms[x]);
+            return MANAGE_GENERAL_COURSE_PERMISSIONS.some(x => perms[x]);
         });
     }
 

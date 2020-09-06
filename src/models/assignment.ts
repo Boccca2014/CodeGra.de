@@ -9,7 +9,7 @@ import { Rubric } from '@/models';
 
 import { CoursesStore, store } from '@/store';
 
-import { NONEXISTENT, MANAGE_GENERAL_COURSE_PERMISSIONS } from '@/constants';
+import { NONEXISTENT, MANAGE_GENERAL_COURSE_PERMISSIONS, MANAGE_ASSIGNMENT_PERMISSIONS } from '@/constants';
 import * as utils from '@/utils/typed';
 import { LTIProvider } from '@/lti_providers';
 
@@ -173,7 +173,7 @@ export class Assignment extends AssignmentData {
     @utils.nonenumerable
     get canManage() {
         return this._cache.get('canManage', () =>
-            MANAGE_GENERAL_COURSE_PERMISSIONS.some(perm => this.hasPermission(perm)),
+            MANAGE_ASSIGNMENT_PERMISSIONS.some(perm => this.hasPermission(perm)),
         );
     }
 

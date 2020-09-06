@@ -27,14 +27,14 @@ class _CGEnumMeta(enum.EnumMeta):
         return property(is_equal)
 
     def __new__(
-        mcs: t.Type[_T], name: str, bases: t.Tuple[t.Type, ...],
+        cls: t.Type[_T], name: str, bases: t.Tuple[t.Type, ...],
         classdict: t.Dict[str, t.Any]
     ) -> _T:
-        res = t.cast(_T, super().__new__(mcs, name, bases, classdict))
+        res = t.cast(_T, super().__new__(cls, name, bases, classdict))
         value: 'CGEnum'
         for value in res:
             name = value.name  # type: ignore[attr-defined]
-            setattr(res, f'{_PREFIX}{name}', mcs._make_is_equal_method(value))
+            setattr(res, f'{_PREFIX}{name}', cls._make_is_equal_method(value))
         return res
 
 
@@ -63,24 +63,30 @@ class CGEnum(enum.Enum, metaclass=_CGEnumMeta):
 
 
 if t.TYPE_CHECKING:
+    # pylint: disable=missing-class-docstring,unused-argument
     class CGDbEnum(t.Generic[ENUM]):
-        def __init__(self, enum: t.Type[ENUM], *, name: str = None) -> None:
+        def __init__(self, enums: t.Type[ENUM], *, name: str = None) -> None:
             ...
 else:
-    class CGDbEnum(Enum):
+
+    class CGDbEnum(Enum):  # pylint: disable=too-many-ancestors
+        """Get a database type that has the same convenience methods as the
+        :class:`.CGEnum` class.
+        """
+
         def __init__(self, *enums: CGEnum, **kw: t.Any) -> None:
-            enum = enums[0] if enums else kw['_enums'][0]
+            enumeration = enums[0] if enums else kw['_enums'][0]
             super().__init__(*enums, **kw)
 
-            class comparator_factory(Enum.Comparator):
+            class comparator_factory(Enum.Comparator):  # pylint: disable=invalid-name,missing-class-docstring
                 def __getattr__(self, name: str) -> t.Any:
                     if name.startswith(_PREFIX):
-                        return self.expr == enum[name[_PREFIX_LEN:]]
+                        return self.expr == enumeration[name[_PREFIX_LEN:]]
                     return super().__getattr__(name)
 
             self.comparator_factory = comparator_factory
 
-        # This overload is needed for the mypy plugin, as otherwise ``mypy`` has no
-        # idea that we might have extra properties.
+        # This overload is needed for the mypy plugin, as otherwise ``mypy``
+        # has no idea that we might have extra properties.
         def __getattr__(self, name: str) -> object:
             return super().__getattribute__(name)

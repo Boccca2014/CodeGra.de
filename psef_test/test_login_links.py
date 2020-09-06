@@ -209,7 +209,7 @@ def test_sending_login_links(
 
             for student in students:
                 student = student._get_current_object()
-                mail = outbox_by_email[(student.name, student.email)]
+                mail = outbox_by_email.pop((student.name, student.email))
                 match = re.search(
                     rf'a href="({external_url}/[^"]+)"', str(mail)
                 )
@@ -219,6 +219,8 @@ def test_sending_login_links(
                 users_by_link[link] = student
                 link_id = link.split('/')[-1]
                 link_ids.append((link_id, student))
+
+            assert not outbox_by_email, 'No extra mails should be send'
 
     with describe('second email send the same link'), logged_in(teacher):
         with psef.mail.mail.record_messages() as outbox:
@@ -232,13 +234,15 @@ def test_sending_login_links(
             outbox_by_email = {mail.recipients[0]: mail for mail in outbox}
 
             for student in students:
-                mail = outbox_by_email[(student.name, student.email)]
+                mail = outbox_by_email.pop((student.name, student.email))
                 match = re.search(
                     rf'a href="({external_url}/[^"]+)"', str(mail)
                 )
                 link, = match.groups(1)
                 assert link.startswith(external_url)
                 assert users_by_link[link] == student
+
+            assert not outbox_by_email, 'No extra mails should be send'
 
     with describe('can see link before available_at, but no login'
                   ), freeze_time(tomorrow - timedelta(hours=1)):

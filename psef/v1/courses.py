@@ -20,8 +20,7 @@ from psef import limiter, current_user
 from psef.models import db
 from psef.helpers import (
     JSONResponse, EmptyResponse, ExtendedJSONResponse, jsonify,
-    ensure_keys_in_dict, make_empty_response, get_from_map_transaction,
-    get_json_dict_from_request
+    make_empty_response, get_from_map_transaction, get_json_dict_from_request
 )
 from cg_sqlalchemy_helpers import expression as sql_expression
 
@@ -598,6 +597,17 @@ def get_course_by_id(
 @api.route('/courses/<int:course_id>', methods=['PATCH'])
 @auth.login_required
 def update_course(course_id: int) -> ExtendedJSONResponse[models.Course]:
+    """Update the given :class:`.models.Course` with new values.
+
+    .. :quickref: Course; Update course data.
+
+    :<json string name: The new name of the course. (OPTIONAL)
+    :<json string state: The new state of the course. Currently this can be
+        "archived" and "visible". If you set the state to "archived" students
+        will no longer be able to see the course. (OPTIONAL)
+
+    :returns: The updated course, in extended format.
+    """
     course = helpers.get_or_404(models.Course, course_id)
     checker = auth.CoursePermissions(course)
     checker.ensure_may_see()

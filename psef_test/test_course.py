@@ -2059,3 +2059,44 @@ def test_cannot_add_registration_link_to_lti_course(
 
         assert ('cannot create course enroll links in LTI courses'
                 ) in err['message']
+
+
+def test_update_name_of_course(
+    describe, logged_in, admin_user, test_client, session
+):
+    with describe('setup'), logged_in(admin_user):
+        course = helpers.create_course(test_client)
+        url = f'/api/v1/courses/{helpers.get_id(course)}'
+        student = helpers.create_user_with_role(session, 'Student', course)
+        teacher = helpers.create_user_with_role(session, 'Teacher', course)
+        ta = helpers.create_user_with_role(session, 'TA', course)
+
+    with describe('Teacher can change name'), logged_in(teacher):
+        test_client.req('patch', url, 200, data={'name': 'Teacher name'})
+        test_client.req(
+            'get',
+            url,
+            200,
+            result={
+                '__allow_extra__': True,
+                'id': helpers.get_id(course),
+                'name': 'Teacher name',
+            }
+        )
+
+    with describe("TA's and students cannot change name"):
+        with logged_in(student):
+            test_client.req('patch', url, 403, data={'name': 'Student name'})
+        with logged_in(ta):
+            test_client.req('patch', url, 403, data={'name': 'TA name'})
+
+        test_client.req(
+            'get',
+            url,
+            200,
+            result={
+                '__allow_extra__': True,
+                'id': helpers.get_id(course),
+                'name': 'Teacher name',
+            }
+        )

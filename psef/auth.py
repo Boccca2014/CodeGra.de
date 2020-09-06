@@ -22,12 +22,12 @@ from typing_extensions import Final, Literal
 import psef
 from cg_json import JSONResponse
 from cg_helpers import maybe_wrap_in_list
-from cg_dt_utils import DatetimeWithTimezone
 from psef.helpers import readable_join
 from psef.exceptions import APICodes, APIException, PermissionException
+from cg_sqlalchemy_helpers import func as sql_func
 from cg_sqlalchemy_helpers import expression as sql_expression
 from cg_cache.intra_request import cache_within_request
-from cg_sqlalchemy_helpers.types import FilterColumn
+from cg_sqlalchemy_helpers.types import DbColumn, FilterColumn
 
 from . import helpers
 from .permissions import CoursePermission as CPerm
@@ -523,20 +523,20 @@ def _ensure_submission_limits_not_exceeded(
         query_amount = sql.func.count()
 
     if assig.cool_off_period.total_seconds() > 0:
-        query_since_cool_off: psef.models.DbColumn[int] = sql.func.count(
-            sqlalchemy.case(
+        query_since_cool_off = sql_func.count(
+            sql_expression.case(
                 [(Work.created_at >= cool_off_cutoff, 1)],
-                else_=None,
+                else_=0,
             )
         )
-        query_oldest_in_period: psef.models.DbColumn[
-            t.Optional[DatetimeWithTimezone]
-        ] = base_sql.filter(Work.created_at >= cool_off_cutoff).with_entities(
-            sql.func.min(Work.created_at)
-        ).label('oldest')
+        query_oldest_in_period = base_sql.filter(
+            Work.created_at >= cool_off_cutoff
+        ).with_entities(sql_func.min(Work.created_at)).label('oldest')
     else:
-        query_since_cool_off = sql.literal(0).label('since_cool_off')
-        query_oldest_in_period = sql.literal(now).label('oldest')
+        query_since_cool_off = sql_expression.literal(0).label(
+            'since_cool_off'
+        )
+        query_oldest_in_period = sql_expression.literal(now).label('oldest')
 
     query = base_sql.with_entities(
         query_amount,
@@ -1231,11 +1231,6 @@ class AnalyticsWorkspacePermissions(CoursePermissionChecker):
 class CoursePermissions(CoursePermissionChecker):
     """The permission checker for :class:`psef.models.Course`.
     """
-    __slots__ = ('_course', )
-
-    def __init__(self, course: 'psef.models.Course') -> None:
-        super().__init__(course)
-
     @staticmethod
     def ensure_may_see_filter() -> FilterColumn:
         """Get a database filter that filters out all courses the current user
@@ -1245,24 +1240,27 @@ class CoursePermissions(CoursePermissionChecker):
         if user is None:
             return sql_expression.false()
 
-        course_ids = [cr.course_id for cr in user.courses.values()]
-        conditions = [
-            psef.models.Course.id.in_(course_ids),
-            sql_expression.case(
-                [
-                    (
-                        psef.models.Course.state.is_visible,
-                        True,
-                    ),
-                    (
-                        psef.models.Course.state.is_archived,
-                        psef.models.CourseRole.get_has_permission_filter(
-                            CPerm.can_see_archived_courses
-                        ),
-                    ),
-                ],
-                else_=False,
-            ),
+        course_ids = list(user.courses.keys())
+        course_role_ids = [cr.id for cr in user.courses.values()]
+
+        allowed_archived = psef.models.CourseRole.get_roles_with_permission(
+            CPerm.can_see_archived_courses,
+        ).filter(psef.models.CourseRole.id.in_(course_role_ids)).with_entities(
+            psef.models.CourseRole.course_id
+        )
+
+        correct_state_filter: DbColumn[bool] = sql_expression.case(
+            [
+                (psef.models.Course.state.is_visible, True),
+                (
+                    psef.models.Course.state.is_archived,
+                    psef.models.Course.id.in_(allowed_archived)
+                )
+            ],
+            else_=False,
+        )
+        conditions: t.List[FilterColumn] = [
+            psef.models.Course.id.in_(course_ids), correct_state_filter
         ]
 
         for_course = flask_jwt.get_jwt_claims().get('for_course')

@@ -229,14 +229,49 @@ def test_ensure_may_see_filter(
         course1 = helpers.create_course(test_client)
         course2 = helpers.create_course(test_client)
         course3 = helpers.create_course(test_client)
-        user = helpers.create_user_with_role(
-            session, 'Student', [course1, course2]
+
+        archived_course1 = helpers.create_course(test_client)
+        archived_course1 = m.Course.query.get(helpers.get_id(archived_course1))
+        archived_course1.state = m.CourseState.archived
+        session.commit()
+
+        archived_course2 = helpers.create_course(test_client)
+        archived_course2 = m.Course.query.get(helpers.get_id(archived_course2))
+        archived_course2.state = m.CourseState.archived
+        session.commit()
+
+        deleted_course = helpers.create_course(test_client)
+        deleted_course = m.Course.query.get(helpers.get_id(deleted_course))
+        deleted_course.state = m.CourseState.deleted
+        session.commit()
+
+        user = m.User.resolve(
+            helpers.create_user_with_role(
+                session, 'Student',
+                [course1, course2, archived_course1, deleted_course]
+            )
         )
+        user.courses[archived_course2.id] = m.CourseRole.query.filter_by(
+            name='Teacher', course=archived_course2
+        ).one()
 
     with describe('Returns no courses when not logged in'):
         assert not m.Course.query.filter(
             a.CoursePermissions.ensure_may_see_filter()
         ).all()
+
+    with describe('Returns all archived course as teacher when logged in'):
+        with a.as_current_user(admin_user):
+            query = m.Course.query.filter(
+                a.CoursePermissions.ensure_may_see_filter()
+            ).with_entities(m.Course.id)
+            course_ids = sorted(c_id for c_id, in query)
+            assert course_ids == sorted([
+                helpers.get_id(c) for c in [
+                    course1, course2, course3, archived_course1,
+                    archived_course2
+                ]
+            ])
 
     with describe('Returns all courses when logged in'):
         with a.as_current_user(user):
@@ -245,7 +280,9 @@ def test_ensure_may_see_filter(
             ).with_entities(m.Course.id)
             course_ids = sorted(c_id for c_id, in query)
             assert course_ids == sorted([
-                helpers.get_id(c) for c in [course1, course2]
+                # We can see archived_course2, but not archived_course1
+                helpers.get_id(c)
+                for c in [course1, course2, archived_course2]
             ])
 
     with describe('Returns single courses when logged in for a single course'):

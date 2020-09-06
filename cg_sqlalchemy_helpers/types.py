@@ -281,7 +281,7 @@ class MyDb:  # pragma: no cover
         index: bool = False,
         nullable: Literal[False] = False,
         server_default: str = None,
-    ) -> '_ImmutableColumnProxy[cg_enum.ENUM, CGDbColumn[cg_enum.ENUM]]':
+    ) -> '_MutableColumnProxy[cg_enum.ENUM, cg_enum.ENUM, CGDbColumn[cg_enum.ENUM]]':
         ...
 
     @t.overload
