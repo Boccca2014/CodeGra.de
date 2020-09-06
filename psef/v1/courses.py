@@ -616,7 +616,13 @@ def update_course(course_id: int) -> ExtendedJSONResponse[models.Course]:
         state = opt_get('state', models.CourseState, None)
 
     if name is not None:
-        # TODO: disallow this for LTI courses
+        if course.is_lti:
+            raise APIException(
+                'You cannot rename LTI courses', (
+                    'LTI courses get their name from the LMS, so renaming is'
+                    ' not possible'
+                ), APICodes.INVALID_PARAM, 400
+            )
         checker.ensure_may_edit_info()
         course.name = name
 
@@ -625,7 +631,7 @@ def update_course(course_id: int) -> ExtendedJSONResponse[models.Course]:
             raise APIException(
                 'It is not yet possible to delete a course',
                 'Deleting courses in the API is not yet possible',
-                APICodes.INVALID_PARAM, 409
+                APICodes.INVALID_PARAM, 400
             )
         checker.ensure_may_edit_state()
         course.state = state

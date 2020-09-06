@@ -2068,14 +2068,18 @@ def test_cannot_add_registration_link_to_lti_course(
 
 
 def test_update_name_of_course(
-    describe, logged_in, admin_user, test_client, session
+    describe, logged_in, admin_user, test_client, session, app, error_template
 ):
     with describe('setup'), logged_in(admin_user):
         course = helpers.create_course(test_client)
         url = f'/api/v1/courses/{helpers.get_id(course)}'
-        student = helpers.create_user_with_role(session, 'Student', course)
-        teacher = helpers.create_user_with_role(session, 'Teacher', course)
-        ta = helpers.create_user_with_role(session, 'TA', course)
+        lti_course = helpers.create_lti_course(session, app)
+        lti_url = f'/api/v1/courses/{helpers.get_id(lti_course)}'
+
+        courses = [course, lti_course]
+        student = helpers.create_user_with_role(session, 'Student', courses)
+        teacher = helpers.create_user_with_role(session, 'Teacher', courses)
+        ta = helpers.create_user_with_role(session, 'TA', courses)
 
     with describe('Teacher can change name'), logged_in(teacher):
         test_client.req('patch', url, 200, data={'name': 'Teacher name'})
@@ -2107,3 +2111,100 @@ def test_update_name_of_course(
                     'name': 'Teacher name',
                 }
             )
+
+    with describe('Cannot change name of LTI course'), logged_in(teacher):
+        test_client.req(
+            'patch',
+            lti_url,
+            400,
+            data={'name': 'Teacher name'},
+            result={
+                **error_template,
+                'message': 'You cannot rename LTI courses',
+            }
+        )
+
+
+def test_archiving_of_course(
+    describe, logged_in, admin_user, test_client, session, error_template
+):
+    with describe('setup'), logged_in(admin_user):
+        course = helpers.create_course(test_client)
+        url = f'/api/v1/courses/{helpers.get_id(course)}'
+        student = helpers.create_user_with_role(session, 'Student', course)
+        teacher = helpers.create_user_with_role(session, 'Teacher', course)
+        ta = helpers.create_user_with_role(session, 'TA', course)
+
+        def ensure_can_see():
+            test_client.req('get', url, 200)
+            assert helpers.get_id(course) in map(
+                helpers.get_id,
+                test_client.req('get', '/api/v1/courses/', 200)
+            )
+
+    with describe('Coures is visible at first'):
+        for user in [student, ta, teacher]:
+            with logged_in(user):
+                ensure_can_see()
+
+    with describe("TA's and students cannot archive course"):
+        with logged_in(student):
+            test_client.req('patch', url, 403, data={'state': 'archived'})
+        with logged_in(ta):
+            test_client.req('patch', url, 403, data={'state': 'archived'})
+
+        with logged_in(teacher):
+            test_client.req(
+                'get',
+                url,
+                200,
+                result={
+                    '__allow_extra__': True, 'id': helpers.get_id(course),
+                    'state': 'visible'
+                }
+            )
+
+    with describe('Teacher can archive course'), logged_in(teacher):
+        test_client.req('patch', url, 200, data={'state': 'archived'})
+        test_client.req(
+            'get',
+            url,
+            200,
+            result={
+                '__allow_extra__': True,
+                'id': helpers.get_id(course),
+                'state': 'archived',
+            }
+        )
+
+    with describe("Only TA's and teachers can see the course"):
+        for user in [ta, teacher]:
+            with logged_in(user):
+                ensure_can_see()
+
+        with logged_in(student):
+            test_client.req('get', url, 403)
+            assert helpers.get_id(course) not in map(
+                helpers.get_id,
+                test_client.req('get', '/api/v1/courses/', 200)
+            )
+
+    with describe('Teacher can unarchive course'):
+        with logged_in(teacher):
+            test_client.req('patch', url, 200, data={'state': 'visible'})
+
+        for user in [ta, student, teacher]:
+            with logged_in(user):
+                ensure_can_see()
+
+    with describe('Deleting is not (yet) possible'), logged_in(teacher):
+        test_client.req(
+            'patch',
+            url,
+            400,
+            data={'state': 'deleted'},
+            result={
+                **error_template,
+                'message': 'It is not yet possible to delete a course',
+            },
+        )
