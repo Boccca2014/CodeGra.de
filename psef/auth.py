@@ -526,7 +526,7 @@ def _ensure_submission_limits_not_exceeded(
         query_since_cool_off = sql_func.count(
             sql_expression.case(
                 [(Work.created_at >= cool_off_cutoff, 1)],
-                else_=0,
+                else_=None,
             )
         )
         query_oldest_in_period = base_sql.filter(
