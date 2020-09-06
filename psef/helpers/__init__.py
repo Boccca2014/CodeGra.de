@@ -1561,6 +1561,12 @@ def mount_retry_adapter(
     retries: int = 10,
     backoff_fator: float = 1.2
 ) -> None:
+    """Mount a retry adapter to the given session.
+
+    :param session: The session to mount the adapter to.
+    :param retries: The amount of retries to do.
+    :param backoff_factor: The ``backoff_factor`` to provide to the adapter.
+    """
     adapter = HTTPAdapter(
         max_retries=Retry(
             total=retries,

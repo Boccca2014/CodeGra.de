@@ -20,7 +20,6 @@ from sqlalchemy.orm import selectinload
 from werkzeug.wrappers import Response
 
 from cg_dt_utils import DatetimeWithTimezone
-from cg_sqlalchemy_helpers.types import DbColumn
 
 from . import BrokerFlask, app, tasks, models
 from .models import db

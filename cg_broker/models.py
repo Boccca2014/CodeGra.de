@@ -335,7 +335,6 @@ class Runner(Base, mixins.TimestampMixin, mixins.UUIDMixin):
         """Verify the password in the current request, if this runner type
         needs a correct password.
         """
-        pass
 
     __mapper_args__ = {
         'polymorphic_on': _runner_type,

@@ -270,6 +270,8 @@ def register_runner_for_job(job_id: str) -> EmptyResponse:
     'required': ['url'],
 })
 def confirm_runner_for_job(public_runner_id: uuid.UUID) -> EmptyResponse:
+    """Confirm the runner that does this request for connected job.
+    """
     runner = db.session.query(models.Runner).filter(
         models.Runner.ipaddr == request.remote_addr,
         models.Runner.public_id == public_runner_id,
