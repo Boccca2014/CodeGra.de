@@ -179,8 +179,8 @@ def test_sending_login_links(
         with logged_in(students[0]):
             test_client.req(
                 'get', '/api/v1/courses/', 200,
-                [{'__allow_extra__': True, 'id': helpers.get_id(other_course)},
-                 {'__allow_extra__': True, 'id': helpers.get_id(course)}]
+                [{'__allow_extra__': True, 'id': helpers.get_id(course)},
+                 {'__allow_extra__': True, 'id': helpers.get_id(other_course)}]
             )
 
     with describe('can send link and each user receives a unique link'

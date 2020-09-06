@@ -229,19 +229,14 @@ def test_jplag(
             'post',
             f'/api/v1/assignments/{assignment.id}/plagiarism',
             code,
+            query={'no_course_in_assignment': True},
             data=data,
             result=None if code >= 400 else {
-                'id': int,
-                'state': str,
-                'provider_name': str,
-                'config': list,
-                'created_at': str,
-                'assignment': dict,
-                'submissions_done': 0,
-                'submissions_total': int,
-                'log': None,
-                'assignments': {str(assignment.id): dict},
-                'courses': {str(assignment.course_id): dict}
+                'id': int, 'state': str, 'provider_name': str, 'config': list,
+                'created_at': str, 'assignment': dict, 'submissions_done': 0,
+                'submissions_total': int, 'log': None, 'assignments': {
+                    str(assignment.id): dict
+                }, 'courses': {str(assignment.course_id): dict}
             }
         )
         if code >= 400:
@@ -273,6 +268,8 @@ def test_jplag(
                 # This should be one as we output this in our Popen stub
                 'submissions_done': 1,
                 'log': str,
+                'assignments': {str(assignment.id): dict},
+                'courses': {str(assignment.course_id): dict},
             }
         )
         test_client.req(
@@ -496,6 +493,8 @@ def test_jplag_old_assignments(
                 'submissions_total': int,
                 'submissions_done': 0,
                 'log': None,
+                'assignments': {str(assignment.id): dict},
+                'courses': {str(assignment.course_id): dict},
             }
         )
         print('next2')
@@ -514,6 +513,11 @@ def test_jplag_old_assignments(
                 'assignment': dict,
                 'submissions_total': int,
                 'submissions_done': 1,
+                'assignments': {
+                    str(assignment.id): dict,
+                    str(other_assignment.id): dict,
+                },
+                'courses': {str(assignment.course_id): dict},
             }
         )
         amount_subs = assignment.get_from_latest_submissions(
@@ -566,7 +570,7 @@ def test_jplag_old_assignments(
         )
 
     with logged_in(teacher_user):
-        test_client.req(
+        run = test_client.req(
             'get',
             f'/api/v1/plagiarism/{plag["id"]}',
             200,
@@ -575,10 +579,12 @@ def test_jplag_old_assignments(
             'get',
             f'/api/v1/plagiarism/{plag["id"]}/cases/',
             200,
+            query={'no_assignment_in_case': True},
         )
         for idx, case in enumerate(cases):
-            for idx2, assig in enumerate(case['assignments']):
-                if assig['course']['id'] == other_course.id:
+            for idx2, assig_id in enumerate(case['assignment_ids']):
+                if run['assignments'][str(assig_id)
+                                      ]['course_id'] == other_course.id:
                     break
             else:
                 continue
@@ -605,6 +611,7 @@ def test_jplag_old_assignments(
             'get',
             f'/api/v1/plagiarism/{plag["id"]}/cases/',
             200,
+            query={'no_assignment_in_case': True},
         )[idx]
         assert case == old_case
 
@@ -622,6 +629,11 @@ def test_jplag_old_assignments(
             f'/api/v1/plagiarism/{plag["id"]}/cases/{old_case["id"]}',
             403,
         )
+        run = test_client.req(
+            'get',
+            f'/api/v1/plagiarism/{plag["id"]}',
+            200,
+        )
         case = test_client.req(
             'get',
             f'/api/v1/plagiarism/{plag["id"]}/cases/',
@@ -629,12 +641,11 @@ def test_jplag_old_assignments(
         )[idx]
         assert case['id'] == old_case['id']
         assert case['submissions'] == old_case['submissions']
-        assert sorted(list(case['assignments'][idx2].keys())) == [
-            'course', 'name'
-        ]
-        assert sorted(list(case['assignments'][idx2]['course'].keys())) == [
-            'name'
-        ]
+
+        assig = run['assignments'][str(case['assignment_ids'][idx2])]
+        course = run['courses'][str(assig['course_id'])]
+        assert sorted(list(assig.keys())) == ['course_id', 'id', 'name']
+        assert sorted(list(course.keys())) == ['id', 'name', 'virtual']
 
     other_course_teacher_role = psef.models.CourseRole.query.filter_by(
         course_id=other_course.id, name='Teacher'
@@ -654,15 +665,15 @@ def test_jplag_old_assignments(
             'get',
             f'/api/v1/plagiarism/{plag["id"]}/cases/',
             200,
+            query={'no_assignment_in_case': True},
         )[idx]
         assert case['id'] == old_case['id']
         assert case['submissions'] is None
-        assert sorted(list(case['assignments'][idx2].keys())) == [
-            'course', 'name'
-        ]
-        assert sorted(list(case['assignments'][idx2]['course'].keys())) == [
-            'name'
-        ]
+
+        assig = run['assignments'][str(case['assignment_ids'][idx2])]
+        course = run['courses'][str(assig['course_id'])]
+        assert sorted(list(assig.keys())) == ['course_id', 'id', 'name']
+        assert sorted(list(course.keys())) == ['id', 'name', 'virtual']
 
 
 @pytest.mark.parametrize('bb_tar_gz', ['correct.tar.gz'])
@@ -768,6 +779,16 @@ def test_jplag_old_submissions(
                 'assignment': dict,
                 'submissions_done': 1,
                 'submissions_total': int,
+                'assignments': {
+                    str(assignment.id): dict,
+                    # Allow the created extra assignment.
+                    '__allow_extra__': True,
+                },
+                'courses': {
+                    str(assignment.course_id): dict,
+                    # Allow the created virtual course.
+                    '__allow_extra__': True,
+                },
             }
         )
         for jcase in plag['cases']:
@@ -933,6 +954,8 @@ def test_jplag_base_code(
                 'assignment': dict,
                 'submissions_done': 1,
                 'submissions_total': int,
+                'assignments': {str(assignment.id): dict},
+                'courses': {str(assignment.course_id): dict},
             }
         )
 
@@ -986,6 +1009,8 @@ def test_chrased_jplag(
                 'submissions_done': 0,
                 'submissions_total': int,
                 'log': None,
+                'assignments': {str(assignment.id): dict},
+                'courses': {str(assignment.course_id): dict},
             }
         )
         plag = test_client.req(
@@ -1004,6 +1029,8 @@ def test_chrased_jplag(
                 'assignment': dict,
                 'submissions_done': 1,
                 'submissions_total': int,
+                'assignments': {str(assignment.id): dict},
+                'courses': {str(assignment.course_id): dict},
             }
         )
         if subprocess_exception:

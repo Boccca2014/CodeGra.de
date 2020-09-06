@@ -59,6 +59,7 @@ def test_disabling_files_upload(basic, test_client, logged_in, describe):
     with describe('setup'):
         course, assig, teacher, student = basic
         url = f'/api/v1/assignments/{assig.id}'
+        query = {'no_course_in_assignment': True}
 
         with logged_in(student):
             helpers.create_submission(test_client, assig)
@@ -69,6 +70,7 @@ def test_disabling_files_upload(basic, test_client, logged_in, describe):
                 'patch',
                 url,
                 200,
+                query=query,
                 data={
                     'files_upload_enabled': False,
                     'webhook_upload_enabled': True,
@@ -86,6 +88,7 @@ def test_disabling_files_upload(basic, test_client, logged_in, describe):
                 'patch',
                 url,
                 400,
+                query=query,
                 data={
                     'files_upload_enabled': False,
                     'webhook_upload_enabled': False,
@@ -98,6 +101,7 @@ def test_disabling_files_upload(basic, test_client, logged_in, describe):
             'patch',
             url,
             200,
+            query=query,
             data={
                 'files_upload_enabled': True,
                 'webhook_upload_enabled': False,
@@ -110,6 +114,7 @@ def test_disabling_files_upload(basic, test_client, logged_in, describe):
             'patch',
             url,
             200,
+            query=query,
             data={
                 'files_upload_enabled': True,
                 'webhook_upload_enabled': True,
@@ -118,7 +123,10 @@ def test_disabling_files_upload(basic, test_client, logged_in, describe):
 
         with logged_in(student):
             old_webhook = test_client.req(
-                'post', f'{url}/webhook_settings?webhook_type=git', 200
+                'post',
+                f'{url}/webhook_settings',
+                200,
+                query={'webhook_type': 'git', **query},
             )
 
         _, rv = test_client.req(
@@ -680,6 +688,7 @@ def test_get_warning_with_git_and_ignore_file(
                 'patch',
                 url,
                 200,
+                query={'no_course_in_assignment': True},
                 data={
                     'files_upload_enabled': False,
                     'webhook_upload_enabled': True,
@@ -715,6 +724,7 @@ def test_get_warning_with_git_and_ignore_file(
             'patch',
             url,
             200,
+            query={'no_course_in_assignment': True},
             data={'ignore': '', 'ignore_version': 'EmptySubmissionFilter'},
             include_response=True
         )
@@ -733,6 +743,11 @@ def test_get_warning_with_git_and_ignore_file(
         )
 
         _, rv = test_client.req(
-            'patch', url, 200, data=ignore_data, include_response=True
+            'patch',
+            url,
+            200,
+            query={'no_course_in_assignment': True},
+            data=ignore_data,
+            include_response=True,
         )
         assert 'warning' not in rv.headers

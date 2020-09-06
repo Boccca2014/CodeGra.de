@@ -219,10 +219,10 @@ export default {
                 event.target.id = `row-${item.id}`;
             }
 
-            this.disabledPopoverContent = `You don't have the permission
-            necessary permissions to view this case, as one of the submissions
-            connected to this case was submitted to another course, in which you
-            do not have the necessary permissions.`;
+            this.disabledPopoverContent = `You don't have the necessary
+            permissions to view this case, as one of the submissions connected
+            to this case was submitted to another course, in which you do not
+            have the necessary permissions.`;
 
             this.$nextTick(() => {
                 this.disabledPopoverRowId = event.target.id;

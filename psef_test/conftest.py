@@ -325,6 +325,8 @@ def assert_similar():
 
             if isinstance(value, psef.models.Base):
                 value = value.__to_json__()
+            elif isinstance(value, datetime.datetime):
+                value = value.isoformat()
 
             if isinstance(value, type):
                 assert isinstance(vals[k], value), (

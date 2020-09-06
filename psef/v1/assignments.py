@@ -21,7 +21,7 @@ import psef
 import psef.files
 from psef import app as current_app
 from psef import current_user
-from cg_helpers import on_not_none
+from cg_helpers import handle_none, on_not_none
 from cg_dt_utils import DatetimeWithTimezone
 from psef.models import db
 from psef.helpers import (
@@ -351,23 +351,28 @@ def update_assignment(assignment_id: int) -> JSONResponse[models.Assignment]:
     lms_name = on_not_none(lti_provider, lambda prov: prov.lms_name)
 
     if new_available_at is not MISSING:
-        if (
-            assig.is_lti and (
-                lti_provider is None or
-                not lti_provider.supports_setting_available_at()
+        if assig.is_lti:
+            can_set_state = handle_none(
+                on_not_none(
+                    lti_provider, lambda p: p.supports_setting_state()
+                ),
+                False,
             )
-        ):
-            raise APIException(
-                (
-                    'The available at of this assignment should be set in '
-                    f'{lms_name}.'
-                ), f'{assig.name} is an LTI assignment', APICodes.UNSUPPORTED,
-                400
-            )
+            if not can_set_state:
+                raise APIException(
+                    (
+                        'The available at of this assignment should be set in '
+                        f'{lms_name}.'
+                    ), f'{assig.name} is an LTI assignment',
+                    APICodes.UNSUPPORTED, 400
+                )
         perm_checker.ensure_may_edit_info()
         assig.available_at = new_available_at
 
     if new_state is not MISSING:
+        # TODO: Check the LTI settings to make sure we can actually set the
+        # state. We should also be able to set the state to 'done' and back to
+        # "not done".
         perm_checker.ensure_may_edit_info()
         assig.set_state_with_string(new_state)
 
