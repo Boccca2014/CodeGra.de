@@ -17,6 +17,7 @@ def init_app(app: flask.Flask) -> None:
 
     This places a global mutable options object in the ``g`` variable.
     """
+
     def init_jsonify_options() -> None:
         flask.g.jsonify_options = Options()
 

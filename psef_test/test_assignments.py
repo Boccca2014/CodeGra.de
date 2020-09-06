@@ -5457,3 +5457,28 @@ def test_changing_kind_of_lti_assignment(
                 'message': 'Exam mode is not available for LTI assignments',
             }
         )
+
+
+def test_set_available_at_for_lti_assignment(
+    describe, test_client, logged_in, admin_user, error_template, app,
+    tomorrow, session
+):
+    with describe('setup'), logged_in(admin_user):
+        course = helpers.create_lti_course(session, app, admin_user)
+        assig = helpers.create_lti_assignment(session, course)
+        url = f'/api/v1/assignments/{helpers.get_id(assig)}'
+
+    with describe('cannot change mode to exam'), logged_in(admin_user):
+        test_client.req(
+            'patch',
+            url,
+            400,
+            data={'available_at': tomorrow.isoformat()},
+            result={
+                **error_template,
+                'message': (
+                    'The available at of this assignment should be set in'
+                    ' Canvas.'
+                ),
+            }
+        )

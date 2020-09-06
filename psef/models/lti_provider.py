@@ -238,7 +238,7 @@ class LTIProviderBase(Base, TimestampMixin):
         raise NotImplementedError
 
     @abc.abstractmethod
-    def supports_setting_available_at(self) -> bool:
+    def supports_setting_state(self) -> bool:
         """May users change the available at of the assignment within CodeGrade.
         """
         raise NotImplementedError
@@ -532,10 +532,11 @@ class LTI1p1Provider(LTIProviderBase):
         """
         return not self.lti_class.supports_deadline()
 
-    def supports_setting_available_at(self) -> bool:
-        """We never use the available at when launching in LTI 1.1.
+    def supports_setting_state(self) -> bool:
+        """We cannot set the state of the assignment when the LMS
+            manages the state.
         """
-        return True
+        return not self.lti_class.supports_state_management()
 
     def supports_max_points(self) -> bool:
         """Only some LMSes support bonus points using the LTI 1.1 standard.
@@ -1332,7 +1333,7 @@ class LTI1p3Provider(LTIProviderBase):
         """
         return self.lms_capabilities.set_deadline
 
-    def supports_setting_available_at(self) -> bool:
+    def supports_setting_state(self) -> bool:
         """Does the LMS support the available at.
         """
         return self.lms_capabilities.set_state
