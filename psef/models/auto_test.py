@@ -817,13 +817,13 @@ class AutoTestRun(Base, TimestampMixin, IdMixin):
                 )
             ),
         ).with_entities(
-            sql_func.max(AutoTestResult.updated_at).filter(
+            sql_func.min(AutoTestResult.updated_at).filter(
                 AutoTestResult.state == ATStepResultState.not_started,
             ),
-            sql_func.max(AutoTestResult.started_at).filter(
+            sql_func.min(AutoTestResult.started_at).filter(
                 AutoTestResult.state == ATStepResultState.running,
             ),
-            sql_func.min(AutoTestResult.updated_at).filter(
+            sql_func.max(AutoTestResult.updated_at).filter(
                 AutoTestResult.state == ATStepResultState.passed,
             ),
         )
