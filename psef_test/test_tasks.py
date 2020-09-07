@@ -368,7 +368,9 @@ def test_notify_broker_kill_single_runner(
 
         ses = requests_stubs.Session()
         describe.add_hook(ses.reset)
-        monkeypatch.setattr(psef.helpers, 'BrokerSession', lambda *_: ses)
+        monkeypatch.setattr(
+            psef.helpers, 'BrokerSession', lambda *_, **__: ses
+        )
 
     with describe('kill runner'):
         psef.tasks._notify_broker_kill_single_runner_1(run.id, runner.id.hex)

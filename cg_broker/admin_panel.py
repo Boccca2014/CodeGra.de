@@ -20,7 +20,6 @@ from sqlalchemy.orm import selectinload
 from werkzeug.wrappers import Response
 
 from cg_dt_utils import DatetimeWithTimezone
-from cg_sqlalchemy_helpers.types import DbColumn
 
 from . import BrokerFlask, app, tasks, models
 from .models import db
@@ -174,16 +173,13 @@ def show_all_runners() -> str:
     """Get all runners in a nice (?) layout.
     """
     finished_runners = db.session.query(models.Runner).filter(
-        ~t.cast(DbColumn[models.RunnerState], models.Runner.state
-                ).in_(models.RunnerState.get_active_states())
+        models.Runner.state.notin_(models.RunnerState.get_active_states())
     ).order_by(models.Runner.created_at.desc()).options(
         selectinload(models.Runner.job)
     ).limit(50).all()
 
     active_runners = db.session.query(models.Runner).filter(
-        t.cast(DbColumn[models.RunnerState], models.Runner.state).in_(
-            models.RunnerState.get_active_states()
-        )
+        models.Runner.state.in_(models.RunnerState.get_active_states())
     ).order_by(models.Runner.created_at.asc()).options(
         selectinload(models.Runner.job)
     ).all()
@@ -201,14 +197,13 @@ def show_all_jobs() -> str:
     """Get all jobs in a nice (?) layout.
     """
     finished_jobs = db.session.query(models.Job).filter(
-        t.cast(DbColumn[models.JobState],
-               models.Job.state).in_(models.JobState.get_finished_states())
-    ).order_by(t.cast(DbColumn, models.Job.created_at).desc()).limit(50).all()
+        models.Job.state.in_(models.JobState.get_finished_states())
+    ).order_by(models.Job.created_at.desc()).limit(50).all()
 
     active_jobs = db.session.query(models.Job).filter(
-        ~t.cast(DbColumn[models.JobState], models.Job.state
-                ).in_(models.JobState.get_finished_states())
-    ).order_by(t.cast(DbColumn, models.Job.created_at).asc()).all()
+        models.Job.state.notin_(models.JobState.get_finished_states())
+    ).order_by(models.Job.created_at.asc()).all()
+
     return render_template(
         'jobs.j2', active_jobs=active_jobs, finished_jobs=finished_jobs
     )
