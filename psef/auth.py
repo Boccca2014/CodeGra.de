@@ -8,21 +8,22 @@ import itertools
 import contextlib
 from functools import wraps, partial
 
-import psef
 import oauth2
 import structlog
 import sqlalchemy
 import humanfriendly
 import flask_jwt_extended as flask_jwt
 from flask import _app_ctx_stack  # type: ignore
-from cg_json import JSONResponse
-from cg_helpers import maybe_wrap_in_list
 from sqlalchemy import sql
-from psef.helpers import readable_join
 from werkzeug.local import LocalProxy
 from mypy_extensions import NoReturn
-from psef.exceptions import APICodes, APIException, PermissionException
 from typing_extensions import Final, Literal
+
+import psef
+from cg_json import JSONResponse
+from cg_helpers import maybe_wrap_in_list
+from psef.helpers import readable_join
+from psef.exceptions import APICodes, APIException, PermissionException
 from cg_sqlalchemy_helpers import func as sql_func
 from cg_sqlalchemy_helpers import expression as sql_expression
 from cg_cache.intra_request import cache_within_request

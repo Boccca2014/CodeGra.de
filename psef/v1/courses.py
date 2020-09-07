@@ -7,20 +7,21 @@ SPDX-License-Identifier: AGPL-3.0-only
 import uuid
 import typing as t
 
+from flask import request
+from mypy_extensions import TypedDict
+from flask_limiter.util import get_remote_address
+
 import psef
 import psef.auth as auth
 import cg_helpers
 import psef.models as models
 import psef.helpers as helpers
 from psef import limiter, current_user
-from flask import request
 from psef.models import db
 from psef.helpers import (
     JSONResponse, EmptyResponse, ExtendedJSONResponse, jsonify,
     make_empty_response, get_from_map_transaction, get_json_dict_from_request
 )
-from mypy_extensions import TypedDict
-from flask_limiter.util import get_remote_address
 from cg_sqlalchemy_helpers import expression as sql_expression
 
 from . import api

@@ -10,11 +10,12 @@ import itertools
 import contextlib
 import subprocess
 
-import psef
 import pytest
+from sqlalchemy import func
+
+import psef
 import psef.models as models
 from helpers import create_marker
-from sqlalchemy import func
 
 http_err = create_marker(pytest.mark.http_err)
 

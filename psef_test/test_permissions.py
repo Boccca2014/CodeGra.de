@@ -4,6 +4,7 @@ import sys
 import json
 
 import pytest
+
 import helpers
 import psef.auth as a
 import psef.models as m

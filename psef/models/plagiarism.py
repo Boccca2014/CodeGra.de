@@ -6,10 +6,11 @@ import enum
 import json
 import typing as t
 
+from typing_extensions import Literal, TypedDict
+
 import psef
 import cg_enum
 from cg_dt_utils import DatetimeWithTimezone
-from typing_extensions import Literal, TypedDict
 from cg_sqlalchemy_helpers.types import ColumnProxy
 
 from . import Base, db
