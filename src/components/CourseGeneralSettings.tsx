@@ -1,11 +1,12 @@
 /* SPDX-License-Identifier: AGPL-3.0-only */
-import { VNode, CreateElement } from 'vue';
-import * as models from '@/models';
 import * as tsx from 'vue-tsx-support';
-import { modifiers as m } from "vue-tsx-support";
+import { VNode, CreateElement } from 'vue';
+import { modifiers as m } from 'vue-tsx-support';
+import { Vue, Component, Prop, Watch } from 'vue-property-decorator';
+
+import * as models from '@/models';
 import { CoursesStore } from '@/store';
 import { CoursePermission as CPerm } from '@/permissions';
-import { Vue, Component, Prop, Watch } from "vue-property-decorator";
 
 @Component
 export default class CourseGeneralSettings extends Vue {
