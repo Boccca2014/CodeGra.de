@@ -12,6 +12,7 @@ declare module 'vue/types/vue' {
     interface Vue {
         $afterRerender(): Promise<void>;
         $waitForRef(ref: string, retries?: number): Promise<HTMLElement | Vue | null>;
+        $routeParamAsId(name: string): number | undefined;
         $http: AxiosStatic;
         $utils: typeof typedUtils;
         $now: Moment;

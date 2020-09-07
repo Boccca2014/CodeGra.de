@@ -238,6 +238,12 @@ class LTIProviderBase(Base, TimestampMixin):
         raise NotImplementedError
 
     @abc.abstractmethod
+    def supports_setting_state(self) -> bool:
+        """May users change the available at of the assignment within CodeGrade.
+        """
+        raise NotImplementedError
+
+    @abc.abstractmethod
     def supports_setting_deadline(self) -> bool:
         """May users change the deadline of the assignment within CodeGrade.
 
@@ -525,6 +531,12 @@ class LTI1p1Provider(LTIProviderBase):
         """Only some LMSes pass the deadline in LTI launches.
         """
         return not self.lti_class.supports_deadline()
+
+    def supports_setting_state(self) -> bool:
+        """We cannot set the state of the assignment when the LMS
+            manages the state.
+        """
+        return not self.lti_class.supports_state_management()
 
     def supports_max_points(self) -> bool:
         """Only some LMSes support bonus points using the LTI 1.1 standard.
@@ -1320,6 +1332,11 @@ class LTI1p3Provider(LTIProviderBase):
             class :class:`psef.lti.v1_3.lms_capabilities.LMSCapabilities`.
         """
         return self.lms_capabilities.set_deadline
+
+    def supports_setting_state(self) -> bool:
+        """Does the LMS support the available at.
+        """
+        return self.lms_capabilities.set_state
 
     @property
     def _custom_fields(self) -> t.Mapping[str, str]:

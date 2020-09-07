@@ -32,9 +32,10 @@
             <multiselect
                 class="assignment-selector"
                 v-model="importAssignment"
-                :options="otherAssignmentsWithInstructions || []"
+                :loading="!retrievedAllCourses"
+                :options="otherAssignmentsWithInstructions"
                 :searchable="true"
-                :custom-label="a => `${courses[a.courseId].name} - ${a.name}`"
+                :custom-label="getImportLabel"
                 :multiple="false"
                 track-by="id"
                 label="label"
@@ -175,10 +176,9 @@
                                            @file-sep-click="addNewRule"
                                            @done-editing="$set(rules[ruleIndex], 'editing', false)"/>
                                 <b-button-group v-if="editable && !rules[ruleIndex].editing">
-                                    <cg-submit-button
-                                                      confirm="Are you sure you want to delete this rule?"
+                                    <cg-submit-button confirm="Are you sure you want to delete this rule?"
                                                       v-b-popover.top.hover="'Delete this rule'"
-                                                      :submit="() => deleteRule(ruleIndex)"
+                                                      :submit="ruleDeleterAt(ruleIndex)"
                                                       :duration="0"
                                                       :wait-at-least="0"
                                                       variant="danger">
@@ -267,9 +267,10 @@ import 'vue-awesome/icons/times';
 import 'vue-awesome/icons/copy';
 import 'vue-awesome/icons/plus';
 
-import { mapGetters, mapActions } from 'vuex';
+import { mapActions, mapGetters } from 'vuex';
 
 import { range, getProps } from '@/utils';
+import * as models from '@/models';
 
 import FileRule from './FileRule';
 
@@ -282,8 +283,8 @@ export default {
     name: 'ignore-file',
 
     props: {
-        assignmentId: {
-            type: Number,
+        assignment: {
+            type: models.Assignment,
             required: true,
         },
         editable: {
@@ -297,7 +298,8 @@ export default {
     },
 
     computed: {
-        ...mapGetters('courses', ['courses', 'assignments']),
+        ...mapGetters('courses', ['retrievedAllCourses', 'getCourse']),
+        ...mapGetters('assignments', ['allAssignments']),
 
         remoteIgnoreFile() {
             return [
@@ -310,15 +312,11 @@ export default {
             return this.rules.some(r => !r.removed && r.rule_type !== 'require');
         },
 
-        assignment() {
-            return this.assignments[this.assignmentId];
-        },
-
         configurationValid() {
             return (
                 this.policy &&
-                this.options.every(o => o.value != null) &&
-                this.rules.some(r => !r.removed)
+                    this.options.every(o => o.value != null) &&
+                    this.rules.some(r => !r.removed)
             );
         },
 
@@ -373,9 +371,18 @@ export default {
         },
 
         otherAssignmentsWithInstructions() {
-            return Object.values(this.assignments).filter(assig =>
+            // We cannot (!) use real models here as all getters will be removed
+            // by vue-multiselect as it tries to copy the objects, however that
+            // doesn't work with getters.
+            return this.allAssignments.filter(assig =>
                 assig.cgignore_version === 'SubmissionValidator' && assig.id !== this.assignmentId,
-            );
+            ).map(a => ({
+                id: a.id,
+                name: a.name,
+                cgignore: a.cgignore,
+                cgignore_version: a.cgignore_version,
+                courseId: a.courseId,
+            }));
         },
     },
 
@@ -392,6 +399,12 @@ export default {
                 this.copyRemoteValues(file, version);
             },
             immediate: true,
+        },
+
+        showImporter(newVal) {
+            if (newVal) {
+                this.loadAllCourses();
+            }
         },
     },
 
@@ -420,7 +433,8 @@ export default {
     },
 
     methods: {
-        ...mapActions('courses', ['updateAssignment']),
+        ...mapActions('assignments', ['patchAssignment']),
+        ...mapActions('courses', ['loadAllCourses']),
 
         createInstructions() {
             this.rules = [];
@@ -470,7 +484,7 @@ export default {
                 {
                     key: 'remove_leading_directories',
                     description:
-                        'If this option is enabled, this will automatically delete any extra leading directories in a submission. For example, if all the files and/or directories are in a subdirectory, this will remove the top level directory.',
+                    'If this option is enabled, this will automatically delete any extra leading directories in a submission. For example, if all the files and/or directories are in a subdirectory, this will remove the top level directory.',
                     value: true,
                     name: 'Delete leading directories',
                     options: onOff,
@@ -480,7 +494,7 @@ export default {
                     key: 'allow_override',
                     value: false,
                     description:
-                        'If this option is enabled, this will allow students to press an override button to hand in a submission, even if it does not follow the hand-in requirements. Students will, however, get a warning that their submission does not follow the hand-in requirements.',
+                    'If this option is enabled, this will allow students to press an override button to hand in a submission, even if it does not follow the hand-in requirements. Students will, however, get a warning that their submission does not follow the hand-in requirements.',
                     name: 'Allow overrides by students',
                     options: onOff,
                     id: getOptionId(),
@@ -508,11 +522,13 @@ export default {
         },
 
         updateIgnore(ignore, ignoreVersion) {
-            const data = {
-                ignore,
-                ignore_version: ignoreVersion,
-            };
-            return this.$http.patch(`/api/v1/assignments/${this.assignment.id}`, data);
+            return this.patchAssignment({
+                assignmentId: this.assignment.id,
+                assignmentProps: {
+                    ignore,
+                    ignore_version: ignoreVersion,
+                },
+            });
         },
 
         addNewRule(name) {
@@ -527,22 +543,19 @@ export default {
         },
 
         async afterUpdateIgnore(response) {
-            // eslint-disable-next-line
-            const { cgignore, cgignore_version } = response.data;
-            this.updateAssignment({
-                assignmentId: this.assignmentId,
-                assignmentProps: {
-                    cgignore,
-                    cgignore_version,
-                },
-            });
             // We need to set `loadingRules` to `true` so that we can update the
             // rules without having any issue with animations.
+            // eslint-disable-next-line camelcase
+            const { cgignore, cgignore_version } = response.data;
             this.loadingRules = true;
             await this.$nextTick();
             this.showImporter = false;
             this.copyRemoteValues(cgignore, cgignore_version);
             this.loadingRules = false;
+        },
+
+        ruleDeleterAt(index) {
+            return () => this.deleteRule(index);
         },
 
         deleteRule(ruleIndex) {
@@ -565,6 +578,13 @@ export default {
             return this.updateIgnore(
                 this.importAssignment.cgignore,
                 this.importAssignment.cgignore_version,
+            );
+        },
+
+        getImportLabel(assigLike) {
+            return this.getCourse(assigLike.courseId).mapOrDefault(
+                course => `${course.name} - ${assigLike.name}`,
+                `… - ${assigLike.name}`,
             );
         },
     },

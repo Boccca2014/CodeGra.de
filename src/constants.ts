@@ -114,3 +114,5 @@ export const COLOR_PAIRS = Object.freeze(
         <const>{ background: 'rgb(231, 238, 233)', color: 'dark' },
     ].map(x => Object.freeze(x)), // This `x` is needed for type inference.
 );
+
+export const INITIAL_COURSES_AMOUNT = 30;

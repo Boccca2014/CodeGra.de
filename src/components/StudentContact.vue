@@ -109,7 +109,6 @@
 <script lang="ts">
 import { Vue, Component, Prop, Ref } from 'vue-property-decorator';
 
-import { Snippet } from '@/interfaces';
 import * as models from '@/models';
 
 // @ts-ignore
@@ -150,11 +149,7 @@ export default class StudentContact extends Vue {
 
     @Prop({ required: true }) defaultSubject!: string;
 
-    @Prop({ required: true }) course!: {
-        id: number,
-        snippets: Snippet[] | null,
-        permissions: Record<string, boolean>,
-    };
+    @Prop({ required: true }) course!: models.Course;
 
     @Prop({ default: false }) noCancel!: boolean;
 

@@ -52,7 +52,9 @@
 <script lang="ts">
 import { Vue, Component, Prop } from 'vue-property-decorator';
 
+import { Location } from 'vue-router';
 import { NotificationStore } from '@/store/modules/notification';
+import { AssignmentsStore } from '@/store/modules/assignments';
 
 import * as models from '@/models';
 
@@ -118,20 +120,23 @@ export default class UserNotifications extends Vue {
     }
 
     // eslint-disable-next-line class-methods-use-this
-    getNotificationRoute(notification: models.Notification): Object {
-        return {
-            name: 'submission_file',
-            params: {
-                courseId: `${notification.assignment?.courseId}`,
-                assignmentId: `${notification.assignment?.id}`,
-                submissionId: `${notification.submission?.id}`,
-                fileId: notification.fileId,
-            },
-            query: {
-                replyToFocus: `${notification.commentReply?.id}`,
-            },
-            hash: '#code',
-        };
+    getNotificationRoute(notification: models.Notification): Location | null {
+        return notification.assignment.mapOrDefault(
+            assig => ({
+                name: 'submission_file',
+                params: {
+                    courseId: assig.courseId.toString(),
+                    assignmentId: assig.id.toString(),
+                    submissionId: `${notification.submission?.id}`,
+                    fileId: notification.fileId,
+                },
+                query: {
+                    replyToFocus: `${notification.commentReply?.id}`,
+                },
+                hash: '#code',
+            }),
+            null,
+        );
     }
 
     async gotoNotification(notification: models.Notification): Promise<void> {
@@ -145,14 +150,26 @@ export default class UserNotifications extends Vue {
             });
         });
 
-        await this.$store.dispatch('feedback/loadFeedback', {
-            assignmentId,
-            submissionId,
-            force: true,
-        }).catch(() => null);
+        await Promise.all([
+            AssignmentsStore.loadSingleAssignment({
+                assignmentId: notification.assignmentId,
+            }),
+            this.$store.dispatch('feedback/loadFeedback', {
+                assignmentId,
+                submissionId,
+                force: true,
+            }).catch(() => null),
+        ]);
 
-        this.$router.push(this.getNotificationRoute(notification));
-        this.$root.$emit('cg::sidebar::close');
+        const location = this.getNotificationRoute(notification);
+        if (location == null) {
+            this.$utils.withSentry(Sentry => {
+                Sentry.captureMessage('Could not create link to notification');
+            });
+        } else {
+            this.$router.push(location);
+            this.$root.$emit('cg::sidebar::close');
+        }
     }
 }
 </script>

@@ -268,7 +268,8 @@ export default {
     },
 
     computed: {
-        ...mapGetters('courses', { allAssignments: 'assignments', allCourses: 'courses' }),
+        ...mapGetters('assignments', ['allAssignments']),
+        ...mapGetters('courses', ['allCourses']),
 
         course() {
             return this.assignment.course;
@@ -279,7 +280,7 @@ export default {
         },
 
         allOldAssignments() {
-            const courseNameOccurrences = Object.values(this.allCourses).reduce((res, course) => {
+            const courseNameOccurrences = this.allCourses.reduce((res, course) => {
                 if (!res[course.name]) {
                     res[course.name] = 0;
                 }
@@ -287,7 +288,7 @@ export default {
                 return res;
             }, {});
 
-            return Object.values(this.allAssignments)
+            return this.allAssignments
                 .filter(a => a.course.permissions.can_view_plagiarism)
                 .map(assig => {
                     let courseName = assig.course.name;
@@ -345,7 +346,7 @@ export default {
     },
 
     methods: {
-        ...mapActions('courses', ['loadCourses']),
+        ...mapActions('courses', ['loadAllCourses']),
 
         showProgress(run) {
             const provider = this.providers.find(prov => prov.name === run.provider_name);
@@ -434,7 +435,11 @@ export default {
                 data = selectedOptions;
             }
 
-            return this.$http.post(`/api/v1/assignments/${this.assignment.id}/plagiarism`, data);
+            const url = this.$utils.buildUrl(
+                ['api', 'v1', 'assignments', this.assignment.id, 'plagiarism'],
+                { query: { no_course_in_assignment: true } },
+            );
+            return this.$http.post(url, data);
         },
 
         afterRunPlagiarismChecker(response) {
@@ -516,7 +521,7 @@ export default {
 
         async loadProviders() {
             const { data: providers } = await this.$http
-                .get('/api/v1/plagiarism/')
+                .get('/api/v1/plagiarism/?no_course_in_assignment=true')
                 .catch(() => ({ data: [] }));
             this.providers = providers;
             if (this.providers.length === 1) {
@@ -531,7 +536,7 @@ export default {
             }
 
             const { data: runs } = await this.$http
-                .get(`/api/v1/assignments/${this.assignment.id}/plagiarism/`)
+                .get(`/api/v1/assignments/${this.assignment.id}/plagiarism/?no_course_in_assignment=true`)
                 .catch(() => ({ data: [] }));
             runs.forEach(run => {
                 run.formatted_created_at = readableFormatDate(run.created_at);
@@ -556,7 +561,7 @@ export default {
         },
 
         deleteRun(run) {
-            return this.$http.delete(`/api/v1/plagiarism/${run.id}`);
+            return this.$http.delete(`/api/v1/plagiarism/${run.id}?no_course_in_assignment=true`);
         },
 
         afterDeleteRun(run) {
@@ -565,7 +570,7 @@ export default {
     },
 
     async mounted() {
-        await Promise.all([this.loadProviders(), this.loadRuns(), this.loadCourses()]);
+        await Promise.all([this.loadProviders(), this.loadRuns(), this.loadAllCourses()]);
 
         this.addOldAssignmentsOption();
         this.addOldSubmissionsOption();

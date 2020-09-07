@@ -12,8 +12,7 @@ import { Assignment, Submission } from '@/models';
 
 import { CoursePermission as CPerm } from '@/permissions';
 
-import { store } from '@/store';
-import { PeerFeedbackStore } from '@/store/modules/peer_feedback';
+import { store, PeerFeedbackStore } from '@/store';
 import * as assignmentState from '@/store/assignment-states';
 import { SubmitButtonResult } from '../interfaces';
 

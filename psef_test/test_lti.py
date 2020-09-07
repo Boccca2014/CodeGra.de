@@ -2277,6 +2277,7 @@ def test_canvas_new_assignment_without_outcoume_service_url(
             'post',
             '/api/v1/lti/launch/2',
             200,
+            query={'no_course_in_assignment': True},
             data={'blob_id': blob_id},
             include_response=True,
         )

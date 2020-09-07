@@ -155,8 +155,8 @@ function commitRubricResult(commit, submissionId, result) {
 }
 
 const actions = {
-    async loadSubmissionsByUser(context, { assignmentId, userId, force }) {
-        await context.dispatch('loadSubmissions', assignmentId);
+    async loadSubmissionsByUser(context, { assignmentId, courseId, userId, force }) {
+        await context.dispatch('loadSubmissions', { assignmentId, courseId });
 
         if (force) {
             context.commit(types.SET_SUBMISSIONS_BY_USER_PROMISE, {
@@ -191,12 +191,13 @@ const actions = {
         return context.getters.getSubmissionsByUser(assignmentId, userId);
     },
 
-    loadGivenSubmissions(context, { assignmentId, submissionIds, onError }) {
+    loadGivenSubmissions(context, { assignmentId, courseId, submissionIds, onError }) {
         return Promise.all(
             submissionIds.map(submissionId =>
                 context
                     .dispatch('loadSingleSubmission', {
                         assignmentId,
+                        courseId,
                         submissionId,
                     })
                     .catch(err => {
@@ -210,14 +211,14 @@ const actions = {
         );
     },
 
-    async loadSingleSubmission(context, { assignmentId, submissionId, force }) {
+    async loadSingleSubmission(context, { assignmentId, courseId, submissionId, force }) {
         // Don't wait for anything if we simply have the submission
         let submission = getSubmission(context.state, submissionId, false);
         if (submission != null && !force) {
             return submission;
         }
 
-        await context.dispatch('loadSubmissions', assignmentId);
+        await context.dispatch('loadSubmissions', { assignmentId, courseId });
 
         if (context.state.singleSubmissionLoaders[submissionId] != null && !force) {
             return context.state.singleSubmissionLoaders[submissionId];
@@ -260,19 +261,27 @@ const actions = {
         }
     },
 
-    async deleteSubmission({ dispatch }, { assignmentId }) {
-        return dispatch('forceLoadSubmissions', assignmentId);
+    async deleteSubmission({ dispatch }, { assignmentId, courseId }) {
+        return dispatch('forceLoadSubmissions', { assignmentId, courseId });
     },
 
-    forceLoadSubmissions(context, assignmentId) {
+    forceLoadSubmissions(context, { assignmentId, courseId }) {
         // This needs to be in one promise to make sure that two very quick
         // calls to `loadSubmissions` still only does one request (for the
         // same arguments of course).
         const promiseFun = async () => {
             await Promise.all([
                 context.dispatch('fileTrees/deleteFileTree', { assignmentId }, { root: true }),
-                context.dispatch('feedback/deleteFeedback', { assignmentId }, { root: true }),
-                context.dispatch('courses/loadCourses', null, { root: true }),
+                context.dispatch(
+                    'feedback/deleteFeedback',
+                    { assignmentId, courseId },
+                    { root: true },
+                ),
+                context.dispatch(
+                    'assignments/loadSingleAssignment',
+                    { assignmentId, courseId },
+                    { root: true },
+                ),
                 context.dispatch(
                     'rubrics/clearResult',
                     {
@@ -331,9 +340,9 @@ const actions = {
         return promise;
     },
 
-    async loadSubmissions(context, assignmentId) {
+    loadSubmissions(context, { assignmentId, courseId }) {
         if (context.state.submissionsLoaders[assignmentId] == null) {
-            await context.dispatch('forceLoadSubmissions', assignmentId);
+            return context.dispatch('forceLoadSubmissions', { assignmentId, courseId });
         }
 
         return context.state.submissionsLoaders[assignmentId];

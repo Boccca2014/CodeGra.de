@@ -310,7 +310,7 @@
                         </b-alert>
 
                         <analytics-dashboard v-else
-                                             :assignment-id="assignmentId" />
+                                             :assignment="assignment" />
                     </template>
                 </cg-catch-error>
             </div>
@@ -388,7 +388,7 @@ export default {
             userPerms: 'permissions',
         }),
         ...mapGetters('pref', ['darkMode']),
-        ...mapGetters('courses', ['courses', 'assignments']),
+        ...mapGetters('assignments', ['getAssignment']),
         ...mapGetters('rubrics', { allRubrics: 'rubrics' }),
         ...mapGetters('submissions', ['getSubmissionsByUser', 'getLatestSubmissions']),
         ...mapGetters('users', ['getUser', 'getGroupInGroupSetOfUser']),
@@ -474,7 +474,7 @@ export default {
         },
 
         assignment() {
-            return this.assignments[this.assignmentId];
+            return this.getAssignment(this.assignmentId).extract();
         },
 
         submissions() {
@@ -714,6 +714,12 @@ export default {
             },
         },
 
+        assignment(newValue) {
+            if (newValue == null) {
+                this.loadData();
+            }
+        },
+
         assignmentId: {
             immediate: true,
             handler() {
@@ -724,9 +730,7 @@ export default {
     },
 
     methods: {
-        ...mapActions('courses', {
-            loadCourses: 'loadCourses',
-        }),
+        ...mapActions('assignments', ['loadSingleAssignment']),
 
         ...mapActions('submissions', {
             loadSubmissions: 'loadSubmissions',
@@ -745,7 +749,10 @@ export default {
             // a second.
             if (this.assignment == null) {
                 this.loading = true;
-                await this.loadCourses();
+                await this.loadSingleAssignment({
+                    assignmentId: this.assignmentId,
+                    courseId: this.courseId,
+                }).catch(() => null);
                 await this.$nextTick();
             }
 
@@ -762,7 +769,10 @@ export default {
             }
 
             const promises = [
-                this.loadSubmissions(this.assignmentId),
+                this.loadSubmissions({
+                    assignmentId: this.assignmentId,
+                    courseId: this.courseId,
+                }),
                 this.loadRubric(),
                 this.$afterRerender(),
             ];
@@ -811,7 +821,7 @@ export default {
         submitForceLoadSubmissions() {
             this.$root.$emit('cg::submissions-page::reload');
             return this.loadInner(
-                this.forceLoadSubmissions(this.assignmentId),
+                this.forceLoadSubmissions({ assignmentId: this.assignmentId }),
             );
         },
 

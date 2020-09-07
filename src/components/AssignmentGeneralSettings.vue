@@ -206,7 +206,7 @@
         <b-input-group v-b-popover.top.hover="deadlinePopover">
             <datetime-picker
                 v-model="deadline"
-                @input="resetExamDuration"
+                @input="recalcExamDuration"
                 :id="`assignment-deadline-${uniqueId}-input`"
                 class="assignment-deadline"
                 placeholder="None set"
@@ -267,12 +267,12 @@
 
 <script lang="ts">
 import { Vue, Component, Prop, Watch } from 'vue-property-decorator';
-import { mapActions } from 'vuex';
-import { AxiosResponse } from 'axios';
 import moment from 'moment';
 
 import * as models from '@/models';
 import { Either, Left, Maybe, Nothing } from '@/utils';
+
+import { AssignmentsStore } from '@/store';
 
 // @ts-ignore
 import DatetimePicker from './DatetimePicker';
@@ -285,11 +285,6 @@ function optionalText(cond: boolean, text: string) {
 @Component({
     components: {
         DatetimePicker,
-    },
-    methods: {
-        ...mapActions('courses', [
-            'patchAssignment',
-        ]),
     },
 })
 export default class AssignmentGeneralSettings extends Vue {
@@ -322,9 +317,6 @@ export default class AssignmentGeneralSettings extends Vue {
             this.recalcExamDuration();
         }
     }
-
-    patchAssignment!:
-        (args: any) => Promise<AxiosResponse<void>>;
 
     get isExam() {
         return this.kind === models.AssignmentKind.exam;
@@ -629,28 +621,48 @@ export default class AssignmentGeneralSettings extends Vue {
     }
 
     submitGeneralSettings() {
-        let name;
-        if (!this.assignment.is_lti) {
-            name = this.name;
-        }
-
-        let deadline = this.deadline;
+        let setDeadline = this.deadline;
         if (this.isExam) {
-            deadline = this.examDeadline;
+            setDeadline = this.examDeadline;
         }
+        const formatDate = <T>(date: string | null, dflt: T) =>
+            this.$utils.formatNullableDate(date, true) ?? dflt;
 
-        const props = {
-            name,
-            kind: this.kind,
-            available_at: this.$utils.formatNullableDate(this.availableAt, true),
-            deadline: this.$utils.formatNullableDate(deadline, true) || undefined,
-            max_grade: this.maxGrade.orDefault(Nothing).extractNullable(),
-            send_login_links: this.isExam && this.sendLoginLinks,
-        };
+        const { name, availableAt, deadline }: {
+            name: string | undefined;
+            availableAt: string | undefined | null;
+            deadline: string | undefined;
+        } = this.assignment.ltiProvider.mapOrDefault(
+            prov => {
+                let avail;
+                if (!prov.supportsStateManagement) {
+                    avail = formatDate(this.availableAt, null);
+                }
+                return {
+                    name: undefined as string | undefined,
+                    deadline: (prov.supportsDeadline ?
+                        undefined :
+                        formatDate(setDeadline, undefined)),
+                    availableAt: avail,
+                };
+            },
+            {
+                name: this.name ?? undefined,
+                availableAt: formatDate(this.availableAt, null),
+                deadline: formatDate(setDeadline, undefined),
+            },
+        );
 
-        return this.patchAssignment({
+        return AssignmentsStore.patchAssignment({
             assignmentId: this.assignment.id,
-            assignmentProps: props,
+            assignmentProps: {
+                name,
+                available_at: availableAt,
+                deadline,
+                kind: this.kind,
+                max_grade: this.maxGrade.orDefault(Nothing).extractNullable(),
+                send_login_links: this.isExam && this.sendLoginLinks,
+            },
         });
     }
 }

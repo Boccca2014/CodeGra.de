@@ -190,7 +190,8 @@
   },
   "jest": {
     "setupFilesAfterEnv": [
-      "jest-extended"
+      "jest-extended",
+      "./test/unit/extend.js"
     ],
     "moduleFileExtensions": [
       "ts",

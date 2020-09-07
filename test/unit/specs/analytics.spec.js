@@ -1,5 +1,6 @@
 import moment from 'moment';
 
+import { store } from '@/store';
 import {
     Workspace,
     WorkspaceFilter,
@@ -11,7 +12,6 @@ import {
     InlineFeedbackSource,
 } from '@/models/analytics';
 
-import { store } from '@/store';
 import * as mutationTypes from '@/store/mutation-types';
 
 function deepFreeze(obj) {
@@ -111,23 +111,14 @@ const rubric = deepFreeze([
 ]);
 
 beforeEach(async () => {
-    const course = Object.assign({}, assignment.course || {});
-    const assig = Object.assign({}, assignment);
-    delete assig.course;
+    const course = Object.assign({}, assignment.course || {}, {
+        id: 1,
+    });
+    const assig = Object.assign({}, assignment, { course_id: 1 });
 
     course.assignments = [assig];
-    course.id = 0;
 
-    store.commit(
-        `courses/${mutationTypes.SET_COURSES}`,
-        [
-            [course],
-            { 0: false },
-            { 0: false },
-            { 0: false },
-            { 0: Object.assign({}, course.permissions || {}) },
-        ],
-    );
+    store.dispatch('courses/addCourse', { course });
 
     store.commit(`rubrics/${mutationTypes.SET_RUBRIC}`, {
         assignmentId: assignment.id,

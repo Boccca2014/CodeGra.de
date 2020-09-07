@@ -193,13 +193,11 @@ export default {
         },
 
         getPermissions() {
-            return this.$hasPermission(
-                ['can_edit_own_groups', 'can_edit_others_groups', 'can_create_groups'],
-                this.course.id,
-            ).then(([own, others, create]) => {
-                this.canEdit = { own, others };
-                this.canCreate = create;
-            });
+            this.canEdit = {
+                own: this.course.hasPermission('can_edit_own_groups'),
+                others: this.course.hasPermission('can_edit_others_groups'),
+            };
+            this.canCreate = this.course.hasPermission('can_create_groups');
         },
     },
 
