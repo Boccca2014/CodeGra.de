@@ -317,7 +317,9 @@
         <span class="k">for</span> <span class="n">warning</span> <span class="ow">in</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">g</span><span class="p">,</span> <span class="s1">&#39;request_warnings&#39;</span><span class="p">,</span> <span class="p">[]):</span>
             <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Added warning to response&#39;</span><span class="p">,</span> <span class="n">warning</span><span class="o">=</span><span class="n">warning</span><span class="p">)</span>
             <span class="n">res</span><span class="o">.</span><span class="n">headers</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="s1">&#39;Warning&#39;</span><span class="p">,</span> <span class="n">warning</span><span class="p">)</span>
-        <span class="k">return</span> <span class="n">res</span></div>
+        <span class="k">return</span> <span class="n">res</span>
+
+    <span class="n">jsonify_options</span><span class="o">.</span><span class="n">init_app</span><span class="p">(</span><span class="n">app</span><span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="add_warning"><a class="viewcode-back" href="../../psef_api/psef.html#psef.helpers.add_warning">[docs]</a><span class="k">def</span> <span class="nf">add_warning</span><span class="p">(</span><span class="n">warning</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">code</span><span class="p">:</span> <span class="n">psef</span><span class="o">.</span><span class="n">exceptions</span><span class="o">.</span><span class="n">APIWarnings</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>

@@ -448,6 +448,17 @@
         <span class="n">index</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
     <span class="p">)</span>
 
+<div class="viewcode-block" id="User.load_all_permissions"><a class="viewcode-back" href="../../../psef_api/psef.html#psef.models.user.User.load_all_permissions">[docs]</a>    <span class="k">def</span> <span class="nf">load_all_permissions</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Eagerly load all the permissions of this user object.</span>
+
+<span class="sd">        :returns: Nothing</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># This query seems to do nothing, but it updates the existing</span>
+        <span class="c1"># ``CourseRole`` objects in memory with all permissions.</span>
+        <span class="n">db</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="n">CourseRole</span><span class="p">)</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span>
+            <span class="n">CourseRole</span><span class="o">.</span><span class="n">id</span><span class="o">.</span><span class="n">in_</span><span class="p">([</span><span class="n">cr</span><span class="o">.</span><span class="n">id</span> <span class="k">for</span> <span class="n">cr</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">courses</span><span class="o">.</span><span class="n">values</span><span class="p">()])</span>
+        <span class="p">)</span><span class="o">.</span><span class="n">options</span><span class="p">(</span><span class="n">CourseRole</span><span class="o">.</span><span class="n">eager_load_permissions</span><span class="p">())</span><span class="o">.</span><span class="n">all</span><span class="p">()</span></div>
+
 <div class="viewcode-block" id="User.get_readable_name"><a class="viewcode-back" href="../../../psef_api/psef.html#psef.models.user.User.get_readable_name">[docs]</a>    <span class="k">def</span> <span class="nf">get_readable_name</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
         <span class="sd">&quot;&quot;&quot;Get the readable name of this user.</span>
 

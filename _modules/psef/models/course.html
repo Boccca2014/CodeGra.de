@@ -212,9 +212,12 @@
 <span class="kn">import</span> <span class="nn">typing</span> <span class="k">as</span> <span class="nn">t</span>
 
 <span class="kn">import</span> <span class="nn">structlog</span>
+<span class="kn">from</span> <span class="nn">sqlalchemy.orm</span> <span class="kn">import</span> <span class="n">selectinload</span>
+<span class="kn">from</span> <span class="nn">typing_extensions</span> <span class="kn">import</span> <span class="n">TypedDict</span>
 
 <span class="kn">import</span> <span class="nn">psef</span>
 <span class="kn">from</span> <span class="nn">cg_dt_utils</span> <span class="kn">import</span> <span class="n">DatetimeWithTimezone</span>
+<span class="kn">from</span> <span class="nn">cg_typing_extensions</span> <span class="kn">import</span> <span class="n">make_typed_dict_extender</span>
 <span class="kn">from</span> <span class="nn">cg_sqlalchemy_helpers</span> <span class="kn">import</span> <span class="n">mixins</span><span class="p">,</span> <span class="n">expression</span>
 
 <span class="kn">from</span> <span class="nn">.</span> <span class="kn">import</span> <span class="n">Base</span><span class="p">,</span> <span class="n">MyQuery</span><span class="p">,</span> <span class="n">db</span>
@@ -222,7 +225,7 @@
 <span class="kn">from</span> <span class="nn">.role</span> <span class="kn">import</span> <span class="n">CourseRole</span>
 <span class="kn">from</span> <span class="nn">.user</span> <span class="kn">import</span> <span class="n">User</span>
 <span class="kn">from</span> <span class="nn">.work</span> <span class="kn">import</span> <span class="n">Work</span>
-<span class="kn">from</span> <span class="nn">..helpers</span> <span class="kn">import</span> <span class="n">NotEqualMixin</span>
+<span class="kn">from</span> <span class="nn">..helpers</span> <span class="kn">import</span> <span class="n">NotEqualMixin</span><span class="p">,</span> <span class="n">jsonify_options</span>
 <span class="kn">from</span> <span class="nn">.assignment</span> <span class="kn">import</span> <span class="n">Assignment</span>
 <span class="kn">from</span> <span class="nn">.link_tables</span> <span class="kn">import</span> <span class="n">user_course</span>
 
@@ -335,7 +338,7 @@
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">__tablename__</span> <span class="o">=</span> <span class="s2">&quot;Course&quot;</span>
     <span class="nb">id</span> <span class="o">=</span> <span class="n">db</span><span class="o">.</span><span class="n">Column</span><span class="p">(</span><span class="s1">&#39;id&#39;</span><span class="p">,</span> <span class="n">db</span><span class="o">.</span><span class="n">Integer</span><span class="p">,</span> <span class="n">primary_key</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-    <span class="n">name</span> <span class="o">=</span> <span class="n">db</span><span class="o">.</span><span class="n">Column</span><span class="p">(</span><span class="s1">&#39;name&#39;</span><span class="p">,</span> <span class="n">db</span><span class="o">.</span><span class="n">Unicode</span><span class="p">)</span>
+    <span class="n">name</span> <span class="o">=</span> <span class="n">db</span><span class="o">.</span><span class="n">Column</span><span class="p">(</span><span class="s1">&#39;name&#39;</span><span class="p">,</span> <span class="n">db</span><span class="o">.</span><span class="n">Unicode</span><span class="p">,</span> <span class="n">nullable</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
 
     <span class="n">created_at</span> <span class="o">=</span> <span class="n">db</span><span class="o">.</span><span class="n">Column</span><span class="p">(</span>
         <span class="n">db</span><span class="o">.</span><span class="n">TIMESTAMP</span><span class="p">(</span><span class="n">timezone</span><span class="o">=</span><span class="kc">True</span><span class="p">),</span>
@@ -396,6 +399,100 @@
         <span class="n">cascade</span><span class="o">=</span><span class="s1">&#39;all,delete&#39;</span><span class="p">,</span>
         <span class="n">uselist</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
     <span class="p">)</span>
+
+<div class="viewcode-block" id="Course.AsJSON"><a class="viewcode-back" href="../../../psef_api/psef.html#psef.models.course.Course.AsJSON">[docs]</a>    <span class="k">class</span> <span class="nc">AsJSON</span><span class="p">(</span><span class="n">TypedDict</span><span class="p">,</span> <span class="n">total</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;The way this class will be represented in JSON.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1">#: The id of this course</span>
+        <span class="nb">id</span><span class="p">:</span> <span class="nb">int</span>
+        <span class="c1">#: The name of this course</span>
+        <span class="n">name</span><span class="p">:</span> <span class="nb">str</span>
+        <span class="c1">#: The date this course was created</span>
+        <span class="n">created_at</span><span class="p">:</span> <span class="n">DatetimeWithTimezone</span>
+        <span class="c1">#: Is this an LTI course?</span>
+        <span class="c1">#: Deprecated: Use the ``lti_provider`` attribute (and check for</span>
+        <span class="c1">#: ``null``).</span>
+        <span class="n">is_lti</span><span class="p">:</span> <span class="nb">bool</span>
+        <span class="c1">#: Is this a virtual course.</span>
+        <span class="n">virtual</span><span class="p">:</span> <span class="nb">bool</span>
+        <span class="c1">#: The lti provider that manages this course, if ``null`` this is not a</span>
+        <span class="c1">#: LTI course.</span>
+        <span class="n">lti_provider</span><span class="p">:</span> <span class="n">t</span><span class="o">.</span><span class="n">Optional</span><span class="p">[</span><span class="s1">&#39;psef.models.LTIProviderBase&#39;</span><span class="p">]</span></div>
+
+<div class="viewcode-block" id="Course.AsExtendedJSON"><a class="viewcode-back" href="../../../psef_api/psef.html#psef.models.course.Course.AsExtendedJSON">[docs]</a>    <span class="k">class</span> <span class="nc">AsExtendedJSON</span><span class="p">(</span><span class="n">AsJSON</span><span class="p">,</span> <span class="n">total</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;The way this class will be represented in extended JSON.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">assignments</span><span class="p">:</span> <span class="n">t</span><span class="o">.</span><span class="n">Sequence</span><span class="p">[</span><span class="s1">&#39;psef.models.Assignment&#39;</span><span class="p">]</span>
+        <span class="n">group_sets</span><span class="p">:</span> <span class="n">t</span><span class="o">.</span><span class="n">Sequence</span><span class="p">[</span><span class="s1">&#39;psef.models.GroupSet&#39;</span><span class="p">]</span>
+        <span class="n">snippets</span><span class="p">:</span> <span class="n">t</span><span class="o">.</span><span class="n">Sequence</span><span class="p">[</span><span class="n">CourseSnippet</span><span class="p">]</span></div>
+
+    <span class="k">def</span> <span class="nf">__to_json__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">AsJSON</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Creates a JSON serializable representation of this object.</span>
+
+<span class="sd">        This object will look like this:</span>
+
+<span class="sd">        .. code:: python</span>
+
+<span class="sd">            {</span>
+<span class="sd">                &#39;name&#39;: str, # The name of the course,</span>
+<span class="sd">                &#39;id&#39;: int, # The id of this course.</span>
+<span class="sd">                &#39;created_at&#39;: str, # ISO UTC date.</span>
+<span class="sd">                &#39;is_lti&#39;: bool, # Is the this course a LTI course,</span>
+<span class="sd">                &#39;virtual&#39;: bool, # Is this a virtual course,</span>
+<span class="sd">            }</span>
+
+<span class="sd">        :returns: A object as described above.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">res</span><span class="p">:</span> <span class="s1">&#39;Course.AsJSON&#39;</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s1">&#39;id&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">id</span><span class="p">,</span>
+            <span class="s1">&#39;name&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
+            <span class="s1">&#39;created_at&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">created_at</span><span class="p">,</span>
+            <span class="s1">&#39;is_lti&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_lti</span><span class="p">,</span>
+            <span class="s1">&#39;virtual&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">virtual</span><span class="p">,</span>
+            <span class="s1">&#39;lti_provider&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">lti_provider</span><span class="p">,</span>
+        <span class="p">}</span>
+        <span class="k">if</span> <span class="n">jsonify_options</span><span class="o">.</span><span class="n">get_options</span><span class="p">()</span><span class="o">.</span><span class="n">add_role_to_course</span><span class="p">:</span>
+            <span class="n">user</span> <span class="o">=</span> <span class="n">psef</span><span class="o">.</span><span class="n">current_user</span>
+            <span class="n">res</span><span class="p">[</span><span class="s1">&#39;role&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">user</span><span class="o">.</span><span class="n">courses</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">id</span>  <span class="c1"># type: ignore</span>
+                                       <span class="p">]</span><span class="o">.</span><span class="n">name</span> <span class="k">if</span> <span class="n">user</span> <span class="k">else</span> <span class="kc">None</span>
+        <span class="k">return</span> <span class="n">res</span>
+
+    <span class="k">def</span> <span class="nf">__extended_to_json__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">AsExtendedJSON</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">auth</span><span class="o">.</span><span class="n">CoursePermissions</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">ensure_may_see_snippets</span><span class="o">.</span><span class="n">as_bool</span><span class="p">():</span>
+            <span class="n">snippets</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">snippets</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">snippets</span> <span class="o">=</span> <span class="p">[]</span>
+
+        <span class="k">return</span> <span class="n">make_typed_dict_extender</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">__to_json__</span><span class="p">(),</span>
+            <span class="n">Course</span><span class="o">.</span><span class="n">AsExtendedJSON</span><span class="p">,</span>
+        <span class="p">)(</span>
+            <span class="n">assignments</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">get_all_visible_assignments</span><span class="p">(),</span>
+            <span class="n">group_sets</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">group_sets</span><span class="p">,</span>
+            <span class="n">snippets</span><span class="o">=</span><span class="n">snippets</span><span class="p">,</span>
+        <span class="p">)</span>
+
+<div class="viewcode-block" id="Course.update_query_for_extended_jsonify"><a class="viewcode-back" href="../../../psef_api/psef.html#psef.models.course.Course.update_query_for_extended_jsonify">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">update_query_for_extended_jsonify</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">query</span><span class="p">:</span> <span class="n">MyQuery</span><span class="p">[</span><span class="s1">&#39;Course&#39;</span><span class="p">]</span>
+                                          <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">MyQuery</span><span class="p">[</span><span class="s1">&#39;Course&#39;</span><span class="p">]:</span>
+        <span class="sd">&quot;&quot;&quot;Update the given query to load all attributes needed for an extended</span>
+<span class="sd">            jsonify eagerly.</span>
+
+<span class="sd">        :param query: The query to update.</span>
+<span class="sd">        :returns: The updated query, which now loads all attributes needed for</span>
+<span class="sd">            an extended jsonify eagerly.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">load_assig</span> <span class="o">=</span> <span class="n">selectinload</span><span class="p">(</span><span class="n">Course</span><span class="o">.</span><span class="n">assignments</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">query</span><span class="o">.</span><span class="n">options</span><span class="p">(</span>
+            <span class="n">selectinload</span><span class="p">(</span><span class="n">Course</span><span class="o">.</span><span class="n">assignments</span><span class="p">),</span>
+            <span class="n">selectinload</span><span class="p">(</span><span class="n">Course</span><span class="o">.</span><span class="n">snippets</span><span class="p">),</span>
+            <span class="n">selectinload</span><span class="p">(</span><span class="n">Course</span><span class="o">.</span><span class="n">group_sets</span><span class="p">),</span>
+            <span class="n">selectinload</span><span class="p">(</span><span class="n">Course</span><span class="o">.</span><span class="n">course_lti_provider</span><span class="p">),</span>
+            <span class="n">load_assig</span><span class="o">.</span><span class="n">selectinload</span><span class="p">(</span><span class="n">Assignment</span><span class="o">.</span><span class="n">analytics_workspaces</span><span class="p">),</span>
+            <span class="n">load_assig</span><span class="o">.</span><span class="n">selectinload</span><span class="p">(</span><span class="n">Assignment</span><span class="o">.</span><span class="n">rubric_rows</span><span class="p">),</span>
+            <span class="n">load_assig</span><span class="o">.</span><span class="n">selectinload</span><span class="p">(</span><span class="n">Assignment</span><span class="o">.</span><span class="n">group_set</span><span class="p">),</span>
+            <span class="n">load_assig</span><span class="o">.</span><span class="n">selectinload</span><span class="p">(</span><span class="n">Assignment</span><span class="o">.</span><span class="n">peer_feedback_settings</span><span class="p">),</span>
+        <span class="p">)</span></div>
 
 <div class="viewcode-block" id="Course.create_and_add"><a class="viewcode-back" href="../../../psef_api/psef.html#psef.models.course.Course.create_and_add">[docs]</a>    <span class="nd">@classmethod</span>
     <span class="k">def</span> <span class="nf">create_and_add</span><span class="p">(</span>
@@ -486,32 +583,6 @@
 
     <span class="k">def</span> <span class="nf">__structlog__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">t</span><span class="o">.</span><span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">t</span><span class="o">.</span><span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">int</span><span class="p">]]:</span>
         <span class="k">return</span> <span class="p">{</span><span class="s1">&#39;type&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span><span class="p">,</span> <span class="s1">&#39;id&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">id</span><span class="p">}</span>
-
-    <span class="k">def</span> <span class="nf">__to_json__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">t</span><span class="o">.</span><span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">t</span><span class="o">.</span><span class="n">Any</span><span class="p">]:</span>
-        <span class="sd">&quot;&quot;&quot;Creates a JSON serializable representation of this object.</span>
-
-<span class="sd">        This object will look like this:</span>
-
-<span class="sd">        .. code:: python</span>
-
-<span class="sd">            {</span>
-<span class="sd">                &#39;name&#39;: str, # The name of the course,</span>
-<span class="sd">                &#39;id&#39;: int, # The id of this course.</span>
-<span class="sd">                &#39;created_at&#39;: str, # ISO UTC date.</span>
-<span class="sd">                &#39;is_lti&#39;: bool, # Is the this course a LTI course,</span>
-<span class="sd">                &#39;virtual&#39;: bool, # Is this a virtual course,</span>
-<span class="sd">            }</span>
-
-<span class="sd">        :returns: A object as described above.</span>
-<span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">return</span> <span class="p">{</span>
-            <span class="s1">&#39;id&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">id</span><span class="p">,</span>
-            <span class="s1">&#39;name&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
-            <span class="s1">&#39;created_at&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">created_at</span><span class="o">.</span><span class="n">isoformat</span><span class="p">(),</span>
-            <span class="s1">&#39;is_lti&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_lti</span><span class="p">,</span>
-            <span class="s1">&#39;virtual&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">virtual</span><span class="p">,</span>
-            <span class="s1">&#39;lti_provider&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">lti_provider</span><span class="p">,</span>
-        <span class="p">}</span>
 
 <div class="viewcode-block" id="Course.get_all_visible_assignments"><a class="viewcode-back" href="../../../psef_api/psef.html#psef.models.course.Course.get_all_visible_assignments">[docs]</a>    <span class="k">def</span> <span class="nf">get_all_visible_assignments</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">t</span><span class="o">.</span><span class="n">Sequence</span><span class="p">[</span><span class="s1">&#39;Assignment&#39;</span><span class="p">]:</span>
         <span class="sd">&quot;&quot;&quot;Get all visible assignments for the current user for this course.</span>

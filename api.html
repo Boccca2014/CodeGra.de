@@ -382,19 +382,19 @@ working.</p>
 <td></td>
 </tr>
 <tr class="row-even"><td></td>
-<td><p><a class="reference external" href="#post--api-v1-lti1.3-login-(lti_provider_id)">POST /api/v1/lti1.3/login/(lti_provider_id)</a></p></td>
-<td></td>
-</tr>
-<tr class="row-odd"><td></td>
-<td><p><a class="reference external" href="#post--api-v1-lti1.3-login">POST /api/v1/lti1.3/login</a></p></td>
-<td></td>
-</tr>
-<tr class="row-even"><td></td>
 <td><p><a class="reference external" href="#get--api-v1-lti1.3-login-(lti_provider_id)">GET /api/v1/lti1.3/login/(lti_provider_id)</a></p></td>
 <td></td>
 </tr>
 <tr class="row-odd"><td></td>
 <td><p><a class="reference external" href="#get--api-v1-lti1.3-login">GET /api/v1/lti1.3/login</a></p></td>
+<td></td>
+</tr>
+<tr class="row-even"><td></td>
+<td><p><a class="reference external" href="#post--api-v1-lti1.3-login-(lti_provider_id)">POST /api/v1/lti1.3/login/(lti_provider_id)</a></p></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td></td>
+<td><p><a class="reference external" href="#post--api-v1-lti1.3-login">POST /api/v1/lti1.3/login</a></p></td>
 <td></td>
 </tr>
 <tr class="row-even"><td></td>
@@ -522,550 +522,554 @@ working.</p>
 <td><p>Get all linters for a assignment.</p></td>
 </tr>
 <tr class="row-odd"><td></td>
+<td><p><a class="reference external" href="#get--api-v1-assignments-(int-assignment_id)-course">GET /api/v1/assignments/(int:assignment_id)/course</a></p></td>
+<td><p>Get the course an assignment is in.</p></td>
+</tr>
+<tr class="row-even"><td></td>
 <td><p><a class="reference external" href="#post--api-v1-assignments-(int-assignment_id)-rubric">POST /api/v1/assignments/(int:assignment_id)/rubric</a></p></td>
 <td><p>Import a rubric from a different assignment.</p></td>
 </tr>
-<tr class="row-even"><td></td>
+<tr class="row-odd"><td></td>
 <td><p><a class="reference external" href="#patch--api-v1-assignments-(int-assignment_id)-divide">PATCH /api/v1/assignments/(int:assignment_id)/divide</a></p></td>
 <td><p>Divide a submission among given TA’s.</p></td>
 </tr>
-<tr class="row-odd"><td></td>
+<tr class="row-even"><td></td>
 <td><p><a class="reference external" href="#post--api-v1-assignments-(int-assignment_id)-linter">POST /api/v1/assignments/(int:assignment_id)/linter</a></p></td>
 <td><p>Start linting an assignment with a given linter.</p></td>
 </tr>
-<tr class="row-even"><td></td>
+<tr class="row-odd"><td></td>
 <td><p><a class="reference external" href="#delete--api-v1-assignments-(int-assignment_id)">DELETE /api/v1/assignments/(int:assignment_id)</a></p></td>
 <td><p>Delete a single assignment by id.</p></td>
 </tr>
-<tr class="row-odd"><td></td>
+<tr class="row-even"><td></td>
 <td><p><a class="reference external" href="#get--api-v1-assignments-(int-assignment_id)">GET /api/v1/assignments/(int:assignment_id)</a></p></td>
 <td><p>Get a single assignment by id.</p></td>
 </tr>
-<tr class="row-even"><td></td>
+<tr class="row-odd"><td></td>
 <td><p><a class="reference external" href="#patch--api-v1-assignments-(int-assignment_id)">PATCH /api/v1/assignments/(int:assignment_id)</a></p></td>
 <td><p>Update assignment information.</p></td>
 </tr>
-<tr class="row-odd"><td><p>AutoTest</p></td>
+<tr class="row-even"><td><p>AutoTest</p></td>
 <td><p><a class="reference external" href="#post--api-v1-auto_tests-">POST /api/v1/auto_tests/</a></p></td>
 <td><p>Create a new AutoTest configuration.</p></td>
 </tr>
-<tr class="row-even"><td></td>
+<tr class="row-odd"><td></td>
 <td><p><a class="reference external" href="#post--api-v1-auto_tests-(int-auto_test_id)-runs-(int-run_id)-results-(int-result_id)-suites-(int-suite_id)-proxy">POST /api/v1/auto_tests/(int:auto_test_id)/runs/(int:run_id)/results/(int:result_id)/suites/(int:suite_id)/proxy</a></p></td>
 <td><p>Create a proxy to view the files a result.</p></td>
 </tr>
-<tr class="row-odd"><td></td>
+<tr class="row-even"><td></td>
 <td><p><a class="reference external" href="#get--api-v1-auto_tests-(int-auto_test_id)-runs-(int-run_id)-step_results-(int-step_result_id)-attachment">GET /api/v1/auto_tests/(int:auto_test_id)/runs/(int:run_id)/step_results/(int:step_result_id)/attachment</a></p></td>
 <td><p>Get AutoTest step result attachment.</p></td>
 </tr>
-<tr class="row-even"><td></td>
+<tr class="row-odd"><td></td>
 <td><p><a class="reference external" href="#post--api-v1-auto_tests-(int-auto_test_id)-runs-(int-run_id)-results-(int-result_id)-restart">POST /api/v1/auto_tests/(int:auto_test_id)/runs/(int:run_id)/results/(int:result_id)/restart</a></p></td>
 <td><p>Restart a single result.</p></td>
 </tr>
-<tr class="row-odd"><td></td>
+<tr class="row-even"><td></td>
 <td><p><a class="reference external" href="#get--api-v1-auto_tests-(int-auto_test_id)-runs-(int-run_id)-users-(int-user_id)-results-">GET /api/v1/auto_tests/(int:auto_test_id)/runs/(int:run_id)/users/(int:user_id)/results/</a></p></td>
 <td><p>Get all AutoTest results for a given.</p></td>
 </tr>
-<tr class="row-even"><td></td>
+<tr class="row-odd"><td></td>
 <td><p><a class="reference external" href="#post--api-v1-auto_tests-(int-at_id)-fixtures-(int-fixture_id)-hide">POST /api/v1/auto_tests/(int:at_id)/fixtures/(int:fixture_id)/hide</a></p></td>
 <td><p>Change the hidden state of a fixture.</p></td>
 </tr>
-<tr class="row-odd"><td></td>
+<tr class="row-even"><td></td>
 <td><p><a class="reference external" href="#delete--api-v1-auto_tests-(int-at_id)-fixtures-(int-fixture_id)-hide">DELETE /api/v1/auto_tests/(int:at_id)/fixtures/(int:fixture_id)/hide</a></p></td>
 <td></td>
 </tr>
-<tr class="row-even"><td></td>
+<tr class="row-odd"><td></td>
 <td><p><a class="reference external" href="#get--api-v1-auto_tests-(int-auto_test_id)-runs-(int-run_id)-results-(int-result_id)">GET /api/v1/auto_tests/(int:auto_test_id)/runs/(int:run_id)/results/(int:result_id)</a></p></td>
 <td><p>Get the extended version of a single result.</p></td>
 </tr>
-<tr class="row-odd"><td></td>
+<tr class="row-even"><td></td>
 <td><p><a class="reference external" href="#delete--api-v1-auto_tests-(int-test_id)-sets-(int-set_id)-suites-(int-suite_id)">DELETE /api/v1/auto_tests/(int:test_id)/sets/(int:set_id)/suites/(int:suite_id)</a></p></td>
 <td><p>Delete a suite of an AutoTest.</p></td>
 </tr>
-<tr class="row-even"><td></td>
+<tr class="row-odd"><td></td>
 <td><p><a class="reference external" href="#patch--api-v1-auto_tests-(int-auto_test_id)-sets-(int-auto_test_set_id)-suites-">PATCH /api/v1/auto_tests/(int:auto_test_id)/sets/(int:auto_test_set_id)/suites/</a></p></td>
 <td><p>Update an AutoTest suite/category.</p></td>
 </tr>
-<tr class="row-odd"><td></td>
+<tr class="row-even"><td></td>
 <td><p><a class="reference external" href="#get--api-v1-auto_tests-(int-at_id)-fixtures-(int-fixture_id)">GET /api/v1/auto_tests/(int:at_id)/fixtures/(int:fixture_id)</a></p></td>
 <td><p>Get the contents of a fixture.</p></td>
 </tr>
-<tr class="row-even"><td></td>
+<tr class="row-odd"><td></td>
 <td><p><a class="reference external" href="#patch--api-v1-auto_tests-(int-auto_test_id)-sets-(int-auto_test_set_id)">PATCH /api/v1/auto_tests/(int:auto_test_id)/sets/(int:auto_test_set_id)</a></p></td>
 <td><p>Update a single AutoTest set.</p></td>
 </tr>
-<tr class="row-odd"><td></td>
+<tr class="row-even"><td></td>
 <td><p><a class="reference external" href="#delete--api-v1-auto_tests-(int-auto_test_id)-sets-(int-auto_test_set_id)">DELETE /api/v1/auto_tests/(int:auto_test_id)/sets/(int:auto_test_set_id)</a></p></td>
 <td><p>Delete a single AutoTest set.</p></td>
 </tr>
-<tr class="row-even"><td></td>
+<tr class="row-odd"><td></td>
 <td><p><a class="reference external" href="#get--api-v1-auto_tests-(int-auto_test_id)-runs-(int-run_id)">GET /api/v1/auto_tests/(int:auto_test_id)/runs/(int:run_id)</a></p></td>
 <td><p>Get the extended details of an AutoTest run.</p></td>
 </tr>
-<tr class="row-odd"><td></td>
+<tr class="row-even"><td></td>
 <td><p><a class="reference external" href="#delete--api-v1-auto_tests-(int-auto_test_id)-runs-(int-run_id)">DELETE /api/v1/auto_tests/(int:auto_test_id)/runs/(int:run_id)</a></p></td>
 <td><p>Delete the the given AutoTest run.</p></td>
 </tr>
-<tr class="row-even"><td></td>
+<tr class="row-odd"><td></td>
 <td><p><a class="reference external" href="#post--api-v1-auto_tests-(int-auto_test_id)-sets-">POST /api/v1/auto_tests/(int:auto_test_id)/sets/</a></p></td>
 <td><p>Create a set within an AutoTest.</p></td>
 </tr>
-<tr class="row-odd"><td></td>
+<tr class="row-even"><td></td>
 <td><p><a class="reference external" href="#post--api-v1-auto_tests-(int-auto_test_id)-runs-">POST /api/v1/auto_tests/(int:auto_test_id)/runs/</a></p></td>
 <td><p>Start a run for a given AutoTest.</p></td>
 </tr>
-<tr class="row-even"><td></td>
+<tr class="row-odd"><td></td>
 <td><p><a class="reference external" href="#post--api-v1-auto_tests-(int-auto_test_id)-copy">POST /api/v1/auto_tests/(int:auto_test_id)/copy</a></p></td>
 <td><p>Copy an AutoTest config to another assignment.</p></td>
 </tr>
-<tr class="row-odd"><td></td>
+<tr class="row-even"><td></td>
 <td><p><a class="reference external" href="#delete--api-v1-auto_tests-(int-auto_test_id)">DELETE /api/v1/auto_tests/(int:auto_test_id)</a></p></td>
 <td><p>Delete the given AutoTest.</p></td>
 </tr>
-<tr class="row-even"><td></td>
+<tr class="row-odd"><td></td>
 <td><p><a class="reference external" href="#patch--api-v1-auto_tests-(int-auto_test_id)">PATCH /api/v1/auto_tests/(int:auto_test_id)</a></p></td>
 <td><p>Change the settings/upload fixtures to an AutoTest.</p></td>
 </tr>
-<tr class="row-odd"><td></td>
+<tr class="row-even"><td></td>
 <td><p><a class="reference external" href="#get--api-v1-auto_tests-(int-auto_test_id)">GET /api/v1/auto_tests/(int:auto_test_id)</a></p></td>
 <td><p>Get the extended version of an AutTest.</p></td>
 </tr>
-<tr class="row-even"><td><p>Code</p></td>
+<tr class="row-odd"><td><p>Code</p></td>
 <td><p><a class="reference external" href="#put--api-v1-code-(int-code_id)-comments-(int-line)">PUT /api/v1/code/(int:code_id)/comments/(int:line)</a></p></td>
 <td><p>Add or change a comment.</p></td>
 </tr>
-<tr class="row-odd"><td></td>
+<tr class="row-even"><td></td>
 <td><p><a class="reference external" href="#delete--api-v1-code-(int-code_id)-comments-(int-line)">DELETE /api/v1/code/(int:code_id)/comments/(int:line)</a></p></td>
 <td><p>Remove a comment.</p></td>
 </tr>
-<tr class="row-even"><td></td>
+<tr class="row-odd"><td></td>
 <td><p><a class="reference external" href="#get--api-v1-code-(int-file_id)">GET /api/v1/code/(int:file_id)</a></p></td>
 <td><p>Get code or its metadata.</p></td>
 </tr>
-<tr class="row-odd"><td></td>
+<tr class="row-even"><td></td>
 <td><p><a class="reference external" href="#get--api-v1-code-(uuid-file_id)">GET /api/v1/code/(uuid:file_id)</a></p></td>
 <td></td>
 </tr>
-<tr class="row-even"><td></td>
+<tr class="row-odd"><td></td>
 <td><p><a class="reference external" href="#delete--api-v1-code-(int-file_id)">DELETE /api/v1/code/(int:file_id)</a></p></td>
 <td><p>Delete the given file.</p></td>
 </tr>
-<tr class="row-odd"><td></td>
+<tr class="row-even"><td></td>
 <td><p><a class="reference external" href="#patch--api-v1-code-(int-file_id)">PATCH /api/v1/code/(int:file_id)</a></p></td>
 <td><p>Update the content or name of the given file.</p></td>
 </tr>
-<tr class="row-even"><td><p>Comment</p></td>
+<tr class="row-odd"><td><p>Comment</p></td>
 <td><p><a class="reference external" href="#put--api-v1-comments-">PUT /api/v1/comments/</a></p></td>
 <td><p>Create a new comment base.</p></td>
 </tr>
-<tr class="row-odd"><td></td>
+<tr class="row-even"><td></td>
 <td><p><a class="reference external" href="#post--api-v1-comments-(int-comment_base_id)-replies-(int-reply_id)-approval">POST /api/v1/comments/(int:comment_base_id)/replies/(int:reply_id)/approval</a></p></td>
 <td><p>Update the content of an inline feedback reply.</p></td>
 </tr>
-<tr class="row-even"><td></td>
+<tr class="row-odd"><td></td>
 <td><p><a class="reference external" href="#delete--api-v1-comments-(int-comment_base_id)-replies-(int-reply_id)-approval">DELETE /api/v1/comments/(int:comment_base_id)/replies/(int:reply_id)/approval</a></p></td>
 <td></td>
 </tr>
-<tr class="row-odd"><td></td>
+<tr class="row-even"><td></td>
 <td><p><a class="reference external" href="#get--api-v1-comments-(int-comment_base_id)-replies-(int-reply_id)-edits-">GET /api/v1/comments/(int:comment_base_id)/replies/(int:reply_id)/edits/</a></p></td>
 <td><p>Get the edits of an inline feedback reply.</p></td>
 </tr>
-<tr class="row-even"><td></td>
+<tr class="row-odd"><td></td>
 <td><p><a class="reference external" href="#patch--api-v1-comments-(int-comment_base_id)-replies-(int-reply_id)">PATCH /api/v1/comments/(int:comment_base_id)/replies/(int:reply_id)</a></p></td>
 <td><p>Update the content of an inline feedback reply.</p></td>
 </tr>
-<tr class="row-odd"><td></td>
+<tr class="row-even"><td></td>
 <td><p><a class="reference external" href="#delete--api-v1-comments-(int-comment_base_id)-replies-(int-reply_id)">DELETE /api/v1/comments/(int:comment_base_id)/replies/(int:reply_id)</a></p></td>
 <td><p>Delete an inline feedback reply.</p></td>
 </tr>
-<tr class="row-even"><td></td>
+<tr class="row-odd"><td></td>
 <td><p><a class="reference external" href="#post--api-v1-comments-(int-comment_base_id)-replies-">POST /api/v1/comments/(int:comment_base_id)/replies/</a></p></td>
 <td><p>Add a reply to a comment base.</p></td>
 </tr>
-<tr class="row-odd"><td><p>Course</p></td>
+<tr class="row-even"><td><p>Course</p></td>
 <td><p><a class="reference external" href="#post--api-v1-courses-">POST /api/v1/courses/</a></p></td>
 <td><p>Add a new course.</p></td>
 </tr>
-<tr class="row-even"><td></td>
+<tr class="row-odd"><td></td>
 <td><p><a class="reference external" href="#get--api-v1-courses-">GET /api/v1/courses/</a></p></td>
 <td><p>Get all courses the current user is enrolled in.</p></td>
 </tr>
-<tr class="row-odd"><td></td>
+<tr class="row-even"><td></td>
 <td><p><a class="reference external" href="#post--api-v1-courses-(int-course_id)-registration_links-(uuid-link_id)-join">POST /api/v1/courses/(int:course_id)/registration_links/(uuid:link_id)/join</a></p></td>
 <td><p>Enroll in this course.</p></td>
 </tr>
-<tr class="row-even"><td></td>
+<tr class="row-odd"><td></td>
 <td><p><a class="reference external" href="#post--api-v1-courses-(int-course_id)-registration_links-(uuid-link_id)-user">POST /api/v1/courses/(int:course_id)/registration_links/(uuid:link_id)/user</a></p></td>
 <td><p>Register as a new user, and enroll in a course.</p></td>
 </tr>
-<tr class="row-odd"><td></td>
+<tr class="row-even"><td></td>
 <td><p><a class="reference external" href="#get--api-v1-courses-(int-course_id)-users-(int-user_id)-submissions-">GET /api/v1/courses/(int:course_id)/users/(int:user_id)/submissions/</a></p></td>
 <td><p>Get submissions by user in a course.</p></td>
 </tr>
-<tr class="row-even"><td></td>
+<tr class="row-odd"><td></td>
 <td><p><a class="reference external" href="#delete--api-v1-courses-(int-course_id)-registration_links-(uuid-link_id)">DELETE /api/v1/courses/(int:course_id)/registration_links/(uuid:link_id)</a></p></td>
 <td><p>The delete a registration link of the given course.</p></td>
 </tr>
-<tr class="row-odd"><td></td>
+<tr class="row-even"><td></td>
 <td><p><a class="reference external" href="#get--api-v1-courses-(int-course_id)-registration_links-(uuid-link_id)">GET /api/v1/courses/(int:course_id)/registration_links/(uuid:link_id)</a></p></td>
 <td><p>Get the data in a registration link.</p></td>
 </tr>
-<tr class="row-even"><td></td>
+<tr class="row-odd"><td></td>
 <td><p><a class="reference external" href="#get--api-v1-courses-(int-course_id)-registration_links-">GET /api/v1/courses/(int:course_id)/registration_links/</a></p></td>
 <td><p>Get the registration links for this course.</p></td>
 </tr>
-<tr class="row-odd"><td></td>
+<tr class="row-even"><td></td>
 <td><p><a class="reference external" href="#put--api-v1-courses-(int-course_id)-registration_links-">PUT /api/v1/courses/(int:course_id)/registration_links/</a></p></td>
 <td><p>Create or edit a registration link for a course.</p></td>
 </tr>
-<tr class="row-even"><td></td>
+<tr class="row-odd"><td></td>
 <td><p><a class="reference external" href="#get--api-v1-courses-(int-course_id)-assignments-">GET /api/v1/courses/(int:course_id)/assignments/</a></p></td>
 <td><p>Get all assignments for single course.</p></td>
 </tr>
-<tr class="row-odd"><td></td>
+<tr class="row-even"><td></td>
 <td><p><a class="reference external" href="#post--api-v1-courses-(int-course_id)-assignments-">POST /api/v1/courses/(int:course_id)/assignments/</a></p></td>
 <td><p>Create a new assignment in a course.</p></td>
 </tr>
-<tr class="row-even"><td></td>
+<tr class="row-odd"><td></td>
 <td><p><a class="reference external" href="#get--api-v1-courses-(int-course_id)-permissions-">GET /api/v1/courses/(int:course_id)/permissions/</a></p></td>
 <td><p>Get all the course permissions for the current user.</p></td>
 </tr>
-<tr class="row-odd"><td></td>
+<tr class="row-even"><td></td>
 <td><p><a class="reference external" href="#get--api-v1-courses-(int-course_id)-group_sets-">GET /api/v1/courses/(int:course_id)/group_sets/</a></p></td>
 <td><p>Get all group sets in the course.</p></td>
 </tr>
-<tr class="row-even"><td></td>
+<tr class="row-odd"><td></td>
 <td><p><a class="reference external" href="#put--api-v1-courses-(int-course_id)-group_sets-">PUT /api/v1/courses/(int:course_id)/group_sets/</a></p></td>
 <td><p>Create a new group set in the course.</p></td>
 </tr>
-<tr class="row-odd"><td></td>
+<tr class="row-even"><td></td>
 <td><p><a class="reference external" href="#delete--api-v1-courses-(int-course_id)-roles-(int-role_id)">DELETE /api/v1/courses/(int:course_id)/roles/(int:role_id)</a></p></td>
 <td><p>Delete a course role from a course.</p></td>
 </tr>
-<tr class="row-even"><td></td>
+<tr class="row-odd"><td></td>
 <td><p><a class="reference external" href="#patch--api-v1-courses-(int-course_id)-roles-(int-role_id)">PATCH /api/v1/courses/(int:course_id)/roles/(int:role_id)</a></p></td>
 <td><p>Update a permission for a certain role.</p></td>
 </tr>
-<tr class="row-odd"><td></td>
+<tr class="row-even"><td></td>
 <td><p><a class="reference external" href="#post--api-v1-courses-(int-course_id)-roles-">POST /api/v1/courses/(int:course_id)/roles/</a></p></td>
 <td><p>Add a new course role to a course.</p></td>
 </tr>
-<tr class="row-even"><td></td>
+<tr class="row-odd"><td></td>
 <td><p><a class="reference external" href="#get--api-v1-courses-(int-course_id)-roles-">GET /api/v1/courses/(int:course_id)/roles/</a></p></td>
 <td><p>Get all course roles for a single course.</p></td>
 </tr>
-<tr class="row-odd"><td></td>
+<tr class="row-even"><td></td>
 <td><p><a class="reference external" href="#put--api-v1-courses-(int-course_id)-users-">PUT /api/v1/courses/(int:course_id)/users/</a></p></td>
 <td><p>Change the course role for a user.</p></td>
 </tr>
-<tr class="row-even"><td></td>
+<tr class="row-odd"><td></td>
 <td><p><a class="reference external" href="#get--api-v1-courses-(int-course_id)-users-">GET /api/v1/courses/(int:course_id)/users/</a></p></td>
 <td><p>Get all users for a single course.</p></td>
 </tr>
-<tr class="row-odd"><td></td>
+<tr class="row-even"><td></td>
 <td><p><a class="reference external" href="#post--api-v1-courses-(int-course_id)-email">POST /api/v1/courses/(int:course_id)/email</a></p></td>
 <td><p>Send users in this course an email.</p></td>
 </tr>
-<tr class="row-even"><td></td>
+<tr class="row-odd"><td></td>
 <td><p><a class="reference external" href="#get--api-v1-courses-(int-course_id)">GET /api/v1/courses/(int:course_id)</a></p></td>
 <td><p>Get data for a given course.</p></td>
 </tr>
-<tr class="row-odd"><td><p>CourseSnippet</p></td>
+<tr class="row-even"><td><p>CourseSnippet</p></td>
 <td><p><a class="reference external" href="#patch--api-v1-courses-(int-course_id)-snippets-(int-snippet_id)">PATCH /api/v1/courses/(int:course_id)/snippets/(int:snippet_id)</a></p></td>
 <td><p>Change a snippets key and value.</p></td>
 </tr>
-<tr class="row-even"><td></td>
+<tr class="row-odd"><td></td>
 <td><p><a class="reference external" href="#delete--api-v1-courses-(int-course_id)-snippets-(int-snippet_id)">DELETE /api/v1/courses/(int:course_id)/snippets/(int:snippet_id)</a></p></td>
 <td><p>Delete a course snippet.</p></td>
 </tr>
-<tr class="row-odd"><td></td>
+<tr class="row-even"><td></td>
 <td><p><a class="reference external" href="#get--api-v1-courses-(int-course_id)-snippets-">GET /api/v1/courses/(int:course_id)/snippets/</a></p></td>
 <td><p>Get all snippets for the given course.</p></td>
 </tr>
-<tr class="row-even"><td></td>
+<tr class="row-odd"><td></td>
 <td><p><a class="reference external" href="#put--api-v1-courses-(int-course_id)-snippet">PUT /api/v1/courses/(int:course_id)/snippet</a></p></td>
 <td><p>Add or modify a course snippet.</p></td>
 </tr>
-<tr class="row-odd"><td><p>File</p></td>
+<tr class="row-even"><td><p>File</p></td>
 <td><p><a class="reference external" href="#post--api-v1-files-">POST /api/v1/files/</a></p></td>
 <td><p>Safe a file temporarily on the server.</p></td>
 </tr>
-<tr class="row-even"><td></td>
+<tr class="row-odd"><td></td>
 <td><p><a class="reference external" href="#get--api-v1-files-(file_name)-(path-name)">GET /api/v1/files/(file_name)/(path:name)</a></p></td>
 <td><p>Get an uploaded file directory.</p></td>
 </tr>
-<tr class="row-odd"><td></td>
+<tr class="row-even"><td></td>
 <td><p><a class="reference external" href="#get--api-v1-files-(file_name)">GET /api/v1/files/(file_name)</a></p></td>
 <td></td>
 </tr>
-<tr class="row-even"><td><p>Group</p></td>
+<tr class="row-odd"><td><p>Group</p></td>
 <td><p><a class="reference external" href="#delete--api-v1-groups-(int-group_id)-members-(int-user_id)">DELETE /api/v1/groups/(int:group_id)/members/(int:user_id)</a></p></td>
 <td><p>Remove a member from a group.</p></td>
 </tr>
-<tr class="row-odd"><td></td>
+<tr class="row-even"><td></td>
 <td><p><a class="reference external" href="#post--api-v1-groups-(int-group_id)-member">POST /api/v1/groups/(int:group_id)/member</a></p></td>
 <td><p>Add a member to a group.</p></td>
 </tr>
-<tr class="row-even"><td></td>
+<tr class="row-odd"><td></td>
 <td><p><a class="reference external" href="#post--api-v1-groups-(int-group_id)-name">POST /api/v1/groups/(int:group_id)/name</a></p></td>
 <td><p>Update the name of a group.</p></td>
 </tr>
-<tr class="row-odd"><td></td>
+<tr class="row-even"><td></td>
 <td><p><a class="reference external" href="#get--api-v1-groups-(int-group_id)">GET /api/v1/groups/(int:group_id)</a></p></td>
 <td><p>Get a single group by id.</p></td>
 </tr>
-<tr class="row-even"><td></td>
+<tr class="row-odd"><td></td>
 <td><p><a class="reference external" href="#delete--api-v1-groups-(int-group_id)">DELETE /api/v1/groups/(int:group_id)</a></p></td>
 <td><p>Delete a group by id.</p></td>
 </tr>
-<tr class="row-odd"><td><p>GroupSet</p></td>
+<tr class="row-even"><td><p>GroupSet</p></td>
 <td><p><a class="reference external" href="#get--api-v1-group_sets-(int-group_set_id)-groups-">GET /api/v1/group_sets/(int:group_set_id)/groups/</a></p></td>
 <td><p>Get the groups of this assignment.</p></td>
 </tr>
-<tr class="row-even"><td></td>
+<tr class="row-odd"><td></td>
 <td><p><a class="reference external" href="#post--api-v1-group_sets-(int-group_set_id)-group">POST /api/v1/group_sets/(int:group_set_id)/group</a></p></td>
 <td><p>Create a group in a given group set.</p></td>
 </tr>
-<tr class="row-odd"><td></td>
+<tr class="row-even"><td></td>
 <td><p><a class="reference external" href="#get--api-v1-group_sets-(int-group_set_id)">GET /api/v1/group_sets/(int:group_set_id)</a></p></td>
 <td><p>Get a single group set by id.</p></td>
 </tr>
-<tr class="row-even"><td></td>
+<tr class="row-odd"><td></td>
 <td><p><a class="reference external" href="#delete--api-v1-group_sets-(int-group_set_id)">DELETE /api/v1/group_sets/(int:group_set_id)</a></p></td>
 <td><p>Delete a single group set by id.</p></td>
 </tr>
-<tr class="row-odd"><td><p>LTI</p></td>
+<tr class="row-even"><td><p>LTI</p></td>
 <td><p><a class="reference external" href="#get--api-v1-lti1.3-providers-">GET /api/v1/lti1.3/providers/</a></p></td>
 <td><p>List all known LTI 1.3 providers.</p></td>
 </tr>
-<tr class="row-even"><td></td>
+<tr class="row-odd"><td></td>
 <td><p><a class="reference external" href="#post--api-v1-lti1.3-providers-">POST /api/v1/lti1.3/providers/</a></p></td>
 <td><p>Create a new LTI 1.3 provider.</p></td>
 </tr>
-<tr class="row-odd"><td></td>
+<tr class="row-even"><td></td>
 <td><p><a class="reference external" href="#get--api-v1-lti-">GET /api/v1/lti/</a></p></td>
 <td><p>Get the configuration for a LTI 1.1 provider.</p></td>
 </tr>
-<tr class="row-even"><td></td>
+<tr class="row-odd"><td></td>
 <td><p><a class="reference external" href="#get--api-v1-lti1.3-jwks-(lti_provider_id)">GET /api/v1/lti1.3/jwks/(lti_provider_id)</a></p></td>
 <td><p>Get the public key of a provider in JWKS format.</p></td>
 </tr>
-<tr class="row-odd"><td></td>
+<tr class="row-even"><td></td>
 <td><p><a class="reference external" href="#get--api-v1-lti1.3-providers-(lti_provider_id)-jwks">GET /api/v1/lti1.3/providers/(lti_provider_id)/jwks</a></p></td>
 <td></td>
 </tr>
-<tr class="row-even"><td></td>
+<tr class="row-odd"><td></td>
 <td><p><a class="reference external" href="#get--api-v1-lti1.3-providers-(lti_provider_id)">GET /api/v1/lti1.3/providers/(lti_provider_id)</a></p></td>
 <td><p>Get a LTI 1.3 provider by id.</p></td>
 </tr>
-<tr class="row-odd"><td></td>
+<tr class="row-even"><td></td>
 <td><p><a class="reference external" href="#patch--api-v1-lti1.3-providers-(lti_provider_id)">PATCH /api/v1/lti1.3/providers/(lti_provider_id)</a></p></td>
 <td><p>Update the information of an LTI 1.3 provider.</p></td>
 </tr>
-<tr class="row-even"><td><p>Linter</p></td>
+<tr class="row-odd"><td><p>Linter</p></td>
 <td><p><a class="reference external" href="#get--api-v1-linters-(linter_id)-linter_instances-(linter_instance_id)">GET /api/v1/linters/(linter_id)/linter_instances/(linter_instance_id)</a></p></td>
 <td><p>Get the state of a given linter.</p></td>
 </tr>
-<tr class="row-odd"><td></td>
+<tr class="row-even"><td></td>
 <td><p><a class="reference external" href="#delete--api-v1-linters-(linter_id)">DELETE /api/v1/linters/(linter_id)</a></p></td>
 <td><p>Delete all linter input for a given linter.</p></td>
 </tr>
-<tr class="row-even"><td></td>
+<tr class="row-odd"><td></td>
 <td><p><a class="reference external" href="#get--api-v1-linters-(linter_id)">GET /api/v1/linters/(linter_id)</a></p></td>
 <td><p>Get the state of a given linter.</p></td>
 </tr>
-<tr class="row-odd"><td><p>Login link</p></td>
+<tr class="row-even"><td><p>Login link</p></td>
 <td><p><a class="reference external" href="#post--api-v1-login_links-(uuid-login_link_id)-login">POST /api/v1/login_links/(uuid:login_link_id)/login</a></p></td>
 <td><p>Login with a login link.</p></td>
 </tr>
-<tr class="row-even"><td></td>
+<tr class="row-odd"><td></td>
 <td><p><a class="reference external" href="#get--api-v1-login_links-(uuid-login_link_id)">GET /api/v1/login_links/(uuid:login_link_id)</a></p></td>
 <td><p>Get a login link and its connected assignment.</p></td>
 </tr>
-<tr class="row-odd"><td><p>Notification</p></td>
+<tr class="row-even"><td><p>Notification</p></td>
 <td><p><a class="reference external" href="#get--api-v1-notifications-">GET /api/v1/notifications/</a></p></td>
 <td><p>Get all notifications.</p></td>
 </tr>
-<tr class="row-even"><td></td>
+<tr class="row-odd"><td></td>
 <td><p><a class="reference external" href="#patch--api-v1-notifications-">PATCH /api/v1/notifications/</a></p></td>
 <td><p>Update multiple notifications in bulk.</p></td>
 </tr>
-<tr class="row-odd"><td></td>
+<tr class="row-even"><td></td>
 <td><p><a class="reference external" href="#patch--api-v1-notifications-(int-notification_id)">PATCH /api/v1/notifications/(int:notification_id)</a></p></td>
 <td><p>Update a single notification.</p></td>
 </tr>
-<tr class="row-even"><td><p>Permission</p></td>
+<tr class="row-odd"><td><p>Permission</p></td>
 <td><p><a class="reference external" href="#get--api-v1-permissions-">GET /api/v1/permissions/</a></p></td>
 <td><p>Get global permissions or all the course permissions for the current user.</p></td>
 </tr>
-<tr class="row-odd"><td><p>Plagiarism</p></td>
+<tr class="row-even"><td><p>Plagiarism</p></td>
 <td><p><a class="reference external" href="#get--api-v1-plagiarism-">GET /api/v1/plagiarism/</a></p></td>
 <td><p>Get all plagiarism providers.</p></td>
 </tr>
-<tr class="row-even"><td></td>
+<tr class="row-odd"><td></td>
 <td><p><a class="reference external" href="#get--api-v1-plagiarism-(int-plagiarism_id)-cases-(int-case_id)">GET /api/v1/plagiarism/(int:plagiarism_id)/cases/(int:case_id)</a></p></td>
 <td><p>Get a single plagiarism case.</p></td>
 </tr>
-<tr class="row-odd"><td></td>
+<tr class="row-even"><td></td>
 <td><p><a class="reference external" href="#get--api-v1-plagiarism-(int-plagiarism_id)-cases-">GET /api/v1/plagiarism/(int:plagiarism_id)/cases/</a></p></td>
 <td><p>Get the cases for a plagiarism run.</p></td>
 </tr>
-<tr class="row-even"><td></td>
+<tr class="row-odd"><td></td>
 <td><p><a class="reference external" href="#delete--api-v1-plagiarism-(int-plagiarism_id)">DELETE /api/v1/plagiarism/(int:plagiarism_id)</a></p></td>
 <td><p>Delete a plagiarism run and all its cases.</p></td>
 </tr>
-<tr class="row-odd"><td></td>
+<tr class="row-even"><td></td>
 <td><p><a class="reference external" href="#get--api-v1-plagiarism-(int-plagiarism_id)">GET /api/v1/plagiarism/(int:plagiarism_id)</a></p></td>
 <td><p>Get a single plagiarism run.</p></td>
 </tr>
-<tr class="row-even"><td><p>Proxy</p></td>
+<tr class="row-odd"><td><p>Proxy</p></td>
 <td><p><a class="reference external" href="#get--api-v1-proxies-(uuid-proxy_id)-(path-path_str)">GET /api/v1/proxies/(uuid:proxy_id)/(path:path_str)</a></p></td>
 <td><p>Get a file from a proxy.</p></td>
 </tr>
-<tr class="row-odd"><td></td>
+<tr class="row-even"><td></td>
 <td><p><a class="reference external" href="#get--api-v1-proxies-(uuid-proxy_id)-">GET /api/v1/proxies/(uuid:proxy_id)/</a></p></td>
 <td></td>
 </tr>
-<tr class="row-even"><td></td>
+<tr class="row-odd"><td></td>
 <td><p><a class="reference external" href="#get--api-v1-proxies-(path-path_str)">GET /api/v1/proxies/(path:path_str)</a></p></td>
 <td></td>
 </tr>
-<tr class="row-odd"><td></td>
+<tr class="row-even"><td></td>
 <td><p><a class="reference external" href="#get--api-v1-proxies-">GET /api/v1/proxies/</a></p></td>
 <td></td>
 </tr>
-<tr class="row-even"><td></td>
+<tr class="row-odd"><td></td>
 <td><p><a class="reference external" href="#post--api-v1-proxies-(uuid-proxy_id)-(path-path_str)">POST /api/v1/proxies/(uuid:proxy_id)/(path:path_str)</a></p></td>
 <td><p>Start using a proxy.</p></td>
 </tr>
-<tr class="row-odd"><td><p>Role</p></td>
+<tr class="row-even"><td><p>Role</p></td>
 <td><p><a class="reference external" href="#get--api-v1-roles-">GET /api/v1/roles/</a></p></td>
 <td><p>Get all global roles with their permissions.</p></td>
 </tr>
-<tr class="row-even"><td></td>
+<tr class="row-odd"><td></td>
 <td><p><a class="reference external" href="#patch--api-v1-roles-(int-role_id)">PATCH /api/v1/roles/(int:role_id)</a></p></td>
 <td><p>Update a permission for a certain role.</p></td>
 </tr>
-<tr class="row-odd"><td><p>SSO Provider</p></td>
+<tr class="row-even"><td><p>SSO Provider</p></td>
 <td><p><a class="reference external" href="#get--api-v1-sso_providers-">GET /api/v1/sso_providers/</a></p></td>
 <td><p>Get all SSO Providers for this instance.</p></td>
 </tr>
-<tr class="row-even"><td></td>
+<tr class="row-odd"><td></td>
 <td><p><a class="reference external" href="#post--api-v1-sso_providers-">POST /api/v1/sso_providers/</a></p></td>
 <td><p>Create a new SSO Providers in this instance.</p></td>
 </tr>
-<tr class="row-odd"><td></td>
+<tr class="row-even"><td></td>
 <td><p><a class="reference external" href="#get--api-v1-sso_providers-(uuid-provider_id)-default_logo">GET /api/v1/sso_providers/(uuid:provider_id)/default_logo</a></p></td>
 <td><p>Get the default logo of a provider.</p></td>
 </tr>
-<tr class="row-even"><td><p>Snippet</p></td>
+<tr class="row-odd"><td><p>Snippet</p></td>
 <td><p><a class="reference external" href="#get--api-v1-snippets-">GET /api/v1/snippets/</a></p></td>
 <td><p>Get all snippets for the currently logged in user.</p></td>
 </tr>
-<tr class="row-odd"><td></td>
+<tr class="row-even"><td></td>
 <td><p><a class="reference external" href="#put--api-v1-snippet">PUT /api/v1/snippet</a></p></td>
 <td><p>Add or modify a snippet.</p></td>
 </tr>
-<tr class="row-even"><td></td>
+<tr class="row-odd"><td></td>
 <td><p><a class="reference external" href="#patch--api-v1-snippets-(int-snippet_id)">PATCH /api/v1/snippets/(int:snippet_id)</a></p></td>
 <td><p>Change a snippets key and value.</p></td>
 </tr>
-<tr class="row-odd"><td></td>
+<tr class="row-even"><td></td>
 <td><p><a class="reference external" href="#delete--api-v1-snippets-(int-snippet_id)">DELETE /api/v1/snippets/(int:snippet_id)</a></p></td>
 <td><p>Delete a snippet.</p></td>
 </tr>
-<tr class="row-even"><td><p>Submission</p></td>
+<tr class="row-odd"><td><p>Submission</p></td>
 <td><p><a class="reference external" href="#get--api-v1-submissions-(int-submission_id)-root_file_trees-">GET /api/v1/submissions/(int:submission_id)/root_file_trees/</a></p></td>
 <td><p>Get all the file trees of a submission.</p></td>
 </tr>
-<tr class="row-odd"><td></td>
+<tr class="row-even"><td></td>
 <td><p><a class="reference external" href="#get--api-v1-submissions-(int-submission_id)-grade_history-">GET /api/v1/submissions/(int:submission_id)/grade_history/</a></p></td>
 <td><p>Get the grade history for the given submission.</p></td>
 </tr>
-<tr class="row-even"><td></td>
+<tr class="row-odd"><td></td>
 <td><p><a class="reference external" href="#delete--api-v1-submissions-(int-submission_id)-rubricitems-(int-rubric_item_id)">DELETE /api/v1/submissions/(int:submission_id)/rubricitems/(int:rubric_item_id)</a></p></td>
 <td><p>Unselect the given rubric item.</p></td>
 </tr>
-<tr class="row-odd"><td></td>
+<tr class="row-even"><td></td>
 <td><p><a class="reference external" href="#patch--api-v1-submissions-(int-submission_id)-rubricitems-(int-rubricitem_id)">PATCH /api/v1/submissions/(int:submission_id)/rubricitems/(int:rubricitem_id)</a></p></td>
 <td><p>Select a rubric item.</p></td>
 </tr>
-<tr class="row-even"><td></td>
+<tr class="row-odd"><td></td>
 <td><p><a class="reference external" href="#patch--api-v1-submissions-(int-submission_id)-rubricitems-">PATCH /api/v1/submissions/(int:submission_id)/rubricitems/</a></p></td>
 <td><p>Select multiple rubric items.</p></td>
 </tr>
-<tr class="row-odd"><td></td>
+<tr class="row-even"><td></td>
 <td><p><a class="reference external" href="#get--api-v1-submissions-(int-submission_id)-feedbacks-">GET /api/v1/submissions/(int:submission_id)/feedbacks/</a></p></td>
 <td><p>Get all (linter, user and general) feedback.</p></td>
 </tr>
-<tr class="row-even"><td></td>
+<tr class="row-odd"><td></td>
 <td><p><a class="reference external" href="#get--api-v1-submissions-(int-submission_id)-rubrics-">GET /api/v1/submissions/(int:submission_id)/rubrics/</a></p></td>
 <td><p>Get a rubric and its selected items.</p></td>
 </tr>
-<tr class="row-odd"><td></td>
+<tr class="row-even"><td></td>
 <td><p><a class="reference external" href="#patch--api-v1-submissions-(int-submission_id)-grader">PATCH /api/v1/submissions/(int:submission_id)/grader</a></p></td>
 <td><p>Update grader for the submission.</p></td>
 </tr>
-<tr class="row-even"><td></td>
+<tr class="row-odd"><td></td>
 <td><p><a class="reference external" href="#delete--api-v1-submissions-(int-submission_id)-grader">DELETE /api/v1/submissions/(int:submission_id)/grader</a></p></td>
 <td><p>Delete grader for the submission.</p></td>
 </tr>
-<tr class="row-odd"><td></td>
+<tr class="row-even"><td></td>
 <td><p><a class="reference external" href="#post--api-v1-submissions-(int-submission_id)-files-">POST /api/v1/submissions/(int:submission_id)/files/</a></p></td>
 <td><p>Create a new file or directory for a submission.</p></td>
 </tr>
-<tr class="row-even"><td></td>
+<tr class="row-odd"><td></td>
 <td><p><a class="reference external" href="#get--api-v1-submissions-(int-submission_id)-files-">GET /api/v1/submissions/(int:submission_id)/files/</a></p></td>
 <td><p>Get the directory contents for a submission.</p></td>
 </tr>
-<tr class="row-odd"><td></td>
+<tr class="row-even"><td></td>
 <td><p><a class="reference external" href="#post--api-v1-submissions-(int-submission_id)-proxy">POST /api/v1/submissions/(int:submission_id)/proxy</a></p></td>
 <td><p>Create a proxy to view the files of a submission</p></td>
 </tr>
-<tr class="row-even"><td></td>
+<tr class="row-odd"><td></td>
 <td><p><a class="reference external" href="#get--api-v1-submissions-(int-submission_id)">GET /api/v1/submissions/(int:submission_id)</a></p></td>
 <td><p>Get a single submission.</p></td>
 </tr>
-<tr class="row-odd"><td></td>
+<tr class="row-even"><td></td>
 <td><p><a class="reference external" href="#delete--api-v1-submissions-(int-submission_id)">DELETE /api/v1/submissions/(int:submission_id)</a></p></td>
 <td><p>Delete a submission and all its files.</p></td>
 </tr>
-<tr class="row-even"><td></td>
+<tr class="row-odd"><td></td>
 <td><p><a class="reference external" href="#patch--api-v1-submissions-(int-submission_id)">PATCH /api/v1/submissions/(int:submission_id)</a></p></td>
 <td><p>Update a submissions grade and feedback.</p></td>
 </tr>
-<tr class="row-odd"><td><p>Task result</p></td>
+<tr class="row-even"><td><p>Task result</p></td>
 <td><p><a class="reference external" href="#get--api-v1-task_results-(uuid-task_result_id)">GET /api/v1/task_results/(uuid:task_result_id)</a></p></td>
 <td><p>Get a single task result.</p></td>
 </tr>
-<tr class="row-even"><td><p>User</p></td>
+<tr class="row-odd"><td><p>User</p></td>
 <td><p><a class="reference external" href="#post--api-v1-login">POST /api/v1/login</a></p></td>
 <td><p>Login a given user.</p></td>
 </tr>
-<tr class="row-odd"><td></td>
+<tr class="row-even"><td></td>
 <td><p><a class="reference external" href="#get--api-v1-login">GET /api/v1/login</a></p></td>
 <td><p>Get information about the currently logged in user.</p></td>
 </tr>
-<tr class="row-even"><td></td>
+<tr class="row-odd"><td></td>
 <td><p><a class="reference external" href="#patch--api-v1-login">PATCH /api/v1/login</a></p></td>
 <td><p>Update the currently logged users information or reset a password.</p></td>
 </tr>
-<tr class="row-odd"><td></td>
+<tr class="row-even"><td></td>
 <td><p><a class="reference external" href="#get--api-v1-users-">GET /api/v1/users/</a></p></td>
 <td><p>Fuzzy search for a user by name and username.</p></td>
 </tr>
-<tr class="row-even"><td></td>
+<tr class="row-odd"><td></td>
 <td><p><a class="reference external" href="#post--api-v1-user">POST /api/v1/user</a></p></td>
 <td><p>Create a new user by registering it.</p></td>
 </tr>
-<tr class="row-odd"><td><p>User Setting</p></td>
+<tr class="row-even"><td><p>User Setting</p></td>
 <td><p><a class="reference external" href="#get--api-v1-settings-notification_settings-">GET /api/v1/settings/notification_settings/</a></p></td>
 <td><p>Get the preferences for notifications.</p></td>
 </tr>
-<tr class="row-even"><td></td>
+<tr class="row-odd"><td></td>
 <td><p><a class="reference external" href="#patch--api-v1-settings-notification_settings-">PATCH /api/v1/settings/notification_settings/</a></p></td>
 <td><p>Update preferences for notifications.</p></td>
 </tr>
-<tr class="row-odd"><td><p>Webhook</p></td>
+<tr class="row-even"><td><p>Webhook</p></td>
 <td><p><a class="reference external" href="#post--api-v1-webhooks-(uuid-webhook_id)">POST /api/v1/webhooks/(uuid:webhook_id)</a></p></td>
 <td><p>Process a webhook request.</p></td>
 </tr>
@@ -1376,6 +1380,27 @@ the other values should be given too.</p>
 <dl class="field-list simple">
 <dt class="field-odd">rtype</dt>
 <dd class="field-odd"><p><code class="xref py py-class docutils literal notranslate"><span class="pre">JSONResponse</span></code>[<a class="reference internal" href="psef_api/psef.html#psef.models.assignment.Assignment" title="psef.models.assignment.Assignment"><code class="xref py py-class docutils literal notranslate"><span class="pre">Assignment</span></code></a>]</p>
+</dd>
+</dl>
+<dl class="http get">
+<dt id="get--api-v1-assignments-(int-assignment_id)-course">
+<code class="sig-name descname">GET </code><code class="sig-name descname">/api/v1/assignments/</code><span class="sig-paren">(</span><em class="property">int: </em><em class="sig-param">assignment_id</em><span class="sig-paren">)</span><code class="sig-name descname">/course</code><a class="headerlink" href="#get--api-v1-assignments-(int-assignment_id)-course" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get a course of an <code class="xref py py-class docutils literal notranslate"><span class="pre">models.Assignment</span></code>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>assignment_id</strong> (<em>int</em>) – The id of the assignment</p></li>
+</ul>
+</dd>
+<dt class="field-even">Response JSON Object</dt>
+<dd class="field-even"><p>A response containing the JSON serialized course.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="field-list simple">
+<dt class="field-odd">rtype</dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Union" title="(in Python v3.8)"><code class="xref py py-data docutils literal notranslate"><span class="pre">Union</span></code></a>[<code class="xref py py-class docutils literal notranslate"><span class="pre">ExtendedJSONResponse</span></code>[<a class="reference internal" href="psef_api/psef.html#psef.models.course.Course" title="psef.models.course.Course"><code class="xref py py-class docutils literal notranslate"><span class="pre">Course</span></code></a>], <code class="xref py py-class docutils literal notranslate"><span class="pre">JSONResponse</span></code>[<a class="reference internal" href="psef_api/psef.html#psef.models.course.Course" title="psef.models.course.Course"><code class="xref py py-class docutils literal notranslate"><span class="pre">Course</span></code></a>]]</p>
 </dd>
 </dl>
 <dl class="http patch">
@@ -3130,7 +3155,7 @@ reply.</p></li>
 
 <dl class="field-list simple">
 <dt class="field-odd">rtype</dt>
-<dd class="field-odd"><p><code class="xref py py-class docutils literal notranslate"><span class="pre">JSONResponse</span></code>[<a class="reference internal" href="psef_api/psef.html#psef.models.course.Course" title="psef.models.course.Course"><code class="xref py py-class docutils literal notranslate"><span class="pre">Course</span></code></a>]</p>
+<dd class="field-odd"><p><code class="xref py py-class docutils literal notranslate"><span class="pre">ExtendedJSONResponse</span></code>[<a class="reference internal" href="psef_api/psef.html#psef.models.course.Course" title="psef.models.course.Course"><code class="xref py py-class docutils literal notranslate"><span class="pre">Course</span></code></a>]</p>
 </dd>
 </dl>
 <dl class="http get">
@@ -3149,22 +3174,15 @@ assignments and group sets for each course are also included under the
 key <code class="docutils literal notranslate"><span class="pre">assignments</span></code> and <code class="docutils literal notranslate"><span class="pre">group_sets</span></code> respectively.</p></li>
 </ul>
 </dd>
-<dt class="field-odd">Response JSON Array of Objects</dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>role</strong> (<em>str</em>) – The name of the role the current user has in this
-course.</p></li>
-<li><p><strong>**rest</strong> – JSON serialization of <code class="xref py py-class docutils literal notranslate"><span class="pre">psef.models.Course</span></code>.</p></li>
-</ul>
-</dd>
-<dt class="field-even">Possible error responses</dt>
-<dd class="field-even"><p><a class="reference internal" href="psef_api/psef.html#psef.exceptions.PermissionException" title="psef.exceptions.PermissionException"><strong>PermissionException</strong></a> – If there is no logged in user. (NOT_LOGGED_IN)</p>
+<dt class="field-odd">Possible error responses</dt>
+<dd class="field-odd"><p><a class="reference internal" href="psef_api/psef.html#psef.exceptions.PermissionException" title="psef.exceptions.PermissionException"><strong>PermissionException</strong></a> – If there is no logged in user. (NOT_LOGGED_IN)</p>
 </dd>
 </dl>
 </dd></dl>
 
 <dl class="field-list simple">
 <dt class="field-odd">rtype</dt>
-<dd class="field-odd"><p><code class="xref py py-class docutils literal notranslate"><span class="pre">JSONResponse</span></code>[<a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Sequence" title="(in Python v3.8)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Sequence</span></code></a>[<a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Mapping" title="(in Python v3.8)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Mapping</span></code></a>[<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.8)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>, <a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.8)"><code class="xref py py-data docutils literal notranslate"><span class="pre">Any</span></code></a>]]]</p>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Union" title="(in Python v3.8)"><code class="xref py py-data docutils literal notranslate"><span class="pre">Union</span></code></a>[<code class="xref py py-class docutils literal notranslate"><span class="pre">JSONResponse</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">list</span></code>[<a class="reference internal" href="psef_api/psef.html#psef.models.course.Course" title="psef.models.course.Course"><code class="xref py py-class docutils literal notranslate"><span class="pre">Course</span></code></a>]], <code class="xref py py-class docutils literal notranslate"><span class="pre">ExtendedJSONResponse</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">list</span></code>[<a class="reference internal" href="psef_api/psef.html#psef.models.course.Course" title="psef.models.course.Course"><code class="xref py py-class docutils literal notranslate"><span class="pre">Course</span></code></a>]]]</p>
 </dd>
 </dl>
 <dl class="http get">
@@ -3199,7 +3217,7 @@ course.</p></li>
 
 <dl class="field-list simple">
 <dt class="field-odd">rtype</dt>
-<dd class="field-odd"><p><code class="xref py py-class docutils literal notranslate"><span class="pre">JSONResponse</span></code>[<a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Mapping" title="(in Python v3.8)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Mapping</span></code></a>[<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.8)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>, <a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.8)"><code class="xref py py-data docutils literal notranslate"><span class="pre">Any</span></code></a>]]</p>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Union" title="(in Python v3.8)"><code class="xref py py-data docutils literal notranslate"><span class="pre">Union</span></code></a>[<code class="xref py py-class docutils literal notranslate"><span class="pre">JSONResponse</span></code>[<a class="reference internal" href="psef_api/psef.html#psef.models.course.Course" title="psef.models.course.Course"><code class="xref py py-class docutils literal notranslate"><span class="pre">Course</span></code></a>], <code class="xref py py-class docutils literal notranslate"><span class="pre">ExtendedJSONResponse</span></code>[<a class="reference internal" href="psef_api/psef.html#psef.models.course.Course" title="psef.models.course.Course"><code class="xref py py-class docutils literal notranslate"><span class="pre">Course</span></code></a>]]</p>
 </dd>
 </dl>
 <dl class="http post">
@@ -4435,7 +4453,7 @@ which global permissions this user has.</p></li>
 
 <dl class="field-list simple">
 <dt class="field-odd">rtype</dt>
-<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Union" title="(in Python v3.8)"><code class="xref py py-data docutils literal notranslate"><span class="pre">Union</span></code></a>[<code class="xref py py-class docutils literal notranslate"><span class="pre">JSONResponse</span></code>[<a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Union" title="(in Python v3.8)"><code class="xref py py-data docutils literal notranslate"><span class="pre">Union</span></code></a>[<a class="reference internal" href="psef_api/psef.html#psef.models.user.User" title="psef.models.user.User"><code class="xref py py-class docutils literal notranslate"><span class="pre">User</span></code></a>, <a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.MutableMapping" title="(in Python v3.8)"><code class="xref py py-class docutils literal notranslate"><span class="pre">MutableMapping</span></code></a>[<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.8)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>, <a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.8)"><code class="xref py py-data docutils literal notranslate"><span class="pre">Any</span></code></a>], <a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Mapping" title="(in Python v3.8)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Mapping</span></code></a>[<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.8)"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code></a>, <a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.8)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>]]], <code class="xref py py-class docutils literal notranslate"><span class="pre">ExtendedJSONResponse</span></code>[<a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Union" title="(in Python v3.8)"><code class="xref py py-data docutils literal notranslate"><span class="pre">Union</span></code></a>[<a class="reference internal" href="psef_api/psef.html#psef.models.user.User" title="psef.models.user.User"><code class="xref py py-class docutils literal notranslate"><span class="pre">User</span></code></a>, <a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.MutableMapping" title="(in Python v3.8)"><code class="xref py py-class docutils literal notranslate"><span class="pre">MutableMapping</span></code></a>[<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.8)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>, <a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.8)"><code class="xref py py-data docutils literal notranslate"><span class="pre">Any</span></code></a>]]]]</p>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Union" title="(in Python v3.8)"><code class="xref py py-data docutils literal notranslate"><span class="pre">Union</span></code></a>[<code class="xref py py-class docutils literal notranslate"><span class="pre">JSONResponse</span></code>[<a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Union" title="(in Python v3.8)"><code class="xref py py-data docutils literal notranslate"><span class="pre">Union</span></code></a>[<a class="reference internal" href="psef_api/psef.html#psef.models.user.User" title="psef.models.user.User"><code class="xref py py-class docutils literal notranslate"><span class="pre">User</span></code></a>, <a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Mapping" title="(in Python v3.8)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Mapping</span></code></a>[<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.8)"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code></a>, <a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.8)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>]]], <code class="xref py py-class docutils literal notranslate"><span class="pre">ExtendedJSONResponse</span></code>[<a class="reference internal" href="psef_api/psef.html#psef.models.user.User" title="psef.models.user.User"><code class="xref py py-class docutils literal notranslate"><span class="pre">User</span></code></a>]]</p>
 </dd>
 </dl>
 <dl class="http get">
@@ -4652,14 +4670,14 @@ required for LMSes that pass all required information.</p></li>
 <dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Union" title="(in Python v3.8)"><code class="xref py py-data docutils literal notranslate"><span class="pre">Union</span></code></a>[<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.8)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>, <code class="xref py py-class docutils literal notranslate"><span class="pre">Response</span></code>]</p>
 </dd>
 </dl>
-<dl class="http post">
-<dt id="post--api-v1-lti1.3-login-(lti_provider_id)">
-<code class="sig-name descname">POST </code><code class="sig-name descname">/api/v1/lti1.3/login/</code><span class="sig-paren">(</span><em class="sig-param">lti_provider_id</em><span class="sig-paren">)</span><a class="headerlink" href="#post--api-v1-lti1.3-login-(lti_provider_id)" title="Permalink to this definition">¶</a></dt>
+<dl class="http get">
+<dt id="get--api-v1-lti1.3-login-(lti_provider_id)">
+<code class="sig-name descname">GET </code><code class="sig-name descname">/api/v1/lti1.3/login/</code><span class="sig-paren">(</span><em class="sig-param">lti_provider_id</em><span class="sig-paren">)</span><a class="headerlink" href="#get--api-v1-lti1.3-login-(lti_provider_id)" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
-<dl class="http post">
-<dt id="post--api-v1-lti1.3-login">
-<code class="sig-name descname">POST </code><code class="sig-name descname">/api/v1/lti1.3/login</code><a class="headerlink" href="#post--api-v1-lti1.3-login" title="Permalink to this definition">¶</a></dt>
+<dl class="http get">
+<dt id="get--api-v1-lti1.3-login">
+<code class="sig-name descname">GET </code><code class="sig-name descname">/api/v1/lti1.3/login</code><a class="headerlink" href="#get--api-v1-lti1.3-login" title="Permalink to this definition">¶</a></dt>
 <dd><p>Do an LTI 1.3 OIDC login.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -4676,14 +4694,14 @@ required for LMSes that pass all required information.</p></li>
 <dd class="field-odd"><p><code class="xref py py-class docutils literal notranslate"><span class="pre">Response</span></code></p>
 </dd>
 </dl>
-<dl class="http get">
-<dt id="get--api-v1-lti1.3-login-(lti_provider_id)">
-<code class="sig-name descname">GET </code><code class="sig-name descname">/api/v1/lti1.3/login/</code><span class="sig-paren">(</span><em class="sig-param">lti_provider_id</em><span class="sig-paren">)</span><a class="headerlink" href="#get--api-v1-lti1.3-login-(lti_provider_id)" title="Permalink to this definition">¶</a></dt>
+<dl class="http post">
+<dt id="post--api-v1-lti1.3-login-(lti_provider_id)">
+<code class="sig-name descname">POST </code><code class="sig-name descname">/api/v1/lti1.3/login/</code><span class="sig-paren">(</span><em class="sig-param">lti_provider_id</em><span class="sig-paren">)</span><a class="headerlink" href="#post--api-v1-lti1.3-login-(lti_provider_id)" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
-<dl class="http get">
-<dt id="get--api-v1-lti1.3-login">
-<code class="sig-name descname">GET </code><code class="sig-name descname">/api/v1/lti1.3/login</code><a class="headerlink" href="#get--api-v1-lti1.3-login" title="Permalink to this definition">¶</a></dt>
+<dl class="http post">
+<dt id="post--api-v1-lti1.3-login">
+<code class="sig-name descname">POST </code><code class="sig-name descname">/api/v1/lti1.3/login</code><a class="headerlink" href="#post--api-v1-lti1.3-login" title="Permalink to this definition">¶</a></dt>
 <dd><p>Do an LTI 1.3 OIDC login.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>

@@ -211,14 +211,15 @@
 <span class="kn">import</span> <span class="nn">json</span>
 <span class="kn">import</span> <span class="nn">typing</span> <span class="k">as</span> <span class="nn">t</span>
 
-<span class="kn">from</span> <span class="nn">typing_extensions</span> <span class="kn">import</span> <span class="n">Literal</span>
+<span class="kn">from</span> <span class="nn">typing_extensions</span> <span class="kn">import</span> <span class="n">Literal</span><span class="p">,</span> <span class="n">TypedDict</span>
 
 <span class="kn">import</span> <span class="nn">psef</span>
+<span class="kn">import</span> <span class="nn">cg_enum</span>
 <span class="kn">from</span> <span class="nn">cg_dt_utils</span> <span class="kn">import</span> <span class="n">DatetimeWithTimezone</span>
 <span class="kn">from</span> <span class="nn">cg_sqlalchemy_helpers.types</span> <span class="kn">import</span> <span class="n">ColumnProxy</span>
 
 <span class="kn">from</span> <span class="nn">.</span> <span class="kn">import</span> <span class="n">Base</span><span class="p">,</span> <span class="n">db</span>
-<span class="kn">from</span> <span class="nn">..</span> <span class="kn">import</span> <span class="n">auth</span>
+<span class="kn">from</span> <span class="nn">..</span> <span class="kn">import</span> <span class="n">auth</span><span class="p">,</span> <span class="n">helpers</span>
 <span class="kn">from</span> <span class="nn">.assignment</span> <span class="kn">import</span> <span class="n">Assignment</span>
 
 
@@ -454,23 +455,35 @@
 <span class="sd">        :returns: A object as described above.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">works</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">works</span>
+        <span class="n">perm_checker</span> <span class="o">=</span> <span class="n">auth</span><span class="o">.</span><span class="n">PlagiarismCasePermissions</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+        <span class="n">can_see_all</span> <span class="o">=</span> <span class="n">perm_checker</span><span class="o">.</span><span class="n">ensure_may_see_other_assignment</span><span class="o">.</span><span class="n">and_</span><span class="p">(</span>
+            <span class="n">perm_checker</span><span class="o">.</span><span class="n">ensure_may_see_other_submission</span>
+        <span class="p">)</span><span class="o">.</span><span class="n">as_bool</span><span class="p">()</span>
         <span class="n">data</span><span class="p">:</span> <span class="n">t</span><span class="o">.</span><span class="n">MutableMapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">t</span><span class="o">.</span><span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span>
             <span class="s1">&#39;id&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">id</span><span class="p">,</span>
             <span class="s1">&#39;users&#39;</span><span class="p">:</span> <span class="p">[</span><span class="n">w</span><span class="o">.</span><span class="n">user</span> <span class="k">for</span> <span class="n">w</span> <span class="ow">in</span> <span class="n">works</span><span class="p">],</span>
             <span class="s1">&#39;match_avg&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">match_avg</span><span class="p">,</span>
             <span class="s1">&#39;match_max&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">match_max</span><span class="p">,</span>
-            <span class="s1">&#39;assignments&#39;</span><span class="p">:</span> <span class="p">[</span><span class="n">w</span><span class="o">.</span><span class="n">assignment</span> <span class="k">for</span> <span class="n">w</span> <span class="ow">in</span> <span class="n">works</span><span class="p">],</span>
             <span class="s1">&#39;submissions&#39;</span><span class="p">:</span> <span class="nb">list</span><span class="p">(</span><span class="n">works</span><span class="p">),</span>
+            <span class="s1">&#39;can_see_details&#39;</span><span class="p">:</span> <span class="n">can_see_all</span><span class="p">,</span>
+            <span class="s1">&#39;assignment_ids&#39;</span><span class="p">:</span> <span class="p">[</span><span class="n">w</span><span class="o">.</span><span class="n">assignment_id</span> <span class="k">for</span> <span class="n">w</span> <span class="ow">in</span> <span class="n">works</span><span class="p">],</span>
         <span class="p">}</span>
-        <span class="n">perm_checker</span> <span class="o">=</span> <span class="n">auth</span><span class="o">.</span><span class="n">PlagiarismCasePermissions</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
-        <span class="k">if</span> <span class="ow">not</span> <span class="n">perm_checker</span><span class="o">.</span><span class="n">ensure_may_see_other_assignment</span><span class="o">.</span><span class="n">as_bool</span><span class="p">():</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">helpers</span><span class="o">.</span><span class="n">request_arg_true</span><span class="p">(</span><span class="s1">&#39;no_assignment_in_case&#39;</span><span class="p">):</span>
+            <span class="n">helpers</span><span class="o">.</span><span class="n">add_deprecate_warning</span><span class="p">(</span>
+                <span class="s1">&#39;Getting the assignments connected to a single case is&#39;</span>
+                <span class="s1">&#39; deprecated, and will be removed in the next major release of&#39;</span>
+                <span class="s1">&#39; CodeGrade. Please use the lookup table in the plagiarism&#39;</span>
+                <span class="s1">&#39; run.&#39;</span>
+            <span class="p">)</span>
+            <span class="n">data</span><span class="p">[</span><span class="s1">&#39;assignments&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="n">w</span><span class="o">.</span><span class="n">assignment</span> <span class="k">for</span> <span class="n">w</span> <span class="ow">in</span> <span class="n">works</span><span class="p">]</span>
             <span class="n">assig</span> <span class="o">=</span> <span class="n">works</span><span class="o">.</span><span class="n">other_work</span><span class="o">.</span><span class="n">assignment</span>
-            <span class="n">data</span><span class="p">[</span><span class="s1">&#39;assignments&#39;</span><span class="p">][</span><span class="n">PlagiarismWorks</span><span class="o">.</span><span class="n">get_other_index</span><span class="p">()]</span> <span class="o">=</span> <span class="p">{</span>
-                <span class="s1">&#39;name&#39;</span><span class="p">:</span> <span class="n">assig</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
-                <span class="s1">&#39;course&#39;</span><span class="p">:</span> <span class="p">{</span>
-                    <span class="s1">&#39;name&#39;</span><span class="p">:</span> <span class="n">assig</span><span class="o">.</span><span class="n">course</span><span class="o">.</span><span class="n">name</span>
+            <span class="k">if</span> <span class="n">perm_checker</span><span class="o">.</span><span class="n">ensure_may_see_other_assignment</span><span class="o">.</span><span class="n">as_bool</span><span class="p">():</span>
+                <span class="n">data</span><span class="p">[</span><span class="s1">&#39;assignments&#39;</span><span class="p">][</span><span class="n">PlagiarismWorks</span><span class="o">.</span><span class="n">get_other_index</span><span class="p">()]</span> <span class="o">=</span> <span class="p">{</span>
+                    <span class="s1">&#39;name&#39;</span><span class="p">:</span> <span class="n">assig</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
+                    <span class="s1">&#39;course&#39;</span><span class="p">:</span> <span class="p">{</span>
+                        <span class="s1">&#39;name&#39;</span><span class="p">:</span> <span class="n">assig</span><span class="o">.</span><span class="n">course</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
+                    <span class="p">},</span>
                 <span class="p">}</span>
-            <span class="p">}</span>
 
         <span class="c1"># Make sure we may actually see this file.</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="n">perm_checker</span><span class="o">.</span><span class="n">ensure_may_see_other_submission</span><span class="o">.</span><span class="n">as_bool</span><span class="p">():</span>
@@ -500,7 +513,7 @@
 
 
 <div class="viewcode-block" id="PlagiarismState"><a class="viewcode-back" href="../../../psef_api/psef.html#psef.models.plagiarism.PlagiarismState">[docs]</a><span class="nd">@enum</span><span class="o">.</span><span class="n">unique</span>
-<span class="k">class</span> <span class="nc">PlagiarismState</span><span class="p">(</span><span class="n">enum</span><span class="o">.</span><span class="n">IntEnum</span><span class="p">):</span>
+<span class="k">class</span> <span class="nc">PlagiarismState</span><span class="p">(</span><span class="n">cg_enum</span><span class="o">.</span><span class="n">CGEnum</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Describes in what state a :class:`.PlagiarismRun` is.</span>
 
 <span class="sd">    :param running: The provider is currently running.</span>
@@ -573,63 +586,81 @@
         <span class="n">uselist</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
     <span class="p">)</span>
 
-    <span class="nd">@property</span>
-    <span class="k">def</span> <span class="nf">provider_name</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
-        <span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">        :returns: The provider name of this plagiarism run.</span>
+    <span class="k">class</span> <span class="nc">_AssignmentJSON</span><span class="p">(</span><span class="n">TypedDict</span><span class="p">):</span>
+        <span class="nb">id</span><span class="p">:</span> <span class="nb">int</span>
+        <span class="n">course_id</span><span class="p">:</span> <span class="nb">int</span>
+        <span class="n">name</span><span class="p">:</span> <span class="nb">str</span>
+
+    <span class="k">class</span> <span class="nc">_CourseJSON</span><span class="p">(</span><span class="n">TypedDict</span><span class="p">):</span>
+        <span class="nb">id</span><span class="p">:</span> <span class="nb">int</span>
+        <span class="n">name</span><span class="p">:</span> <span class="nb">str</span>
+        <span class="n">virtual</span><span class="p">:</span> <span class="nb">bool</span>
+
+<div class="viewcode-block" id="PlagiarismRun.AsJSON"><a class="viewcode-back" href="../../../psef_api/psef.html#psef.models.plagiarism.PlagiarismRun.AsJSON">[docs]</a>    <span class="k">class</span> <span class="nc">AsJSON</span><span class="p">(</span><span class="n">TypedDict</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;The way this class will be represented in JSON.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">val</span> <span class="ow">in</span> <span class="n">json</span><span class="o">.</span><span class="n">loads</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">json_config</span><span class="p">):</span>
-            <span class="k">if</span> <span class="n">key</span> <span class="o">==</span> <span class="s1">&#39;provider&#39;</span><span class="p">:</span>
-                <span class="k">return</span> <span class="n">val</span>
-        <span class="c1"># This can never happen</span>
-        <span class="k">raise</span> <span class="ne">KeyError</span>  <span class="c1"># pragma: no cover</span>
+        <span class="c1">#: The id of the run.</span>
+        <span class="nb">id</span><span class="p">:</span> <span class="nb">int</span>
+        <span class="c1">#: The state this run is in.</span>
+        <span class="n">state</span><span class="p">:</span> <span class="n">PlagiarismState</span>
+        <span class="c1">#: The amount of submissions that have finished the current state.</span>
+        <span class="n">submissions_done</span><span class="p">:</span> <span class="n">t</span><span class="o">.</span><span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span>
+        <span class="c1">#: The total amount of submissions connected to this run.</span>
+        <span class="n">submissions_total</span><span class="p">:</span> <span class="n">t</span><span class="o">.</span><span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span>
+        <span class="c1">#: Which provider is doing this run.</span>
+        <span class="n">provider_name</span><span class="p">:</span> <span class="nb">str</span>
+        <span class="c1">#: The config used for this run.</span>
+        <span class="n">config</span><span class="p">:</span> <span class="nb">object</span>
+        <span class="c1">#: The time this run was created.</span>
+        <span class="n">created_at</span><span class="p">:</span> <span class="n">DatetimeWithTimezone</span>
+        <span class="c1">#: The assignment this run was done on.</span>
+        <span class="n">assignment</span><span class="p">:</span> <span class="s1">&#39;Assignment&#39;</span>
+        <span class="c1">#: The log produced by the provider while running.</span>
+        <span class="n">log</span><span class="p">:</span> <span class="n">t</span><span class="o">.</span><span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span>
+        <span class="c1">#: A mapping between assignment id and the assignment for each</span>
+        <span class="c1"># assignment that is connected to this run. These are not (!) full</span>
+        <span class="c1"># assignment objects, but only contain the ``name`` and ``id``.</span>
+        <span class="n">assignments</span><span class="p">:</span> <span class="n">t</span><span class="o">.</span><span class="n">Mapping</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="s1">&#39;PlagiarismRun._AssignmentJSON&#39;</span><span class="p">]</span>
+        <span class="c1">#: The mapping between course id and the course for each course that is</span>
+        <span class="c1">#: connected to this run. These are not (!) full course object, but</span>
+        <span class="c1">#: contain only the ``name``, ``id`` and if the course is virtual.</span>
+        <span class="n">courses</span><span class="p">:</span> <span class="n">t</span><span class="o">.</span><span class="n">Mapping</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="s1">&#39;PlagiarismRun._CourseJSON&#39;</span><span class="p">]</span></div>
 
-    <span class="nd">@property</span>
-    <span class="k">def</span> <span class="nf">plagiarism_cls</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">t</span><span class="o">.</span><span class="n">Type</span><span class="p">[</span><span class="s1">&#39;psef.plagiarism.PlagiarismProvider&#39;</span><span class="p">]:</span>
-        <span class="sd">&quot;&quot;&quot;Get the class of the plagiarism provider of this run.</span>
-
-<span class="sd">        :returns: The class of this plagiarism provider run.</span>
-<span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">return</span> <span class="n">psef</span><span class="o">.</span><span class="n">helpers</span><span class="o">.</span><span class="n">get_class_by_name</span><span class="p">(</span>
-            <span class="n">psef</span><span class="o">.</span><span class="n">plagiarism</span><span class="o">.</span><span class="n">PlagiarismProvider</span><span class="p">,</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">provider_name</span><span class="p">,</span>
-        <span class="p">)</span>
-
-    <span class="k">def</span> <span class="nf">__to_json__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">t</span><span class="o">.</span><span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">object</span><span class="p">]:</span>
+    <span class="k">def</span> <span class="nf">__to_json__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">AsJSON</span><span class="p">:</span>
         <span class="sd">&quot;&quot;&quot;Creates a JSON serializable representation of this object.</span>
-
-<span class="sd">        This object will look like this:</span>
-
-<span class="sd">        .. code:: python</span>
-
-<span class="sd">            {</span>
-<span class="sd">                &#39;id&#39;: int, # The id of this run.</span>
-<span class="sd">                &#39;state&#39;: str, # The name of the current state this run is in.</span>
-<span class="sd">                &#39;provider_name&#39;: str, # The name of the provider used in this</span>
-<span class="sd">                                      # run.</span>
-<span class="sd">                &#39;submissions_done&#39;: int, # The amount of submissions that have</span>
-<span class="sd">                                         # completed the current state.</span>
-<span class="sd">                &#39;submissions_total&#39;: int, # The total amount of submissions</span>
-<span class="sd">                                          # that have to complete the current</span>
-<span class="sd">                                          # state.</span>
-<span class="sd">                &#39;config&#39;: t.List[t.List[str]], # A sorted association list with</span>
-<span class="sd">                                               # the config used for this run.</span>
-<span class="sd">                &#39;created_at&#39;: str, # ISO UTC date.</span>
-<span class="sd">                &#39;assignment&#39;: Assignment, # The assignment this run belongs to.</span>
-<span class="sd">            }</span>
 
 <span class="sd">        :returns: A object as described above.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">all_assignments</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_connected_assignments</span><span class="p">()</span>
+        <span class="n">courses</span><span class="p">:</span> <span class="n">t</span><span class="o">.</span><span class="n">Mapping</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="s1">&#39;PlagiarismRun._CourseJSON&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="n">assig</span><span class="o">.</span><span class="n">course_id</span><span class="p">:</span> <span class="p">{</span>
+                <span class="s1">&#39;id&#39;</span><span class="p">:</span> <span class="n">assig</span><span class="o">.</span><span class="n">course_id</span><span class="p">,</span>
+                <span class="s1">&#39;name&#39;</span><span class="p">:</span> <span class="n">assig</span><span class="o">.</span><span class="n">course</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
+                <span class="s1">&#39;virtual&#39;</span><span class="p">:</span> <span class="n">assig</span><span class="o">.</span><span class="n">course</span><span class="o">.</span><span class="n">virtual</span>
+            <span class="p">}</span>
+            <span class="k">for</span> <span class="n">assig</span> <span class="ow">in</span> <span class="n">all_assignments</span>
+        <span class="p">}</span>
+        <span class="n">assignments</span><span class="p">:</span> <span class="n">t</span><span class="o">.</span><span class="n">Mapping</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="s1">&#39;PlagiarismRun._AssignmentJSON&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="n">assig</span><span class="o">.</span><span class="n">id</span><span class="p">:</span> <span class="p">{</span>
+                <span class="s1">&#39;id&#39;</span><span class="p">:</span> <span class="n">assig</span><span class="o">.</span><span class="n">id</span><span class="p">,</span>
+                <span class="s1">&#39;name&#39;</span><span class="p">:</span> <span class="n">assig</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
+                <span class="s1">&#39;course_id&#39;</span><span class="p">:</span> <span class="n">assig</span><span class="o">.</span><span class="n">course_id</span><span class="p">,</span>
+            <span class="p">}</span>
+            <span class="k">for</span> <span class="n">assig</span> <span class="ow">in</span> <span class="n">all_assignments</span>
+        <span class="p">}</span>
+
         <span class="k">return</span> <span class="p">{</span>
             <span class="s1">&#39;id&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">id</span><span class="p">,</span>
-            <span class="s1">&#39;state&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">state</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
+            <span class="s1">&#39;state&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">state</span><span class="p">,</span>
             <span class="s1">&#39;submissions_done&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">submissions_done</span><span class="p">,</span>
             <span class="s1">&#39;submissions_total&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">submissions_total</span><span class="p">,</span>
             <span class="s1">&#39;provider_name&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">provider_name</span><span class="p">,</span>
             <span class="s1">&#39;config&#39;</span><span class="p">:</span> <span class="n">json</span><span class="o">.</span><span class="n">loads</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">json_config</span><span class="p">),</span>
-            <span class="s1">&#39;created_at&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">created_at</span><span class="o">.</span><span class="n">isoformat</span><span class="p">(),</span>
+            <span class="s1">&#39;created_at&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">created_at</span><span class="p">,</span>
             <span class="s1">&#39;assignment&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">assignment</span><span class="p">,</span>
             <span class="s1">&#39;log&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="p">,</span>
+            <span class="s1">&#39;assignments&#39;</span><span class="p">:</span> <span class="n">assignments</span><span class="p">,</span>
+            <span class="s1">&#39;courses&#39;</span><span class="p">:</span> <span class="n">courses</span><span class="p">,</span>
         <span class="p">}</span>
 
     <span class="k">def</span> <span class="nf">__extended_to_json__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">t</span><span class="o">.</span><span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">object</span><span class="p">]:</span>
@@ -652,7 +683,52 @@
         <span class="k">return</span> <span class="p">{</span>
             <span class="s1">&#39;cases&#39;</span><span class="p">:</span> <span class="p">[</span><span class="n">c</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">cases</span> <span class="k">if</span> <span class="ow">not</span> <span class="n">c</span><span class="o">.</span><span class="n">any_work_deleted</span><span class="p">],</span>
             <span class="o">**</span><span class="bp">self</span><span class="o">.</span><span class="n">__to_json__</span><span class="p">(),</span>
-        <span class="p">}</span></div>
+        <span class="p">}</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">provider_name</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        :returns: The provider name of this plagiarism run.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">val</span> <span class="ow">in</span> <span class="n">json</span><span class="o">.</span><span class="n">loads</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">json_config</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">key</span> <span class="o">==</span> <span class="s1">&#39;provider&#39;</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">val</span>
+        <span class="c1"># This can never happen</span>
+        <span class="k">raise</span> <span class="ne">KeyError</span>  <span class="c1"># pragma: no cover</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">plagiarism_cls</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">t</span><span class="o">.</span><span class="n">Type</span><span class="p">[</span><span class="s1">&#39;psef.plagiarism.PlagiarismProvider&#39;</span><span class="p">]:</span>
+        <span class="sd">&quot;&quot;&quot;Get the class of the plagiarism provider of this run.</span>
+
+<span class="sd">        :returns: The class of this plagiarism provider run.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">psef</span><span class="o">.</span><span class="n">helpers</span><span class="o">.</span><span class="n">get_class_by_name</span><span class="p">(</span>
+            <span class="n">psef</span><span class="o">.</span><span class="n">plagiarism</span><span class="o">.</span><span class="n">PlagiarismProvider</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">provider_name</span><span class="p">,</span>
+        <span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_get_connected_assignments</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">t</span><span class="o">.</span><span class="n">Sequence</span><span class="p">[</span><span class="n">Assignment</span><span class="p">]:</span>
+        <span class="sd">&quot;&quot;&quot;Get a sequence of all assignments that have a case connected to this</span>
+<span class="sd">        plagiarism run.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">assigs1</span> <span class="o">=</span> <span class="n">PlagiarismCase</span><span class="o">.</span><span class="n">query</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span>
+            <span class="n">PlagiarismCase</span><span class="o">.</span><span class="n">plagiarism_run</span> <span class="o">==</span> <span class="bp">self</span><span class="p">,</span>
+        <span class="p">)</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">PlagiarismCase</span><span class="o">.</span><span class="n">work1</span><span class="p">)</span><span class="o">.</span><span class="n">with_entities</span><span class="p">(</span>
+            <span class="n">psef</span><span class="o">.</span><span class="n">models</span><span class="o">.</span><span class="n">Work</span><span class="o">.</span><span class="n">assignment_id</span>
+        <span class="p">)</span><span class="o">.</span><span class="n">distinct</span><span class="p">(</span><span class="n">psef</span><span class="o">.</span><span class="n">models</span><span class="o">.</span><span class="n">Work</span><span class="o">.</span><span class="n">assignment_id</span><span class="p">)</span>
+
+        <span class="n">assigs2</span> <span class="o">=</span> <span class="n">PlagiarismCase</span><span class="o">.</span><span class="n">query</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span>
+            <span class="n">PlagiarismCase</span><span class="o">.</span><span class="n">plagiarism_run</span> <span class="o">==</span> <span class="bp">self</span><span class="p">,</span>
+        <span class="p">)</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">PlagiarismCase</span><span class="o">.</span><span class="n">work2</span><span class="p">)</span><span class="o">.</span><span class="n">with_entities</span><span class="p">(</span>
+            <span class="n">psef</span><span class="o">.</span><span class="n">models</span><span class="o">.</span><span class="n">Work</span><span class="o">.</span><span class="n">assignment_id</span>
+        <span class="p">)</span><span class="o">.</span><span class="n">distinct</span><span class="p">(</span><span class="n">psef</span><span class="o">.</span><span class="n">models</span><span class="o">.</span><span class="n">Work</span><span class="o">.</span><span class="n">assignment_id</span><span class="p">)</span>
+
+        <span class="n">all_assigs</span> <span class="o">=</span> <span class="n">assigs1</span><span class="o">.</span><span class="n">union</span><span class="p">(</span><span class="n">assigs2</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">Assignment</span><span class="o">.</span><span class="n">query</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span>
+            <span class="n">Assignment</span><span class="o">.</span><span class="n">id</span><span class="o">.</span><span class="n">in_</span><span class="p">(</span><span class="n">all_assigs</span><span class="p">)</span> <span class="o">|</span>
+            <span class="p">(</span><span class="n">Assignment</span><span class="o">.</span><span class="n">id</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">assignment_id</span><span class="p">),</span>
+        <span class="p">)</span><span class="o">.</span><span class="n">all</span><span class="p">()</span></div>
 </pre></div>
 
            </div>

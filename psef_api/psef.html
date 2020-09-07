@@ -619,6 +619,18 @@ this backend is named <code class="docutils literal notranslate"><span class="pr
 <code class="sig-name descname">ensure_may_see</code><em class="property"> = &lt;psef.auth._PermissionCheckFunction._Inner object&gt;</em><a class="reference internal" href="../_modules/psef/auth.html#CoursePermissions.ensure_may_see"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#psef.auth.CoursePermissions.ensure_may_see" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
+<dl class="py method">
+<dt id="psef.auth.CoursePermissions.ensure_may_see_filter">
+<em class="property">static </em><code class="sig-name descname">ensure_may_see_filter</code><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; Union[cg_sqlalchemy_helpers.types.DbColumn[bool], cg_sqlalchemy_helpers.types.DbColumn[typing_extensions.Literal[True]], cg_sqlalchemy_helpers.types.DbColumn[typing_extensions.Literal[False]], cg_sqlalchemy_helpers.types.ExistsColumn]<a class="reference internal" href="../_modules/psef/auth.html#CoursePermissions.ensure_may_see_filter"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#psef.auth.CoursePermissions.ensure_may_see_filter" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get a database filter that filters out all courses the current user
+may not see.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Union" title="(in Python v3.8)"><code class="xref py py-data docutils literal notranslate"><span class="pre">Union</span></code></a>[<code class="xref py py-class docutils literal notranslate"><span class="pre">DbColumn</span></code>[<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.8)"><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></a>], <code class="xref py py-class docutils literal notranslate"><span class="pre">DbColumn</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">_GenericAlias</span></code>[True]], <code class="xref py py-class docutils literal notranslate"><span class="pre">DbColumn</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">_GenericAlias</span></code>[False]], <code class="xref py py-class docutils literal notranslate"><span class="pre">ExistsColumn</span></code>]</p>
+</dd>
+</dl>
+</dd></dl>
+
 <dl class="py attribute">
 <dt id="psef.auth.CoursePermissions.ensure_may_see_roles">
 <code class="sig-name descname">ensure_may_see_roles</code><em class="property"> = &lt;psef.auth._PermissionCheckFunction._Inner object&gt;</em><a class="reference internal" href="../_modules/psef/auth.html#CoursePermissions.ensure_may_see_roles"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#psef.auth.CoursePermissions.ensure_may_see_roles" title="Permalink to this definition">¶</a></dt>
@@ -1080,7 +1092,7 @@ the given <code class="docutils literal notranslate"><span class="pre">author</s
 
 <dl class="py function">
 <dt id="psef.auth.as_current_user">
-<code class="sig-prename descclassname">psef.auth.</code><code class="sig-name descname">as_current_user</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">user</span><span class="p">:</span> <span class="n">Union<span class="p">[</span>psef.models.User<span class="p">, </span><a class="reference external" href="https://werkzeug.palletsprojects.com/en/1.0.x/local/#werkzeug.local.LocalProxy" title="(in Werkzeug v1.0.x)">werkzeug.local.LocalProxy</a><span class="p">]</span></span></em><span class="sig-paren">)</span> &#x2192; Generator[None, None, None]<a class="reference internal" href="../_modules/psef/auth.html#as_current_user"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#psef.auth.as_current_user" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">psef.auth.</code><code class="sig-name descname">as_current_user</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">user</span><span class="p">:</span> <span class="n">Union<span class="p">[</span>psef.models.User<span class="p">, </span><a class="reference external" href="https://werkzeug.palletsprojects.com/en/1.0.x/local/#werkzeug.local.LocalProxy" title="(in Werkzeug v1.0.x)">werkzeug.local.LocalProxy</a><span class="p">]</span></span></em>, <em class="sig-param"><span class="o">*</span></em>, <em class="sig-param"><span class="n">jwt_claims</span><span class="p">:</span> <span class="n">Mapping<span class="p">[</span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.8)">str</a><span class="p">, </span>Any<span class="p">]</span></span> <span class="o">=</span> <span class="default_value">None</span></em><span class="sig-paren">)</span> &#x2192; Generator[None, None, None]<a class="reference internal" href="../_modules/psef/auth.html#as_current_user"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#psef.auth.as_current_user" title="Permalink to this definition">¶</a></dt>
 <dd><p>Execute a block of code while pretending the given user is logged in.</p>
 <p>After the contextmanager exists the original logged in user is restored.</p>
 <dl class="field-list simple">
@@ -1222,7 +1234,7 @@ files.</p>
 
 <dl class="py function">
 <dt id="psef.auth.ensure_logged_in">
-<code class="sig-prename descclassname">psef.auth.</code><code class="sig-name descname">ensure_logged_in</code><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; <a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.8)">None</a><a class="reference internal" href="../_modules/psef/auth.html#ensure_logged_in"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#psef.auth.ensure_logged_in" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">psef.auth.</code><code class="sig-name descname">ensure_logged_in</code><span class="sig-paren">(</span><em class="sig-param">user: Union[None</em>, <em class="sig-param">psef.models.User</em>, <em class="sig-param">typing_extensions.Literal[&lt;MissingType.token: 0&gt;]] = &lt;MissingType.token: 0&gt;</em><span class="sig-paren">)</span> &#x2192; <a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.8)">None</a><a class="reference internal" href="../_modules/psef/auth.html#ensure_logged_in"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#psef.auth.ensure_logged_in" title="Permalink to this definition">¶</a></dt>
 <dd><p>Make sure a user is currently logged in.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Return type</dt>
@@ -6203,6 +6215,23 @@ changing the max points.</p>
 </dd></dl>
 
 <dl class="py method">
+<dt id="psef.lti.v1_1.CanvasLTI.supports_state_management">
+<em class="property">static </em><code class="sig-name descname">supports_state_management</code><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; <a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.8)">bool</a><a class="reference internal" href="../_modules/psef/lti/v1_1.html#CanvasLTI.supports_state_management"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#psef.lti.v1_1.CanvasLTI.supports_state_management" title="Permalink to this definition">¶</a></dt>
+<dd><p>Determines whether this LMS sends the assignment state to CodeGrade.
+If this is <code class="docutils literal notranslate"><span class="pre">True</span></code> you cannot change state info, e.g. the
+<code class="docutils literal notranslate"><span class="pre">available_at</span></code>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.8)"><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></a></p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>A boolean indicating whether this LTI instance gives the
+assignment state to CodeGrade.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
 <dt id="psef.lti.v1_1.CanvasLTI.username">
 <em class="property">property </em><code class="sig-name descname">username</code><a class="headerlink" href="#psef.lti.v1_1.CanvasLTI.username" title="Permalink to this definition">¶</a></dt>
 <dd><p>The username of the current LTI user.</p>
@@ -6686,6 +6715,23 @@ more information.</p>
 <dt class="field-even">Returns</dt>
 <dd class="field-even"><p>A boolean indicating whether this LTI instance supports
 changing the max points.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="psef.lti.v1_1.LTI.supports_state_management">
+<em class="property">static </em><code class="sig-name descname">supports_state_management</code><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; <a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.8)">bool</a><a class="reference internal" href="../_modules/psef/lti/v1_1.html#LTI.supports_state_management"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#psef.lti.v1_1.LTI.supports_state_management" title="Permalink to this definition">¶</a></dt>
+<dd><p>Determines whether this LMS sends the assignment state to CodeGrade.
+If this is <code class="docutils literal notranslate"><span class="pre">True</span></code> you cannot change state info, e.g. the
+<code class="docutils literal notranslate"><span class="pre">available_at</span></code>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.8)"><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></a></p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>A boolean indicating whether this LTI instance gives the
+assignment state to CodeGrade.</p>
 </dd>
 </dl>
 </dd></dl>
@@ -9164,8 +9210,8 @@ is always &gt;= 1, so this check is disabled if <cite>cool_off_period == 0</cite
 </dd></dl>
 
 <dl class="py attribute">
-<dt id="psef.models.assignment.AssignmentJSON.course">
-<code class="sig-name descname">course</code><em class="property">: ‘course_models.Course’</em><a class="headerlink" href="#psef.models.assignment.AssignmentJSON.course" title="Permalink to this definition">¶</a></dt>
+<dt id="psef.models.assignment.AssignmentJSON.course_id">
+<code class="sig-name descname">course_id</code><em class="property">: <a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.8)">int</a></em><a class="headerlink" href="#psef.models.assignment.AssignmentJSON.course_id" title="Permalink to this definition">¶</a></dt>
 <dd><p>Course of this assignment.</p>
 </dd></dl>
 
@@ -9332,18 +9378,24 @@ a <a class="reference internal" href="#psef.models.assignment.Assignment" title=
 <p>Every <code class="xref py py-class docutils literal notranslate"><span class="pre">work_models.Work</span></code> that is tested is attached by a
 <code class="xref py py-class docutils literal notranslate"><span class="pre">linter_models.LinterInstance</span></code>.</p>
 <p>The name identifies which <code class="xref py py-class docutils literal notranslate"><span class="pre">linter_models.Linter</span></code> is used.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Variables</dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>name</strong> – The name of the linter which is the
-<cite>__name__</cite> of a subclass of <code class="xref py py-class docutils literal notranslate"><span class="pre">linter_models.Linter</span></code>.</p></li>
-<li><p><strong>tests</strong> – All the linter instances for this linter, this are the
-recordings of the running of the actual linter (so in the case of the
-<a class="reference internal" href="#psef.linters.Flake8" title="psef.linters.Flake8"><code class="xref py py-class docutils literal notranslate"><span class="pre">Flake8</span></code></a> metadata about the <cite>flake8</cite> program).</p></li>
-<li><p><a class="reference internal" href="#psef.PsefFlask.config" title="psef.PsefFlask.config"><strong>config</strong></a> – The config that was passed to the linter.</p></li>
-</ul>
-</dd>
-</dl>
+<dl class="py attribute">
+<dt id="psef.models.assignment.AssignmentLinter.assignment">
+<code class="sig-name descname">assignment</code><a class="headerlink" href="#psef.models.assignment.AssignmentLinter.assignment" title="Permalink to this definition">¶</a></dt>
+<dd><p>The assignment connect to this linter run.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt id="psef.models.assignment.AssignmentLinter.assignment_id">
+<code class="sig-name descname">assignment_id</code><a class="headerlink" href="#psef.models.assignment.AssignmentLinter.assignment_id" title="Permalink to this definition">¶</a></dt>
+<dd><p>The id of the assignment connected to this linter.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt id="psef.models.assignment.AssignmentLinter.config">
+<code class="sig-name descname">config</code><a class="headerlink" href="#psef.models.assignment.AssignmentLinter.config" title="Permalink to this definition">¶</a></dt>
+<dd><p>The config that was passed to the linter.</p>
+</dd></dl>
+
 <dl class="py method">
 <dt id="psef.models.assignment.AssignmentLinter.create_linter">
 <em class="property">classmethod </em><code class="sig-name descname">create_linter</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">assignment_id</span><span class="p">:</span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.8)">int</a></span></em>, <em class="sig-param"><span class="n">name</span><span class="p">:</span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.8)">str</a></span></em>, <em class="sig-param"><span class="n">config</span><span class="p">:</span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.8)">str</a></span></em><span class="sig-paren">)</span> &#x2192; <a class="reference internal" href="#psef.models.assignment.AssignmentLinter" title="psef.models.assignment.AssignmentLinter">psef.models.assignment.AssignmentLinter</a><a class="reference internal" href="../_modules/psef/models/assignment.html#AssignmentLinter.create_linter"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#psef.models.assignment.AssignmentLinter.create_linter" title="Permalink to this definition">¶</a></dt>
@@ -9363,6 +9415,23 @@ with a given <code class="xref py py-class docutils literal notranslate"><span c
 <dd class="field-odd"><p>The created AssignmentLinter</p>
 </dd>
 </dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="psef.models.assignment.AssignmentLinter.get_whitespace_linter_query">
+<em class="property">classmethod </em><code class="sig-name descname">get_whitespace_linter_query</code><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; cg_sqlalchemy_helpers.types.MyQuery<span class="p">[</span><a class="reference internal" href="#psef.models.assignment.AssignmentLinter" title="psef.models.assignment.AssignmentLinter">psef.models.assignment.AssignmentLinter</a><span class="p">]</span><a class="reference internal" href="../_modules/psef/models/assignment.html#AssignmentLinter.get_whitespace_linter_query"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#psef.models.assignment.AssignmentLinter.get_whitespace_linter_query" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get a query that selects all <code class="docutils literal notranslate"><span class="pre">MixedWhitespace</span></code> linters.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p><code class="xref py py-class docutils literal notranslate"><span class="pre">MyQuery</span></code>[<a class="reference internal" href="#psef.models.assignment.AssignmentLinter" title="psef.models.assignment.AssignmentLinter"><code class="xref py py-class docutils literal notranslate"><span class="pre">AssignmentLinter</span></code></a>]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt id="psef.models.assignment.AssignmentLinter.id">
+<code class="sig-name descname">id</code><a class="headerlink" href="#psef.models.assignment.AssignmentLinter.id" title="Permalink to this definition">¶</a></dt>
+<dd><p>This has to be a String object as the id has to be a non guessable uuid.</p>
 </dd></dl>
 
 <dl class="py method">
@@ -9396,6 +9465,21 @@ with a given <code class="xref py py-class docutils literal notranslate"><span c
 <dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.8)"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code></a></p>
 </dd>
 </dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt id="psef.models.assignment.AssignmentLinter.name">
+<code class="sig-name descname">name</code><a class="headerlink" href="#psef.models.assignment.AssignmentLinter.name" title="Permalink to this definition">¶</a></dt>
+<dd><p>The name of the linter which is the <cite>__name__</cite> of a subclass of
+<code class="xref py py-class docutils literal notranslate"><span class="pre">linter_models.Linter</span></code>.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt id="psef.models.assignment.AssignmentLinter.tests">
+<code class="sig-name descname">tests</code><a class="headerlink" href="#psef.models.assignment.AssignmentLinter.tests" title="Permalink to this definition">¶</a></dt>
+<dd><p>All the linter instances for this linter, this are the recordings of the
+running of the actual linter (so in the case of the <a class="reference internal" href="#psef.linters.Flake8" title="psef.linters.Flake8"><code class="xref py py-class docutils literal notranslate"><span class="pre">Flake8</span></code></a>
+metadata about the <cite>flake8</cite> program).</p>
 </dd></dl>
 
 </dd></dl>
@@ -10080,6 +10164,59 @@ you do not have the permission to see this information.</p>
 </ul>
 </dd>
 </dl>
+<dl class="py class">
+<dt id="psef.models.course.Course.AsExtendedJSON">
+<em class="property">class </em><code class="sig-name descname">AsExtendedJSON</code><span class="sig-paren">(</span><em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/psef/models/course.html#Course.AsExtendedJSON"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#psef.models.course.Course.AsExtendedJSON" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.8)"><code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code></a></p>
+<p>The way this class will be represented in extended JSON.</p>
+</dd></dl>
+
+<dl class="py class">
+<dt id="psef.models.course.Course.AsJSON">
+<em class="property">class </em><code class="sig-name descname">AsJSON</code><span class="sig-paren">(</span><em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/psef/models/course.html#Course.AsJSON"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#psef.models.course.Course.AsJSON" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.8)"><code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code></a></p>
+<p>The way this class will be represented in JSON.</p>
+<dl class="py attribute">
+<dt id="psef.models.course.Course.AsJSON.created_at">
+<code class="sig-name descname">created_at</code><em class="property">: DatetimeWithTimezone</em><a class="headerlink" href="#psef.models.course.Course.AsJSON.created_at" title="Permalink to this definition">¶</a></dt>
+<dd><p>The date this course was created</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt id="psef.models.course.Course.AsJSON.id">
+<code class="sig-name descname">id</code><em class="property">: <a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.8)">int</a></em><a class="headerlink" href="#psef.models.course.Course.AsJSON.id" title="Permalink to this definition">¶</a></dt>
+<dd><p>The id of this course</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt id="psef.models.course.Course.AsJSON.is_lti">
+<code class="sig-name descname">is_lti</code><em class="property">: <a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.8)">bool</a></em><a class="headerlink" href="#psef.models.course.Course.AsJSON.is_lti" title="Permalink to this definition">¶</a></dt>
+<dd><p>Is this an LTI course?
+Deprecated: Use the <code class="docutils literal notranslate"><span class="pre">lti_provider</span></code> attribute (and check for
+<code class="docutils literal notranslate"><span class="pre">null</span></code>).</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt id="psef.models.course.Course.AsJSON.lti_provider">
+<code class="sig-name descname">lti_provider</code><em class="property">: t.Optional[‘psef.models.LTIProviderBase’]</em><a class="headerlink" href="#psef.models.course.Course.AsJSON.lti_provider" title="Permalink to this definition">¶</a></dt>
+<dd><p>The lti provider that manages this course, if <code class="docutils literal notranslate"><span class="pre">null</span></code> this is not a
+LTI course.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt id="psef.models.course.Course.AsJSON.name">
+<code class="sig-name descname">name</code><em class="property">: <a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.8)">str</a></em><a class="headerlink" href="#psef.models.course.Course.AsJSON.name" title="Permalink to this definition">¶</a></dt>
+<dd><p>The name of this course</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt id="psef.models.course.Course.AsJSON.virtual">
+<code class="sig-name descname">virtual</code><em class="property">: <a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.8)">bool</a></em><a class="headerlink" href="#psef.models.course.Course.AsJSON.virtual" title="Permalink to this definition">¶</a></dt>
+<dd><p>Is this a virtual course.</p>
+</dd></dl>
+
+</dd></dl>
+
 <dl class="py method">
 <dt id="psef.models.course.Course.create_and_add">
 <em class="property">classmethod </em><code class="sig-name descname">create_and_add</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">name</span><span class="p">:</span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.8)">str</a></span> <span class="o">=</span> <span class="default_value">None</span></em>, <em class="sig-param"><span class="n">virtual</span><span class="p">:</span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.8)">bool</a></span> <span class="o">=</span> <span class="default_value">False</span></em><span class="sig-paren">)</span> &#x2192; <a class="reference internal" href="#psef.models.course.Course" title="psef.models.course.Course">psef.models.course.Course</a><a class="reference internal" href="../_modules/psef/models/course.html#Course.create_and_add"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#psef.models.course.Course.create_and_add" title="Permalink to this definition">¶</a></dt>
@@ -10187,6 +10324,27 @@ for this course, create a new one and return that.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Return type</dt>
 <dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Optional" title="(in Python v3.8)"><code class="xref py py-data docutils literal notranslate"><span class="pre">Optional</span></code></a>[<a class="reference internal" href="#psef.models.lti_provider.LTIProviderBase" title="psef.models.lti_provider.LTIProviderBase"><code class="xref py py-class docutils literal notranslate"><span class="pre">LTIProviderBase</span></code></a>]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="psef.models.course.Course.update_query_for_extended_jsonify">
+<em class="property">classmethod </em><code class="sig-name descname">update_query_for_extended_jsonify</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">query</span><span class="p">:</span> <span class="n">cg_sqlalchemy_helpers.types.MyQuery<span class="p">[</span>Course<span class="p">]</span></span></em><span class="sig-paren">)</span> &#x2192; cg_sqlalchemy_helpers.types.MyQuery<span class="p">[</span><a class="reference internal" href="#psef.models.course.Course" title="psef.models.course.Course">psef.models.course.Course</a><span class="p">]</span><a class="reference internal" href="../_modules/psef/models/course.html#Course.update_query_for_extended_jsonify"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#psef.models.course.Course.update_query_for_extended_jsonify" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="simple">
+<dt>Update the given query to load all attributes needed for an extended</dt><dd><p>jsonify eagerly.</p>
+</dd>
+</dl>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>query</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">MyQuery</span></code>[<a class="reference internal" href="#psef.models.course.Course" title="psef.models.course.Course"><code class="xref py py-class docutils literal notranslate"><span class="pre">Course</span></code></a>]) – The query to update.</p>
+</dd>
+<dt class="field-even">Return type</dt>
+<dd class="field-even"><p><code class="xref py py-class docutils literal notranslate"><span class="pre">MyQuery</span></code>[<a class="reference internal" href="#psef.models.course.Course" title="psef.models.course.Course"><code class="xref py py-class docutils literal notranslate"><span class="pre">Course</span></code></a>]</p>
+</dd>
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>The updated query, which now loads all attributes needed for
+an extended jsonify eagerly.</p>
 </dd>
 </dl>
 </dd></dl>
@@ -10793,12 +10951,43 @@ more assignments in this course.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Variables</dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>minimum_size</strong> – The minimum size of that group should have before it
+<li><p><a class="reference internal" href="#psef.models.group.GroupSet.AsJSON.minimum_size" title="psef.models.group.GroupSet.AsJSON.minimum_size"><strong>minimum_size</strong></a> – The minimum size of that group should have before it
 can be used to submit a submission.</p></li>
-<li><p><strong>maximum_size</strong> – The maximum amount of members a group can ever have.</p></li>
+<li><p><a class="reference internal" href="#psef.models.group.GroupSet.AsJSON.maximum_size" title="psef.models.group.GroupSet.AsJSON.maximum_size"><strong>maximum_size</strong></a> – The maximum amount of members a group can ever have.</p></li>
 </ul>
 </dd>
 </dl>
+<dl class="py class">
+<dt id="psef.models.group.GroupSet.AsJSON">
+<em class="property">class </em><code class="sig-name descname">AsJSON</code><span class="sig-paren">(</span><em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/psef/models/group.html#GroupSet.AsJSON"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#psef.models.group.GroupSet.AsJSON" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.8)"><code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code></a></p>
+<p>The way this class will be represented in JSON.</p>
+<dl class="py attribute">
+<dt id="psef.models.group.GroupSet.AsJSON.assignment_ids">
+<code class="sig-name descname">assignment_ids</code><em class="property">: t.Sequence<span class="p">[</span><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.8)">int</a><span class="p">]</span></em><a class="headerlink" href="#psef.models.group.GroupSet.AsJSON.assignment_ids" title="Permalink to this definition">¶</a></dt>
+<dd><p>The ids of the assignments connected to this group set.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt id="psef.models.group.GroupSet.AsJSON.id">
+<code class="sig-name descname">id</code><em class="property">: <a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.8)">int</a></em><a class="headerlink" href="#psef.models.group.GroupSet.AsJSON.id" title="Permalink to this definition">¶</a></dt>
+<dd><p>The id of this group set.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt id="psef.models.group.GroupSet.AsJSON.maximum_size">
+<code class="sig-name descname">maximum_size</code><em class="property">: <a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.8)">int</a></em><a class="headerlink" href="#psef.models.group.GroupSet.AsJSON.maximum_size" title="Permalink to this definition">¶</a></dt>
+<dd><p>The maximum size a group can be.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt id="psef.models.group.GroupSet.AsJSON.minimum_size">
+<code class="sig-name descname">minimum_size</code><em class="property">: <a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.8)">int</a></em><a class="headerlink" href="#psef.models.group.GroupSet.AsJSON.minimum_size" title="Permalink to this definition">¶</a></dt>
+<dd><p>The minimum size a group should be before it can submit work.</p>
+</dd></dl>
+
+</dd></dl>
+
 <dl class="py method">
 <dt id="psef.models.group.GroupSet.get_valid_group_for_user">
 <code class="sig-name descname">get_valid_group_for_user</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">self</span></em>, <em class="sig-param"><span class="n">user</span><span class="p">:</span> <span class="n"><a class="reference internal" href="#psef.models.user.User" title="psef.models.user.User">psef.models.user.User</a></span></em><span class="sig-paren">)</span> &#x2192; Optional<span class="p">[</span><a class="reference internal" href="#psef.models.group.Group" title="psef.models.group.Group">psef.models.group.Group</a><span class="p">]</span><a class="reference internal" href="../_modules/psef/models/group.html#GroupSet.get_valid_group_for_user"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#psef.models.group.GroupSet.get_valid_group_for_user" title="Permalink to this definition">¶</a></dt>
@@ -11173,6 +11362,18 @@ codegra.de</p>
 </dl>
 </dd></dl>
 
+<dl class="py method">
+<dt id="psef.models.lti_provider.LTI1p1Provider.supports_setting_state">
+<code class="sig-name descname">supports_setting_state</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">self</span></em><span class="sig-paren">)</span> &#x2192; <a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.8)">bool</a><a class="reference internal" href="../_modules/psef/models/lti_provider.html#LTI1p1Provider.supports_setting_state"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#psef.models.lti_provider.LTI1p1Provider.supports_setting_state" title="Permalink to this definition">¶</a></dt>
+<dd><p>We cannot set the state of the assignment when the LMS
+manages the state.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.8)"><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></a></p>
+</dd>
+</dl>
+</dd></dl>
+
 </dd></dl>
 
 <dl class="py class">
@@ -11473,6 +11674,17 @@ simply use the id of this provider.</p>
 </dd></dl>
 
 <dl class="py method">
+<dt id="psef.models.lti_provider.LTI1p3Provider.supports_setting_state">
+<code class="sig-name descname">supports_setting_state</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">self</span></em><span class="sig-paren">)</span> &#x2192; <a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.8)">bool</a><a class="reference internal" href="../_modules/psef/models/lti_provider.html#LTI1p3Provider.supports_setting_state"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#psef.models.lti_provider.LTI1p3Provider.supports_setting_state" title="Permalink to this definition">¶</a></dt>
+<dd><p>Does the LMS support the available at.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.8)"><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
 <dt id="psef.models.lti_provider.LTI1p3Provider.update_registration">
 <code class="sig-name descname">update_registration</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">self</span></em>, <em class="sig-param"><span class="n">iss</span><span class="p">:</span> <span class="n">Optional<span class="p">[</span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.8)">str</a><span class="p">]</span></span></em>, <em class="sig-param"><span class="n">auth_login_url</span><span class="p">:</span> <span class="n">Optional<span class="p">[</span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.8)">str</a><span class="p">]</span></span></em>, <em class="sig-param"><span class="n">auth_token_url</span><span class="p">:</span> <span class="n">Optional<span class="p">[</span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.8)">str</a><span class="p">]</span></span></em>, <em class="sig-param"><span class="n">client_id</span><span class="p">:</span> <span class="n">Optional<span class="p">[</span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.8)">str</a><span class="p">]</span></span></em>, <em class="sig-param"><span class="n">key_set_url</span><span class="p">:</span> <span class="n">Optional<span class="p">[</span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.8)">str</a><span class="p">]</span></span></em>, <em class="sig-param"><span class="n">auth_audience</span><span class="p">:</span> <span class="n">Optional<span class="p">[</span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.8)">str</a><span class="p">]</span></span></em>, <em class="sig-param"><span class="n">finalize</span><span class="p">:</span> <span class="n">Optional<span class="p">[</span><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.8)">bool</a><span class="p">]</span></span></em><span class="sig-paren">)</span> &#x2192; <a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.8)">None</a><a class="reference internal" href="../_modules/psef/models/lti_provider.html#LTI1p3Provider.update_registration"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#psef.models.lti_provider.LTI1p3Provider.update_registration" title="Permalink to this definition">¶</a></dt>
 <dd><p>Update this lti provider.</p>
@@ -11595,6 +11807,17 @@ amount of points than the grade scale).</p>
 <p class="admonition-title">See also</p>
 <p>attribute <code class="xref py py-meth docutils literal notranslate"><span class="pre">psef.lti.v1_3.lms_capabilities.LMSCapabilities.set_deadline()</span></code>.</p>
 </div>
+<dl class="field-list simple">
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.8)"><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="psef.models.lti_provider.LTIProviderBase.supports_setting_state">
+<em class="property">abstract </em><code class="sig-name descname">supports_setting_state</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">self</span></em><span class="sig-paren">)</span> &#x2192; <a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.8)">bool</a><a class="reference internal" href="../_modules/psef/models/lti_provider.html#LTIProviderBase.supports_setting_state"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#psef.models.lti_provider.LTIProviderBase.supports_setting_state" title="Permalink to this definition">¶</a></dt>
+<dd><p>May users change the available at of the assignment within CodeGrade.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Return type</dt>
 <dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.8)"><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></a></p>
@@ -11896,6 +12119,75 @@ belongs to.</p></li>
 </ul>
 </dd>
 </dl>
+<dl class="py class">
+<dt id="psef.models.plagiarism.PlagiarismRun.AsJSON">
+<em class="property">class </em><code class="sig-name descname">AsJSON</code><span class="sig-paren">(</span><em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/psef/models/plagiarism.html#PlagiarismRun.AsJSON"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#psef.models.plagiarism.PlagiarismRun.AsJSON" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.8)"><code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code></a></p>
+<p>The way this class will be represented in JSON.</p>
+<dl class="py attribute">
+<dt id="psef.models.plagiarism.PlagiarismRun.AsJSON.assignment">
+<code class="sig-name descname">assignment</code><em class="property">: ‘Assignment’</em><a class="headerlink" href="#psef.models.plagiarism.PlagiarismRun.AsJSON.assignment" title="Permalink to this definition">¶</a></dt>
+<dd><p>The assignment this run was done on.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt id="psef.models.plagiarism.PlagiarismRun.AsJSON.config">
+<code class="sig-name descname">config</code><em class="property">: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.8)">object</a></em><a class="headerlink" href="#psef.models.plagiarism.PlagiarismRun.AsJSON.config" title="Permalink to this definition">¶</a></dt>
+<dd><p>The config used for this run.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt id="psef.models.plagiarism.PlagiarismRun.AsJSON.courses">
+<code class="sig-name descname">courses</code><em class="property">: t.Mapping[int, ‘PlagiarismRun._CourseJSON’]</em><a class="headerlink" href="#psef.models.plagiarism.PlagiarismRun.AsJSON.courses" title="Permalink to this definition">¶</a></dt>
+<dd><p>The mapping between course id and the course for each course that is
+connected to this run. These are not (!) full course object, but
+contain only the <code class="docutils literal notranslate"><span class="pre">name</span></code>, <code class="docutils literal notranslate"><span class="pre">id</span></code> and if the course is virtual.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt id="psef.models.plagiarism.PlagiarismRun.AsJSON.created_at">
+<code class="sig-name descname">created_at</code><em class="property">: DatetimeWithTimezone</em><a class="headerlink" href="#psef.models.plagiarism.PlagiarismRun.AsJSON.created_at" title="Permalink to this definition">¶</a></dt>
+<dd><p>The time this run was created.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt id="psef.models.plagiarism.PlagiarismRun.AsJSON.id">
+<code class="sig-name descname">id</code><em class="property">: <a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.8)">int</a></em><a class="headerlink" href="#psef.models.plagiarism.PlagiarismRun.AsJSON.id" title="Permalink to this definition">¶</a></dt>
+<dd><p>The id of the run.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt id="psef.models.plagiarism.PlagiarismRun.AsJSON.log">
+<code class="sig-name descname">log</code><em class="property">: t.Optional<span class="p">[</span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.8)">str</a><span class="p">]</span></em><a class="headerlink" href="#psef.models.plagiarism.PlagiarismRun.AsJSON.log" title="Permalink to this definition">¶</a></dt>
+<dd><p>The log produced by the provider while running.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt id="psef.models.plagiarism.PlagiarismRun.AsJSON.provider_name">
+<code class="sig-name descname">provider_name</code><em class="property">: <a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.8)">str</a></em><a class="headerlink" href="#psef.models.plagiarism.PlagiarismRun.AsJSON.provider_name" title="Permalink to this definition">¶</a></dt>
+<dd><p>Which provider is doing this run.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt id="psef.models.plagiarism.PlagiarismRun.AsJSON.state">
+<code class="sig-name descname">state</code><em class="property">: PlagiarismState</em><a class="headerlink" href="#psef.models.plagiarism.PlagiarismRun.AsJSON.state" title="Permalink to this definition">¶</a></dt>
+<dd><p>The state this run is in.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt id="psef.models.plagiarism.PlagiarismRun.AsJSON.submissions_done">
+<code class="sig-name descname">submissions_done</code><em class="property">: t.Optional<span class="p">[</span><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.8)">int</a><span class="p">]</span></em><a class="headerlink" href="#psef.models.plagiarism.PlagiarismRun.AsJSON.submissions_done" title="Permalink to this definition">¶</a></dt>
+<dd><p>The amount of submissions that have finished the current state.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt id="psef.models.plagiarism.PlagiarismRun.AsJSON.submissions_total">
+<code class="sig-name descname">submissions_total</code><em class="property">: t.Optional<span class="p">[</span><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.8)">int</a><span class="p">]</span></em><a class="headerlink" href="#psef.models.plagiarism.PlagiarismRun.AsJSON.submissions_total" title="Permalink to this definition">¶</a></dt>
+<dd><p>The total amount of submissions connected to this run.</p>
+</dd></dl>
+
+</dd></dl>
+
 <dl class="py method">
 <dt id="psef.models.plagiarism.PlagiarismRun.plagiarism_cls">
 <em class="property">property </em><code class="sig-name descname">plagiarism_cls</code><a class="headerlink" href="#psef.models.plagiarism.PlagiarismRun.plagiarism_cls" title="Permalink to this definition">¶</a></dt>
@@ -11929,7 +12221,7 @@ belongs to.</p></li>
 <dl class="py class">
 <dt id="psef.models.plagiarism.PlagiarismState">
 <em class="property">class </em><code class="sig-prename descclassname">psef.models.plagiarism.</code><code class="sig-name descname">PlagiarismState</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">value</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/psef/models/plagiarism.html#PlagiarismState"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#psef.models.plagiarism.PlagiarismState" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/enum.html#enum.IntEnum" title="(in Python v3.8)"><code class="xref py py-class docutils literal notranslate"><span class="pre">enum.IntEnum</span></code></a></p>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">cg_enum.CGEnum</span></code></p>
 <p>Describes in what state a <a class="reference internal" href="#psef.models.plagiarism.PlagiarismRun" title="psef.models.plagiarism.PlagiarismRun"><code class="xref py py-class docutils literal notranslate"><span class="pre">PlagiarismRun</span></code></a> is.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -12085,6 +12377,18 @@ role belongs to.</p></li>
 </ul>
 </dd>
 </dl>
+<dl class="py method">
+<dt id="psef.models.role.CourseRole.eager_load_permissions">
+<em class="property">classmethod </em><code class="sig-name descname">eager_load_permissions</code><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.8)">object</a><a class="reference internal" href="../_modules/psef/models/role.html#CourseRole.eager_load_permissions"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#psef.models.role.CourseRole.eager_load_permissions" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get the selectinload option to eagerly load all permissions of this
+<code class="docutils literal notranslate"><span class="pre">CourseRole</span></code> by using a <code class="docutils literal notranslate"><span class="pre">selectinload</span></code>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.8)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+</dd>
+</dl>
+</dd></dl>
+
 <dl class="py method">
 <dt id="psef.models.role.CourseRole.get_admin_role">
 <em class="property">classmethod </em><code class="sig-name descname">get_admin_role</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">course</span><span class="p">:</span> <span class="n"><a class="reference internal" href="#psef.models.course.Course" title="psef.models.course.Course">psef.models.course.Course</a></span></em><span class="sig-paren">)</span> &#x2192; Optional<span class="p">[</span><a class="reference internal" href="#psef.models.role.CourseRole" title="psef.models.role.CourseRole">psef.models.role.CourseRole</a><span class="p">]</span><a class="reference internal" href="../_modules/psef/models/role.html#CourseRole.get_admin_role"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#psef.models.role.CourseRole.get_admin_role" title="Permalink to this definition">¶</a></dt>
@@ -12851,6 +13155,20 @@ to load the entire course object).</p>
 </dd></dl>
 
 <dl class="py method">
+<dt id="psef.models.user.User.load_all_permissions">
+<code class="sig-name descname">load_all_permissions</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">self</span></em><span class="sig-paren">)</span> &#x2192; <a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.8)">None</a><a class="reference internal" href="../_modules/psef/models/user.html#User.load_all_permissions"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#psef.models.user.User.load_all_permissions" title="Permalink to this definition">¶</a></dt>
+<dd><p>Eagerly load all the permissions of this user object.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p><code class="docutils literal notranslate"><span class="pre">None</span></code></p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>Nothing</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
 <dt id="psef.models.user.User.make_access_token">
 <code class="sig-name descname">make_access_token</code><span class="sig-paren">(</span><em class="sig-param"><span class="o">*</span></em>, <em class="sig-param"><span class="n">expires_in</span><span class="p">:</span> <span class="n">t.Optional<span class="p">[</span>timedelta<span class="p">]</span></span> <span class="o">=</span> <span class="default_value">'None'</span></em><span class="sig-paren">)</span> &#x2192; <a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.8)">str</a><a class="reference internal" href="../_modules/psef/models/user.html#User.make_access_token"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#psef.models.user.User.make_access_token" title="Permalink to this definition">¶</a></dt>
 <dt>
@@ -13527,9 +13845,9 @@ more assignments in this course.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Variables</dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>minimum_size</strong> – The minimum size of that group should have before it
+<li><p><a class="reference internal" href="#psef.models.group.GroupSet.AsJSON.minimum_size" title="psef.models.group.GroupSet.AsJSON.minimum_size"><strong>minimum_size</strong></a> – The minimum size of that group should have before it
 can be used to submit a submission.</p></li>
-<li><p><strong>maximum_size</strong> – The maximum amount of members a group can ever have.</p></li>
+<li><p><a class="reference internal" href="#psef.models.group.GroupSet.AsJSON.maximum_size" title="psef.models.group.GroupSet.AsJSON.maximum_size"><strong>maximum_size</strong></a> – The maximum amount of members a group can ever have.</p></li>
 </ul>
 </dd>
 </dl>

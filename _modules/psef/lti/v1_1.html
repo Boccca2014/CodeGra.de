@@ -579,6 +579,17 @@
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="kc">False</span></div>
 
+<div class="viewcode-block" id="LTI.supports_state_management"><a class="viewcode-back" href="../../../psef_api/psef.html#psef.lti.v1_1.LTI.supports_state_management">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">supports_state_management</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Determines whether this LMS sends the assignment state to CodeGrade.</span>
+<span class="sd">        If this is ``True`` you cannot change state info, e.g. the</span>
+<span class="sd">        ``available_at``.</span>
+
+<span class="sd">        :returns: A boolean indicating whether this LTI instance gives the</span>
+<span class="sd">                  assignment state to CodeGrade.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="kc">False</span></div>
+
 <div class="viewcode-block" id="LTI.supports_deadline"><a class="viewcode-back" href="../../../psef_api/psef.html#psef.lti.v1_1.LTI.supports_deadline">[docs]</a>    <span class="nd">@staticmethod</span>
     <span class="k">def</span> <span class="nf">supports_deadline</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
         <span class="sd">&quot;&quot;&quot;Determines whether this LMS sends the deadline of an assignment</span>
@@ -1157,6 +1168,10 @@
 
 <div class="viewcode-block" id="CanvasLTI.supports_deadline"><a class="viewcode-back" href="../../../psef_api/psef.html#psef.lti.v1_1.CanvasLTI.supports_deadline">[docs]</a>    <span class="nd">@staticmethod</span>
     <span class="k">def</span> <span class="nf">supports_deadline</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+        <span class="k">return</span> <span class="kc">True</span></div>
+
+<div class="viewcode-block" id="CanvasLTI.supports_state_management"><a class="viewcode-back" href="../../../psef_api/psef.html#psef.lti.v1_1.CanvasLTI.supports_state_management">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">supports_state_management</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
         <span class="k">return</span> <span class="kc">True</span></div>
 
     <span class="nd">@property</span>

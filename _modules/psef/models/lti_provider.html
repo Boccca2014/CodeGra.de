@@ -442,6 +442,12 @@
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">raise</span> <span class="ne">NotImplementedError</span>
 
+<div class="viewcode-block" id="LTIProviderBase.supports_setting_state"><a class="viewcode-back" href="../../../psef_api/psef.html#psef.models.lti_provider.LTIProviderBase.supports_setting_state">[docs]</a>    <span class="nd">@abc</span><span class="o">.</span><span class="n">abstractmethod</span>
+    <span class="k">def</span> <span class="nf">supports_setting_state</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;May users change the available at of the assignment within CodeGrade.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span></div>
+
 <div class="viewcode-block" id="LTIProviderBase.supports_setting_deadline"><a class="viewcode-back" href="../../../psef_api/psef.html#psef.models.lti_provider.LTIProviderBase.supports_setting_deadline">[docs]</a>    <span class="nd">@abc</span><span class="o">.</span><span class="n">abstractmethod</span>
     <span class="k">def</span> <span class="nf">supports_setting_deadline</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
         <span class="sd">&quot;&quot;&quot;May users change the deadline of the assignment within CodeGrade.</span>
@@ -730,6 +736,12 @@
         <span class="sd">&quot;&quot;&quot;Only some LMSes pass the deadline in LTI launches.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">lti_class</span><span class="o">.</span><span class="n">supports_deadline</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="LTI1p1Provider.supports_setting_state"><a class="viewcode-back" href="../../../psef_api/psef.html#psef.models.lti_provider.LTI1p1Provider.supports_setting_state">[docs]</a>    <span class="k">def</span> <span class="nf">supports_setting_state</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;We cannot set the state of the assignment when the LMS</span>
+<span class="sd">            manages the state.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">lti_class</span><span class="o">.</span><span class="n">supports_state_management</span><span class="p">()</span></div>
 
 <div class="viewcode-block" id="LTI1p1Provider.supports_max_points"><a class="viewcode-back" href="../../../psef_api/psef.html#psef.models.lti_provider.LTI1p1Provider.supports_max_points">[docs]</a>    <span class="k">def</span> <span class="nf">supports_max_points</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
         <span class="sd">&quot;&quot;&quot;Only some LMSes support bonus points using the LTI 1.1 standard.</span>
@@ -1525,6 +1537,11 @@
 <span class="sd">            class :class:`psef.lti.v1_3.lms_capabilities.LMSCapabilities`.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">lms_capabilities</span><span class="o">.</span><span class="n">set_deadline</span></div>
+
+<div class="viewcode-block" id="LTI1p3Provider.supports_setting_state"><a class="viewcode-back" href="../../../psef_api/psef.html#psef.models.lti_provider.LTI1p3Provider.supports_setting_state">[docs]</a>    <span class="k">def</span> <span class="nf">supports_setting_state</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Does the LMS support the available at.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">lms_capabilities</span><span class="o">.</span><span class="n">set_state</span></div>
 
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">_custom_fields</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">t</span><span class="o">.</span><span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]:</span>

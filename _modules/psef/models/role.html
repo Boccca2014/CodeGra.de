@@ -212,6 +212,7 @@
 <span class="kn">import</span> <span class="nn">typing</span> <span class="k">as</span> <span class="nn">t</span>
 
 <span class="kn">from</span> <span class="nn">flask</span> <span class="kn">import</span> <span class="n">current_app</span>
+<span class="kn">from</span> <span class="nn">sqlalchemy.orm</span> <span class="kn">import</span> <span class="n">selectinload</span>
 <span class="kn">from</span> <span class="nn">sqlalchemy.orm.collections</span> <span class="kn">import</span> <span class="n">attribute_mapped_collection</span>
 
 <span class="kn">from</span> <span class="nn">cg_sqlalchemy_helpers.types</span> <span class="kn">import</span> <span class="n">ColumnProxy</span><span class="p">,</span> <span class="n">FilterColumn</span>
@@ -315,12 +316,6 @@
             <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">permission</span><span class="p">,</span> <span class="n">GlobalPermission</span><span class="p">)</span>
 
         <span class="n">revert</span> <span class="o">=</span> <span class="n">permission</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_permissions</span>
-        <span class="k">if</span> <span class="n">current_app</span><span class="o">.</span><span class="n">do_sanity_checks</span><span class="p">:</span>
-            <span class="n">found_perm</span> <span class="o">=</span> <span class="n">Permission</span><span class="o">.</span><span class="n">get_permission</span><span class="p">(</span><span class="n">permission</span><span class="p">)</span>
-            <span class="k">assert</span> <span class="p">(</span>
-                <span class="n">found_perm</span><span class="o">.</span><span class="n">default_value</span> <span class="o">==</span> <span class="n">permission</span><span class="o">.</span><span class="n">value</span><span class="o">.</span><span class="n">default_value</span>
-            <span class="p">),</span> <span class="s2">&quot;Wrong permission in database&quot;</span>
-
         <span class="n">res</span> <span class="o">=</span> <span class="n">permission</span><span class="o">.</span><span class="n">value</span><span class="o">.</span><span class="n">default_value</span>
         <span class="k">if</span> <span class="n">revert</span><span class="p">:</span>
             <span class="k">return</span> <span class="ow">not</span> <span class="n">res</span>
@@ -423,6 +418,13 @@
         <span class="n">server_default</span><span class="o">=</span><span class="s1">&#39;false&#39;</span><span class="p">,</span>
         <span class="n">nullable</span><span class="o">=</span><span class="kc">False</span>
     <span class="p">)</span>
+
+<div class="viewcode-block" id="CourseRole.eager_load_permissions"><a class="viewcode-back" href="../../../psef_api/psef.html#psef.models.role.CourseRole.eager_load_permissions">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">eager_load_permissions</span><span class="p">(</span><span class="bp">cls</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">object</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Get the selectinload option to eagerly load all permissions of this</span>
+<span class="sd">        ``CourseRole`` by using a ``selectinload``.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">selectinload</span><span class="p">(</span><span class="bp">cls</span><span class="o">.</span><span class="n">_permissions</span><span class="p">)</span></div>
 
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">uses_course_permissions</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
@@ -558,12 +560,6 @@
         <span class="c1"># Make extra sure this permission is not a global permission, as this</span>
         <span class="c1"># would not error during runtime otherwise.</span>
         <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">permission</span><span class="p">,</span> <span class="n">CoursePermission</span><span class="p">)</span>
-
-        <span class="k">if</span> <span class="n">current_app</span><span class="o">.</span><span class="n">do_sanity_checks</span><span class="p">:</span>
-            <span class="n">found_perm</span> <span class="o">=</span> <span class="n">Permission</span><span class="o">.</span><span class="n">get_permission</span><span class="p">(</span><span class="n">permission</span><span class="p">)</span>
-            <span class="k">assert</span> <span class="p">(</span>
-                <span class="n">found_perm</span><span class="o">.</span><span class="n">default_value</span> <span class="o">==</span> <span class="n">permission</span><span class="o">.</span><span class="n">value</span><span class="o">.</span><span class="n">default_value</span>
-            <span class="p">),</span> <span class="s2">&quot;Wrong permission in database&quot;</span>
 
         <span class="n">perm_id</span> <span class="o">=</span> <span class="n">Permission</span><span class="o">.</span><span class="n">query_permission</span><span class="p">(</span><span class="n">permission</span><span class="p">)</span><span class="o">.</span><span class="n">with_entities</span><span class="p">(</span>
             <span class="n">Permission</span><span class="o">.</span><span class="n">id</span>

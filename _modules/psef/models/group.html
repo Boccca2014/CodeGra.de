@@ -212,6 +212,7 @@
 <span class="kn">from</span> <span class="nn">functools</span> <span class="kn">import</span> <span class="n">wraps</span>
 
 <span class="kn">import</span> <span class="nn">coolname</span>
+<span class="kn">from</span> <span class="nn">typing_extensions</span> <span class="kn">import</span> <span class="n">TypedDict</span>
 <span class="kn">from</span> <span class="nn">sqlalchemy.sql.expression</span> <span class="kn">import</span> <span class="n">or_</span> <span class="k">as</span> <span class="n">sql_or</span>
 <span class="kn">from</span> <span class="nn">sqlalchemy.sql.expression</span> <span class="kn">import</span> <span class="n">func</span> <span class="k">as</span> <span class="n">sql_func</span>
 
@@ -565,10 +566,40 @@
         <span class="n">order_by</span><span class="o">=</span><span class="k">lambda</span><span class="p">:</span> <span class="n">psef</span><span class="o">.</span><span class="n">models</span><span class="o">.</span><span class="n">Group</span><span class="o">.</span><span class="n">created_at</span><span class="p">,</span>
     <span class="p">)</span>
 
+    <span class="n">__table_args__</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="n">db</span><span class="o">.</span><span class="n">CheckConstraint</span><span class="p">(</span><span class="s1">&#39;minimum_size &lt;= maximum_size&#39;</span><span class="p">),</span>
+        <span class="n">db</span><span class="o">.</span><span class="n">CheckConstraint</span><span class="p">(</span><span class="s1">&#39;minimum_size &gt; 0&#39;</span><span class="p">)</span>
+    <span class="p">)</span>
+
     <span class="k">def</span> <span class="fm">__eq__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">:</span> <span class="nb">object</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">other</span><span class="p">,</span> <span class="n">GroupSet</span><span class="p">):</span>
             <span class="k">return</span> <span class="bp">NotImplemented</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">id</span> <span class="o">==</span> <span class="n">other</span><span class="o">.</span><span class="n">id</span>
+
+<div class="viewcode-block" id="GroupSet.AsJSON"><a class="viewcode-back" href="../../../psef_api/psef.html#psef.models.group.GroupSet.AsJSON">[docs]</a>    <span class="k">class</span> <span class="nc">AsJSON</span><span class="p">(</span><span class="n">TypedDict</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;The way this class will be represented in JSON.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1">#: The id of this group set.</span>
+        <span class="nb">id</span><span class="p">:</span> <span class="nb">int</span>
+        <span class="c1">#: The minimum size a group should be before it can submit work.</span>
+        <span class="n">minimum_size</span><span class="p">:</span> <span class="nb">int</span>
+        <span class="c1">#: The maximum size a group can be.</span>
+        <span class="n">maximum_size</span><span class="p">:</span> <span class="nb">int</span>
+        <span class="c1">#: The ids of the assignments connected to this group set.</span>
+        <span class="n">assignment_ids</span><span class="p">:</span> <span class="n">t</span><span class="o">.</span><span class="n">Sequence</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span></div>
+
+    <span class="k">def</span> <span class="nf">__to_json__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">t</span><span class="o">.</span><span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">t</span><span class="o">.</span><span class="n">Union</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="n">t</span><span class="o">.</span><span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">]]]:</span>
+        <span class="n">own_assignments</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">a</span><span class="o">.</span><span class="n">id</span> <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">assignments</span><span class="p">)</span>
+        <span class="n">visible_assigs</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="n">a</span><span class="o">.</span><span class="n">id</span> <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">course</span><span class="o">.</span><span class="n">get_all_visible_assignments</span><span class="p">()</span>
+            <span class="k">if</span> <span class="n">a</span><span class="o">.</span><span class="n">id</span> <span class="ow">in</span> <span class="n">own_assignments</span>
+        <span class="p">]</span>
+        <span class="k">return</span> <span class="p">{</span>
+            <span class="s1">&#39;id&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">id</span><span class="p">,</span>
+            <span class="s1">&#39;minimum_size&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">minimum_size</span><span class="p">,</span>
+            <span class="s1">&#39;maximum_size&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">maximum_size</span><span class="p">,</span>
+            <span class="s1">&#39;assignment_ids&#39;</span><span class="p">:</span> <span class="n">visible_assigs</span><span class="p">,</span>
+        <span class="p">}</span>
 
 <div class="viewcode-block" id="GroupSet.get_valid_group_for_user"><a class="viewcode-back" href="../../../psef_api/psef.html#psef.models.group.GroupSet.get_valid_group_for_user">[docs]</a>    <span class="k">def</span> <span class="nf">get_valid_group_for_user</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">user</span><span class="p">:</span> <span class="s1">&#39;user_models.User&#39;</span>
                                  <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">t</span><span class="o">.</span><span class="n">Optional</span><span class="p">[</span><span class="s1">&#39;Group&#39;</span><span class="p">]:</span>
@@ -618,24 +649,6 @@
             <span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="k">return</span> <span class="n">group</span></div>
-
-    <span class="n">__table_args__</span> <span class="o">=</span> <span class="p">(</span>
-        <span class="n">db</span><span class="o">.</span><span class="n">CheckConstraint</span><span class="p">(</span><span class="s1">&#39;minimum_size &lt;= maximum_size&#39;</span><span class="p">),</span>
-        <span class="n">db</span><span class="o">.</span><span class="n">CheckConstraint</span><span class="p">(</span><span class="s1">&#39;minimum_size &gt; 0&#39;</span><span class="p">)</span>
-    <span class="p">)</span>
-
-    <span class="k">def</span> <span class="nf">__to_json__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">t</span><span class="o">.</span><span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">t</span><span class="o">.</span><span class="n">Union</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="n">t</span><span class="o">.</span><span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">]]]:</span>
-        <span class="n">own_assignments</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">a</span><span class="o">.</span><span class="n">id</span> <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">assignments</span><span class="p">)</span>
-        <span class="n">visible_assigs</span> <span class="o">=</span> <span class="p">[</span>
-            <span class="n">a</span><span class="o">.</span><span class="n">id</span> <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">course</span><span class="o">.</span><span class="n">get_all_visible_assignments</span><span class="p">()</span>
-            <span class="k">if</span> <span class="n">a</span><span class="o">.</span><span class="n">id</span> <span class="ow">in</span> <span class="n">own_assignments</span>
-        <span class="p">]</span>
-        <span class="k">return</span> <span class="p">{</span>
-            <span class="s1">&#39;id&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">id</span><span class="p">,</span>
-            <span class="s1">&#39;minimum_size&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">minimum_size</span><span class="p">,</span>
-            <span class="s1">&#39;maximum_size&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">maximum_size</span><span class="p">,</span>
-            <span class="s1">&#39;assignment_ids&#39;</span><span class="p">:</span> <span class="n">visible_assigs</span><span class="p">,</span>
-        <span class="p">}</span>
 
     <span class="k">def</span> <span class="nf">__get_group_size_query</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">asc</span><span class="p">:</span> <span class="nb">bool</span><span class="p">,</span>
                                <span class="n">has_subs</span><span class="p">:</span> <span class="nb">bool</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">MyQueryTuple</span><span class="p">[</span><span class="nb">int</span><span class="p">]:</span>

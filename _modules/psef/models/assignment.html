@@ -315,7 +315,7 @@
     <span class="n">deadline</span><span class="p">:</span> <span class="n">t</span><span class="o">.</span><span class="n">Optional</span><span class="p">[</span><span class="n">DatetimeWithTimezone</span><span class="p">]</span>  <span class="c1">#: ISO UTC date.</span>
     <span class="n">name</span><span class="p">:</span> <span class="nb">str</span>  <span class="c1">#: The name of the assignment.</span>
     <span class="n">is_lti</span><span class="p">:</span> <span class="nb">bool</span>  <span class="c1">#: Is this an LTI assignment.</span>
-    <span class="n">course</span><span class="p">:</span> <span class="s1">&#39;course_models.Course&#39;</span>  <span class="c1">#: Course of this assignment.</span>
+    <span class="n">course_id</span><span class="p">:</span> <span class="nb">int</span>  <span class="c1">#: Course of this assignment.</span>
     <span class="n">cgignore</span><span class="p">:</span> <span class="n">t</span><span class="o">.</span><span class="n">Optional</span><span class="p">[</span><span class="s1">&#39;psef.helpers.JSONType&#39;</span><span class="p">]</span>  <span class="c1">#: The cginore.</span>
     <span class="n">cgignore_version</span><span class="p">:</span> <span class="n">t</span><span class="o">.</span><span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span>
     <span class="c1">#: Has the whitespace linter run on this assignment.</span>
@@ -534,20 +534,18 @@
 <span class="sd">    :class:`.linter_models.LinterInstance`.</span>
 
 <span class="sd">    The name identifies which :class:`.linter_models.Linter` is used.</span>
-
-<span class="sd">    :ivar ~.AssignmentLinter.name: The name of the linter which is the</span>
-<span class="sd">        `__name__` of a subclass of :py:class:`.linter_models.Linter`.</span>
-<span class="sd">    :ivar tests: All the linter instances for this linter, this are the</span>
-<span class="sd">        recordings of the running of the actual linter (so in the case of the</span>
-<span class="sd">        :py:class:`.Flake8` metadata about the `flake8` program).</span>
-<span class="sd">    :ivar config: The config that was passed to the linter.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">__tablename__</span> <span class="o">=</span> <span class="s1">&#39;AssignmentLinter&#39;</span>  <span class="c1"># type: str</span>
-    <span class="c1"># This has to be a String object as the id has to be a non guessable uuid.</span>
+    <span class="c1">#: This has to be a String object as the id has to be a non guessable uuid.</span>
     <span class="nb">id</span> <span class="o">=</span> <span class="n">db</span><span class="o">.</span><span class="n">Column</span><span class="p">(</span>
         <span class="s1">&#39;id&#39;</span><span class="p">,</span> <span class="n">db</span><span class="o">.</span><span class="n">String</span><span class="p">(</span><span class="n">UUID_LENGTH</span><span class="p">),</span> <span class="n">nullable</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">primary_key</span><span class="o">=</span><span class="kc">True</span>
     <span class="p">)</span>
+    <span class="c1">#: The name of the linter which is the `__name__` of a subclass of</span>
+    <span class="c1">#: :py:class:`.linter_models.Linter`.</span>
     <span class="n">name</span> <span class="o">=</span> <span class="n">db</span><span class="o">.</span><span class="n">Column</span><span class="p">(</span><span class="s1">&#39;name&#39;</span><span class="p">,</span> <span class="n">db</span><span class="o">.</span><span class="n">Unicode</span><span class="p">,</span> <span class="n">nullable</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+    <span class="c1">#: All the linter instances for this linter, this are the recordings of the</span>
+    <span class="c1">#: running of the actual linter (so in the case of the :py:class:`.Flake8`</span>
+    <span class="c1">#: metadata about the `flake8` program).</span>
     <span class="n">tests</span> <span class="o">=</span> <span class="n">db</span><span class="o">.</span><span class="n">relationship</span><span class="p">(</span>
         <span class="k">lambda</span><span class="p">:</span> <span class="n">linter_models</span><span class="o">.</span><span class="n">LinterInstance</span><span class="p">,</span>
         <span class="n">back_populates</span><span class="o">=</span><span class="s2">&quot;tester&quot;</span><span class="p">,</span>
@@ -555,11 +553,13 @@
         <span class="n">order_by</span><span class="o">=</span><span class="k">lambda</span><span class="p">:</span> <span class="n">linter_models</span><span class="o">.</span><span class="n">LinterInstance</span><span class="o">.</span><span class="n">work_id</span><span class="p">,</span>
         <span class="n">uselist</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
     <span class="p">)</span>
+    <span class="c1">#: The config that was passed to the linter.</span>
     <span class="n">config</span> <span class="o">=</span> <span class="n">db</span><span class="o">.</span><span class="n">Column</span><span class="p">(</span>
         <span class="s1">&#39;config&#39;</span><span class="p">,</span>
         <span class="n">db</span><span class="o">.</span><span class="n">Unicode</span><span class="p">,</span>
         <span class="n">nullable</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
     <span class="p">)</span>
+    <span class="c1">#: The id of the assignment connected to this linter.</span>
     <span class="n">assignment_id</span> <span class="o">=</span> <span class="n">db</span><span class="o">.</span><span class="n">Column</span><span class="p">(</span>
         <span class="s1">&#39;Assignment_id&#39;</span><span class="p">,</span>
         <span class="n">db</span><span class="o">.</span><span class="n">Integer</span><span class="p">,</span>
@@ -567,11 +567,18 @@
         <span class="n">nullable</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
     <span class="p">)</span>
 
+    <span class="c1">#: The assignment connect to this linter run.</span>
     <span class="n">assignment</span> <span class="o">=</span> <span class="n">db</span><span class="o">.</span><span class="n">relationship</span><span class="p">(</span>
         <span class="k">lambda</span><span class="p">:</span> <span class="n">Assignment</span><span class="p">,</span>
         <span class="n">foreign_keys</span><span class="o">=</span><span class="n">assignment_id</span><span class="p">,</span>
         <span class="n">backref</span><span class="o">=</span><span class="n">db</span><span class="o">.</span><span class="n">backref</span><span class="p">(</span><span class="s1">&#39;linters&#39;</span><span class="p">,</span> <span class="n">uselist</span><span class="o">=</span><span class="kc">True</span><span class="p">),</span>
     <span class="p">)</span>
+
+<div class="viewcode-block" id="AssignmentLinter.get_whitespace_linter_query"><a class="viewcode-back" href="../../../psef_api/psef.html#psef.models.assignment.AssignmentLinter.get_whitespace_linter_query">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">get_whitespace_linter_query</span><span class="p">(</span><span class="bp">cls</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">MyQuery</span><span class="p">[</span><span class="s1">&#39;AssignmentLinter&#39;</span><span class="p">]:</span>
+        <span class="sd">&quot;&quot;&quot;Get a query that selects all ``MixedWhitespace`` linters.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">cls</span><span class="o">.</span><span class="n">query</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">AssignmentLinter</span><span class="o">.</span><span class="n">name</span> <span class="o">==</span> <span class="s1">&#39;MixedWhitespace&#39;</span><span class="p">)</span></div>
 
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">linters_crashed</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
@@ -2283,9 +2290,8 @@
         <span class="c1"># defined outside of the init.</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s1">&#39;_whitespace_linter_exists&#39;</span><span class="p">):</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_whitespace_linter_exists</span> <span class="o">=</span> <span class="n">db</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">query</span><span class="p">(</span>
-                <span class="n">AssignmentLinter</span><span class="o">.</span><span class="n">query</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span>
+                <span class="n">AssignmentLinter</span><span class="o">.</span><span class="n">get_whitespace_linter_query</span><span class="p">()</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span>
                     <span class="n">AssignmentLinter</span><span class="o">.</span><span class="n">assignment_id</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">id</span><span class="p">,</span>
-                    <span class="n">AssignmentLinter</span><span class="o">.</span><span class="n">name</span> <span class="o">==</span> <span class="s1">&#39;MixedWhitespace&#39;</span>
                 <span class="p">)</span><span class="o">.</span><span class="n">exists</span><span class="p">(),</span>
             <span class="p">)</span><span class="o">.</span><span class="n">scalar</span><span class="p">()</span>
 
@@ -2342,7 +2348,7 @@
             <span class="s1">&#39;deadline&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">deadline</span><span class="p">,</span>
             <span class="s1">&#39;name&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
             <span class="s1">&#39;is_lti&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_lti</span><span class="p">,</span>
-            <span class="s1">&#39;course&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">course</span><span class="p">,</span>
+            <span class="s1">&#39;course_id&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">course_id</span><span class="p">,</span>
             <span class="s1">&#39;cgignore&#39;</span><span class="p">:</span> <span class="kc">None</span> <span class="k">if</span> <span class="n">cgignore</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">cgignore</span><span class="o">.</span><span class="n">export</span><span class="p">(),</span>
             <span class="s1">&#39;cgignore_version&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cgignore_version</span><span class="p">,</span>
             <span class="s1">&#39;whitespace_linter&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">whitespace_linter</span><span class="p">,</span>
@@ -2369,6 +2375,13 @@
             <span class="s1">&#39;division_parent_id&#39;</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span>
             <span class="s1">&#39;analytics_workspace_ids&#39;</span><span class="p">:</span> <span class="p">[],</span>
         <span class="p">}</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">helpers</span><span class="o">.</span><span class="n">request_arg_true</span><span class="p">(</span><span class="s1">&#39;no_course_in_assignment&#39;</span><span class="p">):</span>
+            <span class="n">helpers</span><span class="o">.</span><span class="n">add_deprecate_warning</span><span class="p">(</span>
+                <span class="s1">&#39;The option to send a complete course with an assignment will&#39;</span>
+                <span class="s1">&#39; be removed in the next major release of CodeGrade&#39;</span>
+            <span class="p">)</span>
+            <span class="n">res</span><span class="p">[</span><span class="s1">&#39;course&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">course</span><span class="o">.</span><span class="n">__to_json__</span><span class="p">()</span>  <span class="c1"># type: ignore[misc]</span>
 
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">course</span><span class="o">.</span><span class="n">lti_provider</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
             <span class="n">res</span><span class="p">[</span><span class="s1">&#39;lms_name&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">course</span><span class="o">.</span><span class="n">lti_provider</span><span class="o">.</span><span class="n">lms_name</span>

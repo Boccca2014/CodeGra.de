@@ -230,7 +230,9 @@
 <span class="kn">from</span> <span class="nn">cg_dt_utils</span> <span class="kn">import</span> <span class="n">DatetimeWithTimezone</span>
 <span class="kn">from</span> <span class="nn">psef.helpers</span> <span class="kn">import</span> <span class="n">readable_join</span>
 <span class="kn">from</span> <span class="nn">psef.exceptions</span> <span class="kn">import</span> <span class="n">APICodes</span><span class="p">,</span> <span class="n">APIException</span><span class="p">,</span> <span class="n">PermissionException</span>
+<span class="kn">from</span> <span class="nn">cg_sqlalchemy_helpers</span> <span class="kn">import</span> <span class="n">expression</span> <span class="k">as</span> <span class="n">sql_expression</span>
 <span class="kn">from</span> <span class="nn">cg_cache.intra_request</span> <span class="kn">import</span> <span class="n">cache_within_request</span>
+<span class="kn">from</span> <span class="nn">cg_sqlalchemy_helpers.types</span> <span class="kn">import</span> <span class="n">FilterColumn</span>
 
 <span class="kn">from</span> <span class="nn">.</span> <span class="kn">import</span> <span class="n">helpers</span>
 <span class="kn">from</span> <span class="nn">.permissions</span> <span class="kn">import</span> <span class="n">CoursePermission</span> <span class="k">as</span> <span class="n">CPerm</span>
@@ -560,27 +562,31 @@
     <span class="k">return</span> <span class="n">t</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">T</span><span class="p">,</span> <span class="n">__wrapper</span><span class="p">)</span></div>
 
 
-<span class="nd">@cache_within_request</span>
 <span class="k">def</span> <span class="nf">_get_cur_user_nullable</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n">t</span><span class="o">.</span><span class="n">Optional</span><span class="p">[</span><span class="s1">&#39;psef.models.User&#39;</span><span class="p">]:</span>
     <span class="k">return</span> <span class="n">_resolve_user</span><span class="p">(</span><span class="n">psef</span><span class="o">.</span><span class="n">current_user</span><span class="p">)</span>
 
 
-<span class="nd">@cache_within_request</span>
 <span class="k">def</span> <span class="nf">_get_cur_user</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="s1">&#39;psef.models.User&#39;</span><span class="p">:</span>
     <span class="n">user</span> <span class="o">=</span> <span class="n">_resolve_user</span><span class="p">(</span><span class="n">psef</span><span class="o">.</span><span class="n">current_user</span><span class="p">)</span>
-    <span class="n">ensure_logged_in</span><span class="p">()</span>
+    <span class="n">ensure_logged_in</span><span class="p">(</span><span class="n">user</span><span class="p">)</span>
     <span class="k">assert</span> <span class="n">user</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
     <span class="k">return</span> <span class="n">user</span>
 
 
-<div class="viewcode-block" id="ensure_logged_in"><a class="viewcode-back" href="../../psef_api/psef.html#psef.auth.ensure_logged_in">[docs]</a><span class="k">def</span> <span class="nf">ensure_logged_in</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<div class="viewcode-block" id="ensure_logged_in"><a class="viewcode-back" href="../../psef_api/psef.html#psef.auth.ensure_logged_in">[docs]</a><span class="k">def</span> <span class="nf">ensure_logged_in</span><span class="p">(</span>
+    <span class="n">user</span><span class="p">:</span> <span class="n">t</span><span class="o">.</span><span class="n">Union</span><span class="p">[</span><span class="kc">None</span><span class="p">,</span>
+                  <span class="s1">&#39;psef.models.User&#39;</span><span class="p">,</span>
+                  <span class="n">Literal</span><span class="p">[</span><span class="n">helpers</span><span class="o">.</span><span class="n">MissingType</span><span class="o">.</span><span class="n">token</span><span class="p">],</span>
+                  <span class="p">]</span> <span class="o">=</span> <span class="n">helpers</span><span class="o">.</span><span class="n">MISSING</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
     <span class="sd">&quot;&quot;&quot;Make sure a user is currently logged in.</span>
 
 <span class="sd">    :returns: Nothing.</span>
 
 <span class="sd">    :raises PermissionException: If there is no logged in user. (NOT_LOGGED_IN)</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="k">if</span> <span class="ow">not</span> <span class="n">user_active</span><span class="p">(</span><span class="n">psef</span><span class="o">.</span><span class="n">current_user</span><span class="p">):</span>
+    <span class="n">user</span> <span class="o">=</span> <span class="n">psef</span><span class="o">.</span><span class="n">current_user</span> <span class="k">if</span> <span class="n">user</span> <span class="ow">is</span> <span class="n">helpers</span><span class="o">.</span><span class="n">MISSING</span> <span class="k">else</span> <span class="n">user</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">user_active</span><span class="p">(</span><span class="n">user</span><span class="p">):</span>
         <span class="n">_raise_login_exception</span><span class="p">()</span></div>
 
 
@@ -618,8 +624,11 @@
 
 
 <div class="viewcode-block" id="as_current_user"><a class="viewcode-back" href="../../psef_api/psef.html#psef.auth.as_current_user">[docs]</a><span class="nd">@contextlib</span><span class="o">.</span><span class="n">contextmanager</span>
-<span class="k">def</span> <span class="nf">as_current_user</span><span class="p">(</span><span class="n">user</span><span class="p">:</span> <span class="n">t</span><span class="o">.</span><span class="n">Union</span><span class="p">[</span><span class="s1">&#39;psef.models.User&#39;</span><span class="p">,</span> <span class="n">LocalProxy</span><span class="p">]</span>
-                    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">t</span><span class="o">.</span><span class="n">Generator</span><span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">]:</span>
+<span class="k">def</span> <span class="nf">as_current_user</span><span class="p">(</span>
+    <span class="n">user</span><span class="p">:</span> <span class="n">t</span><span class="o">.</span><span class="n">Union</span><span class="p">[</span><span class="s1">&#39;psef.models.User&#39;</span><span class="p">,</span> <span class="n">LocalProxy</span><span class="p">],</span>
+    <span class="o">*</span><span class="p">,</span>
+    <span class="n">jwt_claims</span><span class="p">:</span> <span class="n">t</span><span class="o">.</span><span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">t</span><span class="o">.</span><span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">t</span><span class="o">.</span><span class="n">Generator</span><span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">]:</span>
     <span class="sd">&quot;&quot;&quot;Execute a block of code while pretending the given user is logged in.</span>
 
 <span class="sd">    After the contextmanager exists the original logged in user is restored.</span>
@@ -628,8 +637,7 @@
     <span class="n">old_claims</span> <span class="o">=</span> <span class="n">copy</span><span class="o">.</span><span class="n">copy</span><span class="p">(</span><span class="n">flask_jwt</span><span class="o">.</span><span class="n">get_jwt_claims</span><span class="p">())</span>
     <span class="k">try</span><span class="p">:</span>
         <span class="n">_ensure_course_visible_for_current_user</span><span class="o">.</span><span class="n">clear_cache</span><span class="p">()</span>  <span class="c1"># type: ignore</span>
-        <span class="n">_get_cur_user</span><span class="o">.</span><span class="n">clear_cache</span><span class="p">()</span>  <span class="c1"># type: ignore</span>
-        <span class="n">set_current_user</span><span class="p">(</span><span class="n">user</span><span class="p">,</span> <span class="n">jwt_claims</span><span class="o">=</span><span class="p">{})</span>
+        <span class="n">set_current_user</span><span class="p">(</span><span class="n">user</span><span class="p">,</span> <span class="n">jwt_claims</span><span class="o">=</span><span class="n">jwt_claims</span><span class="p">)</span>
         <span class="k">yield</span>
     <span class="k">finally</span><span class="p">:</span>
         <span class="n">set_current_user</span><span class="p">(</span><span class="n">old_user</span><span class="p">,</span> <span class="n">jwt_claims</span><span class="o">=</span><span class="n">old_claims</span><span class="p">)</span></div>
@@ -660,10 +668,12 @@
     <span class="n">_app_ctx_stack</span><span class="o">.</span><span class="n">top</span><span class="o">.</span><span class="n">jwt_user</span> <span class="o">=</span> <span class="n">user</span>
     <span class="k">if</span> <span class="n">jwt_claims</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
         <span class="n">jwt_claims</span> <span class="o">=</span> <span class="p">{}</span>
-    <span class="n">old_claims</span> <span class="o">=</span> <span class="n">flask_jwt</span><span class="o">.</span><span class="n">get_jwt_claims</span><span class="p">()</span>
-    <span class="k">if</span> <span class="n">old_claims</span><span class="p">:</span>
-        <span class="n">old_claims</span><span class="o">.</span><span class="n">clear</span><span class="p">()</span>
-        <span class="n">old_claims</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">jwt_claims</span><span class="p">)</span></div>
+
+    <span class="n">old_claims</span> <span class="o">=</span> <span class="n">flask_jwt</span><span class="o">.</span><span class="n">get_raw_jwt</span><span class="p">()</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span>
+        <span class="n">flask_jwt</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">user_claims_key</span><span class="p">,</span> <span class="p">{}</span>
+    <span class="p">)</span>
+    <span class="n">old_claims</span><span class="o">.</span><span class="n">clear</span><span class="p">()</span>
+    <span class="n">old_claims</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">jwt_claims</span><span class="p">)</span></div>
 
 
 <span class="k">def</span> <span class="nf">_ensure_submission_limits_not_exceeded</span><span class="p">(</span>
@@ -1432,6 +1442,26 @@
             <span class="n">course_id</span> <span class="o">=</span> <span class="n">course</span><span class="o">.</span><span class="n">id</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">course_id</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_course</span> <span class="o">=</span> <span class="n">course</span>
+
+<div class="viewcode-block" id="CoursePermissions.ensure_may_see_filter"><a class="viewcode-back" href="../../psef_api/psef.html#psef.auth.CoursePermissions.ensure_may_see_filter">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">ensure_may_see_filter</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n">FilterColumn</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Get a database filter that filters out all courses the current user</span>
+<span class="sd">        may not see.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">user</span> <span class="o">=</span> <span class="n">_get_cur_user_nullable</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">user</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">sql_expression</span><span class="o">.</span><span class="n">false</span><span class="p">()</span>
+
+        <span class="n">course_ids</span> <span class="o">=</span> <span class="p">[</span><span class="n">cr</span><span class="o">.</span><span class="n">course_id</span> <span class="k">for</span> <span class="n">cr</span> <span class="ow">in</span> <span class="n">user</span><span class="o">.</span><span class="n">courses</span><span class="o">.</span><span class="n">values</span><span class="p">()]</span>
+        <span class="n">base</span> <span class="o">=</span> <span class="n">psef</span><span class="o">.</span><span class="n">models</span><span class="o">.</span><span class="n">Course</span><span class="o">.</span><span class="n">id</span><span class="o">.</span><span class="n">in_</span><span class="p">(</span><span class="n">course_ids</span><span class="p">)</span>
+
+        <span class="n">for_course</span> <span class="o">=</span> <span class="n">flask_jwt</span><span class="o">.</span><span class="n">get_jwt_claims</span><span class="p">()</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;for_course&#39;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">for_course</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">sql_expression</span><span class="o">.</span><span class="n">and_</span><span class="p">(</span>
+                <span class="n">base</span><span class="p">,</span>
+                <span class="n">psef</span><span class="o">.</span><span class="n">models</span><span class="o">.</span><span class="n">Course</span><span class="o">.</span><span class="n">id</span> <span class="o">==</span> <span class="n">for_course</span><span class="p">,</span>
+            <span class="p">)</span>
+        <span class="k">return</span> <span class="n">base</span></div>
 
 <div class="viewcode-block" id="CoursePermissions.ensure_may_see"><a class="viewcode-back" href="../../psef_api/psef.html#psef.auth.CoursePermissions.ensure_may_see">[docs]</a>    <span class="nd">@CoursePermissionChecker</span><span class="o">.</span><span class="n">as_ensure_function</span>
     <span class="k">def</span> <span class="nf">ensure_may_see</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
