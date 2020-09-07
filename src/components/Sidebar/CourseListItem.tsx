@@ -17,7 +17,7 @@ function maybeEmit(ctx: RenderContext<{ course: models.Course }>) {
             listeners = [listeners];
         }
 
-        listeners.forEach(listner => listner({
+        listeners.forEach(listener => listener({
             header: course.name,
             component: 'assignment-list',
             data: { course },
