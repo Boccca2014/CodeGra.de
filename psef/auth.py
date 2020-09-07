@@ -22,12 +22,13 @@ from typing_extensions import Final, Literal
 import psef
 from cg_json import JSONResponse
 from cg_helpers import maybe_wrap_in_list
+from cg_dt_utils import DatetimeWithTimezone
 from psef.helpers import readable_join
 from psef.exceptions import APICodes, APIException, PermissionException
 from cg_sqlalchemy_helpers import func as sql_func
 from cg_sqlalchemy_helpers import expression as sql_expression
 from cg_cache.intra_request import cache_within_request
-from cg_sqlalchemy_helpers.types import FilterColumn
+from cg_sqlalchemy_helpers.types import DbColumn, FilterColumn
 
 from . import helpers
 from .permissions import CoursePermission as CPerm
@@ -520,10 +521,12 @@ def _ensure_submission_limits_not_exceeded(
 
     if assig.max_submissions is None:
         query_amount = sql_expression.literal(0).label('amount')
-        reveal_type(query_amount)
     else:
         query_amount = sql.func.count()
 
+    query_oldest_in_period: t.Union[DbColumn[t.Optional[DatetimeWithTimezone]],
+                                    DbColumn[DatetimeWithTimezone],
+                                    ]
     if assig.cool_off_period.total_seconds() > 0:
         query_since_cool_off = sql_func.count(
             sql_expression.case(
@@ -1252,7 +1255,7 @@ class CoursePermissions(CoursePermissionChecker):
             psef.models.CourseRole.course_id
         )
 
-        correct_state_filter = sql_expression.case(
+        correct_state_filter: DbColumn[bool] = sql_expression.case(
             [
                 (psef.models.Course.state.is_visible, True),
                 (

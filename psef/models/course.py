@@ -423,7 +423,7 @@ class Course(NotEqualMixin, Base, mixins.TimestampMixin, mixins.IdMixin):
         *,
         include_test_students: bool,
         with_permission: CoursePermission = None
-    ) -> MyQuery['t.Tuple[user_models.User, course_roles.CourseRole]']:
+    ) -> MyQuery['t.Tuple[user_models.User, role_models.CourseRole]']:
         """Get a query that returns all users in the current course and their
             role.
 
