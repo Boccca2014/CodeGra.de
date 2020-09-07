@@ -393,6 +393,7 @@ export namespace CoursesStore {
     export const patchCourse = moduleBuilder.dispatch(
         async (_, payload: { courseId: number; data: api.courses.PatchableProps }) => {
             const response = await api.courses.patch(payload.courseId, payload.data);
+            await loadPermissions({ force: true });
             addCourse({ course: response.data });
             return response;
         },
