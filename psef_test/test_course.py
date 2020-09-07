@@ -2124,6 +2124,21 @@ def test_update_name_of_course(
             }
         )
 
+    with describe('Cannot change name to an empty string'), logged_in(teacher):
+        test_client.req(
+            'patch',
+            url,
+            400,
+            data={'name': ''},
+            result={
+                **error_template,
+                'message': (
+                    'The name of a course should contain at least one'
+                    ' character'
+                ),
+            }
+        )
+
 
 def test_archiving_of_course(
     describe, logged_in, admin_user, test_client, session, error_template

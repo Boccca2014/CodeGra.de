@@ -623,6 +623,11 @@ def update_course(course_id: int) -> ExtendedJSONResponse[models.Course]:
                     ' not possible'
                 ), APICodes.INVALID_PARAM, 400
             )
+        if not name:
+            raise APIException(
+                'The name of a course should contain at least one character',
+                'A course name cannot be empty', APICodes.INVALID_PARAM, 400
+            )
         checker.ensure_may_edit_info()
         course.name = name
 

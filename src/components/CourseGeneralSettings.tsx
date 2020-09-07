@@ -17,10 +17,6 @@ export default class CourseGeneralSettings extends Vue {
 
     private newCourseName: string = this.course.name;
 
-    private get nameNotChanged() {
-        return this.course.name === this.newCourseName;
-    }
-
     @Watch('course')
     private onCourseChange(newVal: models.Course, oldVal: models.Course) {
         if (newVal.id !== oldVal.id) {
@@ -62,6 +58,17 @@ export default class CourseGeneralSettings extends Vue {
         </b-card >
     }
 
+    private get submitButtonDisabled(): string | null {
+        if (this.course.isLTI) {
+            return 'You cannot change the name of an LTI course';
+        } else if (this.newCourseName === '') {
+            return 'The name should contain atleast one character';
+        } else if (this.course.name === this.newCourseName) {
+            return 'Nothing has changed';
+        }
+        return null;
+    }
+
     private renderNameSettings(h: CreateElement): VNode {
         return <b-card header="General">
             <b-form-group scopedSlots={{ label: () => "Course Name" }}>
@@ -71,9 +78,9 @@ export default class CourseGeneralSettings extends Vue {
             </b-form-group>
 
             <div class="float-right"
-                 v-b-popover_top_hover={this.nameNotChanged ? 'Nothing has changed' : ''}>
+                 v-b-popover_top_hover={this.submitButtonDisabled ?? ''}>
                 <cg-submit-button submit={this.submitName}
-                                  disabled={this.nameNotChanged}
+                                  disabled={this.submitButtonDisabled != null}
                                   ref="submitNameBtn" />
             </div>
         </b-card>
