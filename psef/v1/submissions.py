@@ -127,9 +127,11 @@ def get_submission(
             request.args.get('owner'),
             work.assignment.course_id,
         )
-        return extended_jsonify(get_zip(work, exclude_owner))
+        return extended_jsonify(
+            get_zip(work, exclude_owner), use_extended=dict
+        )
     elif request.args.get('type') == 'feedback':
-        return extended_jsonify(get_feedback(work))
+        return extended_jsonify(get_feedback(work), use_extended=dict)
     return extended_jsonify(work, use_extended=models.Work)
 
 

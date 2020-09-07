@@ -5,6 +5,8 @@ import { shallowMount, createLocalVue } from '@vue/test-utils';
 import VueRouter from 'vue-router';
 import Vuex from 'vuex';
 
+import * as utils from '@/utils';
+
 jest.mock('axios');
 
 const localVue = createLocalVue();
@@ -25,6 +27,7 @@ describe('PlagiarismRunner.vue', () => {
     let providers;
     let remount;
     let mockLoadCourses;
+    let mockLoadSingleAssignment;
 
     beforeEach(() => {
         jest.useFakeTimers();
@@ -55,10 +58,10 @@ describe('PlagiarismRunner.vue', () => {
         mockPost = jest.fn(() => Promise.resolve({ data: { state: 'running', provider_name: 'testProvider' } }));
         mockGet = jest.fn((route) => {
             let res = null;
-            if (/^.api.v1.assignments.[0-9]+.plagiarism\/$/.test(route)) {
+            if (/^.api.v1.assignments.[0-9]+.plagiarism\/(\?.*)?$/.test(route)) {
                 res = { data: runs };
             }
-            if (/^.api.v1.plagiarism\/$/.test(route)) {
+            if (/^.api.v1.plagiarism\/(\?(.*))?$/.test(route)) {
                 res = { data: providers };
             }
             if (/^.api.v1.permissions..type.course.*$/.test(route)) {
@@ -70,18 +73,30 @@ describe('PlagiarismRunner.vue', () => {
         });
 
         mockLoadCourses = jest.fn();
+        mockLoadSingleAssignment = jest.fn();
         store = new Vuex.Store({
             modules: {
                 courses: {
                     namespaced: true,
                     getters: {
-                        courses: state => ({}),
-                        assignments: state => ({}),
+                        allCourses: () => [],
+                        getCourse: state => () => utils.Nothing,
                     },
                     actions: {
-                        loadCourses: mockLoadCourses,
+                        loadAllCourses: mockLoadCourses,
+                        loadSingleCourse: mockLoadCourses,
                     },
                 },
+                assignments: {
+                    namespaced: true,
+                    getters: {
+                        allAssignments: () => [],
+                        getAssignment: state => () => utils.Nothing,
+                    },
+                    actions: {
+                        loadSingleAssignment: mockLoadSingleAssignment,
+                    },
+                }
             },
         });
 
@@ -180,7 +195,7 @@ describe('PlagiarismRunner.vue', () => {
             await comp.runPlagiarismChecker().then(comp.afterRunPlagiarismChecker);
 
             expect(mockPost).toBeCalledTimes(1);
-            expect(mockPost).toBeCalledWith('/api/v1/assignments/0/plagiarism', {
+            expect(mockPost).toBeCalledWith('/api/v1/assignments/0/plagiarism?no_course_in_assignment=true', {
                 hello: 'goodbye',
                 old_assignments: [],
                 has_base_code: false,
@@ -201,7 +216,7 @@ describe('PlagiarismRunner.vue', () => {
 
             await comp.runPlagiarismChecker().then(comp.afterRunPlagiarismChecker);
             expect(mockPost).toBeCalledTimes(1);
-            expect(mockPost).toBeCalledWith('/api/v1/assignments/0/plagiarism', expect.any(FormData));
+            expect(mockPost).toBeCalledWith('/api/v1/assignments/0/plagiarism?no_course_in_assignment=true', expect.any(FormData));
             const form = mockPost.mock.calls[0][1];
 
             expect(form.has('json')).toBe(true);

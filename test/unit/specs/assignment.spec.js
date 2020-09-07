@@ -4,34 +4,49 @@ import { store } from '@/store';
 
 import * as mutationTypes from '@/store/mutation-types';
 
-import { Assignment } from '@/models';
-
 import * as assignmentState from '@/store/assignment-states';
 import { formatDate } from '@/utils';
+import { CoursesStore, AssignmentsStore } from '@/store';
 
 jest.useFakeTimers();
 
 describe('assignment model', () => {
-    function makeAssig(data) {
-        const course = Object.assign({}, data.course || {});
-        const assig = Object.assign({}, data);
-        delete assig.course;
+    const makeAssig = (() => {
+        let courseId = 0;
+        let assigId = 0;
 
-        course.assignments = [assig];
-        course.id = 0;
-        assig.id = assig.id || 1;
+        return (assigServerData = {}) => {
+            const cId = assigServerData.courseId || ++courseId;
+            const aId = assigServerData.a || ++assigId;
+            const hadCourse = CoursesStore.getCourse()(cId).isJust();
 
-        store.commit(
-            `courses/${mutationTypes.SET_COURSES}`,
-            [
-                [course],
-                { 0: false },
-                { 0: false },
-                { 0: false },
-                { 0: Object.assign({}, course.permissions || {}) },
-            ],
-        );
-        return store.getters['courses/assignments'][assig.id];
+            Object.assign(assigServerData, {
+                id: aId,
+                course_id: cId,
+                name: `Assignment ${aId}`,
+            });
+            CoursesStore.addCourse({
+                course: {
+                    id: cId,
+                    name: `Course ${cId}`,
+                    assignments: [assigServerData]
+                },
+            });
+            if (!hadCourse) {
+                CoursesStore.commitPermissions({ permissions: { [cId]: { } } });
+            }
+            return AssignmentsStore.getAssignment()(assigServerData.id).unsafeCoerce();
+        };
+    })();
+
+    function updatePerms(assig, perms) {
+        Object.entries(perms).forEach(([perm, value]) => {
+            CoursesStore.commitPermission({
+                courseId: assig.courseId,
+                perm,
+                value,
+            });
+        });
     }
 
     describe('canSeeGrade', () => {
@@ -41,26 +56,22 @@ describe('assignment model', () => {
             assignmentState.GRADING,
             assignmentState.OPEN,
         ])('should return false when the assignment state is %s and you don\'t have permission can_see_grade_before_open', (state) => {
-            const assig = makeAssig({
-                state,
-                course: {
-                    permissions: {
-                        can_see_grade_before_open: false,
-                    },
-                },
+            const assig = makeAssig({ state });
+            CoursesStore.commitPermission({
+                courseId: assig.courseId,
+                perm: 'can_see_grade_before_open',
+                value: false,
             });
 
             expect(assig.canSeeGrade()).toBe(false);
         });
 
         it('should return true when the assignment state is done', () => {
-            const assig = makeAssig({
-                state: assignmentState.DONE,
-                course: {
-                    permissions: {
-                        can_see_grade_before_open: false,
-                    },
-                },
+            const assig = makeAssig({ state: assignmentState.DONE });
+            CoursesStore.commitPermission({
+                courseId: assig.courseId,
+                perm: 'can_see_grade_before_open',
+                value: false,
             });
 
             expect(assig.canSeeGrade()).toBe(true);
@@ -72,13 +83,11 @@ describe('assignment model', () => {
             assignmentState.GRADING,
             assignmentState.OPEN,
         ])('should return true when you have the permission can_see_grade_before_open for every state', (state) => {
-            const assig = makeAssig({
-                state,
-                course: {
-                    permissions: {
-                        can_see_grade_before_open: true,
-                    },
-                },
+            const assig = makeAssig({ state });
+            CoursesStore.commitPermission({
+                courseId: assig.courseId,
+                perm: 'can_see_grade_before_open',
+                value: true,
             });
 
             expect(assig.canSeeGrade()).toBe(true);
@@ -87,14 +96,11 @@ describe('assignment model', () => {
 
     describe('canSubmitWork', () => {
         it('should return false when you cannot submit work', () => {
-            const assig = makeAssig({
-                course: {
-                    permissions: {
-                        can_submit_own_work: false,
-                        can_submit_others_work: false,
-                    },
-                },
-            });
+            const assig = makeAssig();
+            updatePerms(
+                assig,
+                { can_submit_own_work: false, can_submit_others_work: false },
+            )
             expect(assig.canSubmitWork()).toBe(false);
         });
 
@@ -102,75 +108,71 @@ describe('assignment model', () => {
             [false],
             [true],
         ])('should return true when the assignment is hidden', (submitOwn) => {
-            const assigData = {
+            let assig = makeAssig({
                 state: assignmentState.HIDDEN,
                 deadline: formatDate(moment().add(1, 'days')),
-                course: {
-                    permissions: {
-                        can_submit_own_work: true,
-                        can_submit_others_work: false,
-                    },
+            });
+            updatePerms(
+                assig,
+                { can_submit_own_work: true, can_submit_others_work: false },
+            );
+            expect(assig.canSubmitWork()).toBe(true);
+
+            updatePerms(
+                assig,
+                {
+                    can_submit_own_work: false,
+                    can_submit_others_work: true,
                 },
-            };
-            let assig = makeAssig(assigData);
-
+            );
             expect(assig.canSubmitWork()).toBe(true);
 
-            assigData.course.permissions = {
-                can_submit_own_work: false,
-                can_submit_others_work: true,
-            };
-            assig = makeAssig(assigData);
-            expect(assig.canSubmitWork()).toBe(true);
-
-            assigData.course.permissions.can_submit_own_work = true;
-            assig = makeAssig(assigData);
+            CoursesStore.commitPermission({
+                courseId: assig.courseId,
+                perm: 'can_submit_own_work',
+                value: true,
+            });
             expect(assig.canSubmitWork()).toBe(true);
         });
 
         it('should return false when the deadline has passed and you do not have permission to submit after the deadline', () => {
             const now = moment();
             const assigData = {
+                id: 1000,
+                courseId: 1000,
                 state: assignmentState.OPEN,
                 deadline: formatDate(moment(now).add(-1, 'days')),
-                course: {
-                    permissions: {
-                        can_submit_own_work: true,
-                        can_submit_others_work: false,
-                        can_upload_after_deadline: false,
-                    },
-                },
             };
             let assig = makeAssig(assigData);
-
-            function updatePerms(perms) {
-                Object.assign(assigData.course.permissions, perms);
-                assig = makeAssig(assigData);
-            }
+            updatePerms(assig, {
+                can_submit_own_work: true,
+                can_submit_others_work: false,
+                can_upload_after_deadline: false,
+            });
 
             expect(assig.canSubmitWork(now)).toBe(false);
 
-            updatePerms({
+            updatePerms(assig, {
                 can_submit_own_work: false,
                 can_submit_others_work: true,
             });
             expect(assig.canSubmitWork(now)).toBe(false);
 
-            updatePerms({ can_submit_own_work: true });
+            updatePerms(assig, { can_submit_own_work: true });
             expect(assig.canSubmitWork(now)).toBe(false);
 
             assigData.state = assignmentState.DONE;
-            assigData.course.permissions.can_submit_others_work = false;
+            updatePerms(assig, { can_submit_others_work: false });
             assig = makeAssig(assigData);
             expect(assig.canSubmitWork(now)).toBe(false);
 
-            updatePerms({
+            updatePerms(assig, {
                 can_submit_own_work: false,
                 can_submit_others_work: true,
             });
             expect(assig.canSubmitWork(now)).toBe(false);
 
-            updatePerms({can_submit_own_work: true});
+            updatePerms(assig, { can_submit_own_work: true });
             expect(assig.canSubmitWork(now)).toBe(false);
 
         });
@@ -180,19 +182,19 @@ describe('assignment model', () => {
             const assigData = {
                 state: assignmentState.OPEN,
                 deadline: moment(now).add(1, 'days'),
-                course: {
-                    permissions: {
-                        can_submit_own_work: true,
-                        can_submit_others_work: false,
-                    },
-                },
             };
             let assig = makeAssig(assigData);
+            updatePerms(assig, {
+                can_submit_own_work: true,
+                can_submit_others_work: false,
+            })
 
             expect(assig.canSubmitWork(now)).toBe(true);
 
-            assigData.state = assignmentState.DONE;
-            assig = makeAssig(assigData);
+            assig = makeAssig({
+                ...assig,
+                state: assignmentState.DONE,
+            });
             expect(assig.canSubmitWork(now)).toBe(true);
         });
     });

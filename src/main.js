@@ -60,6 +60,7 @@ import Toggle from './components/Toggle';
 import Collapse from './components/Collapse';
 import NumberInput from './components/NumberInput';
 import WizardWrapper from './components/WizardWrapper';
+import Error from './components/Error';
 import WizardButton from './components/WizardButton';
 /* eslint-enable import/first */
 
@@ -75,6 +76,7 @@ Vue.component('cg-toggle', Toggle);
 Vue.component('cg-collapse', Collapse);
 Vue.component('cg-number-input', NumberInput);
 Vue.component('cg-wizard-wrapper', WizardWrapper);
+Vue.component('cg-error', Error);
 Vue.component('cg-wizard-button', WizardButton);
 
 Vue.use(BootstrapVue);
@@ -179,6 +181,10 @@ try {
     Vue.prototype.$devMode = false;
 }
 Vue.prototype.$utils = utils;
+Vue.prototype.$routeParamAsId = function $routeParamAsId(name) {
+    const res = utils.parseOrKeepFloat(this.$route.params[name]);
+    return Number.isNaN(res) ? undefined : res;
+};
 Vue.prototype.$userConfig = UserConfig;
 
 Vue.prototype.$afterRerender = function doubleRequestAnimationFrame(cb) {
@@ -233,7 +239,7 @@ Promise.all([
         }
     });
 
-    Vue.prototype.$hasPermission = (permission, courseId, asMap) => {
+    Vue.prototype.$hasPermission = (permission, _, asMap) => {
         function makeResponse(map) {
             if (typeof permission === 'string') {
                 return map[permission];
@@ -243,14 +249,7 @@ Promise.all([
                 return permission.map(p => map[p]);
             }
         }
-        if (courseId) {
-            return store.store.dispatch('courses/loadCourses').then(() => {
-                const map = store.store.getters['courses/courses'][courseId].permissions;
-                return makeResponse(map);
-            });
-        } else {
-            return Promise.resolve(makeResponse(store.store.getters['user/permissions']));
-        }
+        return Promise.resolve(makeResponse(store.store.getters['user/permissions']));
     };
 
     function getUTCEpoch() {

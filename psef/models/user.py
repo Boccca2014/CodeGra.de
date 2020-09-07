@@ -243,6 +243,17 @@ class User(NotEqualMixin, Base):
         index=True,
     )
 
+    def load_all_permissions(self) -> None:
+        """Eagerly load all the permissions of this user object.
+
+        :returns: Nothing
+        """
+        # This query seems to do nothing, but it updates the existing
+        # ``CourseRole`` objects in memory with all permissions.
+        db.session.query(CourseRole).filter(
+            CourseRole.id.in_([cr.id for cr in self.courses.values()])
+        ).options(CourseRole.eager_load_permissions()).all()
+
     def get_readable_name(self) -> str:
         """Get the readable name of this user.
 

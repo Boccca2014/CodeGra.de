@@ -1,5 +1,5 @@
 /* SPDX-License-Identifier: AGPL-3.0-only */
-import { store } from '@/store';
+import { AssignmentsStore, store } from '@/store';
 import { cmpNoCase, formatGrade, snakeToCamelCase, readableFormatDate } from '@/utils';
 import { NONEXISTENT } from '@/constants';
 import moment from 'moment';
@@ -432,7 +432,7 @@ export class Submission {
     }
 
     get assignment() {
-        return store.getters['courses/assignments'][this.assignmentId];
+        return AssignmentsStore.getAssignment()(this.assignmentId).extract();
     }
 
     isLate() {

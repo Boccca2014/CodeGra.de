@@ -111,7 +111,7 @@ class AssignmentJSON(TypedDict, total=True):
     deadline: t.Optional[DatetimeWithTimezone]  #: ISO UTC date.
     name: str  #: The name of the assignment.
     is_lti: bool  #: Is this an LTI assignment.
-    course: 'course_models.Course'  #: Course of this assignment.
+    course_id: int  #: Course of this assignment.
     cgignore: t.Optional['psef.helpers.JSONType']  #: The cginore.
     cgignore_version: t.Optional[str]
     #: Has the whitespace linter run on this assignment.
@@ -330,20 +330,18 @@ class AssignmentLinter(Base):
     :class:`.linter_models.LinterInstance`.
 
     The name identifies which :class:`.linter_models.Linter` is used.
-
-    :ivar ~.AssignmentLinter.name: The name of the linter which is the
-        `__name__` of a subclass of :py:class:`.linter_models.Linter`.
-    :ivar tests: All the linter instances for this linter, this are the
-        recordings of the running of the actual linter (so in the case of the
-        :py:class:`.Flake8` metadata about the `flake8` program).
-    :ivar config: The config that was passed to the linter.
     """
     __tablename__ = 'AssignmentLinter'  # type: str
-    # This has to be a String object as the id has to be a non guessable uuid.
+    #: This has to be a String object as the id has to be a non guessable uuid.
     id = db.Column(
         'id', db.String(UUID_LENGTH), nullable=False, primary_key=True
     )
+    #: The name of the linter which is the `__name__` of a subclass of
+    #: :py:class:`.linter_models.Linter`.
     name = db.Column('name', db.Unicode, nullable=False)
+    #: All the linter instances for this linter, this are the recordings of the
+    #: running of the actual linter (so in the case of the :py:class:`.Flake8`
+    #: metadata about the `flake8` program).
     tests = db.relationship(
         lambda: linter_models.LinterInstance,
         back_populates="tester",
@@ -351,11 +349,13 @@ class AssignmentLinter(Base):
         order_by=lambda: linter_models.LinterInstance.work_id,
         uselist=True,
     )
+    #: The config that was passed to the linter.
     config = db.Column(
         'config',
         db.Unicode,
         nullable=False,
     )
+    #: The id of the assignment connected to this linter.
     assignment_id = db.Column(
         'Assignment_id',
         db.Integer,
@@ -363,11 +363,18 @@ class AssignmentLinter(Base):
         nullable=False,
     )
 
+    #: The assignment connect to this linter run.
     assignment = db.relationship(
         lambda: Assignment,
         foreign_keys=assignment_id,
         backref=db.backref('linters', uselist=True),
     )
+
+    @classmethod
+    def get_whitespace_linter_query(cls) -> MyQuery['AssignmentLinter']:
+        """Get a query that selects all ``MixedWhitespace`` linters.
+        """
+        return cls.query.filter(AssignmentLinter.name == 'MixedWhitespace')
 
     @property
     def linters_crashed(self) -> int:
@@ -2079,9 +2086,8 @@ class Assignment(helpers.NotEqualMixin, Base):  # pylint: disable=too-many-publi
         # defined outside of the init.
         if not hasattr(self, '_whitespace_linter_exists'):
             self._whitespace_linter_exists = db.session.query(
-                AssignmentLinter.query.filter(
+                AssignmentLinter.get_whitespace_linter_query().filter(
                     AssignmentLinter.assignment_id == self.id,
-                    AssignmentLinter.name == 'MixedWhitespace'
                 ).exists(),
             ).scalar()
 
@@ -2138,7 +2144,7 @@ class Assignment(helpers.NotEqualMixin, Base):  # pylint: disable=too-many-publi
             'deadline': self.deadline,
             'name': self.name,
             'is_lti': self.is_lti,
-            'course': self.course,
+            'course_id': self.course_id,
             'cgignore': None if cgignore is None else cgignore.export(),
             'cgignore_version': self._cgignore_version,
             'whitespace_linter': self.whitespace_linter,
@@ -2165,6 +2171,13 @@ class Assignment(helpers.NotEqualMixin, Base):  # pylint: disable=too-many-publi
             'division_parent_id': None,
             'analytics_workspace_ids': [],
         }
+
+        if not helpers.request_arg_true('no_course_in_assignment'):
+            helpers.add_deprecate_warning(
+                'The option to send a complete course with an assignment will'
+                ' be removed in the next major release of CodeGrade'
+            )
+            res['course'] = self.course.__to_json__()  # type: ignore[misc]
 
         if self.course.lti_provider is not None:
             res['lms_name'] = self.course.lti_provider.lms_name

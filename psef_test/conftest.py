@@ -233,6 +233,7 @@ def test_client(app, session, assert_similar):
         real_data=None,
         include_response=False,
         allow_extra=False,
+        expected_warning=None,
         **kwargs
     ):
         setattr(ctx_stack.top, 'jwt_user', None)
@@ -260,6 +261,12 @@ def test_client(app, session, assert_similar):
 
         if result is not None:
             assert_similar(val, result)
+
+        if expected_warning is not None:
+            if expected_warning is False:
+                assert 'Warning' not in rv.headers
+            else:
+                assert re.search(expected_warning, rv.headers['Warning'])
 
         session.expire_all()
 
@@ -317,6 +324,8 @@ def assert_similar():
 
             if isinstance(value, psef.models.Base):
                 value = value.__to_json__()
+            elif isinstance(value, datetime.datetime):
+                value = value.isoformat()
 
             if isinstance(value, type):
                 assert isinstance(vals[k], value), (

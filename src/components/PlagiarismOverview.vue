@@ -133,7 +133,7 @@ export default {
     },
 
     computed: {
-        ...mapGetters('courses', ['assignments']),
+        ...mapGetters('assignments', ['getAssignment']),
         ...mapGetters('plagiarism', ['runs']),
 
         run() {
@@ -144,12 +144,16 @@ export default {
             return `${this.$route.params.plagiarismRunId}`;
         },
 
+        courseId() {
+            return this.$routeParamAsId('courseId');
+        },
+
         assignmentId() {
-            return this.$route.params.assignmentId;
+            return this.$routeParamAsId('assignmentId');
         },
 
         assignment() {
-            return this.assignments[this.assignmentId];
+            return this.getAssignment(this.assignmentId).extract();
         },
     },
 
@@ -162,10 +166,26 @@ export default {
                 this.loadRun();
             }
         },
+
+        assignment(assignment) {
+            if (assignment == null) {
+                this.loadSingleAssignment({
+                    assignmentId: this.assignmentId,
+                    courseId: this.courseId,
+                });
+            }
+        },
+
+        assignmentId: {
+            immediate: true,
+            handler(assignmentId) {
+                this.loadSingleAssignment({ assignmentId, courseId: this.courseId });
+            },
+        },
     },
 
     methods: {
-        ...mapActions('courses', ['loadCourses']),
+        ...mapActions('assignments', ['loadSingleAssignment']),
         ...mapActions('plagiarism', {
             loadPlagiarismRun: 'loadRun',
         }),
@@ -199,12 +219,10 @@ export default {
                 event.target.id = `row-${item.id}`;
             }
 
-            const index = item.assignments[0].id === this.assignmentId ? 1 : 0;
-
-            this.disabledPopoverContent = `You don't have the permission
-            "View plagiarism" for the course
-            "${item.assignments[index].course.name}" which is necessary to view
-            this case.`;
+            this.disabledPopoverContent = `You don't have the necessary
+            permissions to view this case, as one of the submissions connected
+            to this case was submitted to another course, in which you do not
+            have the necessary permissions.`;
 
             this.$nextTick(() => {
                 this.disabledPopoverRowId = event.target.id;

@@ -757,6 +757,9 @@ class MyNonOrderableQuery(t.Generic[T]):  # pragma: no cover
     def with_entities(self, *args: t.Any) -> 'MyQuery[t.Any]':
         ...
 
+    def union(self: QuerySelf, *q: QuerySelf) -> 'QuerySelf':
+        ...
+
 
 class MyQuery(t.Generic[T], MyNonOrderableQuery[T]):
     def order_by(

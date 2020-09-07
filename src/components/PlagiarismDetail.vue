@@ -289,11 +289,18 @@ export default {
         numExported(newVal) {
             this.exportAll = newVal === this.matchIds.length;
         },
+
+        assignmentId: {
+            immediate: true,
+            handler(assignmentId) {
+                this.loadSingleAssignment({ assignmentId, courseId: this.courseId });
+            },
+        },
     },
 
     computed: {
         ...mapGetters('pref', ['fontSize', 'darkMode']),
-        ...mapGetters('courses', ['assignments']),
+        ...mapGetters('assignments', ['getAssignment']),
         ...mapGetters('plagiarism', ['runs']),
         ...mapGetters('users', ['getUser']),
 
@@ -373,12 +380,16 @@ export default {
             }));
         },
 
+        courseId() {
+            return this.$routeParamAsId('courseId');
+        },
+
         assignmentId() {
             return Number(this.$route.params.assignmentId);
         },
 
         assignment() {
-            return this.assignments[this.assignmentId];
+            return this.getAssignment(this.assignmentId).extract();
         },
 
         plagiarismRunId() {
@@ -446,7 +457,7 @@ export default {
     },
 
     methods: {
-        ...mapActions('courses', ['loadCourses']),
+        ...mapActions('assignments', ['loadSingleAssignment']),
         ...mapActions('code', {
             storeLoadCode: 'loadCode',
         }),
@@ -591,7 +602,7 @@ export default {
             return {
                 name: 'submission_file',
                 params: {
-                    courseId: this.detail.assignments[index].course.id,
+                    courseId: this.detail.assignments[index].course_id,
                     assignmentId: this.detail.assignments[index].id,
                     submissionId: this.detail.submissions[index].id,
                     fileId: file.id,
@@ -639,7 +650,7 @@ export default {
             await this.loadPlagiarismRun(this.plagiarismRunId);
 
             this.$http
-                .get(`/api/v1/plagiarism/${this.plagiarismRunId}/cases/${this.plagiarismCaseId}`)
+                .get(`/api/v1/plagiarism/${this.plagiarismRunId}/cases/${this.plagiarismCaseId}?no_course_in_assignment=true`)
                 .then(
                     ({ data }) => {
                         if (data.assignments[0].id !== this.assignmentId) {
@@ -660,7 +671,6 @@ export default {
                         this.detail = data;
 
                         return Promise.all([
-                            this.loadCourses(),
                             this.loadFileTrees(),
                             this.getFileContents(),
                         ]);

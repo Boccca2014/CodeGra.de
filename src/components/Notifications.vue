@@ -81,7 +81,10 @@ export default {
 
     computed: {
         assignmentUrl() {
-            return `/api/v1/assignments/${this.assignment.id}`;
+            return this.$utils.buildUrl(
+                ['api', 'v1', 'assignments', this.assignment.id],
+                { query: { no_course_in_assignment: true } },
+            );
         },
     },
 
@@ -124,7 +127,7 @@ divided or because they were assigned work manually.`,
     },
 
     methods: {
-        ...mapActions('courses', ['patchAssignment']),
+        ...mapActions('assignments', ['patchAssignment']),
 
         updateReminder() {
             if ((this.graders || this.finished) && !this.doneType) {

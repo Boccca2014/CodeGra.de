@@ -18,13 +18,13 @@
                 </span>
                 <span v-else>
                     Group set used by
-                    {{ groupSet.assignment_ids.map(id => assignments[id] && assignments[id].name).join(', ') }}
+                    {{ getGroupSetUsedIn(groupSet) }}
                 </span>
             </router-link>
         </li>
     </ul>
     <span v-else class="sidebar-list no-items-text">
-        You don't have any group sets yet.
+        You don&apos;t have any group sets yet.
     </span>
 </div>
 </template>
@@ -45,10 +45,14 @@ export default {
     },
 
     computed: {
-        ...mapGetters('courses', ['assignments']),
+        ...mapGetters('assignments', ['getAssignment']),
 
         course() {
-            return this.data.course;
+            return this.$utils.getProps(this.data, null, 'course');
+        },
+
+        courseId() {
+            return this.$utils.getProps(this.course, null, 'id');
         },
 
         curGroupSetId() {
@@ -56,7 +60,17 @@ export default {
         },
 
         groupSets() {
-            return this.course && this.course.group_sets;
+            return this.$utils.getProps(this.course, [], 'groupSets');
+        },
+
+        allAssignmentIds() {
+            return this.groupSets.reduce(
+                (acc, groupSet) => {
+                    groupSet.assignment_ids.forEach(id => acc.add(id));
+                    return acc;
+                },
+                new Set(),
+            );
         },
     },
 
@@ -68,11 +82,53 @@ export default {
         this.$root.$off('sidebar::reload', this.reload);
     },
 
+    watch: {
+        allAssignmentIds: {
+            immediate: true,
+            handler() {
+                this.loadAssignments();
+            },
+        },
+
+        courseId() { this.loadAssignments(); },
+    },
+
     methods: {
-        ...mapActions('courses', ['reloadCourses']),
+        ...mapActions('courses', ['loadSingleCourse']),
+        ...mapActions('assignments', ['loadSingleAssignment']),
+
+        getGroupSetUsedIn(groupSet) {
+            return this.$utils.filterMap(
+                groupSet.assignment_ids,
+                id => this.getAssignment(id).map(a => a.name),
+            ).join(', ');
+        },
+
+        async loadAssignments() {
+            // All the assignments ids should be in this course, however new
+            // assignment could be added in the meantime so also load
+            // them. The `loadSingleAssignment` action does nothing if the
+            // assignment is already present.
+            if (this.courseId == null) {
+                return;
+            }
+            this.loadSingleCourse({
+                courseId: this.courseId,
+            }).then(
+                () => Promise.all(
+                    Array.from(
+                        this.allAssignmentIds,
+                        id => this.loadSingleAssignment({ assignmentId: id }),
+                    ),
+                ),
+            );
+        },
 
         reload() {
-            this.reloadCourses().then(() => {
+            this.$utils.waitAtLeast(
+                250,
+                this.loadSingleCourse({ courseId: this.course.id, force: true }),
+            ).then(() => {
                 this.$emit('loaded');
             });
         },

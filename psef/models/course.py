@@ -7,9 +7,12 @@ import uuid
 import typing as t
 
 import structlog
+from sqlalchemy.orm import selectinload
+from typing_extensions import TypedDict
 
 import psef
 from cg_dt_utils import DatetimeWithTimezone
+from cg_typing_extensions import make_typed_dict_extender
 from cg_sqlalchemy_helpers import mixins, expression
 
 from . import Base, MyQuery, db
@@ -132,7 +135,7 @@ class Course(NotEqualMixin, Base):
     """
     __tablename__ = "Course"
     id = db.Column('id', db.Integer, primary_key=True)
-    name = db.Column('name', db.Unicode)
+    name = db.Column('name', db.Unicode, nullable=False)
 
     created_at = db.Column(
         db.TIMESTAMP(timezone=True),
@@ -193,6 +196,100 @@ class Course(NotEqualMixin, Base):
         cascade='all,delete',
         uselist=True,
     )
+
+    class AsJSON(TypedDict, total=True):
+        """The way this class will be represented in JSON.
+        """
+        #: The id of this course
+        id: int
+        #: The name of this course
+        name: str
+        #: The date this course was created
+        created_at: DatetimeWithTimezone
+        #: Is this an LTI course?
+        #: Deprecated: Use the ``lti_provider`` attribute (and check for
+        #: ``null``).
+        is_lti: bool
+        #: Is this a virtual course.
+        virtual: bool
+        #: The lti provider that manages this course, if ``null`` this is not a
+        #: LTI course.
+        lti_provider: t.Optional['psef.models.LTIProviderBase']
+
+    class AsExtendedJSON(AsJSON, total=True):
+        """The way this class will be represented in extended JSON.
+        """
+        assignments: t.Sequence['psef.models.Assignment']
+        group_sets: t.Sequence['psef.models.GroupSet']
+        snippets: t.Sequence[CourseSnippet]
+
+    def __to_json__(self) -> AsJSON:
+        """Creates a JSON serializable representation of this object.
+
+        This object will look like this:
+
+        .. code:: python
+
+            {
+                'name': str, # The name of the course,
+                'id': int, # The id of this course.
+                'created_at': str, # ISO UTC date.
+                'is_lti': bool, # Is the this course a LTI course,
+                'virtual': bool, # Is this a virtual course,
+            }
+
+        :returns: A object as described above.
+        """
+        res: 'Course.AsJSON' = {
+            'id': self.id,
+            'name': self.name,
+            'created_at': self.created_at,
+            'is_lti': self.is_lti,
+            'virtual': self.virtual,
+            'lti_provider': self.lti_provider,
+        }
+        if jsonify_options.get_options().add_role_to_course:
+            user = psef.current_user
+            res['role'] = user.courses[self.id  # type: ignore
+                                       ].name if user else None
+        return res
+
+    def __extended_to_json__(self) -> AsExtendedJSON:
+        if auth.CoursePermissions(self).ensure_may_see_snippets.as_bool():
+            snippets = self.snippets
+        else:
+            snippets = []
+
+        return make_typed_dict_extender(
+            self.__to_json__(),
+            Course.AsExtendedJSON,
+        )(
+            assignments=self.get_all_visible_assignments(),
+            group_sets=self.group_sets,
+            snippets=snippets,
+        )
+
+    @classmethod
+    def update_query_for_extended_jsonify(cls, query: MyQuery['Course']
+                                          ) -> MyQuery['Course']:
+        """Update the given query to load all attributes needed for an extended
+            jsonify eagerly.
+
+        :param query: The query to update.
+        :returns: The updated query, which now loads all attributes needed for
+            an extended jsonify eagerly.
+        """
+        load_assig = selectinload(Course.assignments)
+        return query.options(
+            selectinload(Course.assignments),
+            selectinload(Course.snippets),
+            selectinload(Course.group_sets),
+            selectinload(Course.course_lti_provider),
+            load_assig.selectinload(Assignment.analytics_workspaces),
+            load_assig.selectinload(Assignment.rubric_rows),
+            load_assig.selectinload(Assignment.group_set),
+            load_assig.selectinload(Assignment.peer_feedback_settings),
+        )
 
     @classmethod
     def create_and_add(
@@ -284,32 +381,6 @@ class Course(NotEqualMixin, Base):
 
     def __structlog__(self) -> t.Mapping[str, t.Union[str, int]]:
         return {'type': self.__class__.__name__, 'id': self.id}
-
-    def __to_json__(self) -> t.Mapping[str, t.Any]:
-        """Creates a JSON serializable representation of this object.
-
-        This object will look like this:
-
-        .. code:: python
-
-            {
-                'name': str, # The name of the course,
-                'id': int, # The id of this course.
-                'created_at': str, # ISO UTC date.
-                'is_lti': bool, # Is the this course a LTI course,
-                'virtual': bool, # Is this a virtual course,
-            }
-
-        :returns: A object as described above.
-        """
-        return {
-            'id': self.id,
-            'name': self.name,
-            'created_at': self.created_at.isoformat(),
-            'is_lti': self.is_lti,
-            'virtual': self.virtual,
-            'lti_provider': self.lti_provider,
-        }
 
     def get_all_visible_assignments(self) -> t.Sequence['Assignment']:
         """Get all visible assignments for the current user for this course.

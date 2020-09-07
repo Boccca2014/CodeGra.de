@@ -175,7 +175,6 @@ export default {
 
     computed: {
         ...mapGetters('pref', ['fontSize']),
-        ...mapGetters('courses', ['assignments']),
 
         loading() {
             const feedback = this.feedback;
