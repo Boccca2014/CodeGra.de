@@ -2,11 +2,10 @@
 <template>
 <div class="manage-course">
     <local-header always-show-extra-slot>
-        <b-form-fieldset class="filter-input">
-            <input v-model="filter"
-                    class="form-control"
-                    placeholder="Type to Search"/>
-        </b-form-fieldset>
+        <template slot="title">
+            <course-name :course="course" v-if="course"/>
+            <span v-else>&hellip;</span>
+        </template>
 
         <template slot="extra">
             <category-selector
@@ -14,7 +13,7 @@
                 slot="extra"
                 class="cat-selector"
                 v-model="selectedCat"
-                default="members"
+                default="general"
                 :categories="categories"/>
         </template>
     </local-header>
@@ -22,16 +21,17 @@
     <loader v-if="!course" page-loader/>
 
     <div class="content" v-else>
+        <course-general-settings :class="{ hidden: selectedCat !== 'general'}"
+                                 class="cat-wrapper"
+                                 :course="course" />
         <users-manager :class="{ hidden: selectedCat !== 'members'}"
                        class="cat-wrapper"
                        v-if="membersEnabled"
-                       :course="course"
-                       :filter="filter"/>
+                       :course="course" />
         <permissions-manager :class="{ hidden: selectedCat !== 'permissions' }"
                              v-if="permissionsEnabled"
                              class="cat-wrapper"
-                             :course-id="course.id"
-                             :filter="filter"/>
+                             :course-id="course.id" />
         <span :class="{ hidden: selectedCat !== 'groups' }"
               v-if="groupsEnabled"
               class="cat-wrapper">
@@ -83,6 +83,8 @@ import CategorySelector from '@/components/CategorySelector';
 import GroupSetManager from '@/components/GroupSetManager';
 import SnippetManager from '@/components/SnippetManager';
 import StudentContact from '@/components/StudentContact';
+import CourseName from '@/components/CourseName';
+import CourseGeneralSettings from '@/components/CourseGeneralSettings';
 
 import { setPageTitle } from './title';
 
@@ -92,7 +94,6 @@ export default {
     data() {
         return {
             selectedCat: '',
-            filter: '',
         };
     },
 
@@ -143,6 +144,11 @@ export default {
 
         categories() {
             return [
+                {
+                    id: 'general',
+                    name: 'General',
+                    enabled: true,
+                },
                 {
                     id: 'members',
                     name: 'Members',
@@ -209,6 +215,8 @@ export default {
         GroupSetManager,
         SnippetManager,
         StudentContact,
+        CourseName,
+        CourseGeneralSettings,
     },
 };
 </script>

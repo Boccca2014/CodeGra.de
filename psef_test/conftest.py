@@ -323,7 +323,8 @@ def assert_similar():
             assert is_list or k in vals
 
             if isinstance(value, psef.models.Base):
-                value = value.__to_json__()
+                import cg_json
+                value = cg_json.JSONResponse.dump_to_object(value)
             elif isinstance(value, datetime.datetime):
                 value = value.isoformat()
 

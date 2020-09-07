@@ -3,6 +3,7 @@
 SPDX-License-Identifier: AGPL-3.0-only
 """
 import copy
+import enum
 import uuid
 import typing as t
 
@@ -11,6 +12,7 @@ from sqlalchemy.orm import selectinload
 from typing_extensions import TypedDict
 
 import psef
+import cg_enum
 from cg_dt_utils import DatetimeWithTimezone
 from cg_typing_extensions import make_typed_dict_extender
 from cg_sqlalchemy_helpers import mixins, expression
@@ -23,6 +25,7 @@ from .. import auth
 from ..helpers import NotEqualMixin, jsonify_options
 from .assignment import Assignment
 from .link_tables import user_course
+from ..permissions import CoursePermission
 
 logger = structlog.get_logger()
 
@@ -124,7 +127,16 @@ class CourseSnippet(Base):
         }
 
 
-class Course(NotEqualMixin, Base):
+@enum.unique
+class CourseState(cg_enum.CGEnum):
+    """Describes in what state a :class:`.Course` is.
+    """
+    visible = 'visible'
+    archived = 'archived'
+    deleted = 'deleted'
+
+
+class Course(NotEqualMixin, Base, mixins.TimestampMixin, mixins.IdMixin):
     """This class describes a course.
 
     A course can hold a collection of :class:`.Assignment` objects.
@@ -134,13 +146,14 @@ class Course(NotEqualMixin, Base):
     :param lti_provider: The LTI provider
     """
     __tablename__ = "Course"
-    id = db.Column('id', db.Integer, primary_key=True)
     name = db.Column('name', db.Unicode, nullable=False)
 
-    created_at = db.Column(
-        db.TIMESTAMP(timezone=True),
-        default=DatetimeWithTimezone.utcnow,
+    state = db.Column(
+        'state',
+        cg_enum.CGDbEnum(CourseState),
         nullable=False,
+        default=CourseState.visible,
+        server_default=CourseState.visible.name,
     )
 
     course_lti_provider = db.relationship(
@@ -171,6 +184,7 @@ class Course(NotEqualMixin, Base):
         cascade='all,delete',
         uselist=True,
         order_by=lambda: psef.models.GroupSet.created_at,
+        lazy='select',
     )
 
     snippets = db.relationship(
@@ -188,6 +202,7 @@ class Course(NotEqualMixin, Base):
         cascade='all,delete',
         uselist=True,
         order_by=lambda: CourseRegistrationLink.created_at,
+        lazy='select',
     )
 
     assignments = db.relationship(
@@ -195,6 +210,7 @@ class Course(NotEqualMixin, Base):
         back_populates="course",
         cascade='all,delete',
         uselist=True,
+        lazy='select',
     )
 
     class AsJSON(TypedDict, total=True):
@@ -215,6 +231,8 @@ class Course(NotEqualMixin, Base):
         #: The lti provider that manages this course, if ``null`` this is not a
         #: LTI course.
         lti_provider: t.Optional['psef.models.LTIProviderBase']
+        #: The state this course is in.
+        state: CourseState
 
     class AsExtendedJSON(AsJSON, total=True):
         """The way this class will be represented in extended JSON.
@@ -247,6 +265,7 @@ class Course(NotEqualMixin, Base):
             'is_lti': self.is_lti,
             'virtual': self.virtual,
             'lti_provider': self.lti_provider,
+            'state': self.state,
         }
         if jsonify_options.get_options().add_role_to_course:
             user = psef.current_user
@@ -400,7 +419,10 @@ class Course(NotEqualMixin, Base):
         return Assignment.query.filter(Assignment.course == self)
 
     def get_all_users_in_course(
-        self, *, include_test_students: bool
+        self,
+        *,
+        include_test_students: bool,
+        with_permission: CoursePermission = None
     ) -> MyQuery['t.Tuple[user_models.User, role_models.CourseRole]']:
         """Get a query that returns all users in the current course and their
             role.
@@ -408,15 +430,29 @@ class Course(NotEqualMixin, Base):
         :returns: A query that contains all users in the current course and
             their role.
         """
-        res = db.session.query(user_models.User, role_models.CourseRole).join(
+        CourseRole = role_models.CourseRole
+
+        join_conds = [CourseRole.id == user_course.c.course_id]
+        if with_permission is not None:
+            join_conds.append(
+                CourseRole.id.in_(
+                    CourseRole.get_roles_with_permission(
+                        with_permission,
+                    ).filter(CourseRole.course_id == self.id).with_entities(
+                        CourseRole.id
+                    )
+                )
+            )
+
+        res = db.session.query(user_models.User, CourseRole).join(
             user_course,
             user_course.c.user_id == user_models.User.id,
         ).join(
-            role_models.CourseRole,
-            role_models.CourseRole.id == user_course.c.course_id,
+            CourseRole,
+            expression.and_(*join_conds),
         ).filter(
-            role_models.CourseRole.course_id == self.id,
-            user_models.User.virtual.isnot(True)
+            CourseRole.course_id == self.id,
+            user_models.User.virtual.isnot(True),
         )
 
         if not include_test_students:

@@ -168,7 +168,9 @@ if True:  # pylint: disable=using-constant-test
     from .work import Work, WorkOrigin, GradeOrigin, GradeHistory
     from .group import Group, GroupSet
     from .proxy import Proxy, ProxyState
-    from .course import Course, CourseSnippet, CourseRegistrationLink
+    from .course import (
+        Course, CourseState, CourseSnippet, CourseRegistrationLink
+    )
     from .linter import LinterState, LinterComment, LinterInstance
     from .rubric import RubricItem
     from .rubric import RubricRowBase as RubricRow

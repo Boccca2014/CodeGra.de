@@ -13,6 +13,7 @@
                 </template>
             </cg-description-popover>
         </template>
+
         <table class="registration-table table mb-0">
             <thead>
                 <tr>
@@ -132,6 +133,12 @@
     </b-card>
 
     <b-card header="Course members" no-body>
+        <div class="m-2">
+            <input class="form-control"
+                   placeholder="Type to search users"
+                   :value="filter"
+                   v-debounce="newFilter => { filter = newFilter }" />
+        </div>
         <template v-if="canListUsers">
             <b-table striped
                      ref="table"
@@ -257,11 +264,6 @@ export default {
             type: Object,
             required: true,
         },
-
-        filter: {
-            type: String,
-            default: '',
-        },
     },
 
     data() {
@@ -292,6 +294,7 @@ export default {
             registrationLinks: [],
             UserConfig,
             currentPage: 1,
+            filter: this.$route.query.filterUsers || '',
         };
     },
 
@@ -338,6 +341,14 @@ export default {
 
         filter() {
             this.currentPage = 1;
+
+            const newQuery = Object.assign({}, this.$route.query);
+            newQuery.filterUsers = this.filter || undefined;
+
+            this.$router.replace({
+                query: newQuery,
+                hash: this.$route.hash,
+            });
         },
     },
 

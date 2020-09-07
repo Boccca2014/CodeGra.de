@@ -4,7 +4,8 @@
     <div class="sidebar-filter">
         <input class="form-control"
                placeholder="Filter assignments"
-               v-model="filter"
+               :value="filter"
+               v-debounce="newFilter => { filter = newFilter }"
                ref="filter">
     </div>
 

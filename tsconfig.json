@@ -1,5 +1,6 @@
 {
   "include": [
+    "node_modules/vue-tsx-support/enable-check.d.ts",
     "./src/**/*"
   ],
   "compilerOptions": {
@@ -7,6 +8,8 @@
     "checkJs": false,
     "target": "es2017",
     "strict": true,
+    "jsx": "preserve",
+    "jsxFactory": "VueTsxSupport",
     "module": "esnext",
     "moduleResolution": "node",
     "allowSyntheticDefaultImports": true,

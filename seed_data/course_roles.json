@@ -47,7 +47,8 @@
       "can_add_own_inline_comments",
       "can_view_feedback_author",
       "can_view_inline_feedback_before_approved",
-      "can_approve_inline_comments"
+      "can_approve_inline_comments",
+      "can_see_archived_courses"
     ],
     "admin_role": false,
     "initial_role": false
@@ -112,7 +113,10 @@
       "can_email_students",
       "can_view_inline_feedback_before_approved",
       "can_approve_inline_comments",
-      "can_edit_peer_feedback_settings"
+      "can_edit_peer_feedback_settings",
+      "can_see_archived_courses",
+      "can_archive_courses",
+      "can_edit_course_info"
     ],
     "admin_role": true,
     "initial_role": true
@@ -162,7 +166,8 @@
       "can_add_own_inline_comments",
       "can_view_others_comment_edits",
       "can_view_feedback_author",
-      "can_edit_peer_feedback_settings"
+      "can_edit_peer_feedback_settings",
+      "can_edit_course_info"
     ],
     "admin_role": false,
     "initial_role": false
