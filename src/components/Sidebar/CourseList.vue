@@ -94,7 +94,7 @@ import InfiniteLoading from 'vue-infinite-loading';
 import { INITIAL_COURSES_AMOUNT } from '@/constants';
 
 import SubmitInput from '../SubmitInput';
-import CourseListItem from './CourseListItem.tsx';
+import CourseListItem from './CourseListItem';
 
 let idNum = 0;
 
