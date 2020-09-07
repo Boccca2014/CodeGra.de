@@ -17,7 +17,7 @@ before attempting the steps below.
 
     Building, hosting, and running CodeGrade is at your own risk. We provide
     CodeGrade as a service. More information on getting started with CodeGrade
-    at your institute can be found on `our website <https://codegra.de>`_.
+    at your institute can be found on `our website <https://codegrade.com>`_.
 
 Development Mode
 ------------------

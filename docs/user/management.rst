@@ -13,7 +13,18 @@ still allows to click the :fa:`cog` button on the bottom right to show the manag
 
 Course Management
 -------------------
-The first tab of the course management page, *Members*, displays a list of all
+On the first tab of the course management page, *General*, you can change the
+name of the course. The name may not be empty. As the name of LTI courses is
+copied from the LMS, the name of LTI courses cannot be changed within
+CodeGrade.
+
+On this tab you can also archive a course. Archiving a course will hide it for
+students (or more precisely all users that do not have the "See archived
+courses" permission), and will sort it below all non archived courses.  You can
+still import data from archived courses. Archiving can be reversed without data
+loss.
+
+The second tab of the course management page, *Members*, displays a list of all
 users (students, teachers and other roles) that are *enrolled* in the
 course. The role of users can be changed here and new users can be added to the
 course.
@@ -24,18 +35,18 @@ course.
     is connected, however managing roles and permissions is still done in
     CodeGrade.
 
-The second tab, *Permissions*, shows an overview of all roles and their specific
+The third tab, *Permissions*, shows an overview of all roles and their specific
 permissions. Existing roles can be altered and completely new roles can be added
 via the dialog on the bottom of the page. More information about the specific
 course permissions can be found in the
 :ref:`permissions chapter <permissions-chapter>`.
 
-The third tab, *Groups*, shows all group sets of the course. Here you create,
+The fourth tab, *Groups*, shows all group sets of the course. Here you create,
 delete and can edit the minimum and maximum size of group sets. Group sets are a
 key concept for group assignments in CodeGrade, more information about them can
 be found in the :ref:`groups chapter <groups-chapter>`.
 
-The fourth tab, *Snippets*, shows all course-wide snippets in this course. These
+The fifth tab, *Snippets*, shows all course-wide snippets in this course. These
 course snippets can be set up by the teacher and can be used by all graders
 grading in the course. These snippets are always in addition to the graders'
 personal snippets and are indicated with the :fa:`books` icon.
@@ -87,24 +98,53 @@ Assignment State
 ~~~~~~~~~~~~~~~~~~~
 Three assignment states are available and can be set on the top right:
 
-* :fa:`eye-slash` **Hidden** state: the assignment is invisible to students.
-* :fa:`clock-o` **Open** state: the assignment is visible to students and
+- :fa:`eye-slash` **Hidden** state: the assignment is invisible to students.
+- :fa:`clock-o` **Open** state: the assignment is visible to students and
   students can hand in submissions before the deadline.
-* :fa:`check` **Done** state: the assignment is visible to students and grading
+- :fa:`check` **Done** state: the assignment is visible to students and grading
   is finished.
 
 General
 ~~~~~~~~
-In this tab you can edit basic settings, as the assignment name and
+In this tab you can edit basic settings, such as the assignment name and
 deadline, but also some more advanced settings.
+
+Assignment type
++++++++++++++++
+A CodeGrade assignment can be one of three types:
+
+- **Normal**: a regular assignment.
+- **Exam**: an exam. For exams you do not configure the deadline of an
+  assignment but rather when it starts and a duration. Students can optionally
+  receive an email with a link with which they can set a password and log into
+  CodeGrade when the exam starts. During the exam students only have access to
+  the course of the exam, and not any other courses.
+
+  See the :ref:`Exam mode documentation <exam-mode>` documentation for more
+  information about exams in CodeGrade.
+- **LTI**: an assignment managed via a Learning Management System. You cannot
+  switch to one of the other types of assignment.
+
+Available at
+++++++++++++
+The available at date of an assignment automates the transition from the
+**hidden** state of the assignment to the **open** state. Set a date and time
+and at that moment the assignment will become visible to students, so you don't
+have to think about it anymore.
 
 Upload types
 +++++++++++++
 CodeGrade offers two means of handing in for students: via the file uploader
 in CodeGrade or using Git (GitHub or GitLab).
 
-- **File Uploader**: this option allows students to hand in their submission through CodeGrade's file uploader. Students can hand in one or multiple files and can even hand in archives (e.g. ``.zip`` or ``.tar.gz``) which will be extracted automatically.
-- **Git**: this option allows students to configure their GitHub or GitLab repository to upload to CodeGrade with every ``push``. Configuration instructions can be found on the hand-in page, the unique deploy key and webhook have to be configured for each separate assignment once per student.
+- **File Uploader**: this option allows students to hand in their submission
+  through CodeGrade's file uploader. Students can hand in one or multiple files
+  and can even hand in archives (e.g. ``.zip`` or ``.tar.gz``) which will be
+  extracted automatically.
+- **Git**: this option allows students to configure their GitHub or GitLab
+  repository to upload to CodeGrade with every ``push``. Configuration
+  instructions can be found on the hand-in page, the unique deploy key and
+  webhook have to be configured for each separate assignment once per student.
 
 .. note::
 
@@ -193,6 +233,71 @@ You can combine the *cool off period* with a maximum amount of submissions. This
 could allow you, for example, to enforce a small wait period between two
 submissions, but also enforce a total amount of submissions.
 
+Uploading Submissions
++++++++++++++++++++++++
+Submissions can be uploaded via the assignment management page too. Using the
+*Upload submission* tool submissions can be uploaded as any requested user:
+hand in submissions for students or hand in as administrator by selecting
+a user via the search bar. Submissions can be uploaded as an archive, which is
+automatically extracted by CodeGrade, or as multiple individual files.
+
+You can also do a submission as a test student to check if your assignment
+setup works as expected. It can be useful to test your hand-in requirements,
+AutoTest configuration, linter configuration, you name it. You can even do test
+submissions before you have set a deadline on the assignment.
+
+Peer feedback
++++++++++++++
+Who knows better what problems students run into than the students themselves?
+This is why CodeGrade offers peer feedback, a way for students to review and
+learn from each other's code. When peer feedback is enabled for an assignment
+students get assigned to a number of other students and get access to their
+submissions.
+
+You can enable peer feedback by clicking the :fa:`comments-o` button,
+configuring the peer feedback settings, and finally pressing the "Submit"
+button.
+
+Amount of students
+##################
+This is the amount of submissions each student should review. Students are
+distributed randomly amongst each other. This happens in an auomated fashion
+once the deadline of the assignment has passed.
+
+.. warning::
+
+   This setting should be treated with care, *especially after the assignment's
+   deadline*, because changing it will cause all students to be reassigned. The
+   process of reassigning does not guarantee that students are assigned to the
+   same peers as before the change, even when the number has increased. On the
+   contrary, it is quite likely that almost all students are assigned to
+   someone else than they had been.
+
+Time to give peer feedback
+##########################
+The amount of time students have to give feedback to their peers. During this
+time students can place comments on the submissions they were assigned to.
+Students will still be able to view the submissions even after this time has
+passed.
+
+Automatically approve comments
+##############################
+By default when a student places peer feedback on another student's submission
+the other student will not be able to see it immediately. The comment first has
+to be approved by the teacher or teaching assistant. Enabling this option
+changes that behavior so that each comment is automatically approved.
+
+.. note::
+
+  Comments can still be disapproved even with this setting turned on.
+
+Group assignment
+++++++++++++++++++
+Here you can select which group set to use for this assignment. When a group set
+is selected the assignment becomes a group assignment. Group sets are a
+key concept for group assignments in CodeGrade, more information about them can
+be found in the :ref:`groups chapter <groups-chapter>`.
+
 Hand-in Requirements
 ++++++++++++++++++++++
 The hand-in requirements make it possible to set up strict rules to the
@@ -207,9 +312,14 @@ third part of the specifications.
 Secondly, numerous options can be selected to further specify the behaviour of
 your requirements. These options are:
 
-- **Delete empty directories**: If enabled, automatically delete empty directories in submissions.
-- **Delete leading directories**: If enabled, automatically delete superfluous leading directories (i.e. top-level directories in which all files / subdirectories are located).
-- **Allow overrides by students**: If enabled, the student can, after being shown a warning, still force hand in the submission even if it violates the hand-in requirements.
+- **Delete empty directories**: If enabled, automatically delete empty
+  directories in submissions.
+- **Delete leading directories**: If enabled, automatically delete superfluous
+  leading directories (i.e. top-level directories in which all files
+  / subdirectories are located).
+- **Allow overrides by students**: If enabled, the student can, after being
+  shown a warning, still force hand in the submission even if it violates the
+  hand-in requirements.
 
 Thirdly, rules can be given that consist of exceptions to the default rule and
 requiring certain files. These rules can apply to files anywhere in the
@@ -238,31 +348,7 @@ is selected the assignment becomes a group assignment. Group sets are a
 key concept for group assignments in CodeGrade, more information about them can
 be found in the :ref:`groups chapter <groups-chapter>`.
 
-Uploading Submissions
-+++++++++++++++++++++++
-Submissions can be uploaded via the assignment management page too. Using the *Upload submission* tool submissions can be uploaded as
-any requested user: hand in submissions for students or hand in as administrator by selecting a user via the search bar.
-Submissions can be uploaded as an archive, which is automatically extracted by CodeGrade, or as multiple individual files.
-
 .. _upload-blackboard-zip:
-
-Uploading Blackboard Archives
-+++++++++++++++++++++++++++++++
-It is possible to combine CodeGrade with the Blackboard learning management
-system: handing in is done via Blackboard and grading and presenting feedback
-via the stand-alone CodeGrade application. After exporting the submissions on
-Blackboard (see Blackboard documentation
-`here <https://help.blackboard.com/Learn/Instructor/Assignments/Download_Assignments>`__),
-the downloaded archive can be uploaded using Blackboard Zip tool in CodeGrade.
-
-By uploading this archive, CodeGrade will add all students' corresponding
-CodeGrade accounts to the course and link their submissions correctly.  If a
-student does not yet have a CodeGrade account, a new account will be created.
-
-.. warning::
-
-    BlackBoard uploading is an experimental feature that was tested working with
-    BlackBoard 9, if an error occurs please contact us at help@codegra.de.
 
 Graders
 ~~~~~~~~~
@@ -305,7 +391,7 @@ assignments.
 Finished Grading and Notifications
 +++++++++++++++++++++++++++++++++++
 CodeGrade provides essential communication tools between graders in the shape of
-e-mail notifications. These notifications rely on graders indicating that they
+email notifications. These notifications rely on graders indicating that they
 are done grading by setting their state to 'Done' after all grading is finished.
 
 .. warning::
@@ -315,15 +401,16 @@ are done grading by setting their state to 'Done' after all grading is finished.
 
 E-mail Notifications
 ++++++++++++++++++++++
-CodeGrade provides two types of e-mail notifications to enable essential
+CodeGrade provides two types of email notifications to enable essential
 communication between graders:
 
-* **Graders** notification: send an e-mail at a specified date and time to all
+* **Graders** notification: send an email at a specified date and time to all
   graders that have not yet finished grading.
-* **Finished** notification: send an e-mail to a specified e-mail address to
+* **Finished** notification: send an email to a specified email address to
   notify when all graders are finished grading.
 
-.. note:: Notifications rely on the manually set status by the graders.
+.. note:: For these notifications to be sent, graders must manually update
+   their status.
 
 Linters
 ~~~~~~~~~
@@ -444,6 +531,11 @@ precise grading. Continuous rubric categories are also very useful for
     A rubric is only saved after pressing the 'Submit' button, it is recommended
     to occasionally save the rubric to prevent losing work.
 
+AutoTest
+~~~~~~~~~
+The AutoTest configuration and results can be viewed and edited in the AutoTest
+tab. For more information on how to set up AutoTest refer to
+:ref:`the AutoTest documentation <autotest-overview>`.
 
 Creating a new Assignment
 ~~~~~~~~~~~~~~~~~~~~~~~~~

@@ -53,7 +53,7 @@ import 'vue-awesome/icons/refresh';
 
 import { getPreviousRoute } from '@/router';
 
-import { nameOfUser, waitAtLeast } from '@/utils';
+import { nameOfUser } from '@/utils';
 
 import GroupsManagement from '@/components/GroupsManagement';
 import LocalHeader from '@/components/LocalHeader';
@@ -65,22 +65,38 @@ export default {
 
     data() {
         return {
-            loading: true,
             filter: '',
             getPreviousRoute,
         };
     },
 
     watch: {
-        groupSetId(newVal, oldVal) {
-            if (newVal !== oldVal) {
+        groupSetId: {
+            immediate: true,
+            handler() {
+                this.loadData();
+            },
+        },
+
+        groupSet(newVal) {
+            if (newVal == null) {
                 this.loadData();
             }
+        },
+
+        groupAssignmentIds: {
+            immediate: true,
+            handler(newVal) {
+                newVal.forEach(assignmentId => {
+                    this.loadSingleAssignment({ assignmentId });
+                });
+            },
         },
     },
 
     computed: {
-        ...mapGetters('courses', ['assignments', 'courses']),
+        ...mapGetters('courses', ['getCourse']),
+        ...mapGetters('assignments', ['getAssignment']),
 
         backPopover() {
             const prev = this.getPreviousRoute();
@@ -91,7 +107,7 @@ export default {
         },
 
         course() {
-            return this.courses[this.courseId];
+            return this.getCourse(this.courseId).extract();
         },
 
         courseId() {
@@ -106,23 +122,29 @@ export default {
             if (!this.course) {
                 return null;
             }
-            const set = this.course.group_sets.filter(s => this.groupSetId === s.id);
+            const set = this.course.groupSets.filter(s => this.groupSetId === s.id);
             return set.length > 0 ? set[0] : null;
         },
 
+        groupAssignmentIds() {
+            return this.$utils.getProps(this.groupSet, [], 'assignment_ids');
+        },
+
         groupAssignments() {
-            return this.groupSet.assignment_ids
-                .map(id => this.assignments[id])
-                .filter(assig => this.$utils.getProps(assig, null, 'name') != null);
+            return this.$utils.filterMap(
+                this.groupAssignmentIds,
+                id => this.getAssignment(id),
+            );
+        },
+
+        loading() {
+            return this.course == null;
         },
     },
 
-    mounted() {
-        this.loadData();
-    },
-
     methods: {
-        ...mapActions('courses', ['loadCourses', 'reloadCourses']),
+        ...mapActions('courses', ['loadSingleCourse']),
+        ...mapActions('assignments', ['loadSingleAssignment']),
 
         getAssignmentLink(assig) {
             return {
@@ -134,15 +156,15 @@ export default {
             };
         },
 
-        loadData() {
-            this.loading = true;
-            return waitAtLeast(250, this.loadCourses()).then(() => {
-                this.loading = false;
+        loadData({ force = false } = {}) {
+            this.loadSingleCourse({
+                courseId: this.courseId,
+                force,
             });
         },
 
         reload() {
-            return waitAtLeast(250, this.$refs.groups.loadData(), this.reloadCourses());
+            this.$refs.groups.loadData({ force: true });
         },
 
         filterGroup(group) {

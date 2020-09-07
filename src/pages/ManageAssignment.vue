@@ -34,126 +34,49 @@
     <div class="page-content" v-if="loadingInner">
         <loader page-loader />
     </div>
-    <div class="page-content" v-show="!loadingInner"
-         :key="assignmentId">
+
+    <div class="page-content"
+         :key="assignmentId"
+         v-show="!loadingInner">
         <div :class="{hidden: selectedCat !== 'general'}"
+             v-if="visibleCats.general"
              class="row cat-wrapper">
-            <div v-if="canEditInfo"
-                 class="col-lg-12">
-                <b-form-fieldset v-if="canEditName">
-                    <b-input-group prepend="Name">
-                        <input type="text"
-                               class="form-control"
-                               v-model="assignmentTempName"
-                               @keyup.ctrl.enter="$refs.updateName.onClick"/>
-                        <b-input-group-append>
-                            <submit-button :submit="submitName"
-                                           @success="updateName"
-                                           ref="updateName"/>
-                        </b-input-group-append>
-                    </b-input-group>
-                </b-form-fieldset>
-
-                <b-form-fieldset v-if="canEditDeadline">
-                    <b-input-group>
-                        <b-input-group-prepend is-text slot="prepend"
-                                               :class="{ 'warning': !assignment.hasDeadline }">
-                            Deadline
-
-                            <description-popover placement="top" hug-text>
-                                <template v-if="ltiProvider && !ltiProvider.supportsDeadline"
-                                          slot="description">
-                                    {{ lmsName }} did not pass this assignment's deadline on to
-                                    CodeGrade.  Students will not be able to submit their work
-                                    until the deadline is set here.
-                                </template>
-                                <template v-else
-                                          slot="description">
-                                    Students will not be able to submit work unless a deadline has
-                                    been set.
-                                </template>
-                            </description-popover>
-                        </b-input-group-prepend>
-                        <datetime-picker v-model="assignmentTempDeadline"
-                                         class="assignment-deadline"
-                                         placeholder="None set"/>
-                        <b-input-group-append>
-                            <submit-button :submit="submitDeadline"
-                                           ref="updateDeadline"/>
-                        </b-input-group-append>
-                    </b-input-group>
-                </b-form-fieldset>
-
-                <b-form-fieldset v-if="canEditMaxGrade" class="flex-grow-1">
-                    <maximum-grade :assignment="assignment"/>
-                </b-form-fieldset>
-
-                <b-form-fieldset v-if="canEditInfo">
-                    <assignment-submit-types :assignment-id="assignmentId"/>
-                </b-form-fieldset>
-
-                <submission-limits v-if="canEditInfo"
-                                   v-model="assignmentTempSubmissionLimits"
-                                   @update-cool-off="() => $refs.updateCoolOffPeriod.onClick()"
-                                   @update-max-submissions="() => $refs.updateMaxSubmissions.onClick()"
-                                   >
-                    <b-input-group-append slot="max-submissions">
-                        <submit-button :submit="submitMaxSubmissions"
-                                       ref="updateMaxSubmissions"
-                                       @success="afterSubmitMaxSubmissions"/>
-                    </b-input-group-append>
-
-                    <b-input-group-append slot="cool-off-period">
-                        <submit-button :submit="submitCoolOffPeriod"
-                                        ref="updateCoolOffPeriod"
-                                        @success="afterSubmitCoolOffPeriod"/>
-                    </b-input-group-append>
-                </submission-limits>
+            <div class="col-xl-6">
+                <assignment-general-settings
+                    v-if="permissions.canEditSomeGeneralSettings"
+                    :assignment="assignment" />
             </div>
 
-            <div class="col-lg-12">
-                <b-card v-if="canEditIgnoreFile"
-                        class="ignore-card">
-                    <span slot="header">
-                        Hand-in requirements
-                        <description-popover
-                            description="This allows you to set hand-in
-                                         requirement for students, making sure
-                                         their submission follows a certain file
-                                         and directory structure. Students will
-                                         be able to see these requirements
-                                         before submitting and will get a
-                                         warning if their submission does not
-                                         follow the hand-in requirements."/>
-                    </span>
+            <div class="col-xl-6">
+                <assignment-submission-settings
+                    v-if="permissions.canEditSubmissionSettings"
+                    :assignment="assignment" />
 
-                    <c-g-ignore-file class="m-3"
-                                     :assignment-id="assignmentId"/>
-                </b-card>
+                <b-card v-if="canSubmitWork"
+                        no-body>
+                    <template #header>
+                        Upload submission
 
-                <b-card v-if="canEditGroups" no-body>
-                    <span slot="header">
-                        Group assignment
                         <description-popover>
-                            <span slot="description">
-                                Determine if this assignment should be a group
-                                assignment. Select a group set for this
-                                assignment to make it a group assignment. To
-                                learn more about how groups work on CodeGrade, you can read
-                                more <a class="inline-link"
-                                        href="https://docs.codegra.de/"
-                                        target="_blank">here</a>.
-                            </span>
+                            Upload work for this assignment. With the author
+                            field you can select who should be the author. This
+                            function can be used to submit work for a student.
                         </description-popover>
-                    </span>
-                    <assignment-group :assignment="assignment"/>
+                    </template>
+
+                    <submission-uploader :assignment="assignment"
+                                         for-others
+                                         no-border
+                                         maybe-show-git-instructions
+                                         :can-list-users="canListCourseUsers" />
                 </b-card>
             </div>
 
-            <div class="col-lg-12">
+            <div class="col-xl-6">
                 <b-card v-if="canEditPeerFeedbackSettings">
                     <template #header>
                         Peer feedback
+
                         <description-popover>
                             Enable peer feedback for this assignment. When
                             enabled you can set the amount of days that
@@ -163,24 +86,67 @@
                             review.
                         </description-popover>
                     </template>
+
                     <peer-feedback-settings :assignment="assignment" />
                 </b-card>
             </div>
 
-            <div :class="canSubmitBbZip ? 'col-xl-6' : 'col-xl-12'">
-                <b-card v-if="canSubmitWork" no-body>
+            <div class="col-xl-6">
+                <b-card v-if="canEditGroups" no-body>
                     <span slot="header">
-                        Upload submission
-                        <description-popover
-                            description="Upload work for this assignment. With the
-                                         author field you can select who should be the author. This
-                                         function can be used to submit work for a student."/>
+                        Group assignment
+
+                        <description-popover>
+                            <span slot="description">
+                                Determine if this assignment should be a group
+                                assignment. Select a group set for this
+                                assignment to make it a group assignment. To
+                                learn more about how groups work on CodeGrade,
+                                you can read more
+                                <a class="inline-link"
+                                   href="https://docs.codegra.de/"
+                                   target="_blank">here</a>.
+                            </span>
+                        </description-popover>
                     </span>
-                    <submission-uploader :assignment="assignment"
-                                         for-others
-                                         no-border
-                                         maybe-show-git-instructions
-                                         :can-list-users="permissions.can_list_course_users"/>
+                    <assignment-group :assignment="assignment"/>
+                </b-card>
+            </div>
+
+            <div class="col-xl-12">
+                <b-card v-if="canEditIgnoreFile"
+                        class="ignore-card"
+                        body-class="p-0">
+                    <span slot="header">
+                        Hand-in requirements
+                        <description-popover>
+                            This allows you to set hand-in requirement for
+                            students, making sure their submission follows
+                            a certain file and directory structure. Students
+                            will be able to see these requirements before
+                            submitting and will get a warning if their
+                            submission does not follow the hand-in
+                            requirements.
+                        </description-popover>
+                    </span>
+
+                    <c-g-ignore-file class="m-3"
+                                     :assignment="assignment"/>
+                </b-card>
+
+                <b-card header="Blackboard zip"
+                        v-if="canSubmitBbZip">
+                    <b-popover placement="top"
+                               v-if="assignment.is_lti"
+                               :target="`file-uploader-assignment-${assignment.id}`"
+                               triggers="hover">
+                        Not available for LTI assignments
+                    </b-popover>
+                    <file-uploader class="blackboard-zip-uploader"
+                                   :url="`/api/v1/assignments/${assignment.id}/submissions/`"
+                                   :disabled="assignment.is_lti"
+                                   @response="() => forceLoadSubmissions({ assignmentId: assignment.id, courseId: assignment.courseId })"
+                                   :id="`file-uploader-assignment-${assignment.id}`"/>
                 </b-card>
 
                 <b-card header="Danger zone"
@@ -188,7 +154,7 @@
                         border-variant="danger"
                         header-text-variant="danger"
                         header-border-variant="danger"
-                        v-if="permissions.can_delete_assignments">
+                        v-if="canDeleteAssignments">
                     <div class="d-flex justify-content-between">
                         <div>
                             <strong class="d-block">Delete assignment</strong>
@@ -210,94 +176,16 @@
                     </div>
                 </b-card>
             </div>
-
-            <div :class="canSubmitWork ? 'col-xl-6' : 'col-xl-12'">
-                <b-card header="Blackboard zip"
-                        v-if="canSubmitBbZip">
-                    <b-popover placement="top"
-                               v-if="assignment.is_lti"
-                               :target="`file-uploader-assignment-${assignment.id}`"
-                               triggers="hover">
-                        Not available for LTI assignments
-                    </b-popover>
-                    <file-uploader class="blackboard-zip-uploader"
-                                   :url="`/api/v1/assignments/${assignment.id}/submissions/`"
-                                   :disabled="assignment.is_lti"
-                                   @response="forceLoadSubmissions(assignment.id)"
-                                   :id="`file-uploader-assignment-${assignment.id}`"/>
-                </b-card>
-            </div>
         </div>
 
-        <div class="row cat-wrapper"
+        <div class="cat-wrapper"
              :class="{hidden: selectedCat !== 'graders'}">
-            <div class="col-xl-6">
-                <b-card v-if="canAssignGraders" no-body>
-                    <span slot="header">
-                        Divide submissions
-                        <description-popover>
-                            <span slot="description">
-                                Divide this assignment. When dividing users are
-                                assigned to submissions based on weights.  When
-                                new submissions are uploaded graders are also
-                                automatically assigned. When graders assign
-                                themselves the weights are not updated to
-                                reflect this. To read more about dividing
-                                graders please read our
-                                documentation <a href="https://docs.codegra.de/user/management.html#dividing-submissions"
-                                                 target="_blank"
-                                                 class="inline-link"
-                                                 >here</a>.
-                            </span>
-                        </description-popover>
-                    </span>
-
-                    <loader class="m-3 text-center" v-if="gradersLoading && !gradersLoadedOnce"/>
-
-                    <divide-submissions v-else
-                                        :assignment="assignment"
-                                        @divided="loadGraders"
-                                        :graders="graders" />
-                </b-card>
-            </div>
-
-            <div class="col-xl-6">
-                <b-card v-if="canUpdateGradersStatus"
-                        no-body
-                        class="finished-grading-card">
-                    <span slot="header">
-                        Finished grading
-                        <description-popover
-                            description="Indicate that a grader is done with
-                                         grading. All graders that have indicated that they
-                                         are done will not receive notification e-mails."/>
-                    </span>
-
-                    <loader class="m-3 text-center" v-if="gradersLoading"/>
-
-                    <finished-grader-toggles :assignment="assignment"
-                                             :graders="graders"
-                                             :others="permissions.can_update_grader_status || false"
-                                             v-else/>
-                </b-card>
-
-                <b-card v-if="canUpdateNotifications">
-                    <span slot="header">
-                        Notifications
-                        <description-popover
-                            description="Send a reminder e-mail to the selected
-                                         graders on the selected time if they have not yet
-                                         finished grading."/>
-                    </span>
-
-                    <notifications :assignment="assignment"
-                                   class="reminders"/>
-                </b-card>
-            </div>
+            <assignment-grader-settings :assignment="assignment"
+                                        v-if="visibleCats.graders"/>
         </div>
 
         <div class="cat-wrapper" :class="{hidden: selectedCat !== 'linters'}">
-            <b-card v-if="canUseLinters"
+            <b-card v-if="canUseLinters && visibleCats.linters"
                     header="Linters"
                     :course-id="assignment.course.id">
                 <linters :assignment="assignment"/>
@@ -306,23 +194,23 @@
         </div>
 
         <div class="cat-wrapper" :class="{hidden: selectedCat !== 'plagiarism'}">
-            <b-card v-if="canUsePlagiarism" no-body>
+            <b-card v-if="canUsePlagiarism && visibleCats.plagiarism" no-body>
                 <span slot="header">
                     Plagiarism checking
-                    <description-popover
-                        description="Run a plagiarism checker or view
-                                     the results."/>
+                    <description-popover>
+                        Run a plagiarism checker or view the results.
+                    </description-popover>
                 </span>
-                <plagiarism-runner :class="{ 'mb-3': permissions.can_manage_plagiarism }"
+                <plagiarism-runner :class="{ 'mb-3': canManagePlagiarism }"
                                    :assignment="assignment"
                                    :hidden="selectedCat !== 'plagiarism'"
-                                   :can-manage="permissions.can_manage_plagiarism"
-                                   :can-view="permissions.can_view_plagiarism"/>
+                                   :can-manage="canManagePlagiarism"
+                                   :can-view="canViewPlagiarism"/>
             </b-card>
         </div>
 
         <div class="cat-wrapper" :class="{hidden: selectedCat !== 'rubric'}">
-            <b-card header="Rubric" v-if="canUseRubrics">
+            <b-card header="Rubric" v-if="canUseRubrics && visibleCats.rubric">
                 <!-- TODO: Proper fix instead of :key hack -->
                 <rubric-editor :key="assignment.id"
                                :hidden="selectedCat !== 'rubric'"
@@ -334,6 +222,7 @@
         <div class="cat-wrapper" :class="{hidden: selectedCat !== 'auto-test'}">
             <!-- TODO: Proper fix instead of :key hack -->
             <auto-test :key="assignment.id"
+                       v-if="visibleCats['auto-test']"
                        :assignment="assignment"
                        :hidden="selectedCat !== 'auto-test'"
                        editable />
@@ -344,31 +233,31 @@
 
 <script>
 import { mapActions, mapGetters } from 'vuex';
+import 'vue-awesome/icons/reply';
 
 import {
     AssignmentState,
-    DivideSubmissions,
+    AssignmentGeneralSettings,
+    AssignmentGraderSettings,
+    AssignmentSubmissionSettings,
     FileUploader,
     Linters,
     Loader,
     SubmitButton,
     RubricEditor,
     CGIgnoreFile,
-    Notifications,
     DescriptionPopover,
-    FinishedGraderToggles,
     LocalHeader,
     SubmissionUploader,
-    MaximumGrade,
     PlagiarismRunner,
     AssignmentGroup,
     CategorySelector,
-    DatetimePicker,
     AutoTest,
-    AssignmentSubmitTypes,
-    SubmissionLimits,
     PeerFeedbackSettings,
 } from '@/components';
+
+import { CoursePermission as CPerm } from '@/permissions';
+import * as models from '@/models';
 
 export default {
     name: 'manage-assignment',
@@ -376,125 +265,113 @@ export default {
     data() {
         return {
             UserConfig,
-            graders: [],
-            gradersLoading: true,
-            gradersLoadedOnce: false,
-            assignmentTempName: '',
-            assignmentTempDeadline: '',
-            assignmentTempSubmissionLimits: null,
-            permissions: null,
-            loading: true,
             loadingInner: true,
             selectedCat: '',
+            visibleCats: {},
         };
     },
 
     computed: {
-        ...mapGetters('courses', ['assignments']),
+        ...mapGetters('assignments', ['getAssignment']),
 
         formattedDeadline() {
             return (this.assignment && this.assignment.getFormattedDeadline()) || '';
         },
 
+        courseId() {
+            return Number(this.$route.params.courseId);
+        },
+
         assignment() {
-            const id = this.$route.params.assignmentId;
-            return this.assignments[id] || {};
+            return this.getAssignment(this.assignmentId).extract();
         },
 
         assignmentId() {
-            return this.$utils.getProps(this.assignment, null, 'id');
-        },
-
-        assignmentUrl() {
-            return `/api/v1/assignments/${this.assignment.id}`;
+            return Number(this.$route.params.assignmentId);
         },
 
         ltiProvider() {
-            return this.$utils.getProps(this.assignment, null, 'course', 'ltiProvider');
+            return this.$utils.getPropMaybe(this.assignment, 'ltiProvider');
         },
 
-        lmsName() {
-            return this.$utils.getProps(this.ltiProvider, null, 'lms');
+        permissions() {
+            return new models.AssignmentCapabilities(this.assignment);
         },
 
         canEditState() {
-            return this.permissions.can_edit_assignment_info;
+            return this.assignment.hasPermission(CPerm.canEditAssignmentInfo);
         },
 
         canEditInfo() {
-            return this.canEditName || this.canEditDeadline || this.canEditMaxGrade;
-        },
-
-        canEditName() {
-            return !this.assignment.is_lti && this.permissions.can_edit_assignment_info;
-        },
-
-        canEditDeadline() {
-            return (
-                (!this.ltiProvider || !this.ltiProvider.supportsDeadline) &&
-                this.permissions.can_edit_assignment_info
-            );
-        },
-
-        canEditMaxGrade() {
-            return (
-                (!this.ltiProvider || this.ltiProvider.supportsBonusPoints) &&
-                this.permissions.can_edit_maximum_grade
-            );
+            return this.permissions.canEditSomeGeneralSettings;
         },
 
         canEditIgnoreFile() {
-            return this.permissions.can_edit_cgignore;
+            return this.assignment.hasPermission(CPerm.canEditCgignore);
         },
 
         canEditGroups() {
-            return UserConfig.features.groups && this.permissions.can_edit_group_assignment;
+            return UserConfig.features.groups &&
+                this.assignment.hasPermission(CPerm.canEditGroupAssignment);
         },
 
         canEditPeerFeedbackSettings() {
             return UserConfig.features.peer_feedback &&
-                this.permissions.can_edit_peer_feedback_settings;
+                this.assignment.hasPermission(CPerm.canEditPeerFeedbackSettings);
         },
 
         canSubmitWork() {
-            return this.permissions.can_submit_others_work;
+            return this.assignment.hasPermission(CPerm.canSubmitOthersWork);
         },
 
         canSubmitBbZip() {
-            return this.permissions.can_upload_bb_zip && UserConfig.features.blackboard_zip_upload;
+            return UserConfig.features.blackboard_zip_upload &&
+                this.assignment.hasPermission(CPerm.canUploadBbZip);
         },
 
         canAssignGraders() {
-            return this.permissions.can_assign_graders;
+            return this.assignment.hasPermission(CPerm.canAssignGraders);
         },
 
-        canUpdateGradersStatus() {
-            return this.permissions.can_update_grader_status || this.permissions.can_grade_work;
-        },
-
-        canUpdateNotifications() {
-            return this.permissions.can_update_course_notifications;
+        canUpdateCourseNotifications() {
+            return this.assignment.hasPermission(CPerm.canUpdateCourseNotifications);
         },
 
         canUseLinters() {
-            return this.permissions.can_use_linter && UserConfig.features.linters;
+            return UserConfig.features.linters && this.assignment.hasPermission(CPerm.canUseLinter);
+        },
+
+        canManagePlagiarism() {
+            return this.assignment.hasPermission(CPerm.canManagePlagiarism);
+        },
+
+        canViewPlagiarism() {
+            return this.assignment.hasPermission(CPerm.canViewPlagiarism);
         },
 
         canUsePlagiarism() {
-            return this.permissions.can_manage_plagiarism || this.permissions.can_view_plagiarism;
+            return this.canManagePlagiarism || this.canViewPlagiarism;
         },
 
         canUseRubrics() {
-            return this.permissions.manage_rubrics && UserConfig.features.rubrics;
+            return UserConfig.features.rubrics &&
+                this.assignment.hasPermission(CPerm.manageRubrics);
         },
 
         canUseAutoTest() {
-            return (
-                (this.permissions.can_run_autotest ||
-                    this.permissions.can_edit_autotest ||
-                    this.permissions.can_delete_autotest_run) &&
-                UserConfig.features.auto_test
+            return UserConfig.features.auto_test && (
+                this.assignment.hasPermission(CPerm.canRunAutotest) ||
+                this.assignment.hasPermission(CPerm.canEditAutotest) ||
+                this.assignment.hasPermission(CPerm.canDeleteAutotestRun)
             );
+        },
+
+        canListCourseUsers() {
+            return this.assignment.hasPermission(CPerm.canListCourseUsers);
+        },
+
+        canDeleteAssignments() {
+            return this.assignment.hasPermission(CPerm.canDeleteAssignments);
         },
 
         categories() {
@@ -514,8 +391,8 @@ export default {
                     name: 'Graders',
                     enabled:
                         this.canAssignGraders ||
-                        this.canUpdateGradersStatus ||
-                        this.canUpdateNotifications,
+                        this.permissions.canUpdateGraderStatus ||
+                        this.canUpdateCourseNotifications,
                 },
                 {
                     id: 'linters',
@@ -549,103 +426,47 @@ export default {
                 hash: '#groups',
             };
         },
+
+        loading() {
+            return this.assignment == null;
+        },
     },
 
     watch: {
         assignmentId: {
             immediate: true,
-            handler(newVal, oldVal) {
-                if (newVal == null) {
-                    this.loading = true;
-                    this.loadingInner = true;
-                    this.gradersLoading = true;
-                    this.gradersLoadedOnce = false;
-                } else if (newVal !== oldVal) {
-                    this.loadData();
-                }
+            handler() {
+                this.loadData();
+            },
+        },
+
+        assignment(newVal) {
+            if (newVal == null) {
+                this.loadData();
+            }
+        },
+
+        selectedCat: {
+            immediate: true,
+            handler(newVal) {
+                this.$set(this.visibleCats, newVal, true);
             },
         },
     },
 
     methods: {
-        ...mapActions('courses', [
-            'updateAssignment',
-            'loadCourses',
-            'reloadCourses',
-            'updateAssignmentDeadline',
-        ]),
+        ...mapActions('courses', ['loadSingleCourse']),
         ...mapActions('submissions', ['forceLoadSubmissions']),
 
         async loadData() {
-            const setAssigData = () => {
-                if (this.loading) {
-                    this.loading = false;
-
-                    this.permissions = this.assignment.course.permissions;
-                    this.assignmentTempName = this.assignment.name;
-                    this.assignmentTempDeadline = this.assignment.getDeadlineAsString();
-
-                    this.assignmentTempSubmissionLimits = {
-                        maxSubmissions: this.assignment.max_submissions,
-                        coolOff: {
-                            period: this.assignment.coolOffPeriod.asMinutes(),
-                            amount: this.assignment.amount_in_cool_off_period,
-                        },
-                    };
-                }
-            };
-
-            this.loading = true;
             this.loadingInner = true;
 
-            if (this.assignment.id === this.assignmentId) {
-                setAssigData();
-            }
-
+            await this.loadSingleCourse({ courseId: this.courseId });
+            this.visibleCats = {
+                [this.selectedCat]: true,
+            };
             await this.$afterRerender();
-
-            this.loadGraders();
-
-            return this.loadCourses().then(() => {
-                setAssigData();
-                this.loadingInner = false;
-            });
-        },
-
-        async loadGraders() {
-            if (!this.gradersLoading) {
-                this.gradersLoading = true;
-            }
-
-            const { data } = await this.$http.get(
-                `/api/v1/assignments/${this.assignmentId}/graders/`,
-            );
-            this.graders = data;
-            this.gradersLoading = false;
-            this.gradersLoadedOnce = true;
-        },
-
-        submitName() {
-            return this.$http.patch(this.assignmentUrl, {
-                name: this.assignmentTempName,
-            });
-        },
-
-        updateName() {
-            this.updateAssignment({
-                courseId: this.assignment.course.id,
-                assignmentId: this.assignment.id,
-                assignmentProps: {
-                    name: this.assignmentTempName,
-                },
-            });
-        },
-
-        submitDeadline() {
-            return this.updateAssignmentDeadline({
-                assignmentId: this.assignment.id,
-                deadline: this.assignmentTempDeadline,
-            });
+            this.loadingInner = false;
         },
 
         deleteAssignment() {
@@ -653,122 +474,29 @@ export default {
         },
 
         afterDeleteAssignment() {
-            this.reloadCourses();
+            this.loadSingleCourse({ courseId: this.courseId, force: true });
             this.$router.push({ name: 'home' });
-        },
-
-        submitMaxSubmissions() {
-            const orig = this.assignmentTempSubmissionLimits.maxSubmissions;
-            let value = orig;
-
-            if (
-                value == null ||
-                ['0', '', 'infinite'].indexOf(this.$utils.coerceToString(value).toLowerCase()) >= 0
-            ) {
-                value = null;
-            } else {
-                value = parseInt(value, 10);
-                if (Number.isNaN(value) || value < 1) {
-                    throw new Error(
-                        'Please provide an integer higher than or equal to 0, or the value "infinite".',
-                    );
-                }
-            }
-
-            return this.$http
-                .patch(this.assignmentUrl, {
-                    max_submissions: value,
-                })
-                .then(response => {
-                    response.cgOldValue = orig;
-                    return response;
-                });
-        },
-
-        afterSubmitMaxSubmissions({ data, cgOldValue }) {
-            if (this.assignmentTempSubmissionLimits.maxSubmissions === cgOldValue) {
-                this.assignmentTempSubmissionLimits.maxSubmissions = data.max_submissions;
-            }
-
-            this.updateAssignment({
-                assignmentId: this.assignment.id,
-                assignmentProps: {
-                    max_submissions: data.max_submissions,
-                },
-            });
-        },
-
-        submitCoolOffPeriod() {
-            const { coolOff } = this.assignmentTempSubmissionLimits;
-            const period = parseFloat(coolOff.period || 0);
-            if (period == null || Number.isNaN(period) || period < 0) {
-                throw new Error(
-                    'The given cool off period should be a number higher or equal to 0',
-                );
-            }
-
-            const amount = parseInt(coolOff.amount, 10);
-            if (amount == null || Number.isNaN(amount) || amount < 1) {
-                throw new Error(
-                    'The given amount in cool off period should be a number higher or equal to 1',
-                );
-            }
-
-            return this.$http
-                .patch(this.assignmentUrl, {
-                    cool_off_period: period * 60,
-                    amount_in_cool_off_period: amount,
-                })
-                .then(response => {
-                    response.cgOldValue = coolOff;
-                    return response;
-                });
-        },
-
-        afterSubmitCoolOffPeriod({ data, cgOldValue }) {
-            this.updateAssignment({
-                assignmentId: this.assignment.id,
-                assignmentProps: {
-                    cool_off_period: data.cool_off_period,
-                    amount_in_cool_off_period: data.amount_in_cool_off_period,
-                },
-            }).then(assignment => {
-                const { coolOff } = this.assignmentTempSubmissionLimits;
-
-                if (cgOldValue.period === coolOff.period) {
-                    coolOff.period = assignment.coolOffPeriod.asMinutes();
-                }
-                if (cgOldValue.amount === coolOff.amount) {
-                    coolOff.amount = assignment.amount_in_cool_off_period;
-                }
-
-                this.assignmentTempSubmissionLimits.coolOff = coolOff;
-            });
         },
     },
 
     components: {
         AssignmentState,
-        DivideSubmissions,
+        AssignmentGeneralSettings,
+        AssignmentGraderSettings,
+        AssignmentSubmissionSettings,
         FileUploader,
         Linters,
         Loader,
         SubmitButton,
         RubricEditor,
         CGIgnoreFile,
-        Notifications,
         DescriptionPopover,
-        FinishedGraderToggles,
         LocalHeader,
         SubmissionUploader,
-        MaximumGrade,
         PlagiarismRunner,
         AssignmentGroup,
         CategorySelector,
-        DatetimePicker,
         AutoTest,
-        AssignmentSubmitTypes,
-        SubmissionLimits,
         PeerFeedbackSettings,
     },
 };
@@ -777,25 +505,9 @@ export default {
 <style lang="less" scoped>
 @import '~mixins.less';
 
-.assignment-title {
-    margin-bottom: 0;
-}
-
 .manage-assignment.loading {
     display: flex;
     flex-direction: column;
-}
-
-.card {
-    margin-bottom: 1em;
-}
-
-.card-header {
-    font-size: 1.25rem;
-    font-family: inherit;
-    font-weight: 500;
-    line-height: 1.2;
-    color: inherit;
 }
 
 .cat-wrapper {
@@ -809,12 +521,10 @@ export default {
         overflow-y: hidden;
     }
 }
+</style>
 
-.manage-assignment .header {
-    z-index: 9;
-}
-
-.ignore-card .card-body {
-    padding: 0;
+<style lang="less">
+.manage-assignment .card {
+    margin-bottom: 1rem;
 }
 </style>

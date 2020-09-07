@@ -239,7 +239,7 @@ probably be "${url.origin}".`;
     }
 
     get redirectUrl(): string {
-        return (<const>['launch_to_latest_submission', 'launch']).map(
+        return (['launch_to_latest_submission', 'launch'] as const).map(
             extraPath => this.$utils.buildUrl(
                 ['api', 'v1', 'lti1.3', extraPath],
                 {

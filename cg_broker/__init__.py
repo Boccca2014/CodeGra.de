@@ -185,8 +185,9 @@ def create_app() -> flask.Flask:
     """Create a broker flask app.
     """
     # pylint: disable=redefined-outer-name, import-outside-toplevel
-    from . import api, exceptions, models, tasks, admin_panel
     import cg_timers
+
+    from . import api, tasks, models, exceptions, admin_panel
 
     app = BrokerFlask(__name__)
     cg_logger.init_app(app, set_user=False)

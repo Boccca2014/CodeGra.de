@@ -62,6 +62,7 @@
 <script lang="ts">
 import { Vue, Component, Watch } from 'vue-property-decorator';
 import { mapGetters, mapActions } from 'vuex';
+import { CoursesStore } from '@/store/modules/courses';
 
 // @ts-ignore
 import LocalHeader from '@/components/LocalHeader';
@@ -82,16 +83,12 @@ import { setPageTitle } from './title';
             loggedInUsername: 'username',
             loggedInName: 'name',
         }),
-        ...mapGetters('courses', {
-            allCourses: 'courses',
-        }),
     },
     methods: {
         ...mapActions('user', {
             storeLogin: 'login',
             storeLogout: 'logout',
         }),
-        ...mapActions('courses', ['reloadCourses']),
     },
 })
 export default class CourseEnroll extends Vue {
@@ -113,10 +110,6 @@ export default class CourseEnroll extends Vue {
     readonly storeLogin!: (data: any) => Promise<unknown>;
 
     readonly storeLogout!: () => Promise<unknown>;
-
-    readonly reloadCourses!: () => Promise<unknown>;
-
-    readonly allCourses!: Record<number, unknown>;
 
     get courseId(): number {
         return parseInt(this.$route.params.courseId, 10);
@@ -168,12 +161,13 @@ export default class CourseEnroll extends Vue {
             return Promise.reject(new Error('Link not found'));
         }
 
+        const courseId = this.link.course.id;
         return this.$http.post(
             this.$utils.buildUrl(
-                ['api', 'v1', 'courses', this.link.course.id, 'registration_links', this.link.id, 'join'],
+                ['api', 'v1', 'courses', courseId, 'registration_links', this.link.id, 'join'],
             ),
         ).then(async res => {
-            await this.reloadCourses();
+            await CoursesStore.loadSingleCourse({ courseId });
             return res;
         });
     }
@@ -187,11 +181,11 @@ export default class CourseEnroll extends Vue {
         );
     }
 
-    get alreadyInCourse() {
+    get alreadyInCourse(): boolean {
         if (this.link == null) {
             return false;
         }
-        return this.link.course.id in this.allCourses;
+        return CoursesStore.getCourse()(this.link.course.id).isJust();
     }
 
     @Watch('link', { immediate: true })
@@ -206,11 +200,24 @@ export default class CourseEnroll extends Vue {
         }
     }
 
+    @Watch('loggedIn', { immediate: true })
+    tryLoadCourse() {
+        // Load course so that we can detect if the user is already in this
+        // course.
+        return CoursesStore.loadSingleCourse({
+            courseId: this.courseId,
+        }).catch(() => null);
+    }
+
     @Watch('courseId', { immediate: true })
     @Watch('linkId')
     async loadData() {
         this.link = null;
         this.error = null;
+
+        // No await needed, it is ifine if the popover about already enrolled
+        // appears a bit later.
+        this.tryLoadCourse();
 
         try {
             this.link = (await this.$http.get(this.$utils.buildUrl([

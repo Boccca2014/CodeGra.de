@@ -122,7 +122,7 @@ def create_lti1p3_course(test_client, session, provider, membership_url=None):
     course = to_db_object(create_course(test_client), m.Course)
     course_lti_prov = m.CourseLTIProvider.create_and_add(
         course=course,
-        lti_provider=provider,
+        lti_provider=to_db_object(provider, m.LTI1p3Provider),
         lti_context_id=str(uuid.uuid4()),
         deployment_id=str(uuid.uuid4()),
     )
@@ -204,9 +204,15 @@ def create_lti1p3_provider(
     )
 
 
-def create_lti_course(session, app, user=None):
+def create_lti_course(session, app, user=None, lms='Canvas'):
     name = f'__NEW_LTI_COURSE__-{uuid.uuid4()}'
-    key = list(app.config['LTI_CONSUMER_KEY_SECRETS'].keys())[0]
+    for key, (found_lms, _) in app.config['LTI_CONSUMER_KEY_SECRETS'].items():
+        if found_lms == lms:
+            key = key
+            break
+    else:
+        assert False, 'Could not find requested LMS'
+
     lti_provider = m.LTI1p1Provider(key=key)
     assert lti_provider is not None
 
@@ -448,7 +454,10 @@ def create_group(test_client, group_set_id, member_ids):
 
 
 def create_error_template():
-    return {'code': str, 'message': str, 'description': str}
+    return {
+        'code': str, 'message': str, 'description': str,
+        '?missing_permissions?': list
+    }
 
 
 def get_newest_submissions(test_client, assignment):

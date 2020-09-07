@@ -10,7 +10,7 @@ const defaultLTIProvider = Object.freeze(<const>{
     supportsBonusPoints: false,
     supportsStateManagement: false,
 });
-type LTIProvider = {
+export type LTIProvider = {
     readonly lms: string;
     readonly addBorder: boolean;
     readonly supportsDeadline: boolean;
@@ -86,7 +86,7 @@ const LTI1p1Lookup: Record<string, LTIProvider> = mapToObject([
     sakaiProvider,
 ], prov => [prov.lms, prov]);
 
-export function makeProvider(provider: LTIProviderServerData) {
+export function makeProvider(provider: LTIProviderServerData): LTIProvider {
     switch (provider.version) {
         case 'lti1.1':
             return LTI1p1Lookup[provider.lms];

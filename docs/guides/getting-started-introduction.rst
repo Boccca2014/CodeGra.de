@@ -15,7 +15,7 @@ What can CodeGrade do?
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
 CodeGrade improves programming education by providing numerous tools to enhance
-grading and reviewing code. The most important tool are:
+grading and reviewing code. The most important tools are:
 
 - A comprehensive Code Viewer with:
 

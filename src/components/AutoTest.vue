@@ -616,6 +616,8 @@ import { NONEXISTENT } from '@/constants';
 import decodeBuffer from '@/utils/decode';
 import { visualizeWhitespace } from '@/utils/visualize';
 
+import { CoursePermission as CPerm } from '@/permissions';
+
 import Toggle from './Toggle';
 import Collapse from './Collapse';
 import AutoTestRun from './AutoTestRun';
@@ -792,6 +794,10 @@ export default {
         }),
 
         ...mapActions('courses', {
+            storeLoadAllCourses: 'loadAllCourses',
+        }),
+
+        ...mapActions('assignments', {
             storeUpdateAssignment: 'updateAssignment',
         }),
 
@@ -828,16 +834,31 @@ export default {
         },
 
         loadAutoTest() {
+            this.loading = true;
+            this.message = null;
+
             if (this.autoTestId == null) {
                 this.configCollapsed = false;
-                this.loading = false;
-                return Promise.resolve();
+                return Promise.all([
+                    this.storeLoadRubric({
+                        assignmentId: this.assignmentId,
+                    }).catch(this.$utils.makeHttpErrorHandler({
+                        404: () => null,
+                    })),
+                    this.storeLoadAllCourses(),
+                ]).then(() => {
+                    this.loading = false;
+                }, err => {
+                    this.message = {
+                        text: this.$utils.getErrorMessage(err),
+                        isError: true,
+                    };
+                    this.loading = false;
+                });
             }
 
-            this.loading = true;
-
             return Promise.all([
-                this.storeLoadSubmissions(this.assignmentId),
+                this.storeLoadSubmissions({ assignmentId: this.assignmentId }),
 
                 this.storeLoadRubric({
                     assignmentId: this.assignmentId,
@@ -852,9 +873,14 @@ export default {
                         return this.singleResult ? this.loadSingleResult() : this.loadAutoTestRun();
                     },
                     this.$utils.makeHttpErrorHandler({
-                        403: () => {
+                        403: err => {
+                            const missingPerms = this.$utils.getProps(err, [], 'response', 'data', 'missing_permissions');
+                            let extraText = '';
+                            if (missingPerms.includes(CPerm.canViewAutotestBeforeDone.value)) {
+                                extraText = ' They will probably be available at the same time as your grade.';
+                            }
                             this.message = {
-                                text: 'The AutoTest results are not yet available.',
+                                text: `The AutoTest results are not yet available.${extraText}`,
                                 isError: false,
                             };
                         },
@@ -925,6 +951,7 @@ export default {
             if (forceLoadSubmission) {
                 promises.push(
                     this.storeLoadSingleSubmission({
+                        courseId: this.assignment.courseId,
                         assignmentId: this.assignmentId,
                         submissionId: this.submissionId,
                         force: true,
@@ -1148,7 +1175,7 @@ export default {
         afterImportAutoTest(payload) {
             // TODO: Show error messages to user if any of the requests belo fail.
             this.importAssignment = null;
-            this.storeForceLoadSubmissions(this.assignmentId);
+            this.storeForceLoadSubmissions({ assignmentId: this.assignmentId });
             this.storeLoadRubric({
                 assignmentId: this.assignmentId,
                 force: true,
@@ -1170,7 +1197,7 @@ export default {
             storeTests: 'tests',
             storeResults: 'results',
         }),
-        ...mapGetters('courses', ['assignments']),
+        ...mapGetters('assignments', ['allAssignments']),
         ...mapGetters('rubrics', {
             storeRubrics: 'rubrics',
         }),
@@ -1193,13 +1220,18 @@ export default {
         },
 
         possibleImportAssignments() {
-            return Object.values(this.assignments)
-                .filter(a => a.auto_test_id != null)
-                .map(a => ({
-                    name: a.name,
-                    course: { name: a.course.name },
-                    auto_test_id: a.auto_test_id,
-                }));
+            // TODO: Load all assignments in mounted
+            return this.$utils.sortBy(
+                this.allAssignments
+                    .filter(a => a.auto_test_id != null),
+                assig => [assig.createdAt],
+                // Get newest assignments at the top.
+                { reverse: true },
+            ).map(a => ({
+                name: a.name,
+                course: { name: a.course.name },
+                auto_test_id: a.auto_test_id,
+            }));
         },
 
         allNonDeletedSuites() {

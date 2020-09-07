@@ -60,6 +60,8 @@ details on `the CodeGrade website <https://codegrade.com>`_.
    user/lms.rst
    user/autotest/overview.rst
    user/analytics-dashboard.rst
+   user/exam-mode.rst
+   user/notifications.rst
 
 .. only:: not latex
 

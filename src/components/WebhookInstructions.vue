@@ -322,7 +322,7 @@ export default {
     },
 
     computed: {
-        ...mapGetters('courses', ['assignments']),
+        ...mapGetters('assignments', ['getAssignment']),
         ...mapGetters('submissions', ['getLatestSubmissions']),
 
         assignmentId() {
@@ -330,7 +330,10 @@ export default {
         },
 
         courseId() {
-            return this.assignments[this.assignmentId].courseId;
+            return this.getAssignment(this.assignmentId).mapOrDefault(
+                a => a.courseId,
+                null,
+            );
         },
 
         userId() {
@@ -392,9 +395,17 @@ export default {
             this.copying = false;
             this.copyMsg = null;
         },
+
+        assignmentId: {
+            immediate: true,
+            handler(newValue) {
+                this.loadSingleAssignment({ assignmentId: newValue });
+            },
+        },
     },
 
     methods: {
+        ...mapActions('assignments', ['loadSingleAssignment']),
         ...mapActions('submissions', {
             storeLoadSubmissionsByUser: 'loadSubmissionsByUser',
         }),

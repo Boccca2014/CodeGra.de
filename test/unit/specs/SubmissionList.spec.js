@@ -51,7 +51,7 @@ describe('SubmissionList.vue', () => {
         ];
         courses = [{
             id: 1,
-            assignments: [{ id: 1, state: 'open' }],
+            assignments: [{ id: 1, state: 'open', course_id: 1 }],
         }];
 
         mockGet = jest.fn(async (path, opts) => new Promise((resolve, reject) => {
@@ -60,10 +60,12 @@ describe('SubmissionList.vue', () => {
                 res = submissions.map(s => Object.assign({}, s));
             } else if (/^.api.v1.assignments.rubrics./.test(path)) {
                 return reject({ status: 404 });
-            } else if (/^.api.v1.courses./.test(path)) {
+            } else if (/^.api.v1.courses.\?.*/.test(path)) {
                 res = courses;
             } else if (/^.api.v1.permissions.*type=course/.test(path)) {
                 res = {};
+            } else if (/^.api.v1.assignments.([0-9]+|NaN).graders./.test(path)) {
+                res = [];
             } else {
                 return reject({ status: 403 });
             }
@@ -88,10 +90,10 @@ describe('SubmissionList.vue', () => {
             replace: jest.fn(),
         };
 
-        await store.dispatch('courses/loadCourses');
-        assignment = store.getters['courses/assignments'][$route.params.assignmentId];
+        await store.dispatch('courses/loadAllCourses');
+        assignment = store.getters['assignments/getAssignment']($route.params.assignmentId).unsafeCoerce();
 
-        await store.dispatch('submissions/loadSubmissions', $route.params.assignmentId);
+        await store.dispatch('submissions/loadSubmissions', $route.params);
 
         wrapper = shallowMount(SubmissionList, {
             store,
@@ -117,6 +119,7 @@ describe('SubmissionList.vue', () => {
     });
 
     it('should display the correct number even if some students have the same name', async () => {
+        expect(comp.submissions).toHaveLength(2);
         expect(comp.submissions.map(s => s.user.name).sort()).toEqual(['Student1', 'Student2']);
         expect(comp.numStudents).toBe(2);
         expect(comp.numFilteredStudents).toBe(2);

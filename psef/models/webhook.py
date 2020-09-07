@@ -20,7 +20,8 @@ import psef
 from cg_dt_utils import DatetimeWithTimezone
 from cg_sqlalchemy_helpers.mixins import UUIDMixin, TimestampMixin
 
-from . import Base, User, Assignment, db
+from . import Base, User, db
+from . import assignment as assignment_models
 from .. import auth, exceptions
 from ..registry import webhook_handlers
 from ..exceptions import APICodes, APIException
@@ -57,7 +58,7 @@ class WebhookBase(Base, UUIDMixin, TimestampMixin):
     )
 
     assignment = db.relationship(
-        Assignment,
+        lambda: assignment_models.Assignment,
         foreign_keys=assignment_id,
         lazy='joined',
         innerjoin=True,
@@ -342,12 +343,12 @@ class _GitWebhook(WebhookBase):
             # If one user of the group can hand-in submissions we continue,
             # otherwise we raise the last exception.
             try:
-                auth.ensure_can_submit_work(
-                    self.assignment,
-                    author=self.user,
-                    for_user=user,
-                    current_user=user,
-                )
+                with auth.as_current_user(user):
+                    auth.ensure_can_submit_work(
+                        self.assignment,
+                        author=self.user,
+                        for_user=user,
+                    )
             except exceptions.PermissionException as e:
                 logger.info('User cannot submit work', exc_info=True)
                 exc = e

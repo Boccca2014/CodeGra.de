@@ -747,7 +747,7 @@ class _CustomOutput(AutoTestStepBase):
             raise APIException(
                 f'Compiling the regex failed: {e.msg}',
                 'Compiling was not successful', APICodes.INVALID_PARAM, 400
-            )
+            ) from e
 
     @classmethod
     def _execute(

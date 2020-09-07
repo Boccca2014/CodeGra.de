@@ -373,6 +373,17 @@ class LTI(AbstractLTIConnector):  # pylint: disable=too-many-public-methods
         return False
 
     @staticmethod
+    def supports_state_management() -> bool:
+        """Determines whether this LMS sends the assignment state to CodeGrade.
+        If this is ``True`` you cannot change state info, e.g. the
+        ``available_at``.
+
+        :returns: A boolean indicating whether this LTI instance gives the
+                  assignment state to CodeGrade.
+        """
+        return False
+
+    @staticmethod
     def supports_deadline() -> bool:
         """Determines whether this LMS sends the deadline of an assignment
         along with the lti launch request. If it does, the deadline for
@@ -952,6 +963,10 @@ class CanvasLTI(LTI):
     def supports_deadline() -> bool:
         return True
 
+    @staticmethod
+    def supports_state_management() -> bool:
+        return True
+
     @property
     def assignment_points_possible(self) -> t.Optional[float]:
         """The amount of points possible for the launched assignment.
@@ -1013,7 +1028,6 @@ class CanvasLTI(LTI):
 
     @property
     def assignment_state(self) -> models.AssignmentStateEnum:
-        # pylint: disable=protected-access
         if self.launch_params['custom_canvas_assignment_published'] == 'true':
             return models.AssignmentStateEnum.open
         else:
@@ -1129,7 +1143,6 @@ class BareBonesLTIProvider(LTI):
 
     @property
     def assignment_state(self) -> models.AssignmentStateEnum:
-        # pylint: disable=protected-access
         return models.AssignmentStateEnum.open
 
     @property

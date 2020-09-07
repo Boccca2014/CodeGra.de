@@ -22,8 +22,9 @@ from cg_json import jsonify
 
 if t.TYPE_CHECKING:  # pragma: no cover
     # pylint: disable=unused-import
-    from config import FlaskConfig
     from pylti1p3.registration import _KeySet
+
+    from config import FlaskConfig
 
     current_app: 'PsefFlask'
 else:
@@ -60,10 +61,11 @@ class PsefFlask(Flask):
         dict_to_load = {}
         for key, t_name in [
             ('DIRECT_NOTIFICATION_TEMPLATE_FILE', 'notification.j2'),
-            ('DIGEST_NOTIFICATION_TEMPLATE_FILE', 'digest.j2')
-        ]:  # pragma: no cover
+            ('DIGEST_NOTIFICATION_TEMPLATE_FILE', 'digest.j2'),
+            ('EXAM_LOGIN_TEMPLATE_FILE', 'exam_login.j2'),
+        ]:
             template = self.config.get(key)
-            if template:
+            if template:  # pragma: no cover
                 with open(str(template), 'r') as f:
                     dict_to_load[t_name] = f.read()
 

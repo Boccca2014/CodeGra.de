@@ -74,8 +74,11 @@ T = t.TypeVar('T')
 
 if t.TYPE_CHECKING:  # pragma: no cover
     # pylint: disable=unused-import
+    from pylti1p3.message_launch import (
+        _KeySet, _JwtData, _LaunchData, _DeepLinkData
+    )
+
     from .lms_capabilities import LMSCapabilities
-    from pylti1p3.message_launch import _JwtData, _LaunchData, _KeySet, _DeepLinkData
 
 NEEDED_AGS_SCOPES = [
     'https://purl.imsglobal.org/spec/lti-ags/scope/score',
@@ -332,6 +335,7 @@ class CGCustomClaims:
         username: t.Optional[str]
         deadline: t.Optional[DatetimeWithTimezone]
         is_available: t.Optional[bool]
+        available_at: t.Optional[DatetimeWithTimezone]
         resource_id: t.Optional[str]
 
     class ReplacementVar:
@@ -547,20 +551,18 @@ class CGCustomClaims:
         available_at = cls._get_claim(
             'cg_available_at', custom_claims, base_data, cls._parse_isoformat
         )
-        if available_at is None:
-            is_available = cls._get_claim(
-                'cg_is_published',
-                custom_claims,
-                base_data,
-                lambda x: x.lower() == 'true',
-            )
-        else:
-            is_available = DatetimeWithTimezone.utcnow() >= available_at
+        is_available = cls._get_claim(
+            'cg_is_published',
+            custom_claims,
+            base_data,
+            lambda x: x.lower() == 'true',
+        )
 
         return CGCustomClaims.ClaimResult(
             username=username,
             deadline=deadline,
             is_available=is_available,
+            available_at=available_at,
             resource_id=resource_id,
         )
 
@@ -977,11 +979,14 @@ class FlaskMessageLaunch(
         if resource_claim.get('title'):
             assignment.name = resource_claim['title']
 
-        if not assignment.is_done:
-            if custom_claim.is_available is None or custom_claim.is_available:
-                assignment.state = models.AssignmentStateEnum.open
-            else:
-                assignment.state = models.AssignmentStateEnum.hidden
+        if assignment.is_done:
+            pass
+        elif custom_claim.available_at is not None:
+            assignment.available_at = custom_claim.available_at
+        elif custom_claim.is_available is False:
+            assignment.state = models.AssignmentStateEnum.hidden
+        else:
+            assignment.state = models.AssignmentStateEnum.open
 
         return assignment
 
@@ -1110,8 +1115,10 @@ class FlaskMessageLaunch(
         check_and_raise(user_err_msg.format('name'), launch_data, 'name')
         try:
             get_email_for_user(launch_data, provider)
-        except KeyError:
-            raise get_exc(user_err_msg.format('email'), launch_data, ['email'])
+        except KeyError as exc:
+            raise get_exc(
+                user_err_msg.format('email'), launch_data, ['email']
+            ) from exc
 
         context = launch_data.get(claims.CONTEXT)
         check_and_raise(

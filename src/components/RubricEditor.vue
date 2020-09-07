@@ -1,6 +1,6 @@
 <!-- SPDX-License-Identifier: AGPL-3.0-only -->
 <template>
-<loader class="rubric-editor" v-if="loading"/>
+<cg-loader class="rubric-editor" v-if="loading"/>
 
 <b-alert show
          variant="danger"
@@ -16,21 +16,15 @@
 <div v-else-if="editable && rubric === null && !showRubricImporter"
      class="rubric-editor d-flex flex-row justify-content-center"
      :class="{ grow, editable }">
-    <div class="action-button border rounded cursor-pointer mr-3"
-         @click="createRubric">
-        <div class="wrap w-100">
-            <icon name="plus" :scale="4" />
-            <p class="mb-0">Create new rubric</p>
-        </div>
-    </div>
+    <cg-wizard-button
+        label="Create new rubric"
+        icon="plus"
+        @click="createRubric" />
 
-    <div class="action-button border rounded cursor-pointer mr-3"
-         @click="showRubricImporter = true">
-        <div class="wrap w-100">
-            <icon name="copy" :scale="4" />
-            <p class="mb-0">Copy a rubric</p>
-        </div>
-    </div>
+    <cg-wizard-button
+        label="Copy a rubric"
+        icon="copy"
+        @click="showRubricImporter = true" />
 </div>
 
 <div v-else-if="editable && showRubricImporter"
@@ -48,9 +42,9 @@
         <multiselect
             class="assignment-selector"
             v-model="importAssignment"
-            :options="otherAssignmentsWithRubric || []"
+            :options="otherAssignmentsWithRubric"
             :searchable="true"
-            :custom-label="a => `${a.course.name} - ${a.name}`"
+            :custom-label="getImportLabel"
             :multiple="false"
             track-by="id"
             label="label"
@@ -70,10 +64,10 @@
             Go back
         </b-button>
 
-        <submit-button :disabled="!importAssignment"
-                       label="Import"
-                       :submit="loadOldRubric"
-                       @after-success="afterLoadOldRubric"/>
+        <cg-submit-button :disabled="!importAssignment"
+                          label="Import"
+                          :submit="loadOldRubric"
+                          @after-success="afterLoadOldRubric"/>
     </b-button-toolbar>
 </div>
 
@@ -89,7 +83,7 @@
                     href="#"
                     v-b-popover.top.hover="'Click here to add a new category.'"
                     v-if="editable">
-            <icon name="plus" class="align-middle"/>
+            <fa-icon name="plus" class="align-middle"/>
         </b-nav-item>
 
         <b-tab class="border px-3 pt-3 pb-0"
@@ -116,24 +110,20 @@
             </template>
 
             <template v-if="row.type == '' && editable">
-                <h4 class="text-center pb-3 pt-3">Select the type of category</h4>
+                <h4 class="text-center py-2">Select the type of category</h4>
 
                 <div class="d-flex flex-row justify-content-center mb-3">
-                    <div class="action-button border rounded cursor-pointer mr-3"
-                         @click="setRowType(i, 'normal')">
-                        <div class="wrap">
-                            <icon name="ellipsis-h" :scale="4" />
-                            <p class="mb-0">Discrete</p>
-                        </div>
-                    </div>
+                    <cg-wizard-button
+                        label="Discrete"
+                        icon="ellipsis-h"
+                        size="small"
+                        @click="setRowType(i, 'normal')" />
 
-                    <div class="action-button border rounded cursor-pointer"
-                         @click="setRowType(i, 'continuous')">
-                        <div class="wrap">
-                            <icon name="progress" :scale="4" />
-                            <p class="mb-0">Continuous</p>
-                        </div>
-                    </div>
+                    <cg-wizard-button
+                        label="Continuous"
+                        icon="progress"
+                        size="small"
+                        @click="setRowType(i, 'continuous')" />
                 </div>
             </template>
 
@@ -188,7 +178,7 @@
                 <b-input-group-append is-text>
                     out of {{ rubricMaxPoints }}
 
-                    <description-popover hug-text placement="top">
+                    <cg-description-popover hug-text placement="top">
                         The number of points a student must achieve in this
                         rubric to achieve the maximum grade. By default students
                         must achieve the top item in each discrete category and
@@ -200,7 +190,7 @@
 
                         Values higher than the maximum amount of points make it
                         impossible to achieve the maximum grade.
-                    </description-popover>
+                    </cg-description-popover>
                 </b-input-group-append>
             </b-input-group>
         </b-button-toolbar>
@@ -219,34 +209,34 @@
                  when the button is in a button group... -->
             <div v-else-if="rubric != null"
                  class="d-inline-flex align-middle">
-                <submit-button class="delete-rubric border-right rounded-right-0"
-                               style="margin-right: -1px;"
-                               variant="danger"
-                               v-b-popover.top.hover="'Delete rubric'"
-                               :submit="deleteRubric"
-                               :filter-error="deleteFilter"
-                               @after-success="afterDeleteRubric"
-                               confirm="By deleting a rubric the rubric and all grades given with it
-                                    will be lost forever! So are you really sure?"
-                               confirm-in-modal>
-                    <icon name="times"/>
-                </submit-button>
+                <cg-submit-button class="delete-rubric border-right rounded-right-0"
+                                  style="margin-right: -1px;"
+                                  variant="danger"
+                                  v-b-popover.top.hover="'Delete rubric'"
+                                  :submit="deleteRubric"
+                                  :filter-error="deleteFilter"
+                                  @after-success="afterDeleteRubric"
+                                  confirm="By deleting a rubric the rubric and all grades given with it
+                                       will be lost forever! So are you really sure?"
+                                  confirm-in-modal>
+                    <fa-icon name="times"/>
+                </cg-submit-button>
 
-                <submit-button class="reset-rubric border-left rounded-left-0"
-                               variant="danger"
-                               v-b-popover.top.hover="'Reset rubric'"
-                               :submit="resetRubric"
-                               confirm="Are you sure you want to revert your changes?"
-                               :disabled="serverData != null && rubricRows.length === 0">
-                    <icon name="reply"/>
-                </submit-button>
+                <cg-submit-button class="reset-rubric border-left rounded-left-0"
+                                  variant="danger"
+                                  v-b-popover.top.hover="'Reset rubric'"
+                                  :submit="resetRubric"
+                                  confirm="Are you sure you want to revert your changes?"
+                                  :disabled="serverData != null && rubricRows.length === 0">
+                    <fa-icon name="reply"/>
+                </cg-submit-button>
             </div>
 
-            <submit-button class="submit-rubric"
-                           ref="submitButton"
-                           :confirm="shouldConfirm ? 'yes' : ''"
-                           :submit="submit"
-                           @after-success="afterSubmit">
+            <cg-submit-button class="submit-rubric"
+                              ref="submitButton"
+                              :confirm="shouldConfirm ? 'yes' : ''"
+                              :submit="submit"
+                              @after-success="afterSubmit">
                 <div slot="confirm" class="text-justify">
                     <template v-if="rowsWithSingleItem.length > 0">
                         <b>Rows with only a single item</b>
@@ -380,7 +370,7 @@
                         {{ $utils.getErrorMessage(scope.error) }}
                     </p>
                 </div>
-            </submit-button>
+            </cg-submit-button>
         </b-button-toolbar>
     </template>
 
@@ -395,21 +385,17 @@
 import Multiselect from 'vue-multiselect';
 import { mapActions, mapGetters } from 'vuex';
 
-import Icon from 'vue-awesome/components/Icon';
 import 'vue-awesome/icons/copy';
 import 'vue-awesome/icons/plus';
 import 'vue-awesome/icons/times';
 import 'vue-awesome/icons/reply';
 import 'vue-awesome/icons/ellipsis-h';
 
-import { NONEXISTENT } from '@/constants';
+import { NONEXISTENT, INITIAL_COURSES_AMOUNT } from '@/constants';
 import { Rubric } from '@/models';
 import { ValidationError } from '@/models/errors';
 import { formatGrade } from '@/utils';
 
-import Loader from './Loader';
-import SubmitButton from './SubmitButton';
-import DescriptionPopover from './DescriptionPopover';
 import RubricEditorNormalRow from './RubricEditorNormalRow';
 import RubricEditorContinuousRow from './RubricEditorContinuousRow';
 
@@ -473,6 +459,13 @@ export default {
         serverData() {
             this.resetRubric();
         },
+
+        courseIdsWithRubric(newVal) {
+            if (newVal.size > INITIAL_COURSES_AMOUNT) {
+                this.loadAllCourses();
+            }
+            newVal.forEach(courseId => this.loadSingleCourse({ courseId }));
+        },
     },
 
     computed: {
@@ -483,6 +476,9 @@ export default {
         ...mapGetters('rubrics', {
             allRubrics: 'rubrics',
         }),
+
+        ...mapGetters('assignments', ['getAssignment']),
+        ...mapGetters('courses', ['getCourse']),
 
         assignmentId() {
             return this.assignment.id;
@@ -585,12 +581,22 @@ export default {
         },
 
         otherAssignmentsWithRubric() {
-            return this.assignmentsWithRubric.filter(assig => assig.id !== this.assignmentId);
+            return (this.assignmentsWithRubric || []).filter(
+                ({ id }) => id !== this.assignmentId,
+            );
+        },
+
+        courseIdsWithRubric() {
+            return this.otherAssignmentsWithRubric.reduce((acc, assigLike) => {
+                acc.add(assigLike.courseId);
+                return acc;
+            }, new Set());
         },
     },
 
     methods: {
         ...mapActions('submissions', ['forceLoadSubmissions']),
+        ...mapActions('courses', ['loadSingleCourse', 'loadAllCourses']),
 
         ...mapActions('autotest', {
             storeLoadAutoTest: 'loadAutoTest',
@@ -611,12 +617,9 @@ export default {
                 this.storeLoadRubric({
                     assignmentId: this.assignmentId,
                 }).then(
-                    () => {
-                        this.resetRubric();
-                        this.maybeLoadOtherAssignments();
-                    },
+                    () => this.resetRubric(),
                     this.$utils.makeHttpErrorHandler({
-                        404: () => {},
+                        404: () => this.maybeLoadOtherAssignments(),
                     }),
                 ),
                 this.autoTestConfigId &&
@@ -656,9 +659,26 @@ export default {
         loadAssignments() {
             this.loadingAssignments = true;
             this.assignmentsWithRubric = [];
-            this.$http.get('/api/v1/assignments/?only_with_rubric').then(
+            const url = this.$utils.buildUrl(
+                ['api', 'v1', 'assignments'],
+                {
+                    query: {
+                        no_course_in_assignment: true,
+                        only_with_rubric: true,
+                    },
+                    addTrailingSlash: true,
+                },
+            );
+            this.$http.get(url).then(
                 ({ data }) => {
-                    this.assignmentsWithRubric = data;
+                    // We cannot (!) use real models here as all getters will be
+                    // removed by vue-multiselect as it tries to copy the
+                    // objects, however that doesn't work with getters.
+                    this.assignmentsWithRubric = data.map(x => ({
+                        id: x.id,
+                        name: x.name,
+                        courseId: x.course_id,
+                    }));
                     this.loadingAssignments = false;
                 },
                 err => {
@@ -678,7 +698,9 @@ export default {
         afterLoadOldRubric() {
             this.showRubricImporter = false;
             this.importAssignment = null;
-            this.forceLoadSubmissions(this.assignmentId);
+            this.forceLoadSubmissions({
+                assignmentId: this.assignmentId,
+            });
             this.resetRubric();
         },
 
@@ -740,7 +762,7 @@ export default {
         },
 
         afterSubmit() {
-            this.forceLoadSubmissions(this.assignmentId);
+            this.forceLoadSubmissions({ assignmentId: this.assignmentId });
         },
 
         ensureEditable() {
@@ -780,13 +802,17 @@ export default {
             const row = this.rubric.rows[idx].setType(type);
             this.rubric = this.rubric.updateRow(idx, row);
         },
+
+        getImportLabel(assigLike) {
+            const courseName = this.getCourse(assigLike.courseId).mapOrDefault(
+                c => c.name,
+                '…',
+            );
+            return `${courseName} - ${assigLike.name}`;
+        },
     },
 
     components: {
-        Icon,
-        SubmitButton,
-        Loader,
-        DescriptionPopover,
         RubricEditorNormalRow,
         RubricEditorContinuousRow,
         Multiselect,
@@ -805,23 +831,8 @@ export default {
     }
 }
 
-.action-button {
-    position: relative;
-    width: 10rem;
-    height: 10rem;
-    transition: background-color @transition-duration;
-
-    &:hover {
-        background-color: rgba(0, 0, 0, 0.125);
-    }
-
-    .wrap {
-        position: absolute;
-        top: 50%;
-        left: 50%;
-        transform: translate(-50%, -50%);
-        text-align: center;
-    }
+.wizard-button-container:not(:last-child) {
+    margin-right: 1rem;
 }
 
 input.max-points {

@@ -37,11 +37,11 @@ export default {
         },
         labelOn: {
             type: String,
-            default: 'on',
+            default: 'Yes',
         },
         labelOff: {
             type: String,
-            default: 'off',
+            default: 'No',
         },
         valueOn: {
             default: true,

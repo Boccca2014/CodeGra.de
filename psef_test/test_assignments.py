@@ -11,6 +11,7 @@ import tempfile
 import dataclasses
 from collections import defaultdict
 
+import flask
 import pytest
 from freezegun import freeze_time
 from sqlalchemy.sql import func as sql_func
@@ -116,9 +117,10 @@ def test_get_all_assignments(
     ],
     indirect=['named_user', 'course_name', 'state_is_hidden']
 )
+@pytest.mark.parametrize('no_course', [True, False])
 def test_get_assignment(
     named_user, course_name, state_is_hidden, perm_err, test_client, logged_in,
-    session, error_template, assignment, analytics
+    session, error_template, assignment, analytics, no_course
 ):
     with logged_in(named_user):
         if named_user == 'NOT_LOGGED_IN':
@@ -138,6 +140,7 @@ def test_get_assignment(
                 'cgignore': None,
                 'cgignore_version': None,
                 'course': dict,
+                'course_id': assignment.course_id,
                 'whitespace_linter': False,
                 'done_type': None,
                 'reminder_time': None,
@@ -154,11 +157,28 @@ def test_get_assignment(
                 'max_submissions': None,
                 'analytics_workspace_ids': [int] if analytics else [],
                 'peer_feedback_settings': None,
+                'kind': 'normal',
+                'send_login_links': False,
+                'available_at': None,
             }
+            if no_course:
+                del res['course']
         else:
             res = error_template
+        url = f'/api/v1/assignments/{assignment.id}'
+        if no_course:
+
+            url += '?no_course_in_assignment=true'
+
+        show_warn = no_course or status != 200
         test_client.req(
-            'get', f'/api/v1/assignments/{assignment.id}', status, result=res
+            'get',
+            url,
+            status,
+            result=res,
+            expected_warning=(
+                False if show_warn else 'course.*will be removed.*release.*'
+            )
         )
 
 
@@ -197,17 +217,8 @@ def test_get_non_existing_assignment(
     ]
 )
 def test_update_assignment(
-    changes,
-    err_code,
-    keep_name,
-    keep_deadline,
-    keep_state,
-    teacher_user,
-    test_client,
-    logged_in,
-    assignment,
-    update_data,
-    error_template,
+    changes, err_code, keep_name, keep_deadline, keep_state, teacher_user,
+    test_client, logged_in, assignment, update_data, error_template
 ):
     with logged_in(teacher_user):
         data = copy.deepcopy(update_data)
@@ -243,7 +254,9 @@ def test_update_assignment(
             if keep_name:
                 assert new_assig.name == data['name']
             if keep_deadline:
-                assert new_assig.deadline.isoformat() == data['deadline']
+                assert new_assig.deadline == datetime.datetime.fromisoformat(
+                    data['deadline']
+                )
         else:
             new_assig = psef.helpers.get_or_404(m.Assignment, assig_id)
             assert new_assig.state.name == old_state
@@ -1131,30 +1144,33 @@ def test_archive_with_symlinks(
 @pytest.mark.parametrize('assignment', ['new', 'old'], indirect=True)
 @pytest.mark.parametrize('after_deadline', [True, False])
 @pytest.mark.parametrize(
+    'author', [
+        'student1',
+        http_err(error=404)('DOES_NOT_EXIST'),
+        http_err(error=403)('admin')
+    ]
+)
+@pytest.mark.parametrize(
     'named_user',
     [
         http_err(error=403)('Student1'),
         'Devin Hillenius',
-        http_err(error=403)('admin'),
+        http_err(error=403, stop=True)('admin'),
     ],
     indirect=True,
-)
-@pytest.mark.parametrize(
-    'author',
-    ['student1',
-     http_err(error=404)(-1),
-     http_err(error=403)('admin')]
 )
 def test_upload_for_other(
     named_user, test_client, logged_in, assignment, name, error_template,
     teacher_user, after_deadline, author, session, request
 ):
-    if isinstance(author, int):
-        author = 'DOES_NOT_EXIST'
-
-    marker = request.node.get_closest_marker('http_err')
-    code = 201 if marker is None else marker.kwargs['error']
-    res = None if marker is None else error_template
+    code = 201
+    res = None
+    marker = None
+    for marker in request.node.iter_markers('http_err'):
+        res = error_template
+        code = marker.kwargs['error']
+        if marker.kwargs.get('stop', False):
+            break
 
     if (
         named_user.username == author and named_user.name == 'Student1' and
@@ -4076,21 +4092,28 @@ def test_get_all_assignments_with_rubric(
 
 
 def test_prevent_submitting_to_assignment_without_deadline(
-    test_client, session, assignment, logged_in, admin_user, student_user,
-    error_template
+    test_client, session, assignment, logged_in, admin_user, error_template
 ):
     test_sub_msg = 'You can still upload a test submission.'
 
     with logged_in(admin_user):
         course = create_course(test_client)
         assig = create_assignment(test_client, get_id(course), state='open')
+        student = create_user_with_perms(
+            session,
+            [CPerm.can_submit_own_work, CPerm.can_see_assignments],
+            courses=[course],
+        )
         teacher = create_user_with_perms(
             session,
-            [CPerm.can_submit_others_work, CPerm.can_upload_after_deadline],
+            [
+                CPerm.can_submit_others_work, CPerm.can_upload_after_deadline,
+                CPerm.can_see_assignments
+            ],
             courses=[course],
         )
 
-    with logged_in(student_user):
+    with logged_in(student):
         res = test_client.req(
             'post',
             f'/api/v1/assignments/{assig["id"]}/submission',
@@ -4926,7 +4949,8 @@ def test_limiting_submissions(
         stud = helpers.create_user_with_role(session, 'Student', [course])
         teacher = helpers.create_user_with_role(session, 'Teacher', [course])
         limited_ta = helpers.create_user_with_perms(
-            session, [CPerm.can_submit_others_work], [course]
+            session, [CPerm.can_submit_others_work, CPerm.can_see_assignments],
+            [course]
         )
 
     with describe('Only teachers can set max submissions'):
@@ -4934,7 +4958,7 @@ def test_limiting_submissions(
             with logged_in(user):
                 res, rv = test_client.req(
                     'patch',
-                    f'/api/v1/assignments/{assig}',
+                    f'/api/v1/assignments/{assig}?no_course_in_assignment=1',
                     code,
                     data={'max_submissions': 2},
                     include_response=True,
@@ -4962,7 +4986,7 @@ def test_limiting_submissions(
         with logged_in(teacher):
             _, rv = test_client.req(
                 'patch',
-                f'/api/v1/assignments/{assig}',
+                f'/api/v1/assignments/{assig}?no_course_in_assignment=1',
                 200,
                 data={'max_submissions': None},
                 include_response=True,
@@ -4980,7 +5004,7 @@ def test_limiting_submissions(
                   ), logged_in(teacher):
         _, rv = test_client.req(
             'patch',
-            f'/api/v1/assignments/{assig}',
+            f'/api/v1/assignments/{assig}?no_course_in_assignment=1',
             200,
             data={'max_submissions': 1},
             include_response=True,
@@ -4995,7 +5019,7 @@ def test_limiting_submissions(
 
         _, rv = test_client.req(
             'patch',
-            f'/api/v1/assignments/{assig}',
+            f'/api/v1/assignments/{assig}?no_course_in_assignment=1',
             200,
             data={'max_submissions': 10},
             include_response=True,
@@ -5009,7 +5033,7 @@ def test_limiting_submissions(
     with describe('Enabling webhooks gives a warning'), logged_in(teacher):
         _, rv = test_client.req(
             'patch',
-            f'/api/v1/assignments/{assig}',
+            f'/api/v1/assignments/{assig}?no_course_in_assignment=1',
             200,
             data={'webhook_upload_enabled': True},
             include_response=True,
@@ -5080,7 +5104,7 @@ def test_cool_off_period(
             with logged_in(user):
                 res, rv = test_client.req(
                     'patch',
-                    f'/api/v1/assignments/{assig}',
+                    f'/api/v1/assignments/{assig}?no_course_in_assignment=1',
                     code,
                     data={'cool_off_period': 15},
                     include_response=True,
@@ -5119,7 +5143,7 @@ def test_cool_off_period(
         )
         _, rv = test_client.req(
             'patch',
-            f'/api/v1/assignments/{assig2}',
+            f'/api/v1/assignments/{assig2}?no_course_in_assignment=1',
             200,
             data={'cool_off_period': 5.5},
             include_response=True,
@@ -5236,4 +5260,267 @@ def test_get_assigned_grader_ids(
         assert None not in grader_ids
         assert sorted(grader_ids) == sorted(
             ta.id for ta in tas[:len(subs_to_assign)]
+        )
+
+
+def test_available_at(
+    describe, admin_user, logged_in, test_client, session, yesterday, tomorrow,
+    stub_function
+):
+    with describe('setup'), logged_in(admin_user):
+        orig_open_at = psef.tasks.maybe_open_assignment_at
+        open_at = stub_function(psef.tasks, 'maybe_open_assignment_at')
+        course = helpers.create_course(test_client)
+        assig = helpers.create_assignment(
+            test_client,
+            course,
+            deadline=(tomorrow + datetime.timedelta(days=1))
+        )
+        teacher = helpers.create_user_with_perms(
+            session, [
+                CPerm.can_see_assignments,
+                CPerm.can_see_hidden_assignments,
+                CPerm.can_view_analytics,
+                CPerm.can_edit_assignment_info,
+            ], course
+        )
+        no_perm = helpers.create_user_with_perms(
+            session, [
+                CPerm.can_see_assignments,
+                CPerm.can_see_hidden_assignments,
+                CPerm.can_view_analytics,
+            ], course
+        )
+        url = f'/api/v1/assignments/{helpers.get_id(assig)}'
+
+    with describe('cannot set garbage data'), logged_in(teacher):
+        test_client.req('patch', url, 400, data={'available_at': 'NOT A DATE'})
+        assert not open_at.called
+
+    with describe('cannot set after (or equal) deadline'), logged_in(teacher):
+        test_client.req(
+            'patch',
+            url,
+            409,
+            data={
+                'available_at':
+                    (tomorrow + datetime.timedelta(days=1)).isoformat()
+            }
+        )
+        assert not open_at.called
+
+    with describe('permissions are checker'), logged_in(no_perm):
+        test_client.req(
+            'patch', url, 403, data={'available_at': yesterday.isoformat()}
+        )
+        assert not open_at.called
+
+    with describe('can set available_at in the past'), logged_in(teacher):
+        test_client.req(
+            'patch',
+            url,
+            200,
+            data={'available_at': yesterday.isoformat()},
+            result={
+                **assig,
+                'available_at': yesterday.isoformat(),
+                'state': 'submitting',
+            }
+        )
+        # Don't schedule a task, as the available_at has already passed
+        assert not open_at.called
+
+    with describe('can set available_at in the future'), logged_in(teacher):
+        test_client.req(
+            'patch',
+            url,
+            200,
+            data={'available_at': tomorrow.isoformat()},
+            result={
+                **assig,
+                'available_at': tomorrow.isoformat(),
+                'state': 'hidden',
+            }
+        )
+        assert open_at.called
+        assert open_at.called_amount == 1
+
+        with freeze_time(tomorrow):
+            del flask.g.request_start_time
+            orig_open_at(*open_at.args[0], **open_at.kwargs[0])
+
+        test_client.req(
+            'get',
+            url,
+            200,
+            result={
+                **assig,
+                'available_at': tomorrow.isoformat(),
+                'state': 'submitting',
+            }
+        )
+
+    with describe(
+        'setting available_at when assignment is done has no effect'
+    ), logged_in(teacher):
+        test_client.req(
+            'patch', url, 200, data={'state': 'done', 'available_at': None}
+        )
+        test_client.req(
+            'patch',
+            url,
+            200,
+            data={'available_at': tomorrow.isoformat()},
+            result={
+                **assig, 'state': 'done', 'available_at': tomorrow.isoformat()
+            }
+        )
+        assert open_at.called
+        assert open_at.called_amount == 1
+
+        with freeze_time(tomorrow):
+            del flask.g.request_start_time
+            orig_open_at(*open_at.args[0], **open_at.kwargs[0])
+
+        test_client.req(
+            'get',
+            url,
+            200,
+            result={
+                **assig,
+                'available_at': tomorrow.isoformat(),
+                'state': 'done',
+            }
+        )
+
+
+def test_changing_kind_of_assignment(
+    describe, test_client, logged_in, admin_user, tomorrow, yesterday, session
+):
+    with describe('setup'), logged_in(admin_user):
+        assig = helpers.create_assignment(test_client)
+        student = helpers.create_user_with_role(
+            session, 'Student', assig['course']
+        )
+        url = f'/api/v1/assignments/{helpers.get_id(assig)}'
+
+    with describe('cannot change to exam without deadline and available at'
+                  ), logged_in(admin_user):
+        test_client.req('patch', url, 409, data={'kind': 'exam'})
+        test_client.req(
+            'patch', url, 200, data={'deadline': tomorrow.isoformat()}
+        )
+        test_client.req('patch', url, 409, data={'kind': 'exam'})
+        test_client.req(
+            'patch',
+            url,
+            200,
+            data={'available_at': yesterday.isoformat(), 'kind': 'exam'},
+            result={'__allow_extra__': True, 'kind': 'exam'}
+        )
+
+    with describe('students cannot change'), logged_in(student):
+        test_client.req('patch', url, 200, data={'kind': 'normal'})
+
+    with describe('can change back to normal'), logged_in(admin_user):
+        test_client.req(
+            'patch',
+            url,
+            200,
+            data={'kind': 'normal'},
+            result={'__allow_extra__': True, 'kind': 'normal'}
+        )
+
+
+def test_changing_kind_of_lti_assignment(
+    describe, test_client, logged_in, admin_user, tomorrow, yesterday, session,
+    lti1p3_provider, error_template
+):
+    with describe('setup'), logged_in(admin_user):
+        course, _ = helpers.create_lti1p3_course(
+            test_client, session, lti1p3_provider
+        )
+        assig = helpers.create_lti1p3_assignment(session, course)
+        assig.deadline = tomorrow
+        assig.available_at = yesterday
+        url = f'/api/v1/assignments/{helpers.get_id(assig)}'
+        session.commit()
+
+    with describe('cannot change mode to exam'), logged_in(admin_user):
+        test_client.req(
+            'patch',
+            url,
+            409,
+            data={'kind': 'exam'},
+            result={
+                **error_template,
+                'message': 'Exam mode is not available for LTI assignments',
+            }
+        )
+
+
+def test_set_available_at_for_lti_assignment(
+    describe, test_client, logged_in, admin_user, error_template, app,
+    yesterday, session
+):
+    with describe('setup'), logged_in(admin_user):
+        canvas_course = helpers.create_lti_course(session, app, admin_user)
+        canvas_assig = helpers.create_lti_assignment(session, canvas_course)
+        canvas_url = f'/api/v1/assignments/{helpers.get_id(canvas_assig)}'
+
+        bb_course = helpers.create_lti_course(
+            session, app, admin_user, lms='Blackboard'
+        )
+        bb_assig = helpers.create_lti_assignment(session, bb_course)
+        bb_url = f'/api/v1/assignments/{helpers.get_id(bb_assig)}'
+
+        lti1p3_prov = helpers.create_lti1p3_provider(
+            test_client, lms='Brightspace'
+        )
+        lti1p3_course, _ = helpers.create_lti1p3_course(
+            test_client, session, lti1p3_prov
+        )
+        lti1p3_assig = helpers.create_lti_assignment(session, lti1p3_course)
+        lti1p3_url = f'/api/v1/assignments/{helpers.get_id(lti1p3_assig)}'
+
+    with describe('cannot change available at for canvas assignment'
+                  ), logged_in(admin_user):
+        test_client.req(
+            'patch',
+            canvas_url,
+            400,
+            data={'available_at': yesterday.isoformat()},
+            result={
+                **error_template,
+                'message': (
+                    'The available at of this assignment should be set in'
+                    ' Canvas.'
+                ),
+            }
+        )
+
+    with describe('can change available at for bb assignment'
+                  ), logged_in(admin_user):
+        test_client.req(
+            'patch',
+            bb_url,
+            200,
+            data={'available_at': yesterday.isoformat()},
+        )
+
+    with describe(
+        'cannot change available at for lti1p3 brightspace assignment'
+    ), logged_in(admin_user):
+        test_client.req(
+            'patch',
+            lti1p3_url,
+            400,
+            data={'available_at': yesterday.isoformat()},
+            result={
+                **error_template,
+                'message': (
+                    'The available at of this assignment should be set in'
+                    ' Brightspace.'
+                ),
+            }
         )

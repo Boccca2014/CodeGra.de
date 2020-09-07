@@ -22,8 +22,16 @@
             <collapse :collapsed="settingsCollapsed">
                 <hr class="mb-2"/>
 
-                <b-form-group label="Context lines">
+                <b-form-group label="Context lines"
+                              :id="`course-feedback-context-lines-${id}`"
+                              :label-for="`course-feedback-context-lines-${id}-input`"
+                              :state="contextLines.isRight()">
+                    <template #invalid-feedback>
+                        {{ $utils.getErrorMessage(contextLines.extract()) }}
+                    </template>
+
                     <cg-number-input
+                        :id="`course-feedback-context-lines-${id}-input`"
                         v-model="contextLines"
                         placeholder="Context lines"/>
                 </b-form-group>
@@ -169,7 +177,7 @@
                             :submission="sub"
                             show-inline-feedback
                             :non-editable="true"
-                            :context-lines="contextLines"
+                            :context-lines="currentContextLines"
                             :should-render-general="shouldRenderGeneral(sub)"
                             :should-render-thread="shouldRenderThread"
                             :should-fade-reply="shouldFadeReply"
@@ -195,6 +203,7 @@ import 'vue-awesome/icons/gear';
 
 import {
     Assignment,
+    Course,
     Submission,
     User,
     Feedback,
@@ -209,9 +218,11 @@ import { Search } from '@/utils/search';
 import { defaultdict } from '@/utils/defaultdict';
 import { isEmpty, flatMap1, filterMap, Just, Nothing } from '@/utils';
 import { NONEXISTENT } from '@/constants';
+import { AssignmentsStore } from '@/store/modules/assignments';
 
 import { FeedbackOverview } from '@/components';
 
+import { NumberInputValue, numberInputValue } from './NumberInput';
 // @ts-ignore
 import Collapse from './Collapse';
 // @ts-ignore
@@ -246,9 +257,6 @@ interface RubricResultItem {
 
 @Component({
     computed: {
-        ...mapGetters('courses', {
-            allAssignments: 'assignments',
-        }),
         ...mapGetters('rubrics', {
             allRubrics: 'rubrics',
             allRubricResults: 'results',
@@ -274,8 +282,6 @@ interface RubricResultItem {
     },
 })
 export default class CourseFeedback extends Vue {
-    allAssignments!: Readonly<Record<string, Assignment>>;
-
     allRubrics!: Readonly<Record<number, Rubric<number> | NONEXISTENT>>;
 
     allRubricResults!: Readonly<Record<number, RubricResult>>;
@@ -293,7 +299,7 @@ export default class CourseFeedback extends Vue {
         (args: { assignmentId: number, submissionId: number }) => Promise<void>;
 
     @Prop({ required: true })
-    course!: { id: number };
+    course!: Course;
 
     @Prop({ required: true })
     user!: User;
@@ -313,9 +319,18 @@ export default class CourseFeedback extends Vue {
 
     public settingsCollapsed: boolean = true;
 
-    public contextLines: number = 3;
+    public currentContextLines: number = 3;
+
+    public contextLines: NumberInputValue = numberInputValue(this.currentContextLines);
 
     public hideAutoTestRubricCategories: boolean = true;
+
+    @Watch('contextLines')
+    handleContextLines() {
+        this.contextLines.orDefault(Nothing).ifJust(contextLines => {
+            this.currentContextLines = contextLines;
+        });
+    }
 
     get courseId(): number {
         return this.course.id;
@@ -336,19 +351,9 @@ export default class CourseFeedback extends Vue {
     }
 
     get assignments(): ReadonlyArray<Assignment> {
-        // It can happen that a new assignment was created between the moment
-        // the page was loaded and the feedback sidebar was opened. In that
-        // case, the assignment does not exist in `this.allAssignments`, which
-        // would cause an error. We ignore those newly created assignments for
-        // now, because we do not yet have a method in the store to load a
-        // single assignment.
-
         let assigs = filterMap(
             Object.keys(this.submissionsByAssignmentId),
-            (id: string) => {
-                const assig = this.allAssignments[id];
-                return assig == null ? Nothing : Just(assig);
-            },
+            id => AssignmentsStore.getAssignment()(parseInt(id, 10)),
         );
 
         if (this.excludeSubmission != null) {
@@ -537,7 +542,7 @@ export default class CourseFeedback extends Vue {
     loadCourseFeedback() {
         this.loading = true;
         this.error = null;
-        this.submissionsByAssignmentId = [];
+        this.submissionsByAssignmentId = {};
 
         this.loadUserSubmissions({
             courseId: this.course.id,
@@ -550,6 +555,10 @@ export default class CourseFeedback extends Vue {
                         return Nothing;
                     }
                     return Just(Promise.all([
+                        AssignmentsStore.loadSingleAssignment({
+                            assignmentId: sub.assignmentId,
+                            courseId: this.course.id,
+                        }),
                         this.loadFeedback({
                             assignmentId: sub.assignmentId,
                             submissionId: sub.id,

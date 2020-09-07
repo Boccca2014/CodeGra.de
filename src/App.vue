@@ -51,17 +51,18 @@ export default {
     name: 'app',
 
     computed: {
-        ...mapGetters('user', ['loggedIn']),
+        ...mapGetters('user', ['loggedIn', 'jwtClaims']),
         ...mapGetters('pref', ['darkMode']),
-        ...mapGetters('courses', ['assignments']),
+        ...mapGetters('courses', ['getCourse']),
+        ...mapGetters('assignments', ['getAssignment']),
 
         canManageLTICourse() {
-            return this.$utils.getProps(
-                this.assignments,
+            if (this.$LTIAssignmentId == null) {
+                return false;
+            }
+            return this.getAssignment(this.$LTIAssignmentId).mapOrDefault(
+                assig => assig.course.canManage,
                 false,
-                this.$LTIAssignmentId,
-                'course',
-                'canManage',
             );
         },
 
@@ -76,6 +77,17 @@ export default {
 
         showFrameBorder() {
             return window !== window.top && this.$ltiProvider && this.$ltiProvider.addBorder;
+        },
+
+        forCourseId() {
+            return this.jwtClaims.for_course;
+        },
+
+        forCourse() {
+            if (this.forCourseId == null) {
+                return null;
+            }
+            return this.getCourse(this.forCourseId).mapOrDefault(course => course.name, null);
         },
     },
 
@@ -109,11 +121,51 @@ export default {
                 }
             },
         },
+
+        forCourse: {
+            immediate: true,
+            handler(newValue, oldValue) {
+                if (oldValue != null) {
+                    this.deleteToast(this.makeForCourseToast(oldValue));
+                }
+                if (newValue != null) {
+                    this.addToast(this.makeForCourseToast(newValue));
+                }
+            },
+        },
+
+        forCourseId: {
+            immediate: true,
+            handler(newValue) {
+                if (newValue != null) {
+                    this.loadSingleCourse({ courseId: newValue });
+                }
+            },
+        },
+
+        $LTIAssignmentId: {
+            immediate: true,
+            handler(newValue) {
+                if (newValue != null) {
+                    this.loadSingleAssignment({ assignmentId: newValue });
+                }
+            },
+        },
     },
 
     methods: {
+        ...mapActions('courses', ['loadSingleCourse']),
+        ...mapActions('assignments', ['loadSingleAssignment']),
         ...mapActions('user', ['verifyLogin']),
-        ...mapActions('courses', ['loadCourses']),
+
+        makeForCourseToast(courseName) {
+            return {
+                tag: 'forCourse',
+                title: 'Limited login enabled',
+                message: `You are currently only logged in for the course "${courseName}". This means you can only see data from this course.`,
+                variant: 'warning',
+            };
+        },
 
         addToast(toast) {
             if (!this.toasts.find(other => other.tag === toast.tag)) {
@@ -160,7 +212,6 @@ export default {
         this.$root.$on('cg::app::toast', this.addToast);
 
         this.verifyLogin()
-            .then(() => (this.loggedIn ? this.loadCourses() : Promise.resolve()))
             .then(
                 () => {
                     const route = this.$route.name;

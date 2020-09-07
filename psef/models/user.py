@@ -5,25 +5,31 @@ SPDX-License-Identifier: AGPL-3.0-only
 import uuid
 import typing as t
 import functools
+from datetime import timedelta
 from collections import defaultdict
 
 import structlog
+import flask_jwt_extended
 from flask import current_app
 from itsdangerous import BadSignature, URLSafeTimedSerializer
 from werkzeug.local import LocalProxy
 from sqlalchemy_utils import PasswordType
-from typing_extensions import Literal
+from typing_extensions import Literal, TypedDict
 from sqlalchemy.sql.expression import false
 from sqlalchemy.orm.collections import attribute_mapped_collection
 
 import psef
+from cg_dt_utils import DatetimeWithTimezone
 from cg_sqlalchemy_helpers import CIText, hybrid_property
 
 from . import UUID_LENGTH, Base, DbColumn, db
 from . import course as course_models
-from .. import signals, db_locks
+from .. import auth, signals, db_locks
 from .role import Role, CourseRole
-from ..helpers import NotEqualMixin, validate, handle_none, maybe_unwrap_proxy
+from ..helpers import (
+    NotEqualMixin, validate, handle_none, jsonify_options, maybe_unwrap_proxy,
+    get_request_start_time
+)
 from .permission import Permission
 from ..exceptions import APICodes, APIException, PermissionException
 from .link_tables import user_course, course_permissions
@@ -66,6 +72,66 @@ class User(NotEqualMixin, Base):
     :ivar reset_email_on_lti: Determines if the email should be reset on the
         next LTI launch.
     """
+
+    class LoginResponse(TypedDict):
+        """When logging in this object will be given.
+        """
+        #: The user that was logged in.
+        user: 'User'
+        #: A JWT token that can be used to do authenticated requests.
+        access_token: str
+
+    @t.overload
+    def make_access_token(
+        self,
+        *,
+        expires_in: t.Optional[timedelta] = None,
+    ) -> str:
+        ...
+
+    @t.overload
+    def make_access_token(
+        self,
+        *,
+        expires_at: DatetimeWithTimezone,
+        for_course: 'course_models.Course',
+    ) -> str:
+        ...
+
+    def make_access_token(
+        self,
+        *,
+        expires_at: t.Optional[DatetimeWithTimezone] = None,
+        expires_in: t.Optional[timedelta] = None,
+        for_course: t.Optional['course_models.Course'] = None
+    ) -> str:
+        """Make an access token for this user.
+
+        :param expires_at: The date when this token expires. Cannot be given
+            when ``expires_in`` is not ``None``.
+        :param expires_in: The amount of time after which the token should
+            expire. Cannot be given when ``expires_at`` is not ``None``.
+        :param for_course: If given the token can only be used for requests in
+            this course.
+
+        :returns: A JWT token encoded as a string.
+        """
+        assert self.id is not None
+        if expires_at is not None:
+            assert expires_in is None, (
+                'Cannot provide expires_in and expires_at'
+            )
+            now = get_request_start_time()
+            expires_in = expires_at - now
+
+        return flask_jwt_extended.create_access_token(
+            identity=self.id,
+            fresh=True,
+            expires_delta=expires_in,
+            user_claims={
+                'for_course': None if for_course is None else for_course.id,
+            }
+        )
 
     @classmethod
     def resolve(
@@ -176,6 +242,17 @@ class User(NotEqualMixin, Base):
         nullable=False,
         index=True,
     )
+
+    def load_all_permissions(self) -> None:
+        """Eagerly load all the permissions of this user object.
+
+        :returns: Nothing
+        """
+        # This query seems to do nothing, but it updates the existing
+        # ``CourseRole`` objects in memory with all permissions.
+        db.session.query(CourseRole).filter(
+            CourseRole.id.in_([cr.id for cr in self.courses.values()])
+        ).options(CourseRole.eager_load_permissions()).all()
 
     def get_readable_name(self) -> str:
         """Get the readable name of this user.
@@ -551,11 +628,16 @@ class User(NotEqualMixin, Base):
         :returns: A object as described above.
         """
         is_self = psef.current_user and psef.current_user.id == self.id
-        return {
+        res = {
             'email': self.email if is_self else '<REDACTED>',
             "hidden": self.can_see_hidden,
             **self.__to_json__(),
         }
+        if jsonify_options.get_options().add_permissions_to_user == self:
+            res['permissions'] = GlobalPermission.create_map(
+                self.get_all_permissions()
+            )
+        return res
 
     def has_course_permission_once(self, perm: CoursePermission) -> bool:
         """Check whether this user has the specified course
@@ -567,24 +649,9 @@ class User(NotEqualMixin, Base):
         :returns: True if the user has the permission once
         """
         assert not self.virtual
-
-        permission = Permission.get_permission(perm)
-        assert permission.course_permission
-
-        course_roles = db.session.query(
-            user_course.c.course_id
-        ).join(User, User.id == user_course.c.user_id).filter(
-            User.id == self.id
-        ).subquery('course_roles')
-        crp = db.session.query(course_permissions.c.course_role_id).join(
-            Permission, course_permissions.c.permission_id == Permission.id
-        ).filter(Permission.id == permission.id).subquery('crp')
-        res = db.session.query(
-            course_roles.c.course_id
-        ).join(crp, course_roles.c.course_id == crp.c.course_role_id)
-        link = db.session.query(res.exists()).scalar()
-
-        return link ^ permission.default_value
+        return any(
+            crole.has_permission(perm) for crole in self.courses.values()
+        )
 
     @t.overload
     def get_all_permissions(self) -> t.Mapping[GlobalPermission, bool]:  # pylint: disable=function-redefined,missing-docstring,no-self-use
@@ -593,19 +660,19 @@ class User(NotEqualMixin, Base):
     @t.overload
     def get_all_permissions(  # pylint: disable=function-redefined,missing-docstring,no-self-use,unused-argument
         self,
-        course_id: t.Union['course_models.Course', int],
+        course: 'course_models.Course',
     ) -> t.Mapping[CoursePermission, bool]:
         ...  # pylint: disable=pointless-statement
 
     def get_all_permissions(  # pylint: disable=function-redefined
-        self, course_id: t.Union['course_models.Course', int, None] = None
+        self, course: t.Union['course_models.Course', None] = None
     ) -> t.Union[t.Mapping[CoursePermission, bool], t.
                  Mapping[GlobalPermission, bool]]:
         """Get all global permissions (:class:`.Permission`) of this user or
             all course permissions of the user in a specific
             :class:`.course_models.Course`.
 
-        :param course_id: The course or course id
+        :param course: The course or course id
 
         :returns: A name boolean mapping where the name is the name of the
                   permission and the value indicates if this user has this
@@ -613,17 +680,14 @@ class User(NotEqualMixin, Base):
         """
         assert not self.virtual
 
-        if isinstance(course_id, course_models.Course):
-            course_id = course_id.id
-
-        if course_id is None:
+        if course is None:
             if self.role is None:
                 return {perm: False for perm in GlobalPermission}
             else:
                 return self.role.get_all_permissions()
         else:
-            if course_id in self.courses:
-                return self.courses[course_id].get_all_permissions()
+            if auth.CoursePermissions(course).ensure_may_see.as_bool():
+                return self.courses[course.id].get_all_permissions()
             else:
                 return {perm: False for perm in CoursePermission}
 
@@ -664,7 +728,7 @@ class User(NotEqualMixin, Base):
                 max_age=current_app.config['RESET_TOKEN_TIME'],
                 salt=self.reset_token
             )
-        except BadSignature:
+        except BadSignature as exc:
             logger.warning(
                 'Invalid password reset token encountered',
                 token=token,
@@ -674,7 +738,7 @@ class User(NotEqualMixin, Base):
                 'The given token is not valid',
                 f'The given token {token} is not valid.',
                 APICodes.INVALID_CREDENTIALS, 403
-            )
+            ) from exc
 
         # This should never happen but better safe than sorry.
         if (

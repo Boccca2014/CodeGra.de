@@ -14,6 +14,7 @@ from datetime import timedelta
 
 from typing_extensions import Literal, Protocol
 
+import cg_enum
 import cg_dt_utils
 
 T = t.TypeVar('T')
@@ -34,6 +35,8 @@ Never = t.NewType('Never', object)
 
 
 class MySession:  # pragma: no cover
+    info: dict
+
     def bulk_save_objects(self, objs: t.Sequence['Base']) -> None:
         ...
 
@@ -122,6 +125,9 @@ class MySession:  # pragma: no cover
         ...
 
     def expunge(self, arg: 'Base') -> None:
+        ...
+
+    def expire(self, obj: 'Base') -> None:
         ...
 
     def expire_all(self) -> None:
@@ -263,6 +269,19 @@ class MyDb:  # pragma: no cover
         index: bool = False,
         nullable: Literal[False] = False,
     ) -> 'ColumnProxy[T]':
+        ...
+
+    @t.overload
+    def Column(
+        self,
+        name: str,
+        type_: 'cg_enum.CGDbEnum[cg_enum.ENUM]',
+        *,
+        default: 'cg_enum.ENUM',
+        index: bool = False,
+        nullable: Literal[False] = False,
+        server_default: str = None,
+    ) -> '_MutableColumnProxy[cg_enum.ENUM, cg_enum.ENUM, CGEnumDbColumn[cg_enum.ENUM]]':
         ...
 
     @t.overload
@@ -586,7 +605,19 @@ class DbColumn(t.Generic[T]):  # pragma: no cover
     def __or__(self, other: 'DbColumn[bool]') -> 'DbColumn[bool]':
         ...
 
+    def __truediv__(
+        self: 'DbColumn[T_NUM]', other: 'DbColumn[T_NUM]'
+    ) -> 'DbColumn[T_NUM]':
+        ...
+
     def cast(self, other: DbType[Y]) -> 'DbColumn[Y]':
+        ...
+
+
+class FilterableDbColumn(t.Generic[T], DbColumn[T]):  # pragma: no cover
+    def filter(
+        self: 'FilterableDbColumn[T]', *criterion: 'FilterColumn'
+    ) -> 'FilterableDbColumn[T]':
         ...
 
 
@@ -598,6 +629,11 @@ class IndexedJSONColumn(DbColumn[Never]):
         ...
 
     def as_integer(self) -> 'DbColumn[t.Optional[int]]':
+        ...
+
+
+class CGEnumDbColumn(t.Generic[cg_enum.ENUM], DbColumn[cg_enum.ENUM]):
+    def __getattr__(self, name: str) -> Never:
         ...
 
 
@@ -740,6 +776,9 @@ class MyNonOrderableQuery(t.Generic[T]):  # pragma: no cover
     def with_entities(self, *args: t.Any) -> 'MyQuery[t.Any]':
         ...
 
+    def union(self: QuerySelf, *q: QuerySelf) -> 'QuerySelf':
+        ...
+
 
 class MyQuery(t.Generic[T], MyNonOrderableQuery[T]):
     def order_by(
@@ -856,20 +895,29 @@ if t.TYPE_CHECKING and MYPY:
                              coltype: object) -> t.Callable[[object], object]:
             return lambda x: x
 
-    class _func:
-        def count(self, _to_count: DbColumn[t.Any] = None) -> DbColumn[int]:
+    class func:
+        @staticmethod
+        def count(_to_count: DbColumn[t.Any] = None) -> DbColumn[int]:
             ...
 
-        def random(self) -> DbColumn[object]:
+        @staticmethod
+        def random() -> DbColumn[object]:
             ...
 
-        def max(self, col: DbColumn[T]) -> DbColumn[T]:
+        @staticmethod
+        def min(col: DbColumn[T]) -> FilterableDbColumn[t.Optional[T]]:
             ...
 
-        def sum(self, col: DbColumn[T_NUM]) -> DbColumn[T_NUM]:
+        @staticmethod
+        def max(col: DbColumn[T]) -> FilterableDbColumn[t.Optional[T]]:
             ...
 
-        def lower(self, col: DbColumn[str]) -> DbColumn[str]:
+        @staticmethod
+        def sum(col: DbColumn[T_NUM]) -> DbColumn[t.Optional[T_NUM]]:
+            ...
+
+        @staticmethod
+        def lower(col: DbColumn[str]) -> DbColumn[str]:
             ...
 
     def distinct(_distinct: T_DB_COLUMN) -> T_DB_COLUMN:
@@ -880,7 +928,7 @@ if t.TYPE_CHECKING and MYPY:
         ...
 
     class expression:
-        func: _func
+        func: func
 
         @staticmethod
         def and_(*to_and: FilterColumn) -> DbColumn[bool]:
@@ -901,14 +949,22 @@ if t.TYPE_CHECKING and MYPY:
         @staticmethod
         def literal(value: T) -> DbColumn[T]:
             ...
+
+        @staticmethod
+        def case(
+            whens: t.List[t.Tuple[FilterColumn, t.Union[T, DbColumn[T]]]],
+            *,
+            else_: ZZ = None
+        ) -> DbColumn[t.Union[T, ZZ]]:
+            ...
+
 else:
-    from sqlalchemy.ext.hybrid import hybrid_property
-    from sqlalchemy.ext.hybrid import Comparator as _Comparator
-    from sqlalchemy import TypeDecorator, TIMESTAMP
-    from sqlalchemy.dialects.postgresql import JSONB, ARRAY
-    from sqlalchemy.sql import expression
     from citext import CIText
-    from sqlalchemy import distinct, tuple_
+    from sqlalchemy import TIMESTAMP, TypeDecorator, func, tuple_, distinct
+    from sqlalchemy.sql import expression
+    from sqlalchemy.ext.hybrid import Comparator as _Comparator
+    from sqlalchemy.ext.hybrid import hybrid_property
+    from sqlalchemy.dialects.postgresql import ARRAY, JSONB
 
     def hybrid_expression(fun: T) -> T:
         return fun

@@ -47,7 +47,7 @@ def init_app(app: 'PsefFlask') -> None:
                 errors.APICodes.RATE_LIMIT_EXCEEDED,
                 429,
             ),
-            429,
+            status_code=429,
         )
 
     app.errorhandler(RateLimitExceeded)(_handle_rate_limit_exceeded)

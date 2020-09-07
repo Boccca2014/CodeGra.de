@@ -196,6 +196,10 @@ export default {
                 return `/api/v1/courses/${this.course.id}/`;
             }
         },
+
+        courseId() {
+            return this.$utils.getProps(this.course, null, 'id');
+        },
     },
 
     methods: {
@@ -296,9 +300,9 @@ export default {
         addSnippet(snippet) {
             return this.$http.put(this.getSnippetRoute('snippet'), snippet).then(response => {
                 snippet.id = response.data.id;
-                if (this.course) {
+                if (this.courseId) {
                     this.updateCourse({
-                        courseId: this.course.id,
+                        courseId: this.courseId,
                         courseProps: {
                             snippets: [...this.course.snippets, snippet],
                         },
@@ -315,9 +319,9 @@ export default {
                 .patch(this.getSnippetRoute(`snippets/${snippet.id}`), snippet)
                 .then(() => {
                     const idx = this.findSnippetIndex(snippet);
-                    if (this.course) {
+                    if (this.courseId) {
                         this.updateCourse({
-                            courseId: this.course.id,
+                            courseId: this.courseId,
                             courseProps: {
                                 snippets: this.course.snippets.map(
                                     snip => (snip.id === snippet.id ? snippet : snip),
@@ -341,7 +345,7 @@ export default {
             const idx = this.findSnippetIndex(snippet);
 
             this.snippets.splice(idx, 1);
-            if (this.course) {
+            if (this.courseId) {
                 this.updateCourse({
                     courseId: this.course.id,
                     courseProps: {
@@ -382,10 +386,10 @@ export default {
         },
 
         refreshSnippets() {
-            if (this.course) {
-                return this.$http.get(`/api/v1/courses/${this.course.id}/snippets/`, ({ data }) => {
+            if (this.courseId) {
+                return this.$http.get(`/api/v1/courses/${this.courseId}/snippets/`, ({ data }) => {
                     this.updateCourse({
-                        courseId: this.course.id,
+                        courseId: this.courseId,
                         courseProps: data,
                     });
                     return data;
@@ -411,7 +415,8 @@ export default {
     },
 
     watch: {
-        course: {
+        courseId: {
+            immediate: true,
             async handler() {
                 await this.refreshSnippets();
                 this.loading = false;
@@ -420,7 +425,6 @@ export default {
                     cmpNoCase(a.key, b.key),
                 );
             },
-            immediate: true,
         },
     },
 

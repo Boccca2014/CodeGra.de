@@ -518,8 +518,8 @@ context('Submissions page', () => {
         }
 
         function getAction(name) {
-            return cy.get('.action-buttons')
-                .contains('.action-button', name);
+            return cy.get('.wizard-buttons')
+                .contains('.wizard-button', name);
         }
 
         function doAction(name) {
@@ -537,7 +537,7 @@ context('Submissions page', () => {
         it('should be on the submissions page', () => {
             cy.url().should('contain', 'submissions');
             cy.get('.submissions-table').should('not.exist');
-            cy.get('.action-buttons').should('exist');
+            cy.get('.wizard-buttons').should('exist');
         })
 
         it('should not have a button to go to the assignment management page', () => {
@@ -601,8 +601,7 @@ context('Submissions page', () => {
             context('Latest submission', () => {
                 it('should not be disabled when the student has submissions', () => {
                     getAction('Latest submission')
-                        .find('.content-wrapper')
-                        .should('not.have.class', 'disabled');
+                        .should('not.be.disabled');
                     doAction('Latest submission');
 
                     cy.url().should('contain', '/files/');
@@ -633,8 +632,7 @@ context('Submissions page', () => {
                 it('should be disabled when the student has no submissions', () => {
                     visitSubmissions(assignments.withoutSubs);
                     getAction('Latest submission')
-                        .find('.content-wrapper')
-                        .should('have.class', 'disabled');
+                        .should('be.disabled');
                 });
 
                 it('should not show a grade by default', () => {
@@ -657,8 +655,8 @@ context('Submissions page', () => {
 
                     loginStudent();
                     getAction('Latest submission')
-                        .contains('p.grade', 'Grade')
-                        .should('contain', '6.66');
+                        .contains('.badge', '6.66')
+                        .should('be.visible');
                 });
 
                 it('should indicate whether the submission is late', () => {
@@ -674,7 +672,7 @@ context('Submissions page', () => {
                     ).then(() => {
                         loginStudent();
                         getAction('Latest submission')
-                            .should('have.class', 'variant-danger');
+                            .should('have.class', 'btn-danger');
                     });
                 });
             });
@@ -701,8 +699,7 @@ context('Submissions page', () => {
 
                     loginStudent();
                     getAction('Upload files')
-                        .find('.content-wrapper')
-                        .should('have.class', 'disabled');
+                        .should('be.disabled');
                 });
 
                 it('should be disabled when the assignment\'s deadline has passed', () => {
@@ -713,8 +710,7 @@ context('Submissions page', () => {
 
                     loginStudent();
                     getAction('Upload files')
-                        .find('.content-wrapper')
-                        .should('have.class', 'disabled');
+                        .should('be.disabled');
                 });
             });
 
@@ -741,8 +737,7 @@ context('Submissions page', () => {
 
                     loginStudent();
                     getAction('Set up Git')
-                        .find('.content-wrapper')
-                        .should('have.class', 'disabled');
+                        .should('be.disabled');
                 });
 
                 it('should not exist when the assignment does not allow webhook uploads', () => {

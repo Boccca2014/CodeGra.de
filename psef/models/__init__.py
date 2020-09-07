@@ -127,15 +127,21 @@ SPDX-License-Identifier: AGPL-3.0-only
 import typing as t
 
 import cg_sqlalchemy_helpers
+import cg_sqlalchemy_helpers.validation
 from cg_sqlalchemy_helpers import UUID_LENGTH
 from cg_cache.intra_request import cache_within_request
 from cg_sqlalchemy_helpers.types import (  # pylint: disable=unused-import
     MyDb, MyQuery, DbColumn, _MyQuery
 )
 
-from .. import PsefFlask
+from .. import PsefFlask, signals
 
 db: MyDb = cg_sqlalchemy_helpers.make_db()  # pylint: disable=invalid-name
+
+validator: cg_sqlalchemy_helpers.validation.Validator
+validator = cg_sqlalchemy_helpers.validation.Validator(db.session)
+
+signals.FINALIZE_APP.connect_immediate(lambda _: validator.finalize())
 
 
 def init_app(app: PsefFlask) -> None:
@@ -147,70 +153,63 @@ def init_app(app: PsefFlask) -> None:
     cg_sqlalchemy_helpers.init_app(db, app)
 
 
-if t.TYPE_CHECKING and getattr(
-    t, 'SPHINX', False
-) is not True:  # pragma: no cover
-    from cg_sqlalchemy_helpers.types import Base, Comparator
-    cached_property = property  # pylint: disable=invalid-name
-    hybrid_property = property  # pylint: disable=invalid-name
+if t.TYPE_CHECKING:  # pragma: no cover
+    from cg_sqlalchemy_helpers.types import Base
 else:
-    from sqlalchemy.ext.hybrid import hybrid_property, Comparator  # type: ignore
-    Base = db.Model  # type: ignore # pylint: disable=invalid-name
-    from werkzeug.utils import cached_property  # type: ignore
-
-# Sphinx has problems with resolving types when this decorator is used, we
-# simply remove it in the case of Sphinx.
-if getattr(t, 'SPHINX', False) is True:  # pragma: no cover
-    # pylint: disable=invalid-name
-    cache_within_request = lambda x: x
+    Base = db.Model  # pylint: disable=invalid-name
 
 if True:  # pylint: disable=using-constant-test
-    from .course import Course, CourseSnippet, CourseRegistrationLink
+    from .file import (
+        File, FileMixin, FileOwner, AutoTestFixture, NestedFileMixin,
+        AutoTestOutputFile
+    )
+    from .role import Role, CourseRole, AbstractRole
+    from .user import User
+    from .work import Work, WorkOrigin, GradeOrigin, GradeHistory
+    from .group import Group, GroupSet
+    from .proxy import Proxy, ProxyState
+    from .course import (
+        Course, CourseState, CourseSnippet, CourseRegistrationLink
+    )
+    from .linter import LinterState, LinterComment, LinterInstance
+    from .rubric import RubricItem
+    from .rubric import RubricRowBase as RubricRow
+    from .rubric import WorkRubricItem
+    from .comment import (
+        CommentBase, CommentType, CommentReply, CommentReplyEdit,
+        CommentReplyType
+    )
+    from .snippet import Snippet
+    from .webhook import WebhookBase, GitCloneData
+    from .analytics import BaseDataSource, AnalyticsWorkspace
+    from .auto_test import (
+        AutoTest, AutoTestRun, AutoTestSet, AutoTestSuite, AutoTestResult,
+        AutoTestRunner
+    )
     from .assignment import (
-        Assignment, AssignmentLinter, AssignmentResult, AssignmentDoneType,
-        AssignmentGraderDone, AssignmentAssignedGrader, AssignmentStateEnum,
-        AssignmentAmbiguousSettingTag, AssignmentVisibilityState,
+        Assignment, AssignmentKind, AssignmentLinter, AssignmentResult,
+        AssignmentDoneType, AssignmentLoginLink, AssignmentStateEnum,
+        AssignmentGraderDone, AssignmentAssignedGrader,
+        AssignmentVisibilityState, AssignmentAmbiguousSettingTag,
         AssignmentPeerFeedbackSettings, AssignmentPeerFeedbackConnection
     )
     from .permission import Permission
-    from .user import User
+    from .plagiarism import (
+        PlagiarismRun, PlagiarismCase, PlagiarismMatch, PlagiarismState
+    )
+    from .link_tables import user_course
+    from .task_result import TaskResult, TaskReturnType, TaskResultState
+    from .blob_storage import BlobStorage
     from .lti_provider import (
-        LTIProviderBase, LTI1p1Provider, UserLTIProvider, LTI1p3Provider,
+        LTI1p1Provider, LTI1p3Provider, LTIProviderBase, UserLTIProvider,
         CourseLTIProvider
     )
-    from .file import (
-        File, FileOwner, AutoTestFixture, FileMixin, NestedFileMixin,
-        AutoTestOutputFile
-    )
-    from .work import Work, GradeHistory, GradeOrigin, WorkOrigin
-    from .linter import LinterState, LinterComment, LinterInstance
-    from .plagiarism import (
-        PlagiarismState, PlagiarismRun, PlagiarismCase, PlagiarismMatch
-    )
-    from .comment import (
-        CommentBase, CommentReply, CommentReplyEdit, CommentReplyType,
-        CommentType
-    )
-    from .role import AbstractRole, Role, CourseRole
-    from .snippet import Snippet
-    from .rubric import RubricItem, RubricRowBase as RubricRow, WorkRubricItem
-    from .group import GroupSet, Group
-    from .link_tables import user_course
-    from .auto_test import (
-        AutoTest, AutoTestSet, AutoTestSuite, AutoTestResult, AutoTestRun,
-        AutoTestRunner
-    )
-    from .auto_test_step import (
-        AutoTestStepResultState, AutoTestStepResult, AutoTestStepBase
-    )
-    from .webhook import WebhookBase, GitCloneData
-    from .blob_storage import BlobStorage
-    from .proxy import Proxy, ProxyState
-    from .analytics import AnalyticsWorkspace, BaseDataSource
     from .notification import Notification, NotificationReasons
     from .user_setting import (
-        NotificationsSetting, SettingBase, EmailNotificationTypes,
+        SettingBase, NotificationsSetting, EmailNotificationTypes,
         NotificationSettingJSON
     )
-    from .task_result import TaskResult, TaskResultState
     from .saml_provider import Saml2Provider, UserSamlProvider
+    from .auto_test_step import (
+        AutoTestStepBase, AutoTestStepResult, AutoTestStepResultState
+    )

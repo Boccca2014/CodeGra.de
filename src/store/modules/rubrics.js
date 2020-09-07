@@ -5,6 +5,7 @@ import axios from 'axios';
 import { NONEXISTENT } from '@/constants';
 import { Rubric, RubricResult } from '@/models/rubric';
 import * as types from '../mutation-types';
+import { AssignmentsStore } from './assignments';
 
 const getters = {
     rubrics: state => state.rubrics,
@@ -65,21 +66,17 @@ const actions = {
                 rows,
                 max_points: maxPoints,
             })
-            .then(response => {
+            .then(async response => {
                 commit(types.SET_RUBRIC, {
                     assignmentId,
                     rubric: response.data,
                 });
-                commit(
-                    `courses/${types.UPDATE_ASSIGNMENT}`,
-                    {
-                        assignmentId,
-                        assignmentProps: {
-                            fixed_max_rubric_points: maxPoints,
-                        },
+                await AssignmentsStore.updateAssignment({
+                    assignmentId,
+                    assignmentProps: {
+                        fixed_max_rubric_points: maxPoints,
                     },
-                    { root: true },
-                );
+                });
                 return response;
             });
     },

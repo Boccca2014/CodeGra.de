@@ -33,12 +33,14 @@ export default {
     },
 
     computed: {
-        ...mapGetters('courses', ['assignments']),
+        ...mapGetters('assignments', ['getAssignment']),
 
         isStudent() {
             const assigId = this.$route.params.assignmentId;
 
-            return this.$utils.getProps(this.assignments, false, assigId, 'course', 'isStudent');
+            return this.getAssignment(assigId).mapOrDefault(
+                a => a.course.isStudent, false,
+            );
         },
 
         documentationLink() {

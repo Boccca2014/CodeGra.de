@@ -118,6 +118,7 @@ import 'vue-awesome/icons/floppy-o';
 import 'vue-awesome/icons/reply';
 import 'vue-awesome/icons/pencil';
 
+import * as models from '@/models';
 import { SubmitButton, DescriptionPopover } from '@/components';
 
 export default {
@@ -125,21 +126,42 @@ export default {
 
     props: {
         course: {
-            type: Object,
+            type: models.Course,
             required: true,
         },
     },
 
     computed: {
-        ...mapGetters('courses', ['assignments']),
+        ...mapGetters('assignments', ['getAssignment']),
 
         groupSets() {
-            return this.course.group_sets;
+            return this.course.groupSets;
+        },
+
+        allAssignmentIds() {
+            return this.groupSets.reduce(
+                (acc, groupSet) => {
+                    groupSet.assignment_ids.forEach(id => acc.add(id));
+                    return acc;
+                },
+                new Set(),
+            );
         },
     },
 
+    watch: {
+        allAssignmentIds: {
+            immediate: true,
+            handler() {
+                this.loadAssignments();
+            },
+        },
+    },
+
+
     methods: {
-        ...mapActions('courses', ['updateCourse', 'updateAssignment']),
+        ...mapActions('courses', ['updateCourse']),
+        ...mapActions('assignments', ['updateAssignment', 'loadSingleAssignment']),
 
         addGroup() {
             return this.$http.put(`/api/v1/courses/${this.course.id}/group_sets/`, {
@@ -152,7 +174,7 @@ export default {
             this.updateCourse({
                 courseId: this.course.id,
                 courseProps: {
-                    group_sets: [...this.groupSets, response.data],
+                    groupSets: [...this.groupSets, response.data],
                 },
             });
 
@@ -166,12 +188,11 @@ export default {
         },
 
         formattedAssignments(groupSet) {
-            return (
-                groupSet.assignment_ids
-                    .map(id => this.assignments[id] && this.assignments[id].name)
-                    .filter(name => name != null)
-                    .join(', ') || 'Not used'
-            );
+            const res = this.$utils.filterMap(
+                groupSet.assignment_ids,
+                id => this.getAssignment(id).map(a => a.name),
+            ).join(', ');
+            return res || 'Not used';
         },
 
         clickSubmit(groupSet) {
@@ -192,7 +213,7 @@ export default {
             this.updateCourse({
                 courseId: this.course.id,
                 courseProps: {
-                    group_sets: this.groupSets.map(set => (set.id === groupSet.id ? data : set)),
+                    groupSets: this.groupSets.map(set => (set.id === groupSet.id ? data : set)),
                 },
             });
 
@@ -216,9 +237,18 @@ export default {
             this.updateCourse({
                 courseId: this.course.id,
                 courseProps: {
-                    group_sets: this.groupSets.filter(set => set.id !== groupSet.id),
+                    groupSets: this.groupSets.filter(set => set.id !== groupSet.id),
                 },
             });
+        },
+
+        loadAssignments() {
+            Promise.all(
+                Array.from(
+                    this.allAssignmentIds,
+                    id => this.loadSingleAssignment({ assignmentId: id }),
+                ),
+            );
         },
     },
 

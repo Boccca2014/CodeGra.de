@@ -21,6 +21,7 @@ import psef
 import psef.files
 from psef import app as current_app
 from psef import current_user
+from cg_helpers import handle_none, on_not_none
 from cg_dt_utils import DatetimeWithTimezone
 from psef.models import db
 from psef.helpers import (
@@ -55,48 +56,33 @@ def get_all_assignments() -> JSONResponse[t.Sequence[models.Assignment]]:
 
     :raises PermissionException: If there is no logged in user. (NOT_LOGGED_IN)
     """
-    courses = []
-
-    for course_role in current_user.courses.values():
-        if course_role.has_permission(CPerm.can_see_assignments):
-            courses.append(course_role.course_id)
+    # This is only used for limiting to improve performance and is NOT used for
+    # permission checks.
+    course_ids = [crole.course_id for crole in current_user.courses.values()]
 
     res = []
 
     query = db.session.query(
         models.Assignment,
-        t.cast(models.DbColumn[str], models.AssignmentLinter.id).isnot(None)
+        models.AssignmentLinter.id.isnot(None),
     ).filter(
         models.Assignment.is_visible,
-        t.cast(
-            models.DbColumn[int],
-            models.Assignment.course_id,
-        ).in_(courses)
+        models.Assignment.course_id.in_(course_ids),
     ).join(
         models.AssignmentLinter,
         sql_expression.and_(
             models.Assignment.id == models.AssignmentLinter.assignment_id,
             models.AssignmentLinter.name == 'MixedWhitespace'
         ),
-        isouter=True
-    ).order_by(
-        t.cast(models.DbColumn[object], models.Assignment.created_at).desc()
-    )
-    if request.args.get('only_with_rubric',
-                        'false').lower() in {'', 't', 'true'}:
-        query = query.filter(
-            t.cast(models.DbColumn[object],
-                   models.Assignment.rubric_rows).any()
-        )
+        isouter=True,
+    ).order_by(models.Assignment.created_at.desc())
+    if helpers.request_arg_true('only_with_rubric'):
+        query = query.filter(models.Assignment.rubric_rows.any())
 
-    if courses:
-        for assignment, has_linter in query.all():
-            has_perm = current_user.has_permission(
-                CPerm.can_see_hidden_assignments, assignment.course_id
-            )
-            assignment.whitespace_linter_exists = has_linter
-            if ((not assignment.is_hidden) or has_perm):
-                res.append(assignment)
+    for assig, has_linter in query.all():
+        if auth.AssignmentPermissions(assig).ensure_may_see.as_bool():
+            assig.whitespace_linter_exists = has_linter
+            res.append(assig)
 
     return jsonify(res)
 
@@ -116,14 +102,40 @@ def delete_assignment(assignment_id: int) -> EmptyResponse:
         also_error=lambda a: not a.is_visible
     )
 
-    auth.ensure_can_see_assignment(assignment)
-    auth.ensure_permission(CPerm.can_delete_assignments, assignment.course_id)
+    auth.AssignmentPermissions(assignment).ensure_may_delete()
 
     assignment.mark_as_deleted()
     assignment.group_set = None
     db.session.commit()
 
     return make_empty_response()
+
+
+@api.route('/assignments/<int:assignment_id>/course', methods=['GET'])
+@auth.login_required
+def get_course_of_assignment(
+    assignment_id: int
+) -> t.Union[ExtendedJSONResponse[models.Course], JSONResponse[models.Course]]:
+    """Get a course of an :class:`.models.Assignment`.
+
+    .. :quickref: Assignment; Get the course an assignment is in.
+
+    :param int assignment_id: The id of the assignment
+    :returns: A response containing the JSON serialized course.
+    """
+    assignment = helpers.get_or_404(
+        models.Assignment,
+        assignment_id,
+        also_error=lambda a: not a.is_visible
+    )
+    auth.AssignmentPermissions(assignment).ensure_may_see()
+
+    if helpers.extended_requested():
+        return ExtendedJSONResponse.make(
+            assignment.course, use_extended=models.Course
+        )
+    else:
+        return JSONResponse.make(assignment.course)
 
 
 @api.route("/assignments/<int:assignment_id>", methods=['GET'])
@@ -147,9 +159,7 @@ def get_assignment(assignment_id: int) -> JSONResponse[models.Assignment]:
         assignment_id,
         also_error=lambda a: not a.is_visible
     )
-
-    auth.ensure_can_see_assignment(assignment)
-
+    auth.AssignmentPermissions(assignment).ensure_may_see()
     return jsonify(assignment)
 
 
@@ -174,7 +184,7 @@ def get_assignments_feedback(assignment_id: int) -> JSONResponse[
         also_error=lambda a: not a.is_visible
     )
 
-    auth.ensure_enrolled(assignment.course_id)
+    auth.AssignmentPermissions(assignment).ensure_may_see()
 
     latest_subs = assignment.get_all_latest_submissions()
     try:
@@ -316,6 +326,16 @@ def update_assignment(assignment_id: int) -> JSONResponse[models.Assignment]:
         new_ignore = opt_get('ignore', (dict, list, str))
         new_max_grade = opt_get('max_grade', (float, int, type(None)))
         new_group_set_id = opt_get('group_set_id', (int, type(None)))
+        new_available_at = opt_get(
+            'available_at',
+            (str, type(None)),
+            transform=lambda dt: on_not_none(
+                dt,
+                parsers.parse_datetime,
+            ),
+        )
+        new_send_login_links = opt_get('send_login_links', bool)
+        new_kind = opt_get('kind', models.AssignmentKind, None)
 
         new_files_upload = opt_get('files_upload_enabled', bool, None)
         new_webhook_upload = opt_get('webhook_upload_enabled', bool, None)
@@ -324,17 +344,40 @@ def update_assignment(assignment_id: int) -> JSONResponse[models.Assignment]:
         new_cool_off_period = opt_get('cool_off_period', (int, float))
         new_amount_cool_off = opt_get('amount_in_cool_off_period', int)
 
-    lti_provider = assig.course.lti_provider
-    lms_name: t.Optional[str]
+    perm_checker = auth.AssignmentPermissions(assig)
+    perm_checker.ensure_may_see()
 
-    if lti_provider is not None:
-        lms_name = lti_provider.lms_name
-    else:
-        lms_name = None
+    lti_provider = assig.course.lti_provider
+    lms_name = on_not_none(lti_provider, lambda prov: prov.lms_name)
+
+    if new_available_at is not MISSING:
+        if assig.is_lti:
+            can_set_state = handle_none(
+                on_not_none(
+                    lti_provider, lambda p: p.supports_setting_state()
+                ),
+                False,
+            )
+            if not can_set_state:
+                raise APIException(
+                    (
+                        'The available at of this assignment should be set in '
+                        f'{lms_name}.'
+                    ), f'{assig.name} is an LTI assignment',
+                    APICodes.UNSUPPORTED, 400
+                )
+        perm_checker.ensure_may_edit_info()
+        assig.available_at = new_available_at
 
     if new_state is not MISSING:
-        auth.ensure_permission(CPerm.can_edit_assignment_info, assig.course_id)
+        # TODO: Check the LTI settings to make sure we can actually set the
+        # state. We should also be able to set the state to 'done' and back to
+        # "not done".
+        perm_checker.ensure_may_edit_info()
         assig.set_state_with_string(new_state)
+
+    if new_kind is not None:
+        assig.kind = new_kind
 
     if new_name is not MISSING:
         if assig.is_lti:
@@ -348,7 +391,7 @@ def update_assignment(assignment_id: int) -> JSONResponse[models.Assignment]:
                 400,
             )
 
-        auth.ensure_permission(CPerm.can_edit_assignment_info, assig.course_id)
+        perm_checker.ensure_may_edit_info()
 
         if not new_name:
             raise APIException(
@@ -362,8 +405,10 @@ def update_assignment(assignment_id: int) -> JSONResponse[models.Assignment]:
 
     if new_deadline is not MISSING:
         if (
-            lti_provider is not None and
-            not lti_provider.supports_setting_deadline()
+            assig.is_lti and (
+                lti_provider is None or
+                not lti_provider.supports_setting_deadline()
+            )
         ):
             raise APIException(
                 (
@@ -373,18 +418,20 @@ def update_assignment(assignment_id: int) -> JSONResponse[models.Assignment]:
                 400
             )
 
-        auth.ensure_permission(CPerm.can_edit_assignment_info, assig.course_id)
+        perm_checker.ensure_may_edit_info()
         assig.deadline = parsers.parse_datetime(new_deadline)
 
     if new_ignore is not MISSING:
-        auth.ensure_permission(CPerm.can_edit_cgignore, assig.course_id)
+        perm_checker.ensure_may_edit_cgignore()
         ignore_version = helpers.get_key_from_dict(
             content, 'ignore_version', 'IgnoreFilterManager'
         )
         assig.update_cgignore(ignore_version, new_ignore)
 
     if new_max_grade is not MISSING:
-        if lti_provider is not None and not lti_provider.supports_max_points():
+        if assig.is_lti and (
+            lti_provider is None or not lti_provider.supports_max_points()
+        ):
             raise APIException(
                 f'{lms_name} does not support setting the maximum grade',
                 f'{lms_name} does not support setting the maximum grade',
@@ -398,19 +445,15 @@ def update_assignment(assignment_id: int) -> JSONResponse[models.Assignment]:
                 APICodes.INVALID_PARAM, 400
             )
 
-        auth.ensure_permission(CPerm.can_edit_assignment_info, assig.course_id)
+        perm_checker.ensure_may_edit_info()
         assig.set_max_grade(new_max_grade)
 
     if {'done_type', 'reminder_time', 'done_email'} & content.keys():
-        auth.ensure_permission(
-            CPerm.can_update_course_notifications, assig.course_id
-        )
+        perm_checker.ensure_may_edit_notifications()
         set_reminder(assig, content)
 
     if new_group_set_id is not MISSING:
-        auth.ensure_permission(
-            CPerm.can_edit_group_assignment, assig.course_id
-        )
+        perm_checker.ensure_may_edit_group_status()
         if new_group_set_id is None:
             group_set = None
         elif assig.peer_feedback_settings is not None:
@@ -438,22 +481,26 @@ def update_assignment(assignment_id: int) -> JSONResponse[models.Assignment]:
         assig.group_set = group_set
 
     if new_files_upload is not None or new_webhook_upload is not None:
-        auth.ensure_permission(CPerm.can_edit_assignment_info, assig.course_id)
+        perm_checker.ensure_may_edit_info()
         assig.update_submission_types(
             files=new_files_upload, webhook=new_webhook_upload
         )
 
     if new_max_submissions is not MISSING:
-        auth.ensure_permission(CPerm.can_edit_assignment_info, assig.course_id)
+        perm_checker.ensure_may_edit_info()
         assig.max_submissions = new_max_submissions
 
     if new_cool_off_period is not MISSING:
-        auth.ensure_permission(CPerm.can_edit_assignment_info, assig.course_id)
+        perm_checker.ensure_may_edit_info()
         assig.cool_off_period = datetime.timedelta(seconds=new_cool_off_period)
 
     if new_amount_cool_off is not MISSING:
-        auth.ensure_permission(CPerm.can_edit_assignment_info, assig.course_id)
+        perm_checker.ensure_may_edit_info()
         assig.amount_in_cool_off_period = new_amount_cool_off
+
+    if new_send_login_links is not MISSING:
+        perm_checker.ensure_may_edit_info()
+        assig.send_login_links = new_send_login_links
 
     for warning in assig.get_changed_ambiguous_combinations():
         helpers.add_warning(warning.message, APIWarnings.AMBIGUOUS_COMBINATION)
@@ -805,6 +852,8 @@ def upload_work(assignment_id: int) -> ExtendedJSONResponse[models.Work]:
         with_for_update=helpers.LockType.read,
         also_error=lambda a: not a.is_visible,
     )
+    auth.AssignmentPermissions(assig).ensure_may_see()
+
     if not current_user.has_permission(
         CPerm.can_submit_others_work, course_id=assig.course_id
     ) and not assig.files_upload_enabled:
@@ -820,7 +869,7 @@ def upload_work(assignment_id: int) -> ExtendedJSONResponse[models.Work]:
             'ignored_files',
             'keep',
         )]
-    except KeyError:  # The enum value does not exist
+    except KeyError as exc:  # The enum value does not exist
         raise APIException(
             'The given value for "ignored_files" is invalid',
             (
@@ -829,7 +878,7 @@ def upload_work(assignment_id: int) -> ExtendedJSONResponse[models.Work]:
             ),
             APICodes.INVALID_PARAM,
             400,
-        )
+        ) from exc
 
     tree = psef.files.process_files(
         files,
@@ -950,8 +999,7 @@ def divide_assignments(assignment_id: int) -> EmptyResponse:
         options=[joinedload(models.Assignment.division_children)],
         also_error=lambda a: not a.is_visible,
     )
-
-    auth.ensure_permission(CPerm.can_assign_graders, assignment.course_id)
+    auth.AssignmentPermissions(assignment).ensure_may_assign_graders()
 
     content = ensure_json_dict(request.get_json())
 
@@ -1049,7 +1097,7 @@ def get_all_graders(
         assignment_id,
         also_error=lambda a: not a.is_visible
     )
-    auth.ensure_permission(CPerm.can_see_assignee, assignment.course_id)
+    auth.AssignmentPermissions(assignment).ensure_may_see_graders()
 
     result = assignment.get_all_graders(sort=True)
 
@@ -1104,6 +1152,7 @@ def set_grader_to_not_done(
         assignment_id,
         also_error=lambda a: not a.is_visible
     )
+    auth.AssignmentPermissions(assig).ensure_may_see()
 
     if current_user.id == grader_id:
         auth.ensure_permission(CPerm.can_grade_work, assig.course_id)
@@ -1114,13 +1163,13 @@ def set_grader_to_not_done(
         send_mail = grader_id != current_user.id
         assig.set_graders_to_not_done([grader_id], send_mail=send_mail)
         db.session.commit()
-    except ValueError:
+    except ValueError as exc:
         raise APIException(
             'The grader is not finished!',
             f'The grader {grader_id} is not done.',
             APICodes.INVALID_STATE,
             400,
-        )
+        ) from exc
     else:
         return make_empty_response()
 
@@ -1155,6 +1204,7 @@ def set_grader_to_done(assignment_id: int, grader_id: int) -> EmptyResponse:
         options=[joinedload(models.Assignment.finished_graders)],
         also_error=lambda a: not a.is_visible,
     )
+    auth.AssignmentPermissions(assig).ensure_may_see()
 
     if current_user.id == grader_id:
         auth.ensure_permission(CPerm.can_grade_work, assig.course_id)
@@ -1229,11 +1279,7 @@ def get_all_works_by_user_for_assignment(
         assignment_id,
         also_error=lambda a: not a.is_visible
     )
-    auth.ensure_permission(CPerm.can_see_assignments, assignment.course_id)
-    if assignment.is_hidden:
-        auth.ensure_permission(
-            CPerm.can_see_hidden_assignments, assignment.course_id
-        )
+    auth.AssignmentPermissions(assignment).ensure_may_see()
 
     user = helpers.get_or_404(models.User, user_id)
     auth.WorksByUserPermissions(assignment, user).ensure_may_see()
@@ -1278,7 +1324,7 @@ def get_all_works_for_assignment(
         also_error=lambda a: not a.is_visible
     )
 
-    auth.ensure_permission(CPerm.can_see_assignments, assignment.course_id)
+    auth.AssignmentPermissions(assignment).ensure_may_see()
 
     if assignment.is_hidden:
         auth.ensure_permission(
@@ -1350,6 +1396,7 @@ def post_submissions(assignment_id: int) -> EmptyResponse:
         with_for_update=helpers.LockType.read,
         also_error=lambda a: not a.is_visible,
     )
+    auth.AssignmentPermissions(assignment).ensure_may_see()
     auth.ensure_permission(CPerm.can_upload_bb_zip, assignment.course_id)
     files = helpers.get_files_from_request(
         max_size=current_app.max_large_file_size, keys=['file']
@@ -1490,6 +1537,7 @@ def get_linters(assignment_id: int
         also_error=lambda a: not a.is_visible
     )
 
+    auth.AssignmentPermissions(assignment).ensure_may_see()
     auth.ensure_permission(CPerm.can_use_linter, assignment.course_id)
 
     res = []
@@ -1556,6 +1604,7 @@ def start_linting(assignment_id: int) -> JSONResponse[models.AssignmentLinter]:
         assignment_id,
         also_error=lambda a: not a.is_visible
     )
+    auth.AssignmentPermissions(assig).ensure_may_see()
     auth.ensure_permission(CPerm.can_use_linter, assig.course_id)
 
     with get_from_map_transaction(content) as [get, _]:
@@ -1580,7 +1629,7 @@ def start_linting(assignment_id: int) -> JSONResponse[models.AssignmentLinter]:
 
     try:
         linter_cls = linters.get_linter_by_name(name)
-    except KeyError:
+    except KeyError as exc:
         raise APIException(
             f'No linter named "{name}" was found',
             (
@@ -1589,7 +1638,7 @@ def start_linting(assignment_id: int) -> JSONResponse[models.AssignmentLinter]:
             ),
             APICodes.OBJECT_NOT_FOUND,
             404,
-        )
+        ) from exc
     linter_cls.validate_config(cfg)
 
     if linter_cls.RUN_LINTER:
@@ -1631,10 +1680,7 @@ def get_plagiarism_runs(
         assignment_id,
         also_error=lambda a: not a.is_visible
     )
-    try:
-        auth.ensure_permission(CPerm.can_view_plagiarism, assig.course_id)
-    except auth.PermissionException:
-        auth.ensure_permission(CPerm.can_manage_plagiarism, assig.course_id)
+    auth.AssignmentPermissions(assig).ensure_may_see_plagiarism()
 
     return jsonify(
         models.PlagiarismRun.query.filter_by(assignment=assig).order_by(
@@ -1685,7 +1731,7 @@ def start_plagiarism_check(
         assignment_id,
         also_error=lambda a: not a.is_visible
     )
-    auth.ensure_permission(CPerm.can_manage_plagiarism, assig.course_id)
+    auth.AssignmentPermissions(assig).ensure_may_edit_plagiarism()
 
     content = ensure_json_dict(
         ('json' in request.files and json.loads(request.files['json'].read()))
@@ -1719,12 +1765,12 @@ def start_plagiarism_check(
         provider_cls = helpers.get_class_by_name(
             plagiarism.PlagiarismProvider, provider_name
         )
-    except ValueError:
+    except ValueError as exc:
         raise APIException(
             'The given provider does not exist',
             f'The provider "{provider_name}" does not exist',
             APICodes.OBJECT_NOT_FOUND, 404
-        )
+        ) from exc
 
     if any(not isinstance(item, int) for item in old_assig_ids):
         raise APIException(
@@ -1858,7 +1904,7 @@ def get_group_member_states(assignment_id: int, group_id: int
         models.Group, models.Group.id == group_id,
         models.Group.group_set_id == assig.group_set_id
     )
-    auth.ensure_can_view_group(group)
+    auth.GroupPermissions(group).ensure_may_see()
 
     return jsonify(group.get_member_lti_states(assig))
 
@@ -2079,6 +2125,7 @@ def get_comments_by_user(assignment_id: int, user_id: int
         models.Assignment.id == assignment_id,
         also_error=lambda a: not a.is_visible,
     )
+    auth.AssignmentPermissions(assignment).ensure_may_see()
     user = helpers.get_or_404(models.User, user_id)
 
     comments = models.CommentBase.get_base_comments_query().filter(
@@ -2125,6 +2172,8 @@ def get_peer_feedback_subjects(
         models.Assignment.id == assignment_id,
         also_error=lambda a: not a.is_visible,
     )
+    auth.AssignmentPermissions(assignment).ensure_may_see()
+
     user = helpers.get_or_404(models.User, user_id)
     if not user.contains_user(current_user):
         auth.ensure_permission(CPerm.can_see_others_work, assignment.course_id)

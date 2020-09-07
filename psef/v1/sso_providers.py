@@ -98,7 +98,7 @@ def create_sso_providers() -> JSONResponse[models.Saml2Provider]:
     db.session.flush()
     try:
         prov.check_metadata_url()
-    except:
+    except BaseException as exc:
         logger.error(
             'Error parsing given metadata url',
             exc_info=True,
@@ -108,7 +108,7 @@ def create_sso_providers() -> JSONResponse[models.Saml2Provider]:
             'Could not parse the metadata in the given metadata url',
             'The metadata could not be parsed',
             exceptions.APICodes.INVALID_PARAM, 400
-        )
+        ) from exc
     db.session.commit()
 
     return JSONResponse.make(prov)

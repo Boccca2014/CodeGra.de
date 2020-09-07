@@ -5,6 +5,7 @@ import axios from 'axios';
 import { deepCopy, getProps, makeHttpErrorHandler, AssertionError } from '@/utils';
 import { AutoTestSuiteData, AutoTestRun, FINISHED_STATES } from '@/models/auto_test';
 import * as types from '../mutation-types';
+import { AssignmentsStore } from './assignments';
 
 const getters = {
     tests: state => state.tests,
@@ -37,16 +38,15 @@ const actions = {
         return axios.delete(`/api/v1/auto_tests/${autoTestId}`).then(response =>
             Promise.all([
                 response,
-                dispatch('submissions/forceLoadSubmissions', assignmentId, { root: true }),
+                dispatch('submissions/forceLoadSubmissions', { assignmentId }, { root: true }),
                 dispatch('rubrics/loadRubric', { assignmentId, force: true }, { root: true }),
             ]).then(res => {
-                res.onAfterSuccess = () => {
+                res.onAfterSuccess = async () => {
                     commit(types.DELETE_AUTO_TEST, autoTestId);
-                    commit(
-                        `courses/${types.UPDATE_ASSIGNMENT}`,
-                        { assignmentId, assignmentProps: { auto_test_id: null } },
-                        { root: true },
-                    );
+                    await AssignmentsStore.updateAssignment({
+                        assignmentId,
+                        assignmentProps: { auto_test_id: null },
+                    });
                 };
                 return res;
             }),
@@ -90,9 +90,13 @@ const actions = {
         const autoTest = state.tests[autoTestId];
 
         return axios.post(`/api/v1/auto_tests/${autoTestId}/runs/`).then(({ data }) =>
-            dispatch('submissions/forceLoadSubmissions', autoTest.assignment_id, {
-                root: true,
-            }).then(() => commit(types.UPDATE_AUTO_TEST_RUNS, { autoTest, run: data })),
+            dispatch(
+                'submissions/forceLoadSubmissions',
+                { assignmentId: autoTest.assignment_id },
+                {
+                    root: true,
+                },
+            ).then(() => commit(types.UPDATE_AUTO_TEST_RUNS, { autoTest, run: data })),
         );
     },
 
@@ -383,9 +387,13 @@ const actions = {
 
             // This also clears the rubricResults, so we don't need to do that
             // here too.
-            return dispatch('submissions/forceLoadSubmissions', autoTest.assignment_id, {
-                root: true,
-            });
+            return dispatch(
+                'submissions/forceLoadSubmissions',
+                { assignmentId: autoTest.assignment_id },
+                {
+                    root: true,
+                },
+            );
         };
 
         return axios.delete(`/api/v1/auto_tests/${autoTestId}/runs/${runId}`).then(

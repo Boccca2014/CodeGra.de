@@ -8,7 +8,7 @@ import typing as t
 from cg_sqlalchemy_helpers import (
     Comparator, hybrid_property, hybrid_expression
 )
-from cg_sqlalchemy_helpers.types import DbColumn
+from cg_sqlalchemy_helpers.types import MyQuery, DbColumn
 
 from . import Base, db
 from .. import helpers
@@ -120,6 +120,20 @@ class Permission(Base, t.Generic[_T]):  # pylint: disable=unsubscriptable-object
         )
 
     @classmethod
+    def query_permission(cls: 't.Type[Permission[_T]]',
+                         perm: '_T') -> MyQuery['Permission[_T]']:
+        """Get a database permission from a permission.
+
+        :param perm: The permission to get the database permission of.
+        :returns: The correct database permission.
+        """
+        # Mypy wraps the Permission in another Permission, no idea why.
+        return db.session.query(cls).filter(  # type: ignore[return-value]
+            cls.value == perm,
+            cls.course_permission == isinstance(perm, CoursePermission),
+        )
+
+    @classmethod
     @cache_within_request
     def get_permission(
         cls: 't.Type[Permission[_T]]', perm: '_T'
@@ -129,11 +143,7 @@ class Permission(Base, t.Generic[_T]):  # pylint: disable=unsubscriptable-object
         :param perm: The permission to get the database permission of.
         :returns: The correct database permission.
         """
-        return helpers.filter_single_or_404(
-            cls,
-            cls.value == perm,
-            cls.course_permission == isinstance(perm, CoursePermission),
-        )
+        return cls.query_permission(perm).one()
 
     def _get_value(self) -> '_T':
         """Get the permission value of the database permission.

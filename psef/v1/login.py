@@ -7,7 +7,6 @@ SPDX-License-Identifier: AGPL-3.0-only
 """
 import typing as t
 
-import flask_jwt_extended as flask_jwt
 from flask import request
 from flask_limiter.util import get_remote_address
 
@@ -21,8 +20,8 @@ from ..errors import APICodes, APIWarnings, APIException
 from ..models import db
 from ..helpers import (
     JSONResponse, EmptyResponse, ExtendedJSONResponse, jsonify, validate,
-    add_warning, ensure_json_dict, extended_jsonify, request_arg_true,
-    ensure_keys_in_dict, make_empty_response
+    add_warning, jsonify_options, ensure_json_dict, extended_jsonify,
+    request_arg_true, ensure_keys_in_dict, make_empty_response
 )
 from ..permissions import GlobalPermission as GPerm
 
@@ -40,8 +39,7 @@ def _login_rate_limit() -> t.Tuple[str, str]:
 @limiter.limit(
     '5 per minute', key_func=_login_rate_limit, deduct_on_err_only=True
 )
-def login() -> ExtendedJSONResponse[
-    t.Mapping[str, t.Union[t.MutableMapping[str, t.Any], str]]]:
+def login() -> ExtendedJSONResponse[models.User.LoginResponse]:
     """Login a :class:`.models.User` if the request is valid.
 
     .. :quickref: User; Login a given user.
@@ -159,30 +157,24 @@ def login() -> ExtendedJSONResponse[
             )
 
     auth.set_current_user(user)
-    json_user = user.__extended_to_json__()
 
     if request_arg_true('with_permissions'):
-        json_user['permissions'] = GPerm.create_map(user.get_all_permissions())
+        jsonify_options.get_options().add_permissions_to_user = user
 
     return extended_jsonify(
         {
-            'user': json_user,
-            'access_token':
-                flask_jwt.create_access_token(
-                    identity=user.id,
-                    fresh=True,
-                )
-        }
+            'user': user,
+            'access_token': user.make_access_token(),
+        },
+        use_extended=models.User,
     )
 
 
 @api.route("/login", methods=["GET"])
 @auth.login_required
 def self_information(
-) -> t.Union[JSONResponse[t.Union[models.User, t.MutableMapping[str, t.Any], t.
-                                  Mapping[int, str]]],
-             ExtendedJSONResponse[t.Union[models.User, t.MutableMapping[str, t.
-                                                                        Any]]],
+) -> t.Union[JSONResponse[t.Union[models.User, t.Mapping[int, str]]],
+             ExtendedJSONResponse[models.User],
              ]:
     """Get the info of the currently logged in :class:`.models.User`.
 
@@ -208,17 +200,12 @@ def self_information(
                 for role in current_user.courses.values()
             }
         )
-
     elif helpers.extended_requested() or args.get('type') == 'extended':
-        obj: t.Union[t.MutableMapping[str, t.Any], models.User]
+        user = models.User.resolve(current_user)
         if request_arg_true('with_permissions'):
-            obj = current_user.__extended_to_json__()
-            obj['permissions'] = GPerm.create_map(
-                current_user.get_all_permissions()
-            )
-        else:
-            obj = current_user
-        return extended_jsonify(obj)
+            jsonify_options.get_options().add_permissions_to_user = user
+        return extended_jsonify(user, use_extended=models.User)
+
     return jsonify(current_user)
 
 
@@ -326,15 +313,7 @@ def user_patch_handle_reset_password() -> JSONResponse[t.Mapping[str, str]]:
 
     user.reset_password(token, password)
     db.session.commit()
-    return jsonify(
-        {
-            'access_token':
-                flask_jwt.create_access_token(
-                    identity=user.id,
-                    fresh=True,
-                )
-        }
-    )
+    return jsonify({'access_token': user.make_access_token()})
 
 
 def user_patch_handle_reset_on_lti() -> EmptyResponse:
@@ -349,7 +328,7 @@ def user_patch_handle_reset_on_lti() -> EmptyResponse:
     return make_empty_response()
 
 
-def user_patch_handle_change_user_data() -> JSONResponse[models.User]:
+def user_patch_handle_change_user_data() -> ExtendedJSONResponse[models.User]:
     """Handle the PATCH login route when no ``type`` is given.
 
     :returns: An empty response.
@@ -405,4 +384,4 @@ def user_patch_handle_change_user_data() -> JSONResponse[models.User]:
         current_user.name = name
 
     db.session.commit()
-    return jsonify(current_user)
+    return ExtendedJSONResponse.make(current_user, use_extended=models.User)

@@ -3,14 +3,14 @@ import moment from 'moment';
 // eslint-disable-next-line
 import type { ICompiledMode } from 'highlightjs';
 import { getLanguage, highlight } from 'highlightjs';
-import Vue from 'vue';
+import Vue, { VNode } from 'vue';
 
-import { Maybe } from 'purify-ts/Maybe';
+import { Maybe, Nothing } from 'purify-ts/Maybe';
 
 import * as Sentry from '@sentry/browser';
 import { User } from '@/models';
 import { visualizeWhitespace } from './visualize';
-import { defaultdict } from './defaultdict';
+import { DefaultMap } from './defaultdict';
 
 export * from 'purify-ts/Either';
 export * from 'purify-ts/EitherAsync';
@@ -411,10 +411,38 @@ export function toMoment(date: moment.Moment | string): moment.Moment {
     }
 }
 
+export function toMomentNullable(date: moment.Moment | string | null): moment.Moment | null {
+    if (date == null) {
+        return null;
+    } else {
+        return toMoment(date);
+    }
+}
+
+export function formatMoment(date: moment.Moment | string, format: string): string {
+    return toMoment(date).local().format(format);
+}
+
 export function readableFormatDate(date: moment.Moment | string): string {
-    return toMoment(date)
-        .local()
-        .format('YYYY-MM-DD HH:mm');
+    return formatMoment(date, 'YYYY-MM-DD HH:mm');
+}
+
+export function formatDate(date: string | moment.Moment, iso: boolean = false): string {
+    if (iso) {
+        return toMoment(date).utc().toISOString();
+    } else {
+        return formatMoment(date, 'YYYY-MM-DDTHH:mm');
+    }
+}
+
+export function formatNullableDate(
+    date: string | moment.Moment | null | undefined,
+    iso: boolean = false,
+): string | null {
+    if (date == null) {
+        return null;
+    }
+    return formatDate(date, iso);
 }
 
 export function filterMap<T, TT>(
@@ -477,13 +505,17 @@ export function parseOrKeepFloat(num: string | number | null | undefined): numbe
     } else if (num == null) {
         return NaN;
     }
-    return parseFloat(num);
-}
 
-export function formatDate(date: string | moment.Moment): string {
-    return toMoment(date)
-        .local()
-        .format('YYYY-MM-DDTHH:mm');
+    // We need to parse with both parseFloat and Number because:
+    // * parseFloat('5a') -> 5  while  Number('5a') -> NaN
+    // * parseFloat('') -> NaN  while  Number('') -> 0
+    const fromParseFloat = parseFloat(num);
+    const fromNumber = Number(num);
+    if (fromParseFloat === fromNumber) {
+        return fromParseFloat;
+    } else {
+        return NaN;
+    }
 }
 
 export function mapToObject<T extends Object, Y, KK extends keyof T = keyof T>(
@@ -817,12 +849,12 @@ export function sortBy<
 export function groupBy<Y, KK extends KeyLike>(
     arr: ReadonlyArray<Y>,
     mapper: (el: Y, index: number) => KK,
-): Record<KK, Y[]> {
+): DefaultMap<KK, Y[]> {
     return arr.reduce((acc, el, index) => {
         const key = mapper(el, index);
-        acc[key].push(el);
+        acc.get(key).push(el);
         return acc;
-    }, defaultdict(() => <Y[]>[]));
+    }, new DefaultMap((_: KK) => <Y[]>[]));
 }
 
 export function vueSet<T extends object, K extends keyof T>(obj: T, key: K, value: T[K]): unknown {
@@ -862,4 +894,55 @@ export function withSentry(cb: (sentry: typeof Sentry) => void): void {
 
 export function formatTimePart(num: number): string {
     return `${num < 10 ? '0' : ''}${num}`;
+}
+
+export function isMaybe<T>(obj: T | Maybe<T>): obj is Maybe<T> {
+    // @ts-ignore
+    return obj != null && obj?.constructor === Maybe;
+}
+
+export function getPropMaybe(
+    obj: null | undefined,
+    prop: string,
+): typeof Nothing;
+
+export function getPropMaybe<TObj extends object, Prop extends keyof TObj>(
+    obj: TObj,
+    prop: Prop,
+): TObj[Prop] extends Maybe<any> ? TObj[Prop] : Maybe<NonNull<TObj[Prop]>>;
+
+export function getPropMaybe(obj: any, prop: any): any {
+    const res = obj?.[prop];
+    if (isMaybe(res)) {
+        return res;
+    } else {
+        return Maybe.fromNullable(res);
+    }
+}
+
+export function pickKeys<T, K extends keyof T>(obj: T, keys: readonly K[]): Pick<T, K> {
+    return keys.reduce((acc, key) => {
+        acc[key] = obj[key];
+        return acc;
+    }, {} as Pick<T, K>);
+}
+
+type EmptyVNode = { isRootInsert: false, isComment: true };
+export function emptyVNode(): EmptyVNode {
+    return { isRootInsert: false, isComment: true };
+}
+
+export function ifExpr<T, Y>(cond: boolean, then: () => T, else_: () => Y): T | Y {
+    if (cond) {
+        return then();
+    } else {
+        return else_();
+    }
+}
+
+export function ifOrEmpty<T extends VNode>(cond: boolean, then: () => T): T | EmptyVNode {
+    if (cond) {
+        return then();
+    }
+    return emptyVNode();
 }

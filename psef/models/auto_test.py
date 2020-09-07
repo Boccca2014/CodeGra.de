@@ -10,15 +10,16 @@ import numbers
 import itertools
 
 import structlog
-from sqlalchemy import orm
-from sqlalchemy import func as sql_func
-from sqlalchemy import distinct
+from sqlalchemy import orm, distinct
 from sqlalchemy.sql.expression import or_, and_, case, nullsfirst
 
 import psef
+import cg_helpers
 from cg_dt_utils import DatetimeWithTimezone
 from cg_flask_helpers import callback_after_this_request
-from cg_sqlalchemy_helpers import UUIDType, deferred, hybrid_property
+from cg_sqlalchemy_helpers import UUIDType
+from cg_sqlalchemy_helpers import func as sql_func
+from cg_sqlalchemy_helpers import deferred, hybrid_property
 from cg_sqlalchemy_helpers.mixins import IdMixin, UUIDMixin, TimestampMixin
 
 from . import Base, MyQuery, DbColumn, db
@@ -28,9 +29,7 @@ from .. import auth, signals
 from .. import auto_test as auto_test_module
 from ..helpers import NotEqualMixin
 from ..registry import auto_test_handlers, auto_test_grade_calculators
-from ..exceptions import (
-    APICodes, APIException, PermissionException, InvalidStateException
-)
+from ..exceptions import APICodes, APIException, InvalidStateException
 from ..permissions import CoursePermission as CPerm
 
 logger = structlog.get_logger()
@@ -150,12 +149,12 @@ class AutoTestSuite(Base, TimestampMixin, IdMixin):
 
             try:
                 step_type = auto_test_handlers[typ_str]
-            except KeyError:
+            except KeyError as exc:
                 raise APIException(
                     'The given test type is not valid',
                     f'The given test type "{typ_str}" is not known',
                     APICodes.INVALID_PARAM, 400
-                )
+                ) from exc
 
             if step_id is None:
                 step = step_type()
@@ -516,13 +515,11 @@ class AutoTestResult(Base, TimestampMixin, IdMixin, NotEqualMixin):
             ).count()
 
         step_results = self.step_results
-        try:
-            auth.ensure_can_see_grade(self.work)
-        except PermissionException:
+        if auth.WorkPermissions(self.work).ensure_may_see_grade.as_bool():
+            final_result = self.final_result
+        else:
             step_results = [s for s in step_results if not s.step.hidden]
             final_result = False
-        else:
-            final_result = self.final_result
 
         suite_files = {}
         assig = self.run.auto_test.assignment
@@ -551,12 +548,10 @@ class AutoTestResult(Base, TimestampMixin, IdMixin, NotEqualMixin):
         :returns: A query that gets all results by the given user. Notice that
             these results are for all :class:`.AutoTestRun` s.
         """
-        return cls.query.filter(
-            t.cast(DbColumn[int], cls.work_id).in_(
-                db.session.query(t.cast(DbColumn[int], work_models.Work.id)
-                                 ).filter_by(user_id=student_id)
-            )
-        )
+        work_ids = db.session.query(
+            work_models.Work.id,
+        ).filter(work_models.Work.user_id == student_id)
+        return cls.query.filter(cls.work_id.in_(work_ids))
 
 
 class AutoTestRunner(Base, TimestampMixin, UUIDMixin, NotEqualMixin):
@@ -626,7 +621,7 @@ class AutoTestRunner(Base, TimestampMixin, UUIDMixin, NotEqualMixin):
         """
         return self._job_id or f'INVALID-{uuid.uuid4().hex}'
 
-    @property
+    @hybrid_property
     def ipaddr(self) -> str:
         """The ip address of this runner."""
         return self._ipaddr
@@ -812,51 +807,36 @@ class AutoTestRun(Base, TimestampMixin, IdMixin):
         :returns: A mapping that should be send to the broker in the metadata
             under the ``results`` key.
         """
-
-        # NOTE: This function does three separate database queries, as each
-        # query either sorts by a different column, or sorts in a different
-        # direction. It is probably possible to reduce this to two queries,
-        # however these queries are pretty fast and don't seem to be a bottle
-        # neck at this moment.
-
-        def get_latest_date(
-            state: auto_test_step_models.AutoTestStepResultState,
-            col: t.Union[DbColumn[DatetimeWithTimezone], DbColumn[
-                t.Optional[DatetimeWithTimezone]]],
-            oldest: bool = True,
-        ) -> t.Optional[str]:
-            date = db.session.query(AutoTestResult).filter(
-                AutoTestResult.run == self,
-                AutoTestResult.state == state,
-            ).join(work_models.Work).filter(
-                ~work_models.Work.deleted,
-            ).order_by(
-                col if oldest else col.desc(),
-            ).with_entities(col).limit(1).scalar()
-
-            if date is None:
-                return None
-            return date.isoformat()
-
         ATStepResultState = auto_test_step_models.AutoTestStepResultState
 
+        query = db.session.query(AutoTestResult).filter(
+            AutoTestResult.run == self,
+            AutoTestResult.work_id.in_(
+                self.auto_test.assignment.get_from_latest_submissions(
+                    work_models.Work.id
+                )
+            ),
+        ).with_entities(
+            sql_func.min(AutoTestResult.updated_at).filter(
+                AutoTestResult.state == ATStepResultState.not_started,
+            ),
+            sql_func.min(AutoTestResult.started_at).filter(
+                AutoTestResult.state == ATStepResultState.running,
+            ),
+            sql_func.max(AutoTestResult.updated_at).filter(
+                AutoTestResult.state == ATStepResultState.passed,
+            ),
+        )
+
+        def maybe_format(date: t.Optional[DatetimeWithTimezone]
+                         ) -> t.Optional[str]:
+            return cg_helpers.on_not_none(date, lambda d: d.isoformat())
+
+        not_started, running, passed = query.one()
         return {
-            'not_started':
-                get_latest_date(
-                    ATStepResultState.not_started,
-                    AutoTestResult.updated_at,
-                ),
-            'running':
-                get_latest_date(
-                    ATStepResultState.running,
-                    AutoTestResult.started_at,
-                ),
-            'passed':
-                get_latest_date(
-                    ATStepResultState.passed,
-                    AutoTestResult.updated_at,
-                    False,
-                ),
+            'not_started': maybe_format(not_started),
+            'running': maybe_format(running),
+            'passed': maybe_format(passed),
         }
 
     def get_broker_metadata(self) -> t.Mapping[str, object]:
@@ -931,8 +911,11 @@ class AutoTestRun(Base, TimestampMixin, IdMixin):
             isouter=True,
         ).having(
             or_(
-                amount_runners == 0, amount_results / amount_runners >
-                psef.app.config['AUTO_TEST_MAX_JOBS_PER_RUNNER']
+                amount_runners == 0,
+                (
+                    amount_results / amount_runners >
+                    psef.app.config['AUTO_TEST_MAX_JOBS_PER_RUNNER']
+                ),
             )
         ).group_by(cls.id).order_by(
             nullsfirst(
@@ -1065,21 +1048,16 @@ class AutoTestRun(Base, TimestampMixin, IdMixin):
         }
 
     def __extended_to_json__(self) -> t.Mapping[str, object]:
-        results = []
-
         all_results: t.Iterable[AutoTestResult]
         if psef.helpers.jsonify_options.get_options().latest_only:
             all_results = self.get_results_latest_submissions()
         else:
             all_results = [r for r in self.results if not r.work.deleted]
 
-        for result in all_results:
-            try:
-                auth.ensure_can_view_autotest_result(result)
-            except PermissionException:
-                continue
-            else:
-                results.append(result)
+        results = [
+            result for result in all_results
+            if auth.AutoTestResultPermissions(result).ensure_may_see.as_bool()
+        ]
 
         # TODO: Check permissions for setup_stdout/setup_stderr
         return {
@@ -1542,14 +1520,10 @@ class AutoTest(Base, TimestampMixin, IdMixin):
     def __to_json__(self) -> t.Mapping[str, object]:
         """Covert this AutoTest to json.
         """
-        fixtures = []
-        for fixture in self.fixtures:
-            try:
-                auth.ensure_can_view_fixture(fixture)
-            except auth.PermissionException:
-                pass
-            else:
-                fixtures.append(fixture)
+        fixtures = [
+            f for f in self.fixtures
+            if auth.AutoTestFixturePermissions(f).ensure_may_see.as_bool()
+        ]
 
         return {
             'id': self.id,

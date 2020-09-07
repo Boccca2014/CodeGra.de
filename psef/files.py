@@ -601,13 +601,13 @@ def extract_to_temp(
     except (
         tarfile.ReadError, zipfile.BadZipFile,
         archive.UnrecognizedArchiveFormat
-    ):
+    ) as exc:
         raise APIException(
             f'The given {archive_name} could not be extracted',
             "The given archive doesn't seem to be an archive",
             APICodes.INVALID_ARCHIVE,
             400,
-        )
+        ) from exc
     except (archive.ArchiveTooLarge, archive.FileTooLarge) as e:
         helpers.raise_file_too_big_exception(
             max_size, single_file=isinstance(e, archive.FileTooLarge)
@@ -617,7 +617,7 @@ def extract_to_temp(
         raise APIException(
             f'The given {archive_name} contains invalid or too many files',
             str(e), APICodes.UNSAFE_ARCHIVE, 400
-        )
+        ) from e
     else:
         remove_tmpdir = False
     finally:

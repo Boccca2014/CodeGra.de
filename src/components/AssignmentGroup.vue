@@ -83,7 +83,7 @@ export default {
     },
 
     computed: {
-        ...mapGetters('courses', ['assignments']),
+        ...mapGetters('assignments', ['getAssignment']),
 
         manageLink() {
             return {
@@ -95,12 +95,8 @@ export default {
             };
         },
 
-        assignmentUrl() {
-            return `/api/v1/assignments/${this.assignment.id}`;
-        },
-
         groupSets() {
-            return this.assignment.course.group_sets;
+            return this.assignment.course.groupSets;
         },
 
         submitDisabledMessage() {
@@ -120,7 +116,8 @@ export default {
     },
 
     methods: {
-        ...mapActions('courses', ['updateAssignment', 'updateCourse']),
+        ...mapActions('assignments', ['patchAssignment']),
+        ...mapActions('courses', ['updateCourse']),
 
         getOtherAssignmentIds(groupSet) {
             return groupSet.assignment_ids.filter(id => this.assignment.id !== id);
@@ -128,8 +125,11 @@ export default {
 
         getFormattedOtherAssignment(groupSet) {
             const assigIds = this.getOtherAssignmentIds(groupSet);
-            return assigIds
-                .map(id => this.assignments[id] && this.assignments[id].name)
+            return this.$utils
+                .filterMap(
+                    assigIds,
+                    id => this.getAssignment(id).map(a => a.name),
+                )
                 .filter(name => name != null)
                 .join(', ');
         },
@@ -144,26 +144,22 @@ export default {
         },
 
         submit() {
-            const props = {
-                group_set_id: this.selected || null,
-            };
-
-            return this.$http.patch(this.assignmentUrl, props);
+            return this.patchAssignment({
+                assignmentId: this.assignment.id,
+                assignmentProps: {
+                    group_set_id: this.selected || null,
+                },
+            });
         },
 
         afterSubmit(response) {
             const newSet = response.data.group_set || null;
             const oldSet = this.assignment.group_set || {};
 
-            this.updateAssignment({
-                assignmentId: this.assignment.id,
-                assignmentProps: { group_set: newSet },
-            });
-
             this.updateCourse({
                 courseId: this.assignment.course.id,
                 courseProps: {
-                    group_sets: this.assignment.course.group_sets.map(set => {
+                    groupSets: this.assignment.course.groupSets.map(set => {
                         if (newSet != null && set.id === newSet.id) {
                             return newSet;
                         } else if (set.id === oldSet.id) {

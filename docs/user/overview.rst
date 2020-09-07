@@ -4,7 +4,7 @@ Overview of CodeGrade
 CodeGrade can be used both as a stand-alone web application and as a module in
 your LMS. The following chapters apply to both situations. Please consult the
 :ref:`LMS Integration <lms-chapter>` chapter for detailed information of
-integrating CodeGrade into your Learning Management System.
+integrating CodeGrade with your Learning Management System.
 
 This chapter provides a brief overview of the components and navigation in
 CodeGrade.
@@ -20,7 +20,8 @@ General Site
 CodeGrade allows for the :ref:`creation of courses and assignments
 <management-chapter>`.
 
-.. note:: CodeGrade assignments can also be created in co-operative Learning Management Systems.
+.. note:: CodeGrade assignments can also be created in co-operative Learning
+   Management Systems.
 
 Each assignment is part of a course and each course can have multiple
 assignments linked to it. All courses and assignments have individual settings
@@ -63,25 +64,46 @@ Account Management
 
 Creating a new account
 ~~~~~~~~~~~~~~~~~~~~~~~
-A CodeGrade account has to be created in order to use CodeGrade and follow
-courses. This can be done by navigating to your institute's CodeGrade site
-(e.g. uva.codegra.de) and clicking the 'Register' button.
-Here you can register a new account by entering your full name,
-valid e-mail address and a password. Also a unique username has to be chosen to
-finish registration, please keep in mind that this username cannot be changed
-after your registration is complete.
+You must have a CodeGrade account in order to use CodeGrade and follow courses.
+If your CodeGrade instance is linked with a Learning Management System (LMS)
+a new account will automatically be registered when you visit your first
+CodeGrade assignment in your LMS.
+
+Otherwise you can create an account by navigating to your institute's CodeGrade
+site (e.g. uva.codegra.de) and clicking the 'Register' button. Here you can
+register a new account by entering your full name, a valid email address and
+a password. Also a unique username has to be chosen to finish registration,
+please keep in mind that this username cannot be changed after your
+registration is complete.
 
 You are now registered and logged in to CodeGrade!
 
+.. note:: Registering a new account in this way may not be available on your
+   CodeGrade instance.
+
 Logging in to an existing account
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-If you already have a CodeGrade account, you can use this to log in to the online
-environment.  After clicking the 'Login' button, enter your username and password
-and click 'Login'. You are now logged in to CodeGrade!
 
-Use the 'Forgot password' button in the case you have forgotten your password.
-After entering your username, a temporary link will be e-mailed which allows you
-to reset your password. Please consult your institute in the case of a forgotten
-username or wrong e-mail address.
+There are multiple ways to log in to CodeGrade. If you visit CodeGrade via your
+Learning Management System (Blackboard, Canvas, etc.) you do not need to enter
+any password as you will automatically be logged in. If you are on a standalone
+CodeGrade instance, you can log in either with a username and password
+combination or via a single sign-on (SSO) provider.
 
-.. note:: Please check your spam filter if no e-mail is received shortly after the request.
+To log in with your username and password, you need to already have registered
+an account. Visit <instance>.codegra.de, click 'Login' in the sidebar, and
+enter your username and password. After clicking the 'Login' button you are now
+logged in to CodeGrade!
+
+To log in with SSO select your institution in the list of SSO providers. You
+will be taken to a page where you can log in to the SSO system, which will take
+you back to CodeGrade afterwards. When you return you will be logged in to
+CodeGrade.
+
+Click 'Forgot password' in the case you have forgotten your password. After
+entering your username, a temporary link will be sent in an email which allows
+you to reset your password. Please consult your institute in the case of
+a forgotten username or an incorrect email address.
+
+.. note:: Please check your spam filter if no email is received shortly after
+   the request.

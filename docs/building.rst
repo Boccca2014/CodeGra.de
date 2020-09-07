@@ -14,7 +14,7 @@ building has finished.
     Building, hosting, and running CodeGrade is at your own risk and has many
     pitfalls including e.g. correct handling of celery tasks. We provide
     CodeGrade as a service. More information on getting started with CodeGrade
-    at your institute can be found on `our website <https://codegra.de>`_.
+    at your institute can be found on `our website <https://codegrade.com>`_.
 
 Prerequisites
 ---------------

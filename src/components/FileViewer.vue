@@ -273,7 +273,7 @@ export default {
 
 
         replyIdToFocus() {
-            const replyId = this.$route.query?.replyToFocus;
+            const replyId = (this.$route.query || {}).replyToFocus;
             return parseInt(replyId || '', 10);
         },
     },
