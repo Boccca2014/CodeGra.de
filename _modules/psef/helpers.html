@@ -234,7 +234,9 @@
 <span class="kn">from</span> <span class="nn">flask</span> <span class="kn">import</span> <span class="n">g</span><span class="p">,</span> <span class="n">request</span>
 <span class="kn">from</span> <span class="nn">werkzeug.local</span> <span class="kn">import</span> <span class="n">LocalProxy</span>
 <span class="kn">from</span> <span class="nn">mypy_extensions</span> <span class="kn">import</span> <span class="n">Arg</span>
+<span class="kn">from</span> <span class="nn">requests.adapters</span> <span class="kn">import</span> <span class="n">HTTPAdapter</span>
 <span class="kn">from</span> <span class="nn">typing_extensions</span> <span class="kn">import</span> <span class="n">Final</span><span class="p">,</span> <span class="n">Literal</span><span class="p">,</span> <span class="n">Protocol</span>
+<span class="kn">from</span> <span class="nn">urllib3.util.retry</span> <span class="kn">import</span> <span class="n">Retry</span>
 <span class="kn">from</span> <span class="nn">sqlalchemy.dialects</span> <span class="kn">import</span> <span class="n">postgresql</span>
 <span class="kn">from</span> <span class="nn">werkzeug.datastructures</span> <span class="kn">import</span> <span class="n">FileStorage</span>
 <span class="kn">from</span> <span class="nn">sqlalchemy.sql.expression</span> <span class="kn">import</span> <span class="n">or_</span>
@@ -1760,6 +1762,35 @@
     <span class="k">return</span> <span class="kc">False</span></div>
 
 
+<div class="viewcode-block" id="mount_retry_adapter"><a class="viewcode-back" href="../../psef_api/psef.html#psef.helpers.mount_retry_adapter">[docs]</a><span class="k">def</span> <span class="nf">mount_retry_adapter</span><span class="p">(</span>
+    <span class="n">session</span><span class="p">:</span> <span class="n">requests</span><span class="o">.</span><span class="n">Session</span><span class="p">,</span>
+    <span class="o">*</span><span class="p">,</span>
+    <span class="n">retries</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">10</span><span class="p">,</span>
+    <span class="n">backoff_fator</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1.2</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;Mount a retry adapter to the given session.</span>
+
+<span class="sd">    :param session: The session to mount the adapter to.</span>
+<span class="sd">    :param retries: The amount of retries to do.</span>
+<span class="sd">    :param backoff_factor: The ``backoff_factor`` to provide to the adapter.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">adapter</span> <span class="o">=</span> <span class="n">HTTPAdapter</span><span class="p">(</span>
+        <span class="n">max_retries</span><span class="o">=</span><span class="n">Retry</span><span class="p">(</span>
+            <span class="n">total</span><span class="o">=</span><span class="n">retries</span><span class="p">,</span>
+            <span class="n">read</span><span class="o">=</span><span class="n">retries</span><span class="p">,</span>
+            <span class="n">connect</span><span class="o">=</span><span class="n">retries</span><span class="p">,</span>
+            <span class="n">status</span><span class="o">=</span><span class="n">retries</span><span class="p">,</span>
+            <span class="n">backoff_factor</span><span class="o">=</span><span class="n">backoff_fator</span><span class="p">,</span>
+            <span class="n">method_whitelist</span><span class="o">=</span><span class="nb">frozenset</span><span class="p">(</span>
+                <span class="p">[</span><span class="o">*</span><span class="n">Retry</span><span class="o">.</span><span class="n">DEFAULT_METHOD_WHITELIST</span><span class="p">,</span> <span class="s1">&#39;PATCH&#39;</span><span class="p">]</span>
+            <span class="p">),</span>
+            <span class="n">status_forcelist</span><span class="o">=</span><span class="p">(</span><span class="mi">500</span><span class="p">,</span> <span class="mi">501</span><span class="p">,</span> <span class="mi">502</span><span class="p">,</span> <span class="mi">503</span><span class="p">,</span> <span class="mi">504</span><span class="p">),</span>
+        <span class="p">)</span>
+    <span class="p">)</span>
+    <span class="n">session</span><span class="o">.</span><span class="n">mount</span><span class="p">(</span><span class="s1">&#39;http://&#39;</span><span class="p">,</span> <span class="n">adapter</span><span class="p">)</span>
+    <span class="n">session</span><span class="o">.</span><span class="n">mount</span><span class="p">(</span><span class="s1">&#39;https://&#39;</span><span class="p">,</span> <span class="n">adapter</span><span class="p">)</span></div>
+
+
 <div class="viewcode-block" id="BrokerSession"><a class="viewcode-back" href="../../psef_api/psef.html#psef.helpers.BrokerSession">[docs]</a><span class="k">class</span> <span class="nc">BrokerSession</span><span class="p">(</span><span class="n">requests</span><span class="o">.</span><span class="n">Session</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;A session to use when doing requests to the AutoTest broker.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
@@ -1770,6 +1801,8 @@
         <span class="n">external_url</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">broker_base</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">runner_pass</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="o">*</span><span class="p">,</span>
+        <span class="n">retries</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">broker_base</span> <span class="o">=</span> <span class="p">(</span>
@@ -1788,6 +1821,8 @@
                 <span class="s1">&#39;CG-Broker-Runner-Pass&#39;</span><span class="p">:</span> <span class="n">runner_pass</span> <span class="ow">or</span> <span class="s1">&#39;&#39;</span><span class="p">,</span>
             <span class="p">}</span>
         <span class="p">)</span>
+        <span class="k">if</span> <span class="n">retries</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">mount_retry_adapter</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">retries</span><span class="o">=</span><span class="n">retries</span><span class="p">)</span>
 
 <div class="viewcode-block" id="BrokerSession.request"><a class="viewcode-back" href="../../psef_api/psef.html#psef.helpers.BrokerSession.request">[docs]</a>    <span class="k">def</span> <span class="nf">request</span><span class="p">(</span>  <span class="c1"># pylint: disable=signature-differs</span>
         <span class="bp">self</span><span class="p">,</span>
