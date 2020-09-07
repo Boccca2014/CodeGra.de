@@ -348,8 +348,9 @@ export default {
             this.$root.$emit('bv::hide::popover', this.popoverId);
         },
 
-        showMoreAssignments(state = null) {
+        async showMoreAssignments(state = null) {
             this.renderingMoreAssignments += 1;
+            await this.$afterRerender();
             this.visibleAssignments += EXTRA_ASSIGNMENTS;
             this.renderingMoreAssignments -= 1;
             if (state) {
