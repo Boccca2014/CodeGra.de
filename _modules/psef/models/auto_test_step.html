@@ -952,7 +952,7 @@
             <span class="k">raise</span> <span class="n">APIException</span><span class="p">(</span>
                 <span class="sa">f</span><span class="s1">&#39;Compiling the regex failed: </span><span class="si">{</span><span class="n">e</span><span class="o">.</span><span class="n">msg</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">,</span>
                 <span class="s1">&#39;Compiling was not successful&#39;</span><span class="p">,</span> <span class="n">APICodes</span><span class="o">.</span><span class="n">INVALID_PARAM</span><span class="p">,</span> <span class="mi">400</span>
-            <span class="p">)</span>
+            <span class="p">)</span> <span class="kn">from</span> <span class="nn">e</span>
 
     <span class="nd">@classmethod</span>
     <span class="k">def</span> <span class="nf">_execute</span><span class="p">(</span>

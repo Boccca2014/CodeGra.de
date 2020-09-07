@@ -268,8 +268,9 @@
 
 <span class="k">if</span> <span class="n">t</span><span class="o">.</span><span class="n">TYPE_CHECKING</span><span class="p">:</span>  <span class="c1"># pragma: no cover</span>
     <span class="c1"># pylint: disable=unused-import, invalid-name</span>
+    <span class="kn">from</span> <span class="nn">pylti1p3.names_roles</span> <span class="kn">import</span> <span class="n">_Member</span><span class="p">,</span> <span class="n">_NamesAndRolesData</span>
+
     <span class="kn">from</span> <span class="nn">.work</span> <span class="kn">import</span> <span class="n">Work</span>
-    <span class="kn">from</span> <span class="nn">pylti1p3.names_roles</span> <span class="kn">import</span> <span class="n">_NamesAndRolesData</span><span class="p">,</span> <span class="n">_Member</span>
 
 <span class="n">_ALL_LTI_PROVIDERS</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">([</span><span class="s1">&#39;lti1.1&#39;</span><span class="p">,</span> <span class="s1">&#39;lti1.3&#39;</span><span class="p">])</span>
 <span class="n">lti_provider_handlers</span><span class="o">.</span><span class="n">set_possible_options</span><span class="p">(</span><span class="n">_ALL_LTI_PROVIDERS</span><span class="p">)</span>

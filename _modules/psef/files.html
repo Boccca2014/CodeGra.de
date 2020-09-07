@@ -806,13 +806,13 @@
     <span class="k">except</span> <span class="p">(</span>
         <span class="n">tarfile</span><span class="o">.</span><span class="n">ReadError</span><span class="p">,</span> <span class="n">zipfile</span><span class="o">.</span><span class="n">BadZipFile</span><span class="p">,</span>
         <span class="n">archive</span><span class="o">.</span><span class="n">UnrecognizedArchiveFormat</span>
-    <span class="p">):</span>
+    <span class="p">)</span> <span class="k">as</span> <span class="n">exc</span><span class="p">:</span>
         <span class="k">raise</span> <span class="n">APIException</span><span class="p">(</span>
             <span class="sa">f</span><span class="s1">&#39;The given </span><span class="si">{</span><span class="n">archive_name</span><span class="si">}</span><span class="s1"> could not be extracted&#39;</span><span class="p">,</span>
             <span class="s2">&quot;The given archive doesn&#39;t seem to be an archive&quot;</span><span class="p">,</span>
             <span class="n">APICodes</span><span class="o">.</span><span class="n">INVALID_ARCHIVE</span><span class="p">,</span>
             <span class="mi">400</span><span class="p">,</span>
-        <span class="p">)</span>
+        <span class="p">)</span> <span class="kn">from</span> <span class="nn">exc</span>
     <span class="k">except</span> <span class="p">(</span><span class="n">archive</span><span class="o">.</span><span class="n">ArchiveTooLarge</span><span class="p">,</span> <span class="n">archive</span><span class="o">.</span><span class="n">FileTooLarge</span><span class="p">)</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
         <span class="n">helpers</span><span class="o">.</span><span class="n">raise_file_too_big_exception</span><span class="p">(</span>
             <span class="n">max_size</span><span class="p">,</span> <span class="n">single_file</span><span class="o">=</span><span class="nb">isinstance</span><span class="p">(</span><span class="n">e</span><span class="p">,</span> <span class="n">archive</span><span class="o">.</span><span class="n">FileTooLarge</span><span class="p">)</span>
@@ -822,7 +822,7 @@
         <span class="k">raise</span> <span class="n">APIException</span><span class="p">(</span>
             <span class="sa">f</span><span class="s1">&#39;The given </span><span class="si">{</span><span class="n">archive_name</span><span class="si">}</span><span class="s1"> contains invalid or too many files&#39;</span><span class="p">,</span>
             <span class="nb">str</span><span class="p">(</span><span class="n">e</span><span class="p">),</span> <span class="n">APICodes</span><span class="o">.</span><span class="n">UNSAFE_ARCHIVE</span><span class="p">,</span> <span class="mi">400</span>
-        <span class="p">)</span>
+        <span class="p">)</span> <span class="kn">from</span> <span class="nn">e</span>
     <span class="k">else</span><span class="p">:</span>
         <span class="n">remove_tmpdir</span> <span class="o">=</span> <span class="kc">False</span>
     <span class="k">finally</span><span class="p">:</span>

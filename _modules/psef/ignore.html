@@ -907,11 +907,11 @@
 
         <span class="k">try</span><span class="p">:</span>
             <span class="n">rule_type</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">RuleType</span><span class="p">[</span><span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;rule_type&#39;</span><span class="p">)]</span>  <span class="c1"># type: ignore</span>
-        <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
+        <span class="k">except</span> <span class="ne">KeyError</span> <span class="k">as</span> <span class="n">exc</span><span class="p">:</span>
             <span class="k">raise</span> <span class="n">ParseError</span><span class="p">(</span>
                 <span class="sa">f</span><span class="s1">&#39;The given rule type (&quot;</span><span class="si">{</span><span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;rule_type&quot;</span><span class="p">)</span><span class="si">}</span><span class="s1">&quot;) is not&#39;</span>
                 <span class="s1">&#39; valid.&#39;</span>
-            <span class="p">)</span>
+            <span class="p">)</span> <span class="kn">from</span> <span class="nn">exc</span>
 
         <span class="k">if</span> <span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;file_type&#39;</span><span class="p">)</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">{</span><span class="s1">&#39;file&#39;</span><span class="p">,</span> <span class="s1">&#39;directory&#39;</span><span class="p">}:</span>
             <span class="k">raise</span> <span class="n">ParseError</span><span class="p">(</span>

@@ -937,7 +937,7 @@
                 <span class="n">max_age</span><span class="o">=</span><span class="n">current_app</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s1">&#39;RESET_TOKEN_TIME&#39;</span><span class="p">],</span>
                 <span class="n">salt</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">reset_token</span>
             <span class="p">)</span>
-        <span class="k">except</span> <span class="n">BadSignature</span><span class="p">:</span>
+        <span class="k">except</span> <span class="n">BadSignature</span> <span class="k">as</span> <span class="n">exc</span><span class="p">:</span>
             <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
                 <span class="s1">&#39;Invalid password reset token encountered&#39;</span><span class="p">,</span>
                 <span class="n">token</span><span class="o">=</span><span class="n">token</span><span class="p">,</span>
@@ -947,7 +947,7 @@
                 <span class="s1">&#39;The given token is not valid&#39;</span><span class="p">,</span>
                 <span class="sa">f</span><span class="s1">&#39;The given token </span><span class="si">{</span><span class="n">token</span><span class="si">}</span><span class="s1"> is not valid.&#39;</span><span class="p">,</span>
                 <span class="n">APICodes</span><span class="o">.</span><span class="n">INVALID_CREDENTIALS</span><span class="p">,</span> <span class="mi">403</span>
-            <span class="p">)</span>
+            <span class="p">)</span> <span class="kn">from</span> <span class="nn">exc</span>
 
         <span class="c1"># This should never happen but better safe than sorry.</span>
         <span class="k">if</span> <span class="p">(</span>

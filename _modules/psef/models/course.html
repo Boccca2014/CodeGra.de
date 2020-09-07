@@ -221,10 +221,10 @@
 <span class="kn">from</span> <span class="nn">cg_sqlalchemy_helpers</span> <span class="kn">import</span> <span class="n">mixins</span><span class="p">,</span> <span class="n">expression</span>
 
 <span class="kn">from</span> <span class="nn">.</span> <span class="kn">import</span> <span class="n">Base</span><span class="p">,</span> <span class="n">MyQuery</span><span class="p">,</span> <span class="n">db</span>
+<span class="kn">from</span> <span class="nn">.</span> <span class="kn">import</span> <span class="n">role</span> <span class="k">as</span> <span class="n">role_models</span>
+<span class="kn">from</span> <span class="nn">.</span> <span class="kn">import</span> <span class="n">user</span> <span class="k">as</span> <span class="n">user_models</span>
+<span class="kn">from</span> <span class="nn">.</span> <span class="kn">import</span> <span class="n">work</span> <span class="k">as</span> <span class="n">work_models</span>
 <span class="kn">from</span> <span class="nn">..</span> <span class="kn">import</span> <span class="n">auth</span>
-<span class="kn">from</span> <span class="nn">.role</span> <span class="kn">import</span> <span class="n">CourseRole</span>
-<span class="kn">from</span> <span class="nn">.user</span> <span class="kn">import</span> <span class="n">User</span>
-<span class="kn">from</span> <span class="nn">.work</span> <span class="kn">import</span> <span class="n">Work</span>
 <span class="kn">from</span> <span class="nn">..helpers</span> <span class="kn">import</span> <span class="n">NotEqualMixin</span><span class="p">,</span> <span class="n">jsonify_options</span>
 <span class="kn">from</span> <span class="nn">.assignment</span> <span class="kn">import</span> <span class="n">Assignment</span>
 <span class="kn">from</span> <span class="nn">.link_tables</span> <span class="kn">import</span> <span class="n">user_course</span>
@@ -264,7 +264,9 @@
         <span class="n">innerjoin</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
     <span class="p">)</span>
     <span class="n">course_role</span> <span class="o">=</span> <span class="n">db</span><span class="o">.</span><span class="n">relationship</span><span class="p">(</span>
-        <span class="k">lambda</span><span class="p">:</span> <span class="n">CourseRole</span><span class="p">,</span> <span class="n">foreign_keys</span><span class="o">=</span><span class="n">course_role_id</span><span class="p">,</span> <span class="n">innerjoin</span><span class="o">=</span><span class="kc">True</span>
+        <span class="k">lambda</span><span class="p">:</span> <span class="n">role_models</span><span class="o">.</span><span class="n">CourseRole</span><span class="p">,</span>
+        <span class="n">foreign_keys</span><span class="o">=</span><span class="n">course_role_id</span><span class="p">,</span>
+        <span class="n">innerjoin</span><span class="o">=</span><span class="kc">True</span>
     <span class="p">)</span>
 
     <span class="n">allow_register</span> <span class="o">=</span> <span class="n">db</span><span class="o">.</span><span class="n">Column</span><span class="p">(</span>
@@ -513,8 +515,9 @@
         <span class="k">if</span> <span class="n">virtual</span><span class="p">:</span>
             <span class="k">return</span> <span class="bp">self</span>
 
-        <span class="k">for</span> <span class="n">role_name</span><span class="p">,</span> <span class="n">perms</span> <span class="ow">in</span> <span class="n">CourseRole</span><span class="o">.</span><span class="n">get_default_course_roles</span><span class="p">()</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
-            <span class="n">CourseRole</span><span class="p">(</span>
+        <span class="k">for</span> <span class="n">role_name</span><span class="p">,</span> <span class="n">perms</span> <span class="ow">in</span> <span class="n">role_models</span><span class="o">.</span><span class="n">CourseRole</span><span class="o">.</span><span class="n">get_default_course_roles</span><span class="p">(</span>
+        <span class="p">)</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="n">role_models</span><span class="o">.</span><span class="n">CourseRole</span><span class="p">(</span>
                 <span class="n">name</span><span class="o">=</span><span class="n">role_name</span><span class="p">,</span> <span class="n">course</span><span class="o">=</span><span class="bp">self</span><span class="p">,</span> <span class="n">_permissions</span><span class="o">=</span><span class="n">perms</span><span class="p">,</span> <span class="n">hidden</span><span class="o">=</span><span class="kc">False</span>
             <span class="p">)</span>
 
@@ -523,10 +526,10 @@
         <span class="n">admin_username</span> <span class="o">=</span> <span class="n">psef</span><span class="o">.</span><span class="n">current_app</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s1">&#39;ADMIN_USER&#39;</span><span class="p">]</span>
 
         <span class="k">if</span> <span class="n">admin_username</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="n">admin_user</span> <span class="o">=</span> <span class="n">User</span><span class="o">.</span><span class="n">query</span><span class="o">.</span><span class="n">filter_by</span><span class="p">(</span>
+            <span class="n">admin_user</span> <span class="o">=</span> <span class="n">user_models</span><span class="o">.</span><span class="n">User</span><span class="o">.</span><span class="n">query</span><span class="o">.</span><span class="n">filter_by</span><span class="p">(</span>
                 <span class="n">username</span><span class="o">=</span><span class="n">admin_username</span><span class="p">,</span>
             <span class="p">)</span><span class="o">.</span><span class="n">one_or_none</span><span class="p">()</span>
-            <span class="n">admin_role</span> <span class="o">=</span> <span class="n">CourseRole</span><span class="o">.</span><span class="n">get_admin_role</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+            <span class="n">admin_role</span> <span class="o">=</span> <span class="n">role_models</span><span class="o">.</span><span class="n">CourseRole</span><span class="o">.</span><span class="n">get_admin_role</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
 
             <span class="k">if</span> <span class="n">admin_user</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
                 <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span>
@@ -557,7 +560,7 @@
     <span class="k">def</span> <span class="fm">__eq__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">:</span> <span class="nb">object</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
         <span class="sd">&quot;&quot;&quot;Check if two courses are equal.</span>
 
-<span class="sd">        &gt;&gt;&gt; CourseRole.get_default_course_roles = lambda: {}</span>
+<span class="sd">        &gt;&gt;&gt; role_models.CourseRole.get_default_course_roles = lambda: {}</span>
 <span class="sd">        &gt;&gt;&gt; c1 = Course()</span>
 <span class="sd">        &gt;&gt;&gt; c1.id = 5</span>
 <span class="sd">        &gt;&gt;&gt; c2 = Course()</span>
@@ -601,24 +604,28 @@
     <span class="k">def</span> <span class="nf">get_assignments</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">MyQuery</span><span class="p">[</span><span class="s1">&#39;Assignment&#39;</span><span class="p">]:</span>
         <span class="k">return</span> <span class="n">Assignment</span><span class="o">.</span><span class="n">query</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">Assignment</span><span class="o">.</span><span class="n">course</span> <span class="o">==</span> <span class="bp">self</span><span class="p">)</span>
 
-<div class="viewcode-block" id="Course.get_all_users_in_course"><a class="viewcode-back" href="../../../psef_api/psef.html#psef.models.course.Course.get_all_users_in_course">[docs]</a>    <span class="k">def</span> <span class="nf">get_all_users_in_course</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">include_test_students</span><span class="p">:</span> <span class="nb">bool</span>
-                                <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">MyQuery</span><span class="p">[</span><span class="s1">&#39;t.Tuple[User, CourseRole]&#39;</span><span class="p">]:</span>
+<div class="viewcode-block" id="Course.get_all_users_in_course"><a class="viewcode-back" href="../../../psef_api/psef.html#psef.models.course.Course.get_all_users_in_course">[docs]</a>    <span class="k">def</span> <span class="nf">get_all_users_in_course</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">include_test_students</span><span class="p">:</span> <span class="nb">bool</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">MyQuery</span><span class="p">[</span><span class="s1">&#39;t.Tuple[user_models.User, role_models.CourseRole]&#39;</span><span class="p">]:</span>
         <span class="sd">&quot;&quot;&quot;Get a query that returns all users in the current course and their</span>
 <span class="sd">            role.</span>
 
 <span class="sd">        :returns: A query that contains all users in the current course and</span>
 <span class="sd">            their role.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="n">res</span> <span class="o">=</span> <span class="n">db</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="n">User</span><span class="p">,</span> <span class="n">CourseRole</span><span class="p">)</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
+        <span class="n">res</span> <span class="o">=</span> <span class="n">db</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="n">user_models</span><span class="o">.</span><span class="n">User</span><span class="p">,</span> <span class="n">role_models</span><span class="o">.</span><span class="n">CourseRole</span><span class="p">)</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
             <span class="n">user_course</span><span class="p">,</span>
-            <span class="n">user_course</span><span class="o">.</span><span class="n">c</span><span class="o">.</span><span class="n">user_id</span> <span class="o">==</span> <span class="n">User</span><span class="o">.</span><span class="n">id</span><span class="p">,</span>
+            <span class="n">user_course</span><span class="o">.</span><span class="n">c</span><span class="o">.</span><span class="n">user_id</span> <span class="o">==</span> <span class="n">user_models</span><span class="o">.</span><span class="n">User</span><span class="o">.</span><span class="n">id</span><span class="p">,</span>
         <span class="p">)</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
-            <span class="n">CourseRole</span><span class="p">,</span>
-            <span class="n">CourseRole</span><span class="o">.</span><span class="n">id</span> <span class="o">==</span> <span class="n">user_course</span><span class="o">.</span><span class="n">c</span><span class="o">.</span><span class="n">course_id</span><span class="p">,</span>
-        <span class="p">)</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">CourseRole</span><span class="o">.</span><span class="n">course_id</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">id</span><span class="p">,</span> <span class="n">User</span><span class="o">.</span><span class="n">virtual</span><span class="o">.</span><span class="n">isnot</span><span class="p">(</span><span class="kc">True</span><span class="p">))</span>
+            <span class="n">role_models</span><span class="o">.</span><span class="n">CourseRole</span><span class="p">,</span>
+            <span class="n">role_models</span><span class="o">.</span><span class="n">CourseRole</span><span class="o">.</span><span class="n">id</span> <span class="o">==</span> <span class="n">user_course</span><span class="o">.</span><span class="n">c</span><span class="o">.</span><span class="n">course_id</span><span class="p">,</span>
+        <span class="p">)</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span>
+            <span class="n">role_models</span><span class="o">.</span><span class="n">CourseRole</span><span class="o">.</span><span class="n">course_id</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">id</span><span class="p">,</span>
+            <span class="n">user_models</span><span class="o">.</span><span class="n">User</span><span class="o">.</span><span class="n">virtual</span><span class="o">.</span><span class="n">isnot</span><span class="p">(</span><span class="kc">True</span><span class="p">)</span>
+        <span class="p">)</span>
 
         <span class="k">if</span> <span class="ow">not</span> <span class="n">include_test_students</span><span class="p">:</span>
-            <span class="n">res</span> <span class="o">=</span> <span class="n">res</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="o">~</span><span class="n">User</span><span class="o">.</span><span class="n">is_test_student</span><span class="p">)</span>
+            <span class="n">res</span> <span class="o">=</span> <span class="n">res</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="o">~</span><span class="n">user_models</span><span class="o">.</span><span class="n">User</span><span class="o">.</span><span class="n">is_test_student</span><span class="p">)</span>
 
         <span class="k">return</span> <span class="n">res</span></div>
 
@@ -648,8 +655,9 @@
         <span class="k">for</span> <span class="n">child</span> <span class="ow">in</span> <span class="n">copy</span><span class="o">.</span><span class="n">copy</span><span class="p">(</span><span class="n">tree</span><span class="o">.</span><span class="n">values</span><span class="p">):</span>
             <span class="c1"># This is done before we wrap single files to get better author</span>
             <span class="c1"># names.</span>
-            <span class="n">work</span> <span class="o">=</span> <span class="n">Work</span><span class="p">(</span>
-                <span class="n">assignment</span><span class="o">=</span><span class="n">assig</span><span class="p">,</span> <span class="n">user</span><span class="o">=</span><span class="n">User</span><span class="o">.</span><span class="n">create_virtual_user</span><span class="p">(</span><span class="n">child</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
+            <span class="n">work</span> <span class="o">=</span> <span class="n">work_models</span><span class="o">.</span><span class="n">Work</span><span class="p">(</span>
+                <span class="n">assignment</span><span class="o">=</span><span class="n">assig</span><span class="p">,</span>
+                <span class="n">user</span><span class="o">=</span><span class="n">user_models</span><span class="o">.</span><span class="n">User</span><span class="o">.</span><span class="n">create_virtual_user</span><span class="p">(</span><span class="n">child</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
             <span class="p">)</span>
 
             <span class="n">subdir</span><span class="p">:</span> <span class="n">psef</span><span class="o">.</span><span class="n">files</span><span class="o">.</span><span class="n">ExtractFileTreeBase</span>
@@ -665,7 +673,7 @@
             <span class="n">work</span><span class="o">.</span><span class="n">add_file_tree</span><span class="p">(</span><span class="n">subdir</span><span class="p">)</span>
         <span class="k">return</span> <span class="bp">self</span></div>
 
-<div class="viewcode-block" id="Course.get_test_student"><a class="viewcode-back" href="../../../psef_api/psef.html#psef.models.course.Course.get_test_student">[docs]</a>    <span class="k">def</span> <span class="nf">get_test_student</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">User</span><span class="p">:</span>
+<div class="viewcode-block" id="Course.get_test_student"><a class="viewcode-back" href="../../../psef_api/psef.html#psef.models.course.Course.get_test_student">[docs]</a>    <span class="k">def</span> <span class="nf">get_test_student</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s1">&#39;user_models.User&#39;</span><span class="p">:</span>
         <span class="sd">&quot;&quot;&quot;Get the test student for this course. If no test student exists yet</span>
 <span class="sd">        for this course, create a new one and return that.</span>
 
@@ -673,17 +681,17 @@
 <span class="sd">        &quot;&quot;&quot;</span>
 
         <span class="n">user</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_all_users_in_course</span><span class="p">(</span><span class="n">include_test_students</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span>
-            <span class="n">User</span><span class="o">.</span><span class="n">is_test_student</span><span class="p">,</span>
-        <span class="p">)</span><span class="o">.</span><span class="n">from_self</span><span class="p">(</span><span class="n">User</span><span class="p">)</span><span class="o">.</span><span class="n">first</span><span class="p">()</span>
+            <span class="n">user_models</span><span class="o">.</span><span class="n">User</span><span class="o">.</span><span class="n">is_test_student</span><span class="p">,</span>
+        <span class="p">)</span><span class="o">.</span><span class="n">from_self</span><span class="p">(</span><span class="n">user_models</span><span class="o">.</span><span class="n">User</span><span class="p">)</span><span class="o">.</span><span class="n">first</span><span class="p">()</span>
 
         <span class="k">if</span> <span class="n">user</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="n">role</span> <span class="o">=</span> <span class="n">CourseRole</span><span class="p">(</span>
+            <span class="n">role</span> <span class="o">=</span> <span class="n">role_models</span><span class="o">.</span><span class="n">CourseRole</span><span class="p">(</span>
                 <span class="n">name</span><span class="o">=</span><span class="sa">f</span><span class="s1">&#39;Test_Student_Role__</span><span class="si">{</span><span class="n">uuid</span><span class="o">.</span><span class="n">uuid4</span><span class="p">()</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">,</span>
                 <span class="n">course</span><span class="o">=</span><span class="bp">self</span><span class="p">,</span>
                 <span class="n">hidden</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
             <span class="p">)</span>
             <span class="n">db</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">role</span><span class="p">)</span>
-            <span class="n">user</span> <span class="o">=</span> <span class="n">User</span><span class="o">.</span><span class="n">create_new_test_student</span><span class="p">()</span>
+            <span class="n">user</span> <span class="o">=</span> <span class="n">user_models</span><span class="o">.</span><span class="n">User</span><span class="o">.</span><span class="n">create_new_test_student</span><span class="p">()</span>
             <span class="n">user</span><span class="o">.</span><span class="n">courses</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">id</span><span class="p">]</span> <span class="o">=</span> <span class="n">role</span>
             <span class="n">db</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">user</span><span class="p">)</span>
 

@@ -354,12 +354,12 @@
 
             <span class="k">try</span><span class="p">:</span>
                 <span class="n">step_type</span> <span class="o">=</span> <span class="n">auto_test_handlers</span><span class="p">[</span><span class="n">typ_str</span><span class="p">]</span>
-            <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
+            <span class="k">except</span> <span class="ne">KeyError</span> <span class="k">as</span> <span class="n">exc</span><span class="p">:</span>
                 <span class="k">raise</span> <span class="n">APIException</span><span class="p">(</span>
                     <span class="s1">&#39;The given test type is not valid&#39;</span><span class="p">,</span>
                     <span class="sa">f</span><span class="s1">&#39;The given test type &quot;</span><span class="si">{</span><span class="n">typ_str</span><span class="si">}</span><span class="s1">&quot; is not known&#39;</span><span class="p">,</span>
                     <span class="n">APICodes</span><span class="o">.</span><span class="n">INVALID_PARAM</span><span class="p">,</span> <span class="mi">400</span>
-                <span class="p">)</span>
+                <span class="p">)</span> <span class="kn">from</span> <span class="nn">exc</span>
 
             <span class="k">if</span> <span class="n">step_id</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
                 <span class="n">step</span> <span class="o">=</span> <span class="n">step_type</span><span class="p">()</span>
