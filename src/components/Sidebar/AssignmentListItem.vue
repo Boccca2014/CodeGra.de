@@ -31,7 +31,7 @@
 
         <template v-if="!small">
             <small v-if="showCourseName"
-                class="course text-truncate"><course-name :course="assignment.course" /></small>
+                   class="course text-truncate"><course-name :course="assignment.course" /></small>
 
             <small v-if="isNotStartedExam" class="deadline">
                 Starts <cg-relative-time :date="assignment.availableAt" />
