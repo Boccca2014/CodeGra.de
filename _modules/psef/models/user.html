@@ -865,12 +865,12 @@
     <span class="nd">@t</span><span class="o">.</span><span class="n">overload</span>
     <span class="k">def</span> <span class="nf">get_all_permissions</span><span class="p">(</span>  <span class="c1"># pylint: disable=function-redefined,missing-docstring,no-self-use,unused-argument</span>
         <span class="bp">self</span><span class="p">,</span>
-        <span class="n">course_id</span><span class="p">:</span> <span class="n">t</span><span class="o">.</span><span class="n">Union</span><span class="p">[</span><span class="s1">&#39;course_models.Course&#39;</span><span class="p">,</span> <span class="nb">int</span><span class="p">],</span>
+        <span class="n">course</span><span class="p">:</span> <span class="s1">&#39;course_models.Course&#39;</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">t</span><span class="o">.</span><span class="n">Mapping</span><span class="p">[</span><span class="n">CoursePermission</span><span class="p">,</span> <span class="nb">bool</span><span class="p">]:</span>
         <span class="o">...</span>  <span class="c1"># pylint: disable=pointless-statement</span>
 
 <div class="viewcode-block" id="User.get_all_permissions"><a class="viewcode-back" href="../../../psef_api/psef.html#psef.models.user.User.get_all_permissions">[docs]</a>    <span class="k">def</span> <span class="nf">get_all_permissions</span><span class="p">(</span>  <span class="c1"># pylint: disable=function-redefined</span>
-        <span class="bp">self</span><span class="p">,</span> <span class="n">course_id</span><span class="p">:</span> <span class="n">t</span><span class="o">.</span><span class="n">Union</span><span class="p">[</span><span class="s1">&#39;course_models.Course&#39;</span><span class="p">,</span> <span class="nb">int</span><span class="p">,</span> <span class="kc">None</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">course</span><span class="p">:</span> <span class="n">t</span><span class="o">.</span><span class="n">Union</span><span class="p">[</span><span class="s1">&#39;course_models.Course&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">t</span><span class="o">.</span><span class="n">Union</span><span class="p">[</span><span class="n">t</span><span class="o">.</span><span class="n">Mapping</span><span class="p">[</span><span class="n">CoursePermission</span><span class="p">,</span> <span class="nb">bool</span><span class="p">],</span> <span class="n">t</span><span class="o">.</span>
                  <span class="n">Mapping</span><span class="p">[</span><span class="n">GlobalPermission</span><span class="p">,</span> <span class="nb">bool</span><span class="p">]]:</span>
         <span class="sd">&quot;&quot;&quot;Get all global permissions (:class:`.Permission`) of this user or</span>
@@ -885,18 +885,14 @@
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">assert</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">virtual</span>
 
-        <span class="k">if</span> <span class="n">course_id</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">course</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">role</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
                 <span class="k">return</span> <span class="p">{</span><span class="n">perm</span><span class="p">:</span> <span class="kc">False</span> <span class="k">for</span> <span class="n">perm</span> <span class="ow">in</span> <span class="n">GlobalPermission</span><span class="p">}</span>
             <span class="k">else</span><span class="p">:</span>
                 <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">role</span><span class="o">.</span><span class="n">get_all_permissions</span><span class="p">()</span>
         <span class="k">else</span><span class="p">:</span>
-            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">course_id</span><span class="p">,</span> <span class="n">course_models</span><span class="o">.</span><span class="n">Course</span><span class="p">):</span>
-                <span class="n">course_id</span> <span class="o">=</span> <span class="n">course_id</span><span class="o">.</span><span class="n">id</span>
-
-            <span class="k">if</span> <span class="n">auth</span><span class="o">.</span><span class="n">CoursePermissions</span><span class="p">(</span><span class="n">course_id</span><span class="o">=</span><span class="n">course_id</span>
-                                      <span class="p">)</span><span class="o">.</span><span class="n">ensure_may_see</span><span class="o">.</span><span class="n">as_bool</span><span class="p">():</span>
-                <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">courses</span><span class="p">[</span><span class="n">course_id</span><span class="p">]</span><span class="o">.</span><span class="n">get_all_permissions</span><span class="p">()</span>
+            <span class="k">if</span> <span class="n">auth</span><span class="o">.</span><span class="n">CoursePermissions</span><span class="p">(</span><span class="n">course</span><span class="p">)</span><span class="o">.</span><span class="n">ensure_may_see</span><span class="o">.</span><span class="n">as_bool</span><span class="p">():</span>
+                <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">courses</span><span class="p">[</span><span class="n">course</span><span class="o">.</span><span class="n">id</span><span class="p">]</span><span class="o">.</span><span class="n">get_all_permissions</span><span class="p">()</span>
             <span class="k">else</span><span class="p">:</span>
                 <span class="k">return</span> <span class="p">{</span><span class="n">perm</span><span class="p">:</span> <span class="kc">False</span> <span class="k">for</span> <span class="n">perm</span> <span class="ow">in</span> <span class="n">CoursePermission</span><span class="p">}</span></div>
 

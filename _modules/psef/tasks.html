@@ -1055,13 +1055,11 @@
                 <span class="n">p</span><span class="o">.</span><span class="n">models</span><span class="o">.</span><span class="n">AssignmentLoginLink</span><span class="o">.</span><span class="n">assignment</span> <span class="o">==</span> <span class="n">assignment</span>
             <span class="p">)</span>
         <span class="p">}</span>
+        <span class="n">perm</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">permissions</span><span class="o">.</span><span class="n">CoursePermission</span><span class="o">.</span><span class="n">can_receive_login_links</span>
         <span class="n">users</span> <span class="o">=</span> <span class="p">[</span>
             <span class="n">user</span> <span class="k">for</span> <span class="n">user</span><span class="p">,</span> <span class="n">_</span> <span class="ow">in</span> <span class="n">assignment</span><span class="o">.</span><span class="n">course</span><span class="o">.</span><span class="n">get_all_users_in_course</span><span class="p">(</span>
-                <span class="n">include_test_students</span><span class="o">=</span><span class="kc">False</span>
-            <span class="p">)</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span>
-                <span class="n">p</span><span class="o">.</span><span class="n">models</span><span class="o">.</span><span class="n">CourseRole</span><span class="o">.</span><span class="n">get_has_permission_filter</span><span class="p">(</span>
-                    <span class="n">p</span><span class="o">.</span><span class="n">permissions</span><span class="o">.</span><span class="n">CoursePermission</span><span class="o">.</span><span class="n">can_receive_login_links</span>
-                <span class="p">)</span>
+                <span class="n">include_test_students</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                <span class="n">with_permission</span><span class="o">=</span><span class="n">perm</span><span class="p">,</span>
             <span class="p">)</span>
         <span class="p">]</span>
 

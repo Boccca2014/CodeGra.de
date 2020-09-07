@@ -215,7 +215,7 @@
 <span class="kn">from</span> <span class="nn">sqlalchemy.orm</span> <span class="kn">import</span> <span class="n">selectinload</span>
 <span class="kn">from</span> <span class="nn">sqlalchemy.orm.collections</span> <span class="kn">import</span> <span class="n">attribute_mapped_collection</span>
 
-<span class="kn">from</span> <span class="nn">cg_sqlalchemy_helpers.types</span> <span class="kn">import</span> <span class="n">ColumnProxy</span><span class="p">,</span> <span class="n">FilterColumn</span>
+<span class="kn">from</span> <span class="nn">cg_sqlalchemy_helpers.types</span> <span class="kn">import</span> <span class="n">MyQuery</span><span class="p">,</span> <span class="n">ColumnProxy</span>
 
 <span class="kn">from</span> <span class="nn">.</span> <span class="kn">import</span> <span class="n">Base</span><span class="p">,</span> <span class="n">MyQuery</span><span class="p">,</span> <span class="n">db</span>
 <span class="kn">from</span> <span class="nn">.</span> <span class="kn">import</span> <span class="n">course</span> <span class="k">as</span> <span class="n">course_models</span>
@@ -545,10 +545,11 @@
             <span class="n">res</span> <span class="o">=</span> <span class="n">res</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="o">~</span><span class="bp">cls</span><span class="o">.</span><span class="n">hidden</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">res</span></div>
 
-<div class="viewcode-block" id="CourseRole.get_has_permission_filter"><a class="viewcode-back" href="../../../psef_api/psef.html#psef.models.role.CourseRole.get_has_permission_filter">[docs]</a>    <span class="nd">@classmethod</span>
-    <span class="k">def</span> <span class="nf">get_has_permission_filter</span><span class="p">(</span>
-        <span class="bp">cls</span><span class="p">,</span> <span class="n">permission</span><span class="p">:</span> <span class="n">CoursePermission</span>
-    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">FilterColumn</span><span class="p">:</span>
+<div class="viewcode-block" id="CourseRole.get_roles_with_permission"><a class="viewcode-back" href="../../../psef_api/psef.html#psef.models.role.CourseRole.get_roles_with_permission">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">get_roles_with_permission</span><span class="p">(</span>
+        <span class="bp">cls</span><span class="p">,</span>
+        <span class="n">permission</span><span class="p">:</span> <span class="n">CoursePermission</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">MyQuery</span><span class="p">[</span><span class="s1">&#39;CourseRole&#39;</span><span class="p">]:</span>
         <span class="sd">&quot;&quot;&quot;Get a DB filter that does a :py:func:`CourseRole.has_permission`</span>
 <span class="sd">        check in the database.</span>
 
@@ -564,16 +565,20 @@
         <span class="n">perm_id</span> <span class="o">=</span> <span class="n">Permission</span><span class="o">.</span><span class="n">query_permission</span><span class="p">(</span><span class="n">permission</span><span class="p">)</span><span class="o">.</span><span class="n">with_entities</span><span class="p">(</span>
             <span class="n">Permission</span><span class="o">.</span><span class="n">id</span>
         <span class="p">)</span>
+
         <span class="n">has_link</span> <span class="o">=</span> <span class="n">db</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="n">course_permissions</span><span class="p">)</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span>
-            <span class="n">course_permissions</span><span class="o">.</span><span class="n">c</span><span class="o">.</span><span class="n">permission_id</span> <span class="o">==</span> <span class="n">perm_id</span><span class="p">,</span>
             <span class="n">course_permissions</span><span class="o">.</span><span class="n">c</span><span class="o">.</span><span class="n">course_role_id</span> <span class="o">==</span> <span class="bp">cls</span><span class="o">.</span><span class="n">id</span><span class="p">,</span>
+            <span class="n">course_permissions</span><span class="o">.</span><span class="n">c</span><span class="o">.</span><span class="n">permission_id</span> <span class="o">==</span> <span class="n">perm_id</span>
         <span class="p">)</span><span class="o">.</span><span class="n">exists</span><span class="p">()</span>
 
         <span class="c1"># XOR is not available in postgres (or SQLAlchemy), so we solve it with</span>
         <span class="c1"># a simple if.</span>
         <span class="k">if</span> <span class="n">permission</span><span class="o">.</span><span class="n">value</span><span class="o">.</span><span class="n">default_value</span><span class="p">:</span>
-            <span class="k">return</span> <span class="o">~</span><span class="n">has_link</span>
-        <span class="k">return</span> <span class="n">has_link</span></div></div>
+            <span class="n">link_cond</span> <span class="o">=</span> <span class="o">~</span><span class="n">has_link</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">link_cond</span> <span class="o">=</span> <span class="n">has_link</span>
+
+        <span class="k">return</span> <span class="n">db</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">link_cond</span><span class="p">)</span></div></div>
 </pre></div>
 
            </div>

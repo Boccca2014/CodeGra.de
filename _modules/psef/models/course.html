@@ -208,6 +208,7 @@
 <span class="sd">SPDX-License-Identifier: AGPL-3.0-only</span>
 <span class="sd">&quot;&quot;&quot;</span>
 <span class="kn">import</span> <span class="nn">copy</span>
+<span class="kn">import</span> <span class="nn">enum</span>
 <span class="kn">import</span> <span class="nn">uuid</span>
 <span class="kn">import</span> <span class="nn">typing</span> <span class="k">as</span> <span class="nn">t</span>
 
@@ -216,6 +217,7 @@
 <span class="kn">from</span> <span class="nn">typing_extensions</span> <span class="kn">import</span> <span class="n">TypedDict</span>
 
 <span class="kn">import</span> <span class="nn">psef</span>
+<span class="kn">import</span> <span class="nn">cg_enum</span>
 <span class="kn">from</span> <span class="nn">cg_dt_utils</span> <span class="kn">import</span> <span class="n">DatetimeWithTimezone</span>
 <span class="kn">from</span> <span class="nn">cg_typing_extensions</span> <span class="kn">import</span> <span class="n">make_typed_dict_extender</span>
 <span class="kn">from</span> <span class="nn">cg_sqlalchemy_helpers</span> <span class="kn">import</span> <span class="n">mixins</span><span class="p">,</span> <span class="n">expression</span>
@@ -228,6 +230,7 @@
 <span class="kn">from</span> <span class="nn">..helpers</span> <span class="kn">import</span> <span class="n">NotEqualMixin</span><span class="p">,</span> <span class="n">jsonify_options</span>
 <span class="kn">from</span> <span class="nn">.assignment</span> <span class="kn">import</span> <span class="n">Assignment</span>
 <span class="kn">from</span> <span class="nn">.link_tables</span> <span class="kn">import</span> <span class="n">user_course</span>
+<span class="kn">from</span> <span class="nn">..permissions</span> <span class="kn">import</span> <span class="n">CoursePermission</span>
 
 <span class="n">logger</span> <span class="o">=</span> <span class="n">structlog</span><span class="o">.</span><span class="n">get_logger</span><span class="p">()</span>
 
@@ -329,7 +332,16 @@
         <span class="p">}</span></div>
 
 
-<div class="viewcode-block" id="Course"><a class="viewcode-back" href="../../../psef_api/psef.html#psef.models.course.Course">[docs]</a><span class="k">class</span> <span class="nc">Course</span><span class="p">(</span><span class="n">NotEqualMixin</span><span class="p">,</span> <span class="n">Base</span><span class="p">):</span>
+<div class="viewcode-block" id="CourseState"><a class="viewcode-back" href="../../../psef_api/psef.html#psef.models.course.CourseState">[docs]</a><span class="nd">@enum</span><span class="o">.</span><span class="n">unique</span>
+<span class="k">class</span> <span class="nc">CourseState</span><span class="p">(</span><span class="n">cg_enum</span><span class="o">.</span><span class="n">CGEnum</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Describes in what state a :class:`.Course` is.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">visible</span> <span class="o">=</span> <span class="s1">&#39;visible&#39;</span>
+    <span class="n">archived</span> <span class="o">=</span> <span class="s1">&#39;archived&#39;</span>
+    <span class="n">deleted</span> <span class="o">=</span> <span class="s1">&#39;deleted&#39;</span></div>
+
+
+<div class="viewcode-block" id="Course"><a class="viewcode-back" href="../../../psef_api/psef.html#psef.models.course.Course">[docs]</a><span class="k">class</span> <span class="nc">Course</span><span class="p">(</span><span class="n">NotEqualMixin</span><span class="p">,</span> <span class="n">Base</span><span class="p">,</span> <span class="n">mixins</span><span class="o">.</span><span class="n">TimestampMixin</span><span class="p">,</span> <span class="n">mixins</span><span class="o">.</span><span class="n">IdMixin</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;This class describes a course.</span>
 
 <span class="sd">    A course can hold a collection of :class:`.Assignment` objects.</span>
@@ -339,13 +351,14 @@
 <span class="sd">    :param lti_provider: The LTI provider</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">__tablename__</span> <span class="o">=</span> <span class="s2">&quot;Course&quot;</span>
-    <span class="nb">id</span> <span class="o">=</span> <span class="n">db</span><span class="o">.</span><span class="n">Column</span><span class="p">(</span><span class="s1">&#39;id&#39;</span><span class="p">,</span> <span class="n">db</span><span class="o">.</span><span class="n">Integer</span><span class="p">,</span> <span class="n">primary_key</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
     <span class="n">name</span> <span class="o">=</span> <span class="n">db</span><span class="o">.</span><span class="n">Column</span><span class="p">(</span><span class="s1">&#39;name&#39;</span><span class="p">,</span> <span class="n">db</span><span class="o">.</span><span class="n">Unicode</span><span class="p">,</span> <span class="n">nullable</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
 
-    <span class="n">created_at</span> <span class="o">=</span> <span class="n">db</span><span class="o">.</span><span class="n">Column</span><span class="p">(</span>
-        <span class="n">db</span><span class="o">.</span><span class="n">TIMESTAMP</span><span class="p">(</span><span class="n">timezone</span><span class="o">=</span><span class="kc">True</span><span class="p">),</span>
-        <span class="n">default</span><span class="o">=</span><span class="n">DatetimeWithTimezone</span><span class="o">.</span><span class="n">utcnow</span><span class="p">,</span>
+    <span class="n">state</span> <span class="o">=</span> <span class="n">db</span><span class="o">.</span><span class="n">Column</span><span class="p">(</span>
+        <span class="s1">&#39;state&#39;</span><span class="p">,</span>
+        <span class="n">cg_enum</span><span class="o">.</span><span class="n">CGDbEnum</span><span class="p">(</span><span class="n">CourseState</span><span class="p">),</span>
         <span class="n">nullable</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="n">default</span><span class="o">=</span><span class="n">CourseState</span><span class="o">.</span><span class="n">visible</span><span class="p">,</span>
+        <span class="n">server_default</span><span class="o">=</span><span class="n">CourseState</span><span class="o">.</span><span class="n">visible</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
     <span class="p">)</span>
 
     <span class="n">course_lti_provider</span> <span class="o">=</span> <span class="n">db</span><span class="o">.</span><span class="n">relationship</span><span class="p">(</span>
@@ -376,6 +389,7 @@
         <span class="n">cascade</span><span class="o">=</span><span class="s1">&#39;all,delete&#39;</span><span class="p">,</span>
         <span class="n">uselist</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
         <span class="n">order_by</span><span class="o">=</span><span class="k">lambda</span><span class="p">:</span> <span class="n">psef</span><span class="o">.</span><span class="n">models</span><span class="o">.</span><span class="n">GroupSet</span><span class="o">.</span><span class="n">created_at</span><span class="p">,</span>
+        <span class="n">lazy</span><span class="o">=</span><span class="s1">&#39;select&#39;</span><span class="p">,</span>
     <span class="p">)</span>
 
     <span class="n">snippets</span> <span class="o">=</span> <span class="n">db</span><span class="o">.</span><span class="n">relationship</span><span class="p">(</span>
@@ -393,6 +407,7 @@
         <span class="n">cascade</span><span class="o">=</span><span class="s1">&#39;all,delete&#39;</span><span class="p">,</span>
         <span class="n">uselist</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
         <span class="n">order_by</span><span class="o">=</span><span class="k">lambda</span><span class="p">:</span> <span class="n">CourseRegistrationLink</span><span class="o">.</span><span class="n">created_at</span><span class="p">,</span>
+        <span class="n">lazy</span><span class="o">=</span><span class="s1">&#39;select&#39;</span><span class="p">,</span>
     <span class="p">)</span>
 
     <span class="n">assignments</span> <span class="o">=</span> <span class="n">db</span><span class="o">.</span><span class="n">relationship</span><span class="p">(</span>
@@ -400,6 +415,7 @@
         <span class="n">back_populates</span><span class="o">=</span><span class="s2">&quot;course&quot;</span><span class="p">,</span>
         <span class="n">cascade</span><span class="o">=</span><span class="s1">&#39;all,delete&#39;</span><span class="p">,</span>
         <span class="n">uselist</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="n">lazy</span><span class="o">=</span><span class="s1">&#39;select&#39;</span><span class="p">,</span>
     <span class="p">)</span>
 
 <div class="viewcode-block" id="Course.AsJSON"><a class="viewcode-back" href="../../../psef_api/psef.html#psef.models.course.Course.AsJSON">[docs]</a>    <span class="k">class</span> <span class="nc">AsJSON</span><span class="p">(</span><span class="n">TypedDict</span><span class="p">,</span> <span class="n">total</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
@@ -419,7 +435,9 @@
         <span class="n">virtual</span><span class="p">:</span> <span class="nb">bool</span>
         <span class="c1">#: The lti provider that manages this course, if ``null`` this is not a</span>
         <span class="c1">#: LTI course.</span>
-        <span class="n">lti_provider</span><span class="p">:</span> <span class="n">t</span><span class="o">.</span><span class="n">Optional</span><span class="p">[</span><span class="s1">&#39;psef.models.LTIProviderBase&#39;</span><span class="p">]</span></div>
+        <span class="n">lti_provider</span><span class="p">:</span> <span class="n">t</span><span class="o">.</span><span class="n">Optional</span><span class="p">[</span><span class="s1">&#39;psef.models.LTIProviderBase&#39;</span><span class="p">]</span>
+        <span class="c1">#: The state this course is in.</span>
+        <span class="n">state</span><span class="p">:</span> <span class="n">CourseState</span></div>
 
 <div class="viewcode-block" id="Course.AsExtendedJSON"><a class="viewcode-back" href="../../../psef_api/psef.html#psef.models.course.Course.AsExtendedJSON">[docs]</a>    <span class="k">class</span> <span class="nc">AsExtendedJSON</span><span class="p">(</span><span class="n">AsJSON</span><span class="p">,</span> <span class="n">total</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;The way this class will be represented in extended JSON.</span>
@@ -452,6 +470,7 @@
             <span class="s1">&#39;is_lti&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_lti</span><span class="p">,</span>
             <span class="s1">&#39;virtual&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">virtual</span><span class="p">,</span>
             <span class="s1">&#39;lti_provider&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">lti_provider</span><span class="p">,</span>
+            <span class="s1">&#39;state&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">state</span><span class="p">,</span>
         <span class="p">}</span>
         <span class="k">if</span> <span class="n">jsonify_options</span><span class="o">.</span><span class="n">get_options</span><span class="p">()</span><span class="o">.</span><span class="n">add_role_to_course</span><span class="p">:</span>
             <span class="n">user</span> <span class="o">=</span> <span class="n">psef</span><span class="o">.</span><span class="n">current_user</span>
@@ -605,7 +624,10 @@
         <span class="k">return</span> <span class="n">Assignment</span><span class="o">.</span><span class="n">query</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">Assignment</span><span class="o">.</span><span class="n">course</span> <span class="o">==</span> <span class="bp">self</span><span class="p">)</span>
 
 <div class="viewcode-block" id="Course.get_all_users_in_course"><a class="viewcode-back" href="../../../psef_api/psef.html#psef.models.course.Course.get_all_users_in_course">[docs]</a>    <span class="k">def</span> <span class="nf">get_all_users_in_course</span><span class="p">(</span>
-        <span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">include_test_students</span><span class="p">:</span> <span class="nb">bool</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="o">*</span><span class="p">,</span>
+        <span class="n">include_test_students</span><span class="p">:</span> <span class="nb">bool</span><span class="p">,</span>
+        <span class="n">with_permission</span><span class="p">:</span> <span class="n">CoursePermission</span> <span class="o">=</span> <span class="kc">None</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">MyQuery</span><span class="p">[</span><span class="s1">&#39;t.Tuple[user_models.User, role_models.CourseRole]&#39;</span><span class="p">]:</span>
         <span class="sd">&quot;&quot;&quot;Get a query that returns all users in the current course and their</span>
 <span class="sd">            role.</span>
@@ -613,15 +635,29 @@
 <span class="sd">        :returns: A query that contains all users in the current course and</span>
 <span class="sd">            their role.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="n">res</span> <span class="o">=</span> <span class="n">db</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="n">user_models</span><span class="o">.</span><span class="n">User</span><span class="p">,</span> <span class="n">role_models</span><span class="o">.</span><span class="n">CourseRole</span><span class="p">)</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
+        <span class="n">CourseRole</span> <span class="o">=</span> <span class="n">role_models</span><span class="o">.</span><span class="n">CourseRole</span>
+
+        <span class="n">join_conds</span> <span class="o">=</span> <span class="p">[</span><span class="n">CourseRole</span><span class="o">.</span><span class="n">id</span> <span class="o">==</span> <span class="n">user_course</span><span class="o">.</span><span class="n">c</span><span class="o">.</span><span class="n">course_id</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">with_permission</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">join_conds</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+                <span class="n">CourseRole</span><span class="o">.</span><span class="n">id</span><span class="o">.</span><span class="n">in_</span><span class="p">(</span>
+                    <span class="n">CourseRole</span><span class="o">.</span><span class="n">get_roles_with_permission</span><span class="p">(</span>
+                        <span class="n">with_permission</span><span class="p">,</span>
+                    <span class="p">)</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">CourseRole</span><span class="o">.</span><span class="n">course_id</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">id</span><span class="p">)</span><span class="o">.</span><span class="n">with_entities</span><span class="p">(</span>
+                        <span class="n">CourseRole</span><span class="o">.</span><span class="n">id</span>
+                    <span class="p">)</span>
+                <span class="p">)</span>
+            <span class="p">)</span>
+
+        <span class="n">res</span> <span class="o">=</span> <span class="n">db</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="n">user_models</span><span class="o">.</span><span class="n">User</span><span class="p">,</span> <span class="n">CourseRole</span><span class="p">)</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
             <span class="n">user_course</span><span class="p">,</span>
             <span class="n">user_course</span><span class="o">.</span><span class="n">c</span><span class="o">.</span><span class="n">user_id</span> <span class="o">==</span> <span class="n">user_models</span><span class="o">.</span><span class="n">User</span><span class="o">.</span><span class="n">id</span><span class="p">,</span>
         <span class="p">)</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
-            <span class="n">role_models</span><span class="o">.</span><span class="n">CourseRole</span><span class="p">,</span>
-            <span class="n">role_models</span><span class="o">.</span><span class="n">CourseRole</span><span class="o">.</span><span class="n">id</span> <span class="o">==</span> <span class="n">user_course</span><span class="o">.</span><span class="n">c</span><span class="o">.</span><span class="n">course_id</span><span class="p">,</span>
+            <span class="n">CourseRole</span><span class="p">,</span>
+            <span class="n">expression</span><span class="o">.</span><span class="n">and_</span><span class="p">(</span><span class="o">*</span><span class="n">join_conds</span><span class="p">),</span>
         <span class="p">)</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span>
-            <span class="n">role_models</span><span class="o">.</span><span class="n">CourseRole</span><span class="o">.</span><span class="n">course_id</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">id</span><span class="p">,</span>
-            <span class="n">user_models</span><span class="o">.</span><span class="n">User</span><span class="o">.</span><span class="n">virtual</span><span class="o">.</span><span class="n">isnot</span><span class="p">(</span><span class="kc">True</span><span class="p">)</span>
+            <span class="n">CourseRole</span><span class="o">.</span><span class="n">course_id</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">id</span><span class="p">,</span>
+            <span class="n">user_models</span><span class="o">.</span><span class="n">User</span><span class="o">.</span><span class="n">virtual</span><span class="o">.</span><span class="n">isnot</span><span class="p">(</span><span class="kc">True</span><span class="p">),</span>
         <span class="p">)</span>
 
         <span class="k">if</span> <span class="ow">not</span> <span class="n">include_test_students</span><span class="p">:</span>

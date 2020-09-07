@@ -230,9 +230,10 @@
 <span class="kn">from</span> <span class="nn">cg_dt_utils</span> <span class="kn">import</span> <span class="n">DatetimeWithTimezone</span>
 <span class="kn">from</span> <span class="nn">psef.helpers</span> <span class="kn">import</span> <span class="n">readable_join</span>
 <span class="kn">from</span> <span class="nn">psef.exceptions</span> <span class="kn">import</span> <span class="n">APICodes</span><span class="p">,</span> <span class="n">APIException</span><span class="p">,</span> <span class="n">PermissionException</span>
+<span class="kn">from</span> <span class="nn">cg_sqlalchemy_helpers</span> <span class="kn">import</span> <span class="n">func</span> <span class="k">as</span> <span class="n">sql_func</span>
 <span class="kn">from</span> <span class="nn">cg_sqlalchemy_helpers</span> <span class="kn">import</span> <span class="n">expression</span> <span class="k">as</span> <span class="n">sql_expression</span>
 <span class="kn">from</span> <span class="nn">cg_cache.intra_request</span> <span class="kn">import</span> <span class="n">cache_within_request</span>
-<span class="kn">from</span> <span class="nn">cg_sqlalchemy_helpers.types</span> <span class="kn">import</span> <span class="n">FilterColumn</span>
+<span class="kn">from</span> <span class="nn">cg_sqlalchemy_helpers.types</span> <span class="kn">import</span> <span class="n">DbColumn</span><span class="p">,</span> <span class="n">FilterColumn</span>
 
 <span class="kn">from</span> <span class="nn">.</span> <span class="kn">import</span> <span class="n">helpers</span>
 <span class="kn">from</span> <span class="nn">.permissions</span> <span class="kn">import</span> <span class="n">CoursePermission</span> <span class="k">as</span> <span class="n">CPerm</span>
@@ -417,12 +418,13 @@
 <div class="viewcode-block" id="CoursePermissionChecker"><a class="viewcode-back" href="../../psef_api/psef.html#psef.auth.CoursePermissionChecker">[docs]</a><span class="k">class</span> <span class="nc">CoursePermissionChecker</span><span class="p">(</span><span class="n">PermissionChecker</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;The base permission checker class for course related permissions.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="vm">__slots__</span> <span class="o">=</span> <span class="p">(</span><span class="s1">&#39;course_id&#39;</span><span class="p">,</span> <span class="p">)</span>
+    <span class="vm">__slots__</span> <span class="o">=</span> <span class="p">(</span><span class="s1">&#39;course&#39;</span><span class="p">,</span> <span class="s1">&#39;course_id&#39;</span><span class="p">)</span>
 
-    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">course_id</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">course</span><span class="p">:</span> <span class="s1">&#39;psef.models.Course&#39;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
 
-        <span class="bp">self</span><span class="o">.</span><span class="n">course_id</span><span class="p">:</span> <span class="n">Final</span> <span class="o">=</span> <span class="n">course_id</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">course</span><span class="p">:</span> <span class="n">Final</span> <span class="o">=</span> <span class="n">course</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">course_id</span><span class="p">:</span> <span class="n">Final</span> <span class="o">=</span> <span class="n">course</span><span class="o">.</span><span class="n">id</span>
 
 <div class="viewcode-block" id="CoursePermissionChecker.as_ensure_function"><a class="viewcode-back" href="../../psef_api/psef.html#psef.auth.CoursePermissionChecker.as_ensure_function">[docs]</a>    <span class="nd">@staticmethod</span>
     <span class="k">def</span> <span class="nf">as_ensure_function</span><span class="p">(</span>
@@ -443,7 +445,7 @@
         <span class="k">return</span> <span class="n">_PermissionCheckFunction</span><span class="p">(</span><span class="n">__inner</span><span class="p">)</span></div>
 
     <span class="k">def</span> <span class="nf">_ensure_course_visible</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="n">_ensure_course_visible_for_current_user</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">course_id</span><span class="p">)</span>
+        <span class="n">_ensure_course_visible_for_current_user</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">course</span><span class="p">)</span>
 
     <span class="k">def</span> <span class="nf">_global_ensure</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">perm</span><span class="p">:</span> <span class="n">GPerm</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
         <span class="n">ensure_permission</span><span class="p">(</span><span class="n">perm</span><span class="p">,</span> <span class="n">user</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">user</span><span class="p">)</span>
@@ -517,7 +519,11 @@
 
 <span class="nd">@jwt</span><span class="o">.</span><span class="n">user_loader_callback_loader</span>
 <span class="k">def</span> <span class="nf">_load_user</span><span class="p">(</span><span class="n">user_id</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">t</span><span class="o">.</span><span class="n">Optional</span><span class="p">[</span><span class="s1">&#39;psef.models.User&#39;</span><span class="p">]:</span>
-    <span class="k">return</span> <span class="n">psef</span><span class="o">.</span><span class="n">models</span><span class="o">.</span><span class="n">User</span><span class="o">.</span><span class="n">query</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">user_id</span><span class="p">))</span>
+    <span class="k">return</span> <span class="n">psef</span><span class="o">.</span><span class="n">models</span><span class="o">.</span><span class="n">User</span><span class="o">.</span><span class="n">query</span><span class="o">.</span><span class="n">options</span><span class="p">(</span>
+        <span class="n">sqlalchemy</span><span class="o">.</span><span class="n">orm</span><span class="o">.</span><span class="n">selectinload</span><span class="p">(</span><span class="n">psef</span><span class="o">.</span><span class="n">models</span><span class="o">.</span><span class="n">User</span><span class="o">.</span><span class="n">courses</span><span class="p">)</span><span class="o">.</span><span class="n">joinedload</span><span class="p">(</span>
+            <span class="n">psef</span><span class="o">.</span><span class="n">models</span><span class="o">.</span><span class="n">CourseRole</span><span class="o">.</span><span class="n">course</span>
+        <span class="p">)</span>
+    <span class="p">)</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">user_id</span><span class="p">))</span>
 
 
 <span class="k">def</span> <span class="nf">_resolve_user</span><span class="p">(</span><span class="n">user</span><span class="p">:</span> <span class="n">t</span><span class="o">.</span><span class="n">Union</span><span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="n">LocalProxy</span><span class="p">,</span> <span class="s1">&#39;psef.models.User&#39;</span><span class="p">]</span>
@@ -591,7 +597,9 @@
 
 
 <span class="nd">@cache_within_request</span>
-<span class="k">def</span> <span class="nf">_ensure_course_visible_for_current_user</span><span class="p">(</span><span class="n">course_id</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="k">def</span> <span class="nf">_ensure_course_visible_for_current_user</span><span class="p">(</span>
+    <span class="n">course</span><span class="p">:</span> <span class="s1">&#39;psef.models.Course&#39;</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
     <span class="sd">&quot;&quot;&quot;Ensure that the current user is enrolled in the given course.</span>
 
 <span class="sd">    This function also checks if the scope of the logged in user is correct for</span>
@@ -605,12 +613,22 @@
     <span class="n">err_msg</span> <span class="o">=</span> <span class="kc">None</span>
     <span class="n">user</span> <span class="o">=</span> <span class="n">_get_cur_user</span><span class="p">()</span>
 
-    <span class="k">if</span> <span class="n">user</span><span class="o">.</span><span class="n">is_enrolled</span><span class="p">(</span><span class="n">course_id</span><span class="p">):</span>
+    <span class="k">if</span> <span class="n">user</span><span class="o">.</span><span class="n">is_enrolled</span><span class="p">(</span><span class="n">course</span><span class="p">):</span>
         <span class="n">for_course</span> <span class="o">=</span> <span class="n">flask_jwt</span><span class="o">.</span><span class="n">get_jwt_claims</span><span class="p">()</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;for_course&#39;</span><span class="p">)</span>
-        <span class="k">if</span> <span class="n">for_course</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">for_course</span> <span class="o">!=</span> <span class="n">course_id</span><span class="p">:</span>
+        <span class="n">state</span> <span class="o">=</span> <span class="n">course</span><span class="o">.</span><span class="n">state</span>
+        <span class="k">if</span> <span class="n">for_course</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">for_course</span> <span class="o">!=</span> <span class="n">course</span><span class="o">.</span><span class="n">id</span><span class="p">:</span>
             <span class="n">err_msg</span> <span class="o">=</span> <span class="p">(</span>
                 <span class="s1">&#39;You are not allowed to see this course with the provided&#39;</span>
                 <span class="s1">&#39; token&#39;</span>
+            <span class="p">)</span>
+        <span class="k">elif</span> <span class="n">state</span><span class="o">.</span><span class="n">is_deleted</span><span class="p">:</span>
+            <span class="n">err_msg</span> <span class="o">=</span> <span class="s1">&#39;This course is deleted, so you may not see it&#39;</span>
+        <span class="k">elif</span> <span class="n">state</span><span class="o">.</span><span class="n">is_archived</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">user</span><span class="o">.</span><span class="n">has_permission</span><span class="p">(</span>
+            <span class="n">CPerm</span><span class="o">.</span><span class="n">can_see_archived_courses</span><span class="p">,</span> <span class="n">course_id</span><span class="o">=</span><span class="n">course</span>
+        <span class="p">):</span>
+            <span class="n">err_msg</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="s1">&#39;This course has been archived, and you do not have permission&#39;</span>
+                <span class="s1">&#39; to view archived courses&#39;</span>
             <span class="p">)</span>
     <span class="k">else</span><span class="p">:</span>
         <span class="n">err_msg</span> <span class="o">=</span> <span class="s1">&#39;You are not enrolled in this course&#39;</span>
@@ -618,7 +636,7 @@
     <span class="k">if</span> <span class="n">err_msg</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
         <span class="k">raise</span> <span class="n">PermissionException</span><span class="p">(</span>
             <span class="n">err_msg</span><span class="p">,</span>
-            <span class="sa">f</span><span class="s1">&#39;The user &quot;</span><span class="si">{</span><span class="n">user</span><span class="o">.</span><span class="n">id</span><span class="si">}</span><span class="s1">&quot; is not enrolled in course &quot;</span><span class="si">{</span><span class="n">course_id</span><span class="si">}</span><span class="s1">&quot;&#39;</span><span class="p">,</span>
+            <span class="sa">f</span><span class="s1">&#39;The user &quot;</span><span class="si">{</span><span class="n">user</span><span class="o">.</span><span class="n">id</span><span class="si">}</span><span class="s1">&quot; is not enrolled in course &quot;</span><span class="si">{</span><span class="n">course</span><span class="o">.</span><span class="n">id</span><span class="si">}</span><span class="s1">&quot;&#39;</span><span class="p">,</span>
             <span class="n">APICodes</span><span class="o">.</span><span class="n">INCORRECT_PERMISSION</span><span class="p">,</span> <span class="mi">403</span>
         <span class="p">)</span>
 
@@ -707,27 +725,28 @@
     <span class="n">cool_off_cutoff</span> <span class="o">=</span> <span class="n">now</span> <span class="o">-</span> <span class="n">assig</span><span class="o">.</span><span class="n">cool_off_period</span>
 
     <span class="k">if</span> <span class="n">assig</span><span class="o">.</span><span class="n">max_submissions</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="n">query_amount</span><span class="p">:</span> <span class="n">psef</span><span class="o">.</span><span class="n">models</span><span class="o">.</span><span class="n">DbColumn</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="n">sql</span><span class="o">.</span><span class="n">literal</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">label</span><span class="p">(</span>
-            <span class="s1">&#39;amount&#39;</span>
-        <span class="p">)</span>
+        <span class="n">query_amount</span> <span class="o">=</span> <span class="n">sql_expression</span><span class="o">.</span><span class="n">literal</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">label</span><span class="p">(</span><span class="s1">&#39;amount&#39;</span><span class="p">)</span>
     <span class="k">else</span><span class="p">:</span>
         <span class="n">query_amount</span> <span class="o">=</span> <span class="n">sql</span><span class="o">.</span><span class="n">func</span><span class="o">.</span><span class="n">count</span><span class="p">()</span>
 
+    <span class="n">query_oldest_in_period</span><span class="p">:</span> <span class="n">t</span><span class="o">.</span><span class="n">Union</span><span class="p">[</span><span class="n">DbColumn</span><span class="p">[</span><span class="n">t</span><span class="o">.</span><span class="n">Optional</span><span class="p">[</span><span class="n">DatetimeWithTimezone</span><span class="p">]],</span>
+                                    <span class="n">DbColumn</span><span class="p">[</span><span class="n">DatetimeWithTimezone</span><span class="p">],</span>
+                                    <span class="p">]</span>
     <span class="k">if</span> <span class="n">assig</span><span class="o">.</span><span class="n">cool_off_period</span><span class="o">.</span><span class="n">total_seconds</span><span class="p">()</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
-        <span class="n">query_since_cool_off</span><span class="p">:</span> <span class="n">psef</span><span class="o">.</span><span class="n">models</span><span class="o">.</span><span class="n">DbColumn</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="n">sql</span><span class="o">.</span><span class="n">func</span><span class="o">.</span><span class="n">count</span><span class="p">(</span>
-            <span class="n">sqlalchemy</span><span class="o">.</span><span class="n">case</span><span class="p">(</span>
+        <span class="n">query_since_cool_off</span> <span class="o">=</span> <span class="n">sql_func</span><span class="o">.</span><span class="n">count</span><span class="p">(</span>
+            <span class="n">sql_expression</span><span class="o">.</span><span class="n">case</span><span class="p">(</span>
                 <span class="p">[(</span><span class="n">Work</span><span class="o">.</span><span class="n">created_at</span> <span class="o">&gt;=</span> <span class="n">cool_off_cutoff</span><span class="p">,</span> <span class="mi">1</span><span class="p">)],</span>
                 <span class="n">else_</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
             <span class="p">)</span>
         <span class="p">)</span>
-        <span class="n">query_oldest_in_period</span><span class="p">:</span> <span class="n">psef</span><span class="o">.</span><span class="n">models</span><span class="o">.</span><span class="n">DbColumn</span><span class="p">[</span>
-            <span class="n">t</span><span class="o">.</span><span class="n">Optional</span><span class="p">[</span><span class="n">DatetimeWithTimezone</span><span class="p">]</span>
-        <span class="p">]</span> <span class="o">=</span> <span class="n">base_sql</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">Work</span><span class="o">.</span><span class="n">created_at</span> <span class="o">&gt;=</span> <span class="n">cool_off_cutoff</span><span class="p">)</span><span class="o">.</span><span class="n">with_entities</span><span class="p">(</span>
-            <span class="n">sql</span><span class="o">.</span><span class="n">func</span><span class="o">.</span><span class="n">min</span><span class="p">(</span><span class="n">Work</span><span class="o">.</span><span class="n">created_at</span><span class="p">)</span>
-        <span class="p">)</span><span class="o">.</span><span class="n">label</span><span class="p">(</span><span class="s1">&#39;oldest&#39;</span><span class="p">)</span>
+        <span class="n">query_oldest_in_period</span> <span class="o">=</span> <span class="n">base_sql</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span>
+            <span class="n">Work</span><span class="o">.</span><span class="n">created_at</span> <span class="o">&gt;=</span> <span class="n">cool_off_cutoff</span>
+        <span class="p">)</span><span class="o">.</span><span class="n">with_entities</span><span class="p">(</span><span class="n">sql_func</span><span class="o">.</span><span class="n">min</span><span class="p">(</span><span class="n">Work</span><span class="o">.</span><span class="n">created_at</span><span class="p">))</span><span class="o">.</span><span class="n">label</span><span class="p">(</span><span class="s1">&#39;oldest&#39;</span><span class="p">)</span>
     <span class="k">else</span><span class="p">:</span>
-        <span class="n">query_since_cool_off</span> <span class="o">=</span> <span class="n">sql</span><span class="o">.</span><span class="n">literal</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">label</span><span class="p">(</span><span class="s1">&#39;since_cool_off&#39;</span><span class="p">)</span>
-        <span class="n">query_oldest_in_period</span> <span class="o">=</span> <span class="n">sql</span><span class="o">.</span><span class="n">literal</span><span class="p">(</span><span class="n">now</span><span class="p">)</span><span class="o">.</span><span class="n">label</span><span class="p">(</span><span class="s1">&#39;oldest&#39;</span><span class="p">)</span>
+        <span class="n">query_since_cool_off</span> <span class="o">=</span> <span class="n">sql_expression</span><span class="o">.</span><span class="n">literal</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">label</span><span class="p">(</span>
+            <span class="s1">&#39;since_cool_off&#39;</span>
+        <span class="p">)</span>
+        <span class="n">query_oldest_in_period</span> <span class="o">=</span> <span class="n">sql_expression</span><span class="o">.</span><span class="n">literal</span><span class="p">(</span><span class="n">now</span><span class="p">)</span><span class="o">.</span><span class="n">label</span><span class="p">(</span><span class="s1">&#39;oldest&#39;</span><span class="p">)</span>
 
     <span class="n">query</span> <span class="o">=</span> <span class="n">base_sql</span><span class="o">.</span><span class="n">with_entities</span><span class="p">(</span>
         <span class="n">query_amount</span><span class="p">,</span>
@@ -912,12 +931,12 @@
 <span class="sd">    :param step: The step for which we have to check the permission.</span>
 <span class="sd">    :returns: Nothing.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="n">course_id</span> <span class="o">=</span> <span class="n">step</span><span class="o">.</span><span class="n">suite</span><span class="o">.</span><span class="n">auto_test_set</span><span class="o">.</span><span class="n">auto_test</span><span class="o">.</span><span class="n">assignment</span><span class="o">.</span><span class="n">course_id</span>
-    <span class="n">_ensure_course_visible_for_current_user</span><span class="p">(</span><span class="n">course_id</span><span class="p">)</span>
+    <span class="n">course</span> <span class="o">=</span> <span class="n">step</span><span class="o">.</span><span class="n">suite</span><span class="o">.</span><span class="n">auto_test_set</span><span class="o">.</span><span class="n">auto_test</span><span class="o">.</span><span class="n">assignment</span><span class="o">.</span><span class="n">course</span>
+    <span class="n">_ensure_course_visible_for_current_user</span><span class="p">(</span><span class="n">course</span><span class="p">)</span>
 
-    <span class="n">ensure_permission</span><span class="p">(</span><span class="n">CPerm</span><span class="o">.</span><span class="n">can_view_autotest_step_details</span><span class="p">,</span> <span class="n">course_id</span><span class="p">)</span>
+    <span class="n">ensure_permission</span><span class="p">(</span><span class="n">CPerm</span><span class="o">.</span><span class="n">can_view_autotest_step_details</span><span class="p">,</span> <span class="n">course</span><span class="o">.</span><span class="n">id</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">step</span><span class="o">.</span><span class="n">hidden</span><span class="p">:</span>
-        <span class="n">ensure_permission</span><span class="p">(</span><span class="n">CPerm</span><span class="o">.</span><span class="n">can_view_hidden_autotest_steps</span><span class="p">,</span> <span class="n">course_id</span><span class="p">)</span></div>
+        <span class="n">ensure_permission</span><span class="p">(</span><span class="n">CPerm</span><span class="o">.</span><span class="n">can_view_hidden_autotest_steps</span><span class="p">,</span> <span class="n">course</span><span class="o">.</span><span class="n">id</span><span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="ensure_can_view_files"><a class="viewcode-back" href="../../psef_api/psef.html#psef.auth.ensure_can_view_files">[docs]</a><span class="nd">@login_required</span>
@@ -933,23 +952,23 @@
 <span class="sd">        files.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">cur_user</span> <span class="o">=</span> <span class="n">_get_cur_user</span><span class="p">()</span>
-    <span class="n">course_id</span> <span class="o">=</span> <span class="n">work</span><span class="o">.</span><span class="n">assignment</span><span class="o">.</span><span class="n">course_id</span>
+    <span class="n">course</span> <span class="o">=</span> <span class="n">work</span><span class="o">.</span><span class="n">assignment</span><span class="o">.</span><span class="n">course</span>
 
     <span class="k">if</span> <span class="n">teacher_files</span><span class="p">:</span>
         <span class="k">if</span> <span class="n">work</span><span class="o">.</span><span class="n">has_as_author</span><span class="p">(</span><span class="n">cur_user</span><span class="p">)</span> <span class="ow">and</span> <span class="n">work</span><span class="o">.</span><span class="n">assignment</span><span class="o">.</span><span class="n">is_done</span><span class="p">:</span>
-            <span class="n">ensure_permission</span><span class="p">(</span><span class="n">CPerm</span><span class="o">.</span><span class="n">can_view_own_teacher_files</span><span class="p">,</span> <span class="n">course_id</span><span class="p">)</span>
+            <span class="n">ensure_permission</span><span class="p">(</span><span class="n">CPerm</span><span class="o">.</span><span class="n">can_view_own_teacher_files</span><span class="p">,</span> <span class="n">course</span><span class="o">.</span><span class="n">id</span><span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="c1"># If the assignment is not done you can only view teacher files</span>
             <span class="c1"># if you can edit somebodies work.</span>
-            <span class="n">ensure_permission</span><span class="p">(</span><span class="n">CPerm</span><span class="o">.</span><span class="n">can_edit_others_work</span><span class="p">,</span> <span class="n">course_id</span><span class="p">)</span>
+            <span class="n">ensure_permission</span><span class="p">(</span><span class="n">CPerm</span><span class="o">.</span><span class="n">can_edit_others_work</span><span class="p">,</span> <span class="n">course</span><span class="o">.</span><span class="n">id</span><span class="p">)</span>
 
     <span class="k">try</span><span class="p">:</span>
-        <span class="n">_ensure_course_visible_for_current_user</span><span class="p">(</span><span class="n">course_id</span><span class="p">)</span>
+        <span class="n">_ensure_course_visible_for_current_user</span><span class="p">(</span><span class="n">course</span><span class="p">)</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="n">work</span><span class="o">.</span><span class="n">has_as_author</span><span class="p">(</span><span class="n">cur_user</span><span class="p">):</span>
             <span class="k">try</span><span class="p">:</span>
                 <span class="n">ensure_any_of_permissions</span><span class="p">(</span>
                     <span class="p">[</span><span class="n">CPerm</span><span class="o">.</span><span class="n">can_see_others_work</span><span class="p">,</span> <span class="n">CPerm</span><span class="o">.</span><span class="n">can_view_plagiarism</span><span class="p">],</span>
-                    <span class="n">course_id</span><span class="p">,</span>
+                    <span class="n">course</span><span class="o">.</span><span class="n">id</span><span class="p">,</span>
                 <span class="p">)</span>
             <span class="k">except</span> <span class="n">PermissionException</span><span class="p">:</span>
                 <span class="k">if</span> <span class="ow">not</span> <span class="n">work</span><span class="o">.</span><span class="n">is_peer_reviewed_by</span><span class="p">(</span><span class="n">cur_user</span><span class="p">):</span>
@@ -987,8 +1006,8 @@
 <span class="sd">    :raises PermissionException: If the current user cannot edit the given</span>
 <span class="sd">        group.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="n">course_id</span> <span class="o">=</span> <span class="n">group</span><span class="o">.</span><span class="n">group_set</span><span class="o">.</span><span class="n">course_id</span>
-    <span class="n">_ensure_course_visible_for_current_user</span><span class="p">(</span><span class="n">course_id</span><span class="p">)</span>
+    <span class="n">course</span> <span class="o">=</span> <span class="n">group</span><span class="o">.</span><span class="n">group_set</span><span class="o">.</span><span class="n">course</span>
+    <span class="n">_ensure_course_visible_for_current_user</span><span class="p">(</span><span class="n">course</span><span class="p">)</span>
 
     <span class="n">perms</span> <span class="o">=</span> <span class="p">[</span><span class="n">CPerm</span><span class="o">.</span><span class="n">can_edit_others_groups</span><span class="p">]</span>
     <span class="k">if</span> <span class="nb">all</span><span class="p">(</span><span class="n">member</span><span class="o">.</span><span class="n">id</span> <span class="o">==</span> <span class="n">_get_cur_user</span><span class="p">()</span><span class="o">.</span><span class="n">id</span> <span class="k">for</span> <span class="n">member</span> <span class="ow">in</span> <span class="n">members</span><span class="p">):</span>
@@ -996,13 +1015,13 @@
 
     <span class="n">ensure_any_of_permissions</span><span class="p">(</span>
         <span class="n">perms</span><span class="p">,</span>
-        <span class="n">group</span><span class="o">.</span><span class="n">group_set</span><span class="o">.</span><span class="n">course_id</span><span class="p">,</span>
+        <span class="n">course</span><span class="o">.</span><span class="n">id</span><span class="p">,</span>
     <span class="p">)</span>
 
-    <span class="k">if</span> <span class="ow">not</span> <span class="nb">all</span><span class="p">(</span><span class="n">member</span><span class="o">.</span><span class="n">is_enrolled</span><span class="p">(</span><span class="n">course_id</span><span class="p">)</span> <span class="k">for</span> <span class="n">member</span> <span class="ow">in</span> <span class="n">members</span><span class="p">):</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="nb">all</span><span class="p">(</span><span class="n">member</span><span class="o">.</span><span class="n">is_enrolled</span><span class="p">(</span><span class="n">course</span><span class="p">)</span> <span class="k">for</span> <span class="n">member</span> <span class="ow">in</span> <span class="n">members</span><span class="p">):</span>
         <span class="k">raise</span> <span class="n">APIException</span><span class="p">(</span>
             <span class="s1">&#39;The given user is not enrolled in this course&#39;</span><span class="p">,</span>
-            <span class="sa">f</span><span class="s1">&#39;Some members are not enrolled in course </span><span class="si">{</span><span class="n">course_id</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">,</span>
+            <span class="sa">f</span><span class="s1">&#39;Some members are not enrolled in course </span><span class="si">{</span><span class="n">course</span><span class="o">.</span><span class="n">id</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">,</span>
             <span class="n">APICodes</span><span class="o">.</span><span class="n">INVALID_PARAM</span><span class="p">,</span> <span class="mi">400</span>
         <span class="p">)</span>
     <span class="k">elif</span> <span class="nb">any</span><span class="p">(</span><span class="n">member</span><span class="o">.</span><span class="n">is_test_student</span> <span class="k">for</span> <span class="n">member</span> <span class="ow">in</span> <span class="n">members</span><span class="p">):</span>
@@ -1034,7 +1053,7 @@
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span> <span class="n">assignment</span><span class="p">:</span> <span class="s1">&#39;psef.models.Assignment&#39;</span><span class="p">,</span> <span class="n">author</span><span class="p">:</span> <span class="s1">&#39;psef.models.User&#39;</span>
     <span class="p">):</span>
-        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">course_id</span><span class="o">=</span><span class="n">assignment</span><span class="o">.</span><span class="n">course_id</span><span class="p">)</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">assignment</span><span class="o">.</span><span class="n">course</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">assignment</span> <span class="o">=</span> <span class="n">assignment</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">author</span> <span class="o">=</span> <span class="n">author</span>
 
@@ -1065,7 +1084,7 @@
     <span class="vm">__slots__</span> <span class="o">=</span> <span class="p">(</span><span class="s1">&#39;work&#39;</span><span class="p">,</span> <span class="p">)</span>
 
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">work</span><span class="p">:</span> <span class="s1">&#39;psef.models.Work&#39;</span><span class="p">):</span>
-        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">course_id</span><span class="o">=</span><span class="n">work</span><span class="o">.</span><span class="n">assignment</span><span class="o">.</span><span class="n">course_id</span><span class="p">)</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">work</span><span class="o">.</span><span class="n">assignment</span><span class="o">.</span><span class="n">course</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">work</span> <span class="o">=</span> <span class="n">work</span>
 
     <span class="k">def</span> <span class="nf">_is_my_work</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
@@ -1179,7 +1198,7 @@
     <span class="vm">__slots__</span> <span class="o">=</span> <span class="p">(</span><span class="s1">&#39;code&#39;</span><span class="p">,</span> <span class="p">)</span>
 
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">code</span><span class="p">:</span> <span class="s1">&#39;psef.models.File&#39;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">code</span><span class="o">.</span><span class="n">work</span><span class="o">.</span><span class="n">assignment</span><span class="o">.</span><span class="n">course_id</span><span class="p">)</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">code</span><span class="o">.</span><span class="n">work</span><span class="o">.</span><span class="n">assignment</span><span class="o">.</span><span class="n">course</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">code</span><span class="p">:</span> <span class="n">Final</span> <span class="o">=</span> <span class="n">code</span>
 
 <div class="viewcode-block" id="CodePermisisons.ensure_may_see"><a class="viewcode-back" href="../../psef_api/psef.html#psef.auth.CodePermisisons.ensure_may_see">[docs]</a>    <span class="k">def</span> <span class="nf">ensure_may_see</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
@@ -1205,7 +1224,7 @@
     <span class="vm">__slots__</span> <span class="o">=</span> <span class="p">(</span><span class="s1">&#39;base&#39;</span><span class="p">,</span> <span class="p">)</span>
 
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">base</span><span class="p">:</span> <span class="s1">&#39;psef.models.CommentBase&#39;</span><span class="p">):</span>
-        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">course_id</span><span class="o">=</span><span class="n">base</span><span class="o">.</span><span class="n">work</span><span class="o">.</span><span class="n">assignment</span><span class="o">.</span><span class="n">course_id</span><span class="p">)</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">base</span><span class="o">.</span><span class="n">work</span><span class="o">.</span><span class="n">assignment</span><span class="o">.</span><span class="n">course</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">base</span><span class="p">:</span> <span class="n">Final</span> <span class="o">=</span> <span class="n">base</span>
 
 <div class="viewcode-block" id="FeedbackBasePermissions.ensure_may_add"><a class="viewcode-back" href="../../psef_api/psef.html#psef.auth.FeedbackBasePermissions.ensure_may_add">[docs]</a>    <span class="nd">@CoursePermissionChecker</span><span class="o">.</span><span class="n">as_ensure_function</span>
@@ -1227,9 +1246,7 @@
     <span class="vm">__slots__</span> <span class="o">=</span> <span class="p">(</span><span class="s1">&#39;reply&#39;</span><span class="p">,</span> <span class="p">)</span>
 
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">reply</span><span class="p">:</span> <span class="s1">&#39;psef.models.CommentReply&#39;</span><span class="p">):</span>
-        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span>
-            <span class="n">course_id</span><span class="o">=</span><span class="n">reply</span><span class="o">.</span><span class="n">comment_base</span><span class="o">.</span><span class="n">work</span><span class="o">.</span><span class="n">assignment</span><span class="o">.</span><span class="n">course_id</span>
-        <span class="p">)</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">reply</span><span class="o">.</span><span class="n">comment_base</span><span class="o">.</span><span class="n">work</span><span class="o">.</span><span class="n">assignment</span><span class="o">.</span><span class="n">course</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">reply</span><span class="p">:</span> <span class="n">Final</span> <span class="o">=</span> <span class="n">reply</span>
 
     <span class="nd">@property</span>
@@ -1372,7 +1389,7 @@
 
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">notification</span><span class="p">:</span> <span class="s1">&#39;psef.models.Notification&#39;</span><span class="p">):</span>
         <span class="n">work</span> <span class="o">=</span> <span class="n">notification</span><span class="o">.</span><span class="n">comment_reply</span><span class="o">.</span><span class="n">comment_base</span><span class="o">.</span><span class="n">work</span>
-        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">course_id</span><span class="o">=</span><span class="n">work</span><span class="o">.</span><span class="n">assignment</span><span class="o">.</span><span class="n">course_id</span><span class="p">)</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">work</span><span class="o">.</span><span class="n">assignment</span><span class="o">.</span><span class="n">course</span><span class="p">)</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">work</span><span class="p">:</span> <span class="n">Final</span> <span class="o">=</span> <span class="n">work</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">notification</span><span class="p">:</span> <span class="n">Final</span> <span class="o">=</span> <span class="n">notification</span>
@@ -1410,7 +1427,7 @@
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span> <span class="n">analytics_workspace</span><span class="p">:</span> <span class="s1">&#39;psef.models.AnalyticsWorkspace&#39;</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">analytics_workspace</span><span class="o">.</span><span class="n">assignment</span><span class="o">.</span><span class="n">course_id</span><span class="p">)</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">analytics_workspace</span><span class="o">.</span><span class="n">assignment</span><span class="o">.</span><span class="n">course</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">workspace</span> <span class="o">=</span> <span class="n">analytics_workspace</span>
 
 <div class="viewcode-block" id="AnalyticsWorkspacePermissions.ensure_may_see"><a class="viewcode-back" href="../../psef_api/psef.html#psef.auth.AnalyticsWorkspacePermissions.ensure_may_see">[docs]</a>    <span class="nd">@CoursePermissionChecker</span><span class="o">.</span><span class="n">as_ensure_function</span>
@@ -1424,24 +1441,6 @@
 <div class="viewcode-block" id="CoursePermissions"><a class="viewcode-back" href="../../psef_api/psef.html#psef.auth.CoursePermissions">[docs]</a><span class="k">class</span> <span class="nc">CoursePermissions</span><span class="p">(</span><span class="n">CoursePermissionChecker</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;The permission checker for :class:`psef.models.Course`.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="vm">__slots__</span> <span class="o">=</span> <span class="p">(</span><span class="s1">&#39;_course&#39;</span><span class="p">,</span> <span class="p">)</span>
-
-    <span class="nd">@t</span><span class="o">.</span><span class="n">overload</span>
-    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">course_id</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="o">...</span>
-
-    <span class="nd">@t</span><span class="o">.</span><span class="n">overload</span>
-    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">course</span><span class="p">:</span> <span class="s1">&#39;psef.models.Course&#39;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="o">...</span>
-
-    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
-        <span class="bp">self</span><span class="p">,</span> <span class="n">course</span><span class="p">:</span> <span class="s1">&#39;psef.models.Course&#39;</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">course_id</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="kc">None</span>
-    <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="k">if</span> <span class="n">course_id</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="k">assert</span> <span class="n">course</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
-            <span class="n">course_id</span> <span class="o">=</span> <span class="n">course</span><span class="o">.</span><span class="n">id</span>
-        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">course_id</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_course</span> <span class="o">=</span> <span class="n">course</span>
 
 <div class="viewcode-block" id="CoursePermissions.ensure_may_see_filter"><a class="viewcode-back" href="../../psef_api/psef.html#psef.auth.CoursePermissions.ensure_may_see_filter">[docs]</a>    <span class="nd">@staticmethod</span>
     <span class="k">def</span> <span class="nf">ensure_may_see_filter</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n">FilterColumn</span><span class="p">:</span>
@@ -1452,16 +1451,34 @@
         <span class="k">if</span> <span class="n">user</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="k">return</span> <span class="n">sql_expression</span><span class="o">.</span><span class="n">false</span><span class="p">()</span>
 
-        <span class="n">course_ids</span> <span class="o">=</span> <span class="p">[</span><span class="n">cr</span><span class="o">.</span><span class="n">course_id</span> <span class="k">for</span> <span class="n">cr</span> <span class="ow">in</span> <span class="n">user</span><span class="o">.</span><span class="n">courses</span><span class="o">.</span><span class="n">values</span><span class="p">()]</span>
-        <span class="n">base</span> <span class="o">=</span> <span class="n">psef</span><span class="o">.</span><span class="n">models</span><span class="o">.</span><span class="n">Course</span><span class="o">.</span><span class="n">id</span><span class="o">.</span><span class="n">in_</span><span class="p">(</span><span class="n">course_ids</span><span class="p">)</span>
+        <span class="n">course_ids</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">user</span><span class="o">.</span><span class="n">courses</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span>
+        <span class="n">course_role_ids</span> <span class="o">=</span> <span class="p">[</span><span class="n">cr</span><span class="o">.</span><span class="n">id</span> <span class="k">for</span> <span class="n">cr</span> <span class="ow">in</span> <span class="n">user</span><span class="o">.</span><span class="n">courses</span><span class="o">.</span><span class="n">values</span><span class="p">()]</span>
+
+        <span class="n">allowed_archived</span> <span class="o">=</span> <span class="n">psef</span><span class="o">.</span><span class="n">models</span><span class="o">.</span><span class="n">CourseRole</span><span class="o">.</span><span class="n">get_roles_with_permission</span><span class="p">(</span>
+            <span class="n">CPerm</span><span class="o">.</span><span class="n">can_see_archived_courses</span><span class="p">,</span>
+        <span class="p">)</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">psef</span><span class="o">.</span><span class="n">models</span><span class="o">.</span><span class="n">CourseRole</span><span class="o">.</span><span class="n">id</span><span class="o">.</span><span class="n">in_</span><span class="p">(</span><span class="n">course_role_ids</span><span class="p">))</span><span class="o">.</span><span class="n">with_entities</span><span class="p">(</span>
+            <span class="n">psef</span><span class="o">.</span><span class="n">models</span><span class="o">.</span><span class="n">CourseRole</span><span class="o">.</span><span class="n">course_id</span>
+        <span class="p">)</span>
+
+        <span class="n">correct_state_filter</span><span class="p">:</span> <span class="n">DbColumn</span><span class="p">[</span><span class="nb">bool</span><span class="p">]</span> <span class="o">=</span> <span class="n">sql_expression</span><span class="o">.</span><span class="n">case</span><span class="p">(</span>
+            <span class="p">[</span>
+                <span class="p">(</span><span class="n">psef</span><span class="o">.</span><span class="n">models</span><span class="o">.</span><span class="n">Course</span><span class="o">.</span><span class="n">state</span><span class="o">.</span><span class="n">is_visible</span><span class="p">,</span> <span class="kc">True</span><span class="p">),</span>
+                <span class="p">(</span>
+                    <span class="n">psef</span><span class="o">.</span><span class="n">models</span><span class="o">.</span><span class="n">Course</span><span class="o">.</span><span class="n">state</span><span class="o">.</span><span class="n">is_archived</span><span class="p">,</span>
+                    <span class="n">psef</span><span class="o">.</span><span class="n">models</span><span class="o">.</span><span class="n">Course</span><span class="o">.</span><span class="n">id</span><span class="o">.</span><span class="n">in_</span><span class="p">(</span><span class="n">allowed_archived</span><span class="p">)</span>
+                <span class="p">)</span>
+            <span class="p">],</span>
+            <span class="n">else_</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">conditions</span><span class="p">:</span> <span class="n">t</span><span class="o">.</span><span class="n">List</span><span class="p">[</span><span class="n">FilterColumn</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="n">psef</span><span class="o">.</span><span class="n">models</span><span class="o">.</span><span class="n">Course</span><span class="o">.</span><span class="n">id</span><span class="o">.</span><span class="n">in_</span><span class="p">(</span><span class="n">course_ids</span><span class="p">),</span> <span class="n">correct_state_filter</span>
+        <span class="p">]</span>
 
         <span class="n">for_course</span> <span class="o">=</span> <span class="n">flask_jwt</span><span class="o">.</span><span class="n">get_jwt_claims</span><span class="p">()</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;for_course&#39;</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">for_course</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="k">return</span> <span class="n">sql_expression</span><span class="o">.</span><span class="n">and_</span><span class="p">(</span>
-                <span class="n">base</span><span class="p">,</span>
-                <span class="n">psef</span><span class="o">.</span><span class="n">models</span><span class="o">.</span><span class="n">Course</span><span class="o">.</span><span class="n">id</span> <span class="o">==</span> <span class="n">for_course</span><span class="p">,</span>
-            <span class="p">)</span>
-        <span class="k">return</span> <span class="n">base</span></div>
+            <span class="n">conditions</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">psef</span><span class="o">.</span><span class="n">models</span><span class="o">.</span><span class="n">Course</span><span class="o">.</span><span class="n">id</span> <span class="o">==</span> <span class="n">for_course</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">sql_expression</span><span class="o">.</span><span class="n">and_</span><span class="p">(</span><span class="o">*</span><span class="n">conditions</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="CoursePermissions.ensure_may_see"><a class="viewcode-back" href="../../psef_api/psef.html#psef.auth.CoursePermissions.ensure_may_see">[docs]</a>    <span class="nd">@CoursePermissionChecker</span><span class="o">.</span><span class="n">as_ensure_function</span>
     <span class="k">def</span> <span class="nf">ensure_may_see</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
@@ -1469,6 +1486,20 @@
 <span class="sd">        &quot;&quot;&quot;</span></div>
         <span class="c1"># This function is designed to be empty as the decorator already checks</span>
         <span class="c1"># this permission.</span>
+
+<div class="viewcode-block" id="CoursePermissions.ensure_may_edit_info"><a class="viewcode-back" href="../../psef_api/psef.html#psef.auth.CoursePermissions.ensure_may_edit_info">[docs]</a>    <span class="nd">@CoursePermissionChecker</span><span class="o">.</span><span class="n">as_ensure_function</span>
+    <span class="k">def</span> <span class="nf">ensure_may_edit_info</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Make sure the current user may edit this course&#39;s general info.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ensure_may_see</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_ensure</span><span class="p">(</span><span class="n">CPerm</span><span class="o">.</span><span class="n">can_edit_course_info</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="CoursePermissions.ensure_may_edit_state"><a class="viewcode-back" href="../../psef_api/psef.html#psef.auth.CoursePermissions.ensure_may_edit_state">[docs]</a>    <span class="nd">@CoursePermissionChecker</span><span class="o">.</span><span class="n">as_ensure_function</span>
+    <span class="k">def</span> <span class="nf">ensure_may_edit_state</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Make sure the current user may edit this course&#39;s visibility state.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ensure_may_see</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_ensure</span><span class="p">(</span><span class="n">CPerm</span><span class="o">.</span><span class="n">can_archive_courses</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="CoursePermissions.ensure_may_see_roles"><a class="viewcode-back" href="../../psef_api/psef.html#psef.auth.CoursePermissions.ensure_may_see_roles">[docs]</a>    <span class="nd">@CoursePermissionChecker</span><span class="o">.</span><span class="n">as_ensure_function</span>
     <span class="k">def</span> <span class="nf">ensure_may_see_roles</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
@@ -1518,7 +1549,7 @@
     <span class="vm">__slots__</span> <span class="o">=</span> <span class="p">(</span><span class="s1">&#39;assignment&#39;</span><span class="p">,</span> <span class="p">)</span>
 
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">assignment</span><span class="p">:</span> <span class="s1">&#39;psef.models.Assignment&#39;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">assignment</span><span class="o">.</span><span class="n">course_id</span><span class="p">)</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">assignment</span><span class="o">.</span><span class="n">course</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">assignment</span><span class="p">:</span> <span class="n">Final</span> <span class="o">=</span> <span class="n">assignment</span>
 
 <div class="viewcode-block" id="AssignmentPermissions.ensure_may_add"><a class="viewcode-back" href="../../psef_api/psef.html#psef.auth.AssignmentPermissions.ensure_may_add">[docs]</a>    <span class="nd">@CoursePermissionChecker</span><span class="o">.</span><span class="n">as_ensure_function</span>
@@ -1631,7 +1662,7 @@
     <span class="vm">__slots__</span> <span class="o">=</span> <span class="p">(</span><span class="s1">&#39;linter&#39;</span><span class="p">,</span> <span class="p">)</span>
 
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">linter</span><span class="p">:</span> <span class="s1">&#39;psef.models.AssignmentLinter&#39;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">linter</span><span class="o">.</span><span class="n">assignment</span><span class="o">.</span><span class="n">course_id</span><span class="p">)</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">linter</span><span class="o">.</span><span class="n">assignment</span><span class="o">.</span><span class="n">course</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">linter</span><span class="p">:</span> <span class="n">Final</span> <span class="o">=</span> <span class="n">linter</span>
 
 <div class="viewcode-block" id="LinterPermissions.ensure_may_delete"><a class="viewcode-back" href="../../psef_api/psef.html#psef.auth.LinterPermissions.ensure_may_delete">[docs]</a>    <span class="nd">@CoursePermissionChecker</span><span class="o">.</span><span class="n">as_ensure_function</span>
@@ -1653,7 +1684,7 @@
     <span class="vm">__slots__</span> <span class="o">=</span> <span class="p">(</span><span class="s1">&#39;group_set&#39;</span><span class="p">,</span> <span class="p">)</span>
 
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">group_set</span><span class="p">:</span> <span class="s1">&#39;psef.models.GroupSet&#39;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">group_set</span><span class="o">.</span><span class="n">course_id</span><span class="p">)</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">group_set</span><span class="o">.</span><span class="n">course</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">group_set</span><span class="p">:</span> <span class="n">Final</span> <span class="o">=</span> <span class="n">group_set</span>
 
 <div class="viewcode-block" id="GroupSetPermissions.ensure_may_see"><a class="viewcode-back" href="../../psef_api/psef.html#psef.auth.GroupSetPermissions.ensure_may_see">[docs]</a>    <span class="nd">@CoursePermissionChecker</span><span class="o">.</span><span class="n">as_ensure_function</span>
@@ -1687,7 +1718,7 @@
     <span class="vm">__slots__</span> <span class="o">=</span> <span class="p">(</span><span class="s1">&#39;group&#39;</span><span class="p">,</span> <span class="p">)</span>
 
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">group</span><span class="p">:</span> <span class="s1">&#39;psef.models.Group&#39;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">group</span><span class="o">.</span><span class="n">group_set</span><span class="o">.</span><span class="n">course_id</span><span class="p">)</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">group</span><span class="o">.</span><span class="n">group_set</span><span class="o">.</span><span class="n">course</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">group</span><span class="p">:</span> <span class="n">Final</span> <span class="o">=</span> <span class="n">group</span>
 
     <span class="nd">@property</span>
@@ -1726,7 +1757,7 @@
     <span class="vm">__slots__</span> <span class="o">=</span> <span class="p">(</span><span class="s1">&#39;auto_test&#39;</span><span class="p">,</span> <span class="p">)</span>
 
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">auto_test</span><span class="p">:</span> <span class="s1">&#39;psef.models.AutoTest&#39;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">auto_test</span><span class="o">.</span><span class="n">assignment</span><span class="o">.</span><span class="n">course_id</span><span class="p">)</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">auto_test</span><span class="o">.</span><span class="n">assignment</span><span class="o">.</span><span class="n">course</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">auto_test</span><span class="p">:</span> <span class="n">Final</span> <span class="o">=</span> <span class="n">auto_test</span>
 
 <div class="viewcode-block" id="AutoTestPermissions.ensure_may_see"><a class="viewcode-back" href="../../psef_api/psef.html#psef.auth.AutoTestPermissions.ensure_may_see">[docs]</a>    <span class="nd">@CoursePermissionChecker</span><span class="o">.</span><span class="n">as_ensure_function</span>
@@ -1761,7 +1792,7 @@
 
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">fixture</span><span class="p">:</span> <span class="s1">&#39;psef.models.AutoTestFixture&#39;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
         <span class="n">auto_test</span> <span class="o">=</span> <span class="n">fixture</span><span class="o">.</span><span class="n">auto_test</span>
-        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">auto_test</span><span class="o">.</span><span class="n">assignment</span><span class="o">.</span><span class="n">course_id</span><span class="p">)</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">auto_test</span><span class="o">.</span><span class="n">assignment</span><span class="o">.</span><span class="n">course</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">fixture</span><span class="p">:</span> <span class="n">Final</span> <span class="o">=</span> <span class="n">fixture</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_auto_test_checker</span><span class="p">:</span> <span class="n">Final</span> <span class="o">=</span> <span class="n">AutoTestPermissions</span><span class="p">(</span><span class="n">auto_test</span><span class="p">)</span>
 
@@ -1791,7 +1822,7 @@
     <span class="vm">__slots__</span> <span class="o">=</span> <span class="p">(</span><span class="s1">&#39;run&#39;</span><span class="p">,</span> <span class="p">)</span>
 
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">run</span><span class="p">:</span> <span class="s1">&#39;psef.models.AutoTestRun&#39;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">run</span><span class="o">.</span><span class="n">auto_test</span><span class="o">.</span><span class="n">assignment</span><span class="o">.</span><span class="n">course_id</span><span class="p">)</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">run</span><span class="o">.</span><span class="n">auto_test</span><span class="o">.</span><span class="n">assignment</span><span class="o">.</span><span class="n">course</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">run</span><span class="p">:</span> <span class="n">Final</span> <span class="o">=</span> <span class="n">run</span>
 
 <div class="viewcode-block" id="AutoTestRunPermissions.ensure_may_see"><a class="viewcode-back" href="../../psef_api/psef.html#psef.auth.AutoTestRunPermissions.ensure_may_see">[docs]</a>    <span class="nd">@CoursePermissionChecker</span><span class="o">.</span><span class="n">as_ensure_function</span>
@@ -1819,7 +1850,7 @@
     <span class="vm">__slots__</span> <span class="o">=</span> <span class="p">(</span><span class="s1">&#39;result&#39;</span><span class="p">,</span> <span class="p">)</span>
 
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">result</span><span class="p">:</span> <span class="s1">&#39;psef.models.AutoTestResult&#39;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">result</span><span class="o">.</span><span class="n">run</span><span class="o">.</span><span class="n">auto_test</span><span class="o">.</span><span class="n">assignment</span><span class="o">.</span><span class="n">course_id</span><span class="p">)</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">result</span><span class="o">.</span><span class="n">run</span><span class="o">.</span><span class="n">auto_test</span><span class="o">.</span><span class="n">assignment</span><span class="o">.</span><span class="n">course</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">result</span><span class="p">:</span> <span class="n">Final</span> <span class="o">=</span> <span class="n">result</span>
 
 <div class="viewcode-block" id="AutoTestResultPermissions.ensure_may_see"><a class="viewcode-back" href="../../psef_api/psef.html#psef.auth.AutoTestResultPermissions.ensure_may_see">[docs]</a>    <span class="nd">@CoursePermissionChecker</span><span class="o">.</span><span class="n">as_ensure_function</span>
@@ -1864,7 +1895,7 @@
     <span class="vm">__slots__</span> <span class="o">=</span> <span class="p">(</span><span class="s1">&#39;case&#39;</span><span class="p">,</span> <span class="s1">&#39;_assignment_id&#39;</span><span class="p">)</span>
 
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">case</span><span class="p">:</span> <span class="s1">&#39;psef.models.PlagiarismCase&#39;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">case</span><span class="o">.</span><span class="n">plagiarism_run</span><span class="o">.</span><span class="n">assignment</span><span class="o">.</span><span class="n">course_id</span><span class="p">)</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">case</span><span class="o">.</span><span class="n">plagiarism_run</span><span class="o">.</span><span class="n">assignment</span><span class="o">.</span><span class="n">course</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_assignment_id</span><span class="p">:</span> <span class="n">Final</span> <span class="o">=</span> <span class="n">case</span><span class="o">.</span><span class="n">plagiarism_run</span><span class="o">.</span><span class="n">assignment_id</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">case</span><span class="p">:</span> <span class="n">Final</span> <span class="o">=</span> <span class="n">case</span>
 
