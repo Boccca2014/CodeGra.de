@@ -147,10 +147,6 @@ export default {
             return this.getCourse(this.currentCourseId).extract();
         },
 
-        currentCourse() {
-            return this.getCourse(this.currentCourseId).extract();
-        },
-
         moreCoursesAvailable() {
             if (!this.retrievedAllCourses) {
                 return true;
@@ -169,12 +165,6 @@ export default {
                 return true;
             }
             return this.visibleCourses <= this.sortedCourses.length;
-        },
-    },
-
-    watch: {
-        currentCourseId() {
-            this.loadCurrentCourse();
         },
     },
 

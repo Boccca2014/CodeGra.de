@@ -274,8 +274,6 @@ import { Either, Left, Maybe, Nothing, formatNullableDate } from '@/utils';
 
 import { AssignmentsStore } from '@/store';
 
-import { AssignmentsStore } from '@/store';
-
 // @ts-ignore
 import DatetimePicker from './DatetimePicker';
 import { NumberInputValue, numberInputValue } from './NumberInput';
