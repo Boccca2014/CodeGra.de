@@ -1,8 +1,8 @@
 from datetime import timedelta
 
 import pytest
-
 import fakeredis
+
 import cg_cache.inter_request as c
 
 

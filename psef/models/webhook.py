@@ -47,7 +47,7 @@ class WebhookBase(Base, UUIDMixin, TimestampMixin):
     assignment_id = db.Column(
         'assignment_id',
         db.Integer,
-        db.ForeignKey('assignment_models.Assignment.id'),
+        db.ForeignKey('Assignment.id'),
         nullable=False,
     )
     user_id = db.Column(
