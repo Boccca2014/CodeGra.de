@@ -927,6 +927,22 @@ export function pickKeys<T, K extends keyof T>(obj: T, keys: readonly K[]): Pick
     }, {} as Pick<T, K>);
 }
 
-export function emptyVNode(): VNode {
+type EmptyVNode = { isRootInsert: false, isComment: true };
+export function emptyVNode(): EmptyVNode {
     return { isRootInsert: false, isComment: true };
+}
+
+export function ifExpr<T, Y>(cond: boolean, then: () => T, else_: () => Y): T | Y {
+    if (cond) {
+        return then();
+    } else {
+        return else_();
+    }
+}
+
+export function ifOrEmpty<T extends VNode>(cond: boolean, then: () => T): T | EmptyVNode {
+    if (cond) {
+        return then();
+    }
+    return emptyVNode();
 }

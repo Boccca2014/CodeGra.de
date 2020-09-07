@@ -58,11 +58,16 @@ export default class CourseGeneralSettings extends Vue {
         </b-card >
     }
 
-    private get submitButtonDisabled(): string | null {
+    private get nameDisabledReason(): string | null {
         if (this.course.isLTI) {
-            return 'You cannot change the name of an LTI course';
-        } else if (this.newCourseName === '') {
-            return 'The name should contain atleast one character';
+            return 'You cannot edit the name of an LTI assignment.';
+        }
+        return null;
+    }
+
+    private get submitButtonDisabledReason(): string | null {
+        if (this.newCourseName === '') {
+            return 'The name should contain atleast one character.';
         } else if (this.course.name === this.newCourseName) {
             return 'Nothing has changed';
         }
@@ -70,19 +75,28 @@ export default class CourseGeneralSettings extends Vue {
     }
 
     private renderNameSettings(h: CreateElement): VNode {
+        const submitButton = this.$utils.ifOrEmpty(
+            this.nameDisabledReason == null,
+            () => (
+                <div class="float-right"
+                     v-b-popover_top_hover={this.submitButtonDisabledReason ?? ''}>
+                    <cg-submit-button submit={this.submitName}
+                                      disabled={this.submitButtonDisabledReason != null}
+                                      ref="submitNameBtn" />
+                </div>
+            ),
+        );
         return <b-card header="General">
-            <b-form-group scopedSlots={{ label: () => "Course Name" }}>
-                <input class="form-control"
-                       onKeydown={m.ctrl.enter(this.clickOnButton)}
-                       v-model={this.newCourseName} />
+            <b-form-group scopedSlots={{ label: () => "Course name" }}>
+                <div v-b-popover_top_hover={this.nameDisabledReason ?? ''}>
+                    <input class="form-control"
+                           disabled={this.nameDisabledReason != null}
+                           onKeydown={m.ctrl.enter(this.clickOnButton)}
+                           v-model={this.newCourseName} />
+                </div>
             </b-form-group>
 
-            <div class="float-right"
-                 v-b-popover_top_hover={this.submitButtonDisabled ?? ''}>
-                <cg-submit-button submit={this.submitName}
-                                  disabled={this.submitButtonDisabled != null}
-                                  ref="submitNameBtn" />
-            </div>
+            {submitButton}
         </b-card>
     }
 

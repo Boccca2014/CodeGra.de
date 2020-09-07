@@ -2,6 +2,27 @@
 <template>
 <b-card header="General"
         class="assignment-general-settings">
+    <b-form-group :id="`assignment-name-${uniqueId}`"
+                  :label-for="`assignment-name-${uniqueId}-input`"
+                  :state="!!name">
+        <template #label>
+            Assignment name
+        </template>
+
+        <template #invalid-feedback>
+            The assignment name may not be empty.
+        </template>
+
+        <div v-b-popover.top.hover="permissions.canEditName ? '' : 'You cannot change the name of an LTI assignment'">
+            <input :id="`assignment-name-${uniqueId}-input`"
+                   type="text"
+                   class="form-control"
+                   v-model="name"
+                   :disabled="!permissions.canEditName"
+                   @keydown.ctrl.enter="$refs.submitGeneralSettings.onClick"/>
+        </div>
+    </b-form-group>
+
     <b-form-group :id="`assignment-kind-${uniqueId}`"
                   :label-for="`assignment-kind-${uniqueId}-select`">
         <template #label>
@@ -25,27 +46,6 @@
             v-model="kind"
             :options="kindOptions"
             :disabled="isLTI"/>
-    </b-form-group>
-
-    <b-form-group :id="`assignment-name-${uniqueId}`"
-                  :label-for="`assignment-name-${uniqueId}-input`"
-                  :state="!!name">
-        <template #label>
-            Assignment name
-        </template>
-
-        <template #invalid-feedback>
-            The assignment name may not be empty.
-        </template>
-
-        <div v-b-popover.top.hover="permissions.canEditName ? '' : 'You cannot change the name of an LTI assignment'">
-            <input :id="`assignment-name-${uniqueId}-input`"
-                   type="text"
-                   class="form-control"
-                   v-model="name"
-                   :disabled="!permissions.canEditName"
-                   @keydown.ctrl.enter="$refs.submitGeneralSettings.onClick"/>
-        </div>
     </b-form-group>
 
     <b-form-group v-if="isExam"
