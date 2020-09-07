@@ -10,8 +10,4 @@ module.exports = {
             image: 'xlink:href'
         }
     },
-    // loaders: {
-    //     "ts": "ts-loader",
-    //     "tsx": "babel-loader!ts-loader",
-    // },
 }
