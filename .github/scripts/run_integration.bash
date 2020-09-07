@@ -53,7 +53,9 @@ python run.py > /dev/null &
 ./node_modules/wait-on/bin/wait-on http://localhost:8080/api/v1/about -l
 
 curl http://localhost:8080/
-curl http://localhost:8080/app.js | tail -c 100
+while ! ( curl http://localhost:8080/app.js | head -c 100 | grep '{' ); do
+    sleep 1;
+done
 
 sleep 30
 
