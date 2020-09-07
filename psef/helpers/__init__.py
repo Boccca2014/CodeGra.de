@@ -29,7 +29,9 @@ import sqlalchemy_utils
 from flask import g, request
 from werkzeug.local import LocalProxy
 from mypy_extensions import Arg
+from requests.adapters import HTTPAdapter
 from typing_extensions import Final, Literal, Protocol
+from urllib3.util.retry import Retry
 from sqlalchemy.dialects import postgresql
 from werkzeug.datastructures import FileStorage
 from sqlalchemy.sql.expression import or_
@@ -1555,6 +1557,35 @@ def is_sublist(needle: t.Sequence[T], hay: t.Sequence[T]) -> bool:
     return False
 
 
+def mount_retry_adapter(
+    session: requests.Session,
+    *,
+    retries: int = 10,
+    backoff_fator: float = 1.2
+) -> None:
+    """Mount a retry adapter to the given session.
+
+    :param session: The session to mount the adapter to.
+    :param retries: The amount of retries to do.
+    :param backoff_factor: The ``backoff_factor`` to provide to the adapter.
+    """
+    adapter = HTTPAdapter(
+        max_retries=Retry(
+            total=retries,
+            read=retries,
+            connect=retries,
+            status=retries,
+            backoff_factor=backoff_fator,
+            method_whitelist=frozenset(
+                [*Retry.DEFAULT_METHOD_WHITELIST, 'PATCH']
+            ),
+            status_forcelist=(500, 501, 502, 503, 504),
+        )
+    )
+    session.mount('http://', adapter)
+    session.mount('https://', adapter)
+
+
 class BrokerSession(requests.Session):
     """A session to use when doing requests to the AutoTest broker.
     """
@@ -1565,6 +1596,8 @@ class BrokerSession(requests.Session):
         external_url: str = None,
         broker_base: str = None,
         runner_pass: str = None,
+        *,
+        retries: int = None,
     ) -> None:
         super().__init__()
         self.broker_base = (
@@ -1583,6 +1616,8 @@ class BrokerSession(requests.Session):
                 'CG-Broker-Runner-Pass': runner_pass or '',
             }
         )
+        if retries is not None:
+            mount_retry_adapter(self, retries=retries)
 
     def request(  # pylint: disable=signature-differs
         self,

@@ -62,6 +62,21 @@ class CGEnum(enum.Enum, metaclass=_CGEnumMeta):
         return self.name
 
 
+def named_equally(enumeration: t.Type[ENUM]) -> t.Type[ENUM]:
+    """Make sure all the values in the given enum are unique and equal to their
+    key.
+    """
+    enum.unique(enumeration)
+
+    for name, member in enumeration.__members__.items():
+        if name != member.value:
+            raise ValueError(
+                'Member {} has a wrong value: {}'.format(name, member.value)
+            )
+
+    return enumeration
+
+
 if t.TYPE_CHECKING:  # pragma: no cover
     # pylint: disable=missing-class-docstring,unused-argument
     class CGDbEnum(t.Generic[ENUM]):

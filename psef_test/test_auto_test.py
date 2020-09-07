@@ -245,7 +245,7 @@ def monkeypatch_broker(monkeypatch, live_server_url):
     monkeypatch.setattr(ses.Response, 'raise_for_status', raise_once)
     monkeypatch.setattr(ses, 'get', stub_get)
     monkeypatch.setattr(ses, 'post', stub_post)
-    monkeypatch.setattr(psef.helpers, 'BrokerSession', lambda *_: ses)
+    monkeypatch.setattr(psef.helpers, 'BrokerSession', lambda *_, **__: ses)
     yield raise_next
 
 
