@@ -10,7 +10,7 @@ import typing as t
 
 import sqlalchemy
 from flask import Flask, g
-from sqlalchemy import func, event
+from sqlalchemy import event
 from sqlalchemy.orm import deferred as _deferred
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy_utils import UUIDType as _UUIDType
@@ -21,7 +21,7 @@ from cg_dt_utils import DatetimeWithTimezone
 from . import types, mixins
 from .types import (
     ARRAY, JSONB, TIMESTAMP, CIText, DbEnum, DbType, Comparator, TypeDecorator,
-    tuple_, distinct, expression, hybrid_property, hybrid_expression
+    func, tuple_, distinct, expression, hybrid_property, hybrid_expression
 )
 
 UUID_LENGTH = len(str(uuid.uuid4()))  # 36
