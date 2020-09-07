@@ -10,15 +10,16 @@ import numbers
 import itertools
 
 import structlog
-from sqlalchemy import orm
-from sqlalchemy import func as sql_func
-from sqlalchemy import distinct
+from sqlalchemy import orm, distinct
 from sqlalchemy.sql.expression import or_, and_, case, nullsfirst
 
 import psef
+import cg_helpers
 from cg_dt_utils import DatetimeWithTimezone
 from cg_flask_helpers import callback_after_this_request
-from cg_sqlalchemy_helpers import UUIDType, deferred, hybrid_property
+from cg_sqlalchemy_helpers import UUIDType
+from cg_sqlalchemy_helpers import func as sql_func
+from cg_sqlalchemy_helpers import deferred, hybrid_property
 from cg_sqlalchemy_helpers.mixins import IdMixin, UUIDMixin, TimestampMixin
 
 from . import Base, MyQuery, DbColumn, db
@@ -806,51 +807,36 @@ class AutoTestRun(Base, TimestampMixin, IdMixin):
         :returns: A mapping that should be send to the broker in the metadata
             under the ``results`` key.
         """
-
-        # NOTE: This function does three separate database queries, as each
-        # query either sorts by a different column, or sorts in a different
-        # direction. It is probably possible to reduce this to two queries,
-        # however these queries are pretty fast and don't seem to be a bottle
-        # neck at this moment.
-
-        def get_latest_date(
-            state: auto_test_step_models.AutoTestStepResultState,
-            col: t.Union[DbColumn[DatetimeWithTimezone], DbColumn[
-                t.Optional[DatetimeWithTimezone]]],
-            oldest: bool = True,
-        ) -> t.Optional[str]:
-            date = db.session.query(AutoTestResult).filter(
-                AutoTestResult.run == self,
-                AutoTestResult.state == state,
-            ).join(work_models.Work).filter(
-                ~work_models.Work.deleted,
-            ).order_by(
-                col if oldest else col.desc(),
-            ).with_entities(col).limit(1).scalar()
-
-            if date is None:
-                return None
-            return date.isoformat()
-
         ATStepResultState = auto_test_step_models.AutoTestStepResultState
 
+        query = db.session.query(AutoTestResult).filter(
+            AutoTestResult.run == self,
+            AutoTestResult.work_id.in_(
+                self.auto_test.assignment.get_from_latest_submissions(
+                    work_models.Work.id
+                )
+            ),
+        ).with_entities(
+            sql_func.min(AutoTestResult.updated_at).filter(
+                AutoTestResult.state == ATStepResultState.not_started,
+            ),
+            sql_func.min(AutoTestResult.started_at).filter(
+                AutoTestResult.state == ATStepResultState.running,
+            ),
+            sql_func.max(AutoTestResult.updated_at).filter(
+                AutoTestResult.state == ATStepResultState.passed,
+            ),
+        )
+
+        def maybe_format(date: t.Optional[DatetimeWithTimezone]
+                         ) -> t.Optional[str]:
+            return cg_helpers.on_not_none(date, lambda d: d.isoformat())
+
+        not_started, running, passed = query.one()
         return {
-            'not_started':
-                get_latest_date(
-                    ATStepResultState.not_started,
-                    AutoTestResult.updated_at,
-                ),
-            'running':
-                get_latest_date(
-                    ATStepResultState.running,
-                    AutoTestResult.started_at,
-                ),
-            'passed':
-                get_latest_date(
-                    ATStepResultState.passed,
-                    AutoTestResult.updated_at,
-                    False,
-                ),
+            'not_started': maybe_format(not_started),
+            'running': maybe_format(running),
+            'passed': maybe_format(passed),
         }
 
     def get_broker_metadata(self) -> t.Mapping[str, object]:
@@ -925,8 +911,11 @@ class AutoTestRun(Base, TimestampMixin, IdMixin):
             isouter=True,
         ).having(
             or_(
-                amount_runners == 0, amount_results / amount_runners >
-                psef.app.config['AUTO_TEST_MAX_JOBS_PER_RUNNER']
+                amount_runners == 0,
+                (
+                    amount_results / amount_runners >
+                    psef.app.config['AUTO_TEST_MAX_JOBS_PER_RUNNER']
+                ),
             )
         ).group_by(cls.id).order_by(
             nullsfirst(
