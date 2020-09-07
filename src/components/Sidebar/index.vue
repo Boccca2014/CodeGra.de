@@ -128,12 +128,12 @@
                 <hr class="separator"/>
 
                 <component :is="subMenu.component"
-                            v-show="subMenu.showWhenLoading || !loading"
-                            :data="maybeCall(subMenu.data)"
-                            @loading="loading = true"
-                            @loaded="loading = false"
-                            @open-menu="openSubMenu"
-                            @close-menu="closeSubMenu(true)"/>
+                           v-show="subMenu.showWhenLoading || !loading"
+                           :data="maybeCall(subMenu.data)"
+                           @loading="loading = true"
+                           @loaded="loading = false"
+                           @open-menu="openSubMenu"
+                           @close-menu="closeSubMenu(true)"/>
             </div>
         </div>
     </div>
@@ -264,10 +264,7 @@ export default {
                     component: 'assignment-list',
                     condition: () => this.canManageCurrentLtiAssignment,
                     reload: true,
-                    data: () => this.ltiAssignment.mapOrDefault(
-                        assig => assig.course,
-                        {},
-                    ),
+                    data: () => this.ltiAssignment.extract(),
                     animateAdd: true,
                 },
                 {
