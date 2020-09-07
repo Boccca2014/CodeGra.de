@@ -220,7 +220,7 @@ def test_sending_login_links(
                 link_id = link.split('/')[-1]
                 link_ids.append((link_id, student))
 
-            assert not outbox_by_email, 'No extra mails should be send'
+            assert not outbox_by_email, 'No extra mails should be sent'
 
     with describe('second email send the same link'), logged_in(teacher):
         with psef.mail.mail.record_messages() as outbox:
