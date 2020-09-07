@@ -13,7 +13,16 @@ still allows to click the :fa:`cog` button on the bottom right to show the manag
 
 Course Management
 -------------------
-The first tab of the course management page, *Members*, displays a list of all
+On the first tab of the course management page, *General*, you can change the
+name of the course. The name should be at least one character. As the name of
+LTI courses is copied from the LMS, the name of LTI courses cannot be changed
+within CodeGrade. On this tab you can also archive a course. Archiving a course
+will hide it for students (or more precisely all users that do not have
+the "See archived courses" permission), and will sort it below all non archived
+courses. You can still import data from archived courses. Archiving can be
+reversed without data loss.
+
+The second tab of the course management page, *Members*, displays a list of all
 users (students, teachers and other roles) that are *enrolled* in the
 course. The role of users can be changed here and new users can be added to the
 course.
@@ -24,18 +33,18 @@ course.
     is connected, however managing roles and permissions is still done in
     CodeGrade.
 
-The second tab, *Permissions*, shows an overview of all roles and their specific
+The third tab, *Permissions*, shows an overview of all roles and their specific
 permissions. Existing roles can be altered and completely new roles can be added
 via the dialog on the bottom of the page. More information about the specific
 course permissions can be found in the
 :ref:`permissions chapter <permissions-chapter>`.
 
-The third tab, *Groups*, shows all group sets of the course. Here you create,
+The fourth tab, *Groups*, shows all group sets of the course. Here you create,
 delete and can edit the minimum and maximum size of group sets. Group sets are a
 key concept for group assignments in CodeGrade, more information about them can
 be found in the :ref:`groups chapter <groups-chapter>`.
 
-The fourth tab, *Snippets*, shows all course-wide snippets in this course. These
+The fifth tab, *Snippets*, shows all course-wide snippets in this course. These
 course snippets can be set up by the teacher and can be used by all graders
 grading in the course. These snippets are always in addition to the graders'
 personal snippets and are indicated with the :fa:`books` icon.
