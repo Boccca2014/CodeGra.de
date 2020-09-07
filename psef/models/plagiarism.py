@@ -6,11 +6,10 @@ import enum
 import json
 import typing as t
 
-from typing_extensions import Literal, TypedDict
-
 import psef
 import cg_enum
 from cg_dt_utils import DatetimeWithTimezone
+from typing_extensions import Literal, TypedDict
 from cg_sqlalchemy_helpers.types import ColumnProxy
 
 from . import Base, db
@@ -264,7 +263,12 @@ class PlagiarismCase(Base):
             'assignment_ids': [w.assignment_id for w in works],
         }
         if not helpers.request_arg_true('no_assignment_in_case'):
-            # TODO: Add deprecation warning
+            helpers.add_deprecate_warning(
+                'Getting the assignments connected to a single case is'
+                ' deprecated, and will be removed in the next major release of'
+                ' CodeGrade. Please use the lookup table in the plagiarism'
+                ' run.'
+            )
             data['assignments'] = [w.assignment for w in works]
             assig = works.other_work.assignment
             if perm_checker.ensure_may_see_other_assignment.as_bool():

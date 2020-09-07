@@ -371,6 +371,9 @@ export default {
         },
 
         otherAssignmentsWithInstructions() {
+            // We cannot (!) use real models here as all getters will be removed
+            // by vue-multiselect as it tries to copy the objects, however that
+            // doesn't work with getters.
             return this.allAssignments.filter(assig =>
                 assig.cgignore_version === 'SubmissionValidator' && assig.id !== this.assignmentId,
             ).map(a => ({

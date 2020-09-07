@@ -7,13 +7,12 @@ import enum
 import uuid
 import typing as t
 
-import structlog
-from sqlalchemy.orm import selectinload
-from typing_extensions import TypedDict
-
 import psef
 import cg_enum
+import structlog
 from cg_dt_utils import DatetimeWithTimezone
+from sqlalchemy.orm import selectinload
+from typing_extensions import TypedDict
 from cg_typing_extensions import make_typed_dict_extender
 from cg_sqlalchemy_helpers import mixins, expression
 

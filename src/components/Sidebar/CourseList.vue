@@ -37,7 +37,7 @@
 
             <li class="d-flex mx-2 my-1" v-if="moreCoursesAvailable">
                 <b-btn class="flex-grow"
-                       @click="showMoreCourses">
+                       @click="showMoreCourses()">
                     <cg-loader v-if="renderingMoreCourses > 0" :scale="1" class="py-1"/>
                     <span v-else v-b-visible="visible => visible && showMoreCourses()">
                         Load more courses
@@ -145,6 +145,23 @@ export default {
 
         currentCourse() {
             return this.getCourse(this.currentCourseId).extract();
+        },
+
+        currentCourse() {
+            return this.getCourse(this.currentCourseId).extract();
+        },
+
+        moreCoursesAvailable() {
+            if (!this.retrievedAllCourses) {
+                return true;
+            }
+            return this.visibleCourses <= this.sortedCourses.length;
+        },
+    },
+
+    watch: {
+        currentCourseId() {
+            this.loadCurrentCourse();
         },
 
         moreCoursesAvailable() {

@@ -11,22 +11,21 @@ import tempfile
 import dataclasses
 from collections import defaultdict
 
+import psef
 import flask
 import pytest
-from freezegun import freeze_time
-from sqlalchemy.sql import func as sql_func
-
-import psef
 import helpers
 import psef.models as m
 from helpers import (
     get_id, create_course, create_marker, create_auto_test, create_assignment,
     create_submission, create_user_with_perms, get_newest_submissions
 )
+from freezegun import freeze_time
 from cg_dt_utils import DatetimeWithTimezone
 from psef.errors import APICodes, APIWarnings
 from psef.ignore import SubmissionValidator
 from psef.helpers import ensure_keys_in_dict
+from sqlalchemy.sql import func as sql_func
 from psef.permissions import CoursePermission as CPerm
 from psef.permissions import GlobalPermission as GPerm
 

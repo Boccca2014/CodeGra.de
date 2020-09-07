@@ -262,10 +262,7 @@ export default {
                     component: 'assignment-list',
                     condition: () => this.canManageCurrentLtiAssignment,
                     reload: true,
-                    data: () => this.ltiAssignment.mapOrDefault(
-                        assig => assig.course,
-                        {},
-                    ),
+                    data: () => this.ltiAssignment.extract(),
                     animateAdd: true,
                 },
                 {

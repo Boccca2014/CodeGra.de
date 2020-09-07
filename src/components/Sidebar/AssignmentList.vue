@@ -11,7 +11,7 @@
 
     <ul class="sidebar-list"
         v-if="assignments.length > 0 || loading > 0">
-        <template v-if="currentAssignment.isJust() && !currentIsInTop">
+        <template v-if="currentAssignment.isJust()">
             <li class="sidebar-list-section-header text-muted">
                 <small>Current assignment</small>
             </li>
@@ -60,7 +60,7 @@
 
             <li class="d-flex mx-2 my-1" v-if="moreAssignmentsAvailable">
                 <b-btn class="flex-grow"
-                    @click="showMoreAssignments">
+                    @click="showMoreAssignments()">
                     <cg-loader v-if="renderingMoreAssignments > 0" :scale="1" class="py-1"/>
                     <span v-else v-b-visible="visible => visible && showMoreAssignments()">
                         Load more assignments
@@ -203,16 +203,6 @@ export default {
                 return false;
             }
             return this.assignments.length >= TOP_ASSIGNMENTS_LENGTH + 2;
-        },
-
-        currentIsInTop() {
-            if (!this.showTopAssignments) {
-                return false;
-            }
-            return this.currentAssignment.mapOrDefault(
-                cur => this.topAssignments.some(a => a.id === cur.id),
-                false,
-            );
         },
 
         sortedAssignments() {
@@ -359,8 +349,9 @@ export default {
             this.$root.$emit('bv::hide::popover', this.popoverId);
         },
 
-        showMoreAssignments(state = null) {
+        async showMoreAssignments(state = null) {
             this.renderingMoreAssignments += 1;
+            await this.$afterRerender();
             this.visibleAssignments += EXTRA_ASSIGNMENTS;
             this.renderingMoreAssignments -= 1;
             if (state) {
