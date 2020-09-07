@@ -10,7 +10,7 @@
 
     <ul class="sidebar-list"
         v-if="assignments.length > 0 || loading > 0">
-        <template v-if="currentAssignment.isJust() && !currentIsInTop">
+        <template v-if="currentAssignment.isJust()">
             <li class="sidebar-list-section-header text-muted">
                 <small>Current assignment</small>
             </li>
@@ -202,16 +202,6 @@ export default {
                 return false;
             }
             return this.assignments.length >= TOP_ASSIGNMENTS_LENGTH + 2;
-        },
-
-        currentIsInTop() {
-            if (!this.showTopAssignments) {
-                return false;
-            }
-            return this.currentAssignment.mapOrDefault(
-                cur => this.topAssignments.some(a => a.id === cur.id),
-                false,
-            );
         },
 
         sortedAssignments() {
