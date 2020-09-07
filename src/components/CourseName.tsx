@@ -48,7 +48,7 @@ const CourseName = tsx.component({
         const title = `${course.name}${extra ?? ''}${course.isArchived ? ' [archived]' : ''}`;
 
         return <span title={title} class="course-name">
-            <span class="align-middle" class={bold ? 'font-weight-bold' : ''}>
+            <span class={{ 'font-weight-bold': true, 'align-middle': true }}>
                 {course.name}
             </span>
             {extra && <i class="align-middle">{extra}</i>}
