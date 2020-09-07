@@ -61,6 +61,8 @@ export default class CourseGeneralSettings extends Vue {
     private get nameDisabledReason(): string | null {
         if (this.course.isLTI) {
             return 'You cannot edit the name of an LTI assignment.';
+        } else if (!this.course.hasPermission(CPerm.canEditCourseInfo)) {
+            return 'You do not have the permission to edit the name.';
         }
         return null;
     }
