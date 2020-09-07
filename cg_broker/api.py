@@ -304,7 +304,8 @@ def confirm_runner_for_job(public_runner_id: uuid.UUID) -> EmptyResponse:
 
 @api.route('/alive/', methods=['POST'])
 def mark_runner_as_alive() -> cg_json.JSONResponse[models.Runner]:
-    """Emit log lines for a runner.
+    """Mark the given runner as alive and set its state to ``started`` if it
+    isn't already. The given runner should not be assigned to a job yet.
     """
     runner = db.session.query(models.Runner).filter(
         models.Runner.ipaddr == request.remote_addr,

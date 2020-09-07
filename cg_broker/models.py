@@ -97,7 +97,7 @@ class RunnerState(cg_enum.CGEnum):
     def get_active_states(cls) -> t.List['RunnerState']:
         """Get the states in which a runner is considered active.
         """
-        return [*cls.get_before_running_states(), cls.assigned, cls.running]
+        return [*cls.get_before_running_states(), cls.running]
 
 
 @enum.unique
