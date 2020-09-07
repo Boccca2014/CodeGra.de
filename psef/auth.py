@@ -519,9 +519,7 @@ def _ensure_submission_limits_not_exceeded(
     cool_off_cutoff = now - assig.cool_off_period
 
     if assig.max_submissions is None:
-        query_amount = sql_expression.literal(0).label(
-            'amount'
-        )
+        query_amount = sql_expression.literal(0).label('amount')
         reveal_type(query_amount)
     else:
         query_amount = sql.func.count()
