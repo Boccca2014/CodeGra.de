@@ -37,7 +37,7 @@
 
             <li class="d-flex mx-2 my-1" v-if="moreCoursesAvailable">
                 <b-btn class="flex-grow"
-                       @click="showMoreCourses">
+                       @click="showMoreCourses()">
                     <cg-loader v-if="renderingMoreCourses > 0" :scale="1" class="py-1"/>
                     <span v-else v-b-visible="visible => visible && showMoreCourses()">
                         Load more courses

@@ -59,7 +59,7 @@
 
             <li class="d-flex mx-2 my-1" v-if="moreAssignmentsAvailable">
                 <b-btn class="flex-grow"
-                    @click="showMoreAssignments">
+                    @click="showMoreAssignments()">
                     <cg-loader v-if="renderingMoreAssignments > 0" :scale="1" class="py-1"/>
                     <span v-else v-b-visible="visible => visible && showMoreAssignments()">
                         Load more assignments
