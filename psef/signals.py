@@ -11,8 +11,7 @@ from cg_signals import Signal
 
 if t.TYPE_CHECKING and not getattr(t, 'SPHINX', False):  # pragma: no cover
     # pylint: disable=unused-import
-    from . import models
-    from . import PsefFlask
+    from . import PsefFlask, models
 
 T = t.TypeVar('T')
 

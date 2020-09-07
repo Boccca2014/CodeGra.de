@@ -1978,7 +1978,7 @@ class RequestValidatorMixin:
     '''
 
     def __init__(self, key: str, secret: str) -> None:
-        super(RequestValidatorMixin, self).__init__()
+        super().__init__()
         self.consumer_key = key
         self.consumer_secret = secret
 

@@ -635,7 +635,7 @@ def start_auto_test_run(auto_test_id: int) -> t.Union[JSONResponse[
             e.reason,
             f'The test "{test.id}" is not in a state to start a run"',
             APICodes.INVALID_STATE, 409
-        )
+        ) from e
 
     db.session.commit()
 

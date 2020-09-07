@@ -728,7 +728,7 @@ class User(NotEqualMixin, Base):
                 max_age=current_app.config['RESET_TOKEN_TIME'],
                 salt=self.reset_token
             )
-        except BadSignature:
+        except BadSignature as exc:
             logger.warning(
                 'Invalid password reset token encountered',
                 token=token,
@@ -738,7 +738,7 @@ class User(NotEqualMixin, Base):
                 'The given token is not valid',
                 f'The given token {token} is not valid.',
                 APICodes.INVALID_CREDENTIALS, 403
-            )
+            ) from exc
 
         # This should never happen but better safe than sorry.
         if (

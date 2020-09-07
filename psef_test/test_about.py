@@ -1,7 +1,7 @@
-# SPDX-License-Identifier: AGPL-3.0-only
 import pytest
 import requests
 
+# SPDX-License-Identifier: AGPL-3.0-only
 import psef
 import requests_stubs
 from psef import tasks, models
