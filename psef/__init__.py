@@ -22,8 +22,9 @@ from cg_json import jsonify
 
 if t.TYPE_CHECKING:  # pragma: no cover
     # pylint: disable=unused-import
-    from config import FlaskConfig
     from pylti1p3.registration import _KeySet
+
+    from config import FlaskConfig
 
     current_app: 'PsefFlask'
 else:

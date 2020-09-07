@@ -148,12 +148,12 @@ class AutoTestSuite(Base, TimestampMixin, IdMixin):
 
             try:
                 step_type = auto_test_handlers[typ_str]
-            except KeyError:
+            except KeyError as exc:
                 raise APIException(
                     'The given test type is not valid',
                     f'The given test type "{typ_str}" is not known',
                     APICodes.INVALID_PARAM, 400
-                )
+                ) from exc
 
             if step_id is None:
                 step = step_type()

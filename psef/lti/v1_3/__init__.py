@@ -74,8 +74,11 @@ T = t.TypeVar('T')
 
 if t.TYPE_CHECKING:  # pragma: no cover
     # pylint: disable=unused-import
+    from pylti1p3.message_launch import (
+        _KeySet, _JwtData, _LaunchData, _DeepLinkData
+    )
+
     from .lms_capabilities import LMSCapabilities
-    from pylti1p3.message_launch import _JwtData, _LaunchData, _KeySet, _DeepLinkData
 
 NEEDED_AGS_SCOPES = [
     'https://purl.imsglobal.org/spec/lti-ags/scope/score',
@@ -1112,8 +1115,10 @@ class FlaskMessageLaunch(
         check_and_raise(user_err_msg.format('name'), launch_data, 'name')
         try:
             get_email_for_user(launch_data, provider)
-        except KeyError:
-            raise get_exc(user_err_msg.format('email'), launch_data, ['email'])
+        except KeyError as exc:
+            raise get_exc(
+                user_err_msg.format('email'), launch_data, ['email']
+            ) from exc
 
         context = launch_data.get(claims.CONTEXT)
         check_and_raise(

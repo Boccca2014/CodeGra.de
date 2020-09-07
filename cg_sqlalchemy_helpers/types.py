@@ -907,13 +907,12 @@ if t.TYPE_CHECKING and MYPY:
         def literal(value: T) -> DbColumn[T]:
             ...
 else:
-    from sqlalchemy.ext.hybrid import hybrid_property
-    from sqlalchemy.ext.hybrid import Comparator as _Comparator
-    from sqlalchemy import TypeDecorator, TIMESTAMP
-    from sqlalchemy.dialects.postgresql import JSONB, ARRAY
-    from sqlalchemy.sql import expression
     from citext import CIText
-    from sqlalchemy import distinct, tuple_
+    from sqlalchemy import TIMESTAMP, TypeDecorator, tuple_, distinct
+    from sqlalchemy.sql import expression
+    from sqlalchemy.ext.hybrid import Comparator as _Comparator
+    from sqlalchemy.ext.hybrid import hybrid_property
+    from sqlalchemy.dialects.postgresql import ARRAY, JSONB
 
     def hybrid_expression(fun: T) -> T:
         return fun

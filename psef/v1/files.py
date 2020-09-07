@@ -113,11 +113,11 @@ def get_file(
             mimetype=mimetype,
             cache_timeout=-1,
         )
-    except NotFound:
+    except NotFound as exc:
         error = True
         raise APIException(
             'The specified file was not found',
             f'The file with name "{file_name}" was not found or is deleted.',
             APICodes.OBJECT_NOT_FOUND,
             404,
-        )
+        ) from exc

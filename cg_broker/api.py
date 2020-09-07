@@ -51,8 +51,8 @@ def instance_route(f: T_CAL) -> T_CAL:
                 app.allowed_instances[instance_name], password
             ):
                 raise PermissionException(401)
-        except (KeyError, TypeError):
-            raise PermissionException(401)
+        except (KeyError, TypeError) as exc:
+            raise PermissionException(401) from exc
 
         return f(*args, **kwargs)
 

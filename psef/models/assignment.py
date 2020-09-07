@@ -64,6 +64,7 @@ from ..permissions import CoursePermission as CPerm
 if t.TYPE_CHECKING:  # pragma: no cover
     # pylint: disable=unused-import
     from pylti1p3.assignments_grades import _AssignmentsGradersData
+
     from . import group as group_models
 
 T = t.TypeVar('T')
@@ -2203,8 +2204,10 @@ class Assignment(helpers.NotEqualMixin, Base):  # pylint: disable=too-many-publi
         """
         try:
             new_state = AssignmentStateEnum[state]
-        except KeyError:
-            raise InvalidAssignmentState(f'{state} is not a valid state')
+        except KeyError as exc:
+            raise InvalidAssignmentState(
+                f'{state} is not a valid state'
+            ) from exc
 
         self.state = new_state
 

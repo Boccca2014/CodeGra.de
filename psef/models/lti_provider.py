@@ -63,8 +63,9 @@ _PASSBACK_CELERY_OPTS: Final = {
 
 if t.TYPE_CHECKING:  # pragma: no cover
     # pylint: disable=unused-import, invalid-name
+    from pylti1p3.names_roles import _Member, _NamesAndRolesData
+
     from .work import Work
-    from pylti1p3.names_roles import _NamesAndRolesData, _Member
 
 _ALL_LTI_PROVIDERS = sorted(['lti1.1', 'lti1.3'])
 lti_provider_handlers.set_possible_options(_ALL_LTI_PROVIDERS)

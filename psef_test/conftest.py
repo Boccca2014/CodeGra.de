@@ -46,16 +46,15 @@ FreshDatabase = collections.namedtuple(
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 
 if True:
-    import helpers
-    from helpers import create_error_template, create_user_with_perms
-    from lxc_stubs import lxc_stub
-
     import psef
+    import manage
+    import helpers
     import psef.auth as a
     import psef.models as m
-    from psef.permissions import CoursePermission as CPerm
-    import manage
+    from helpers import create_error_template, create_user_with_perms
+    from lxc_stubs import lxc_stub
     from cg_dt_utils import DatetimeWithTimezone
+    from psef.permissions import CoursePermission as CPerm
 
 
 def get_database_name(request):
@@ -574,8 +573,8 @@ def session(app, db, fresh_db, monkeypatch):
 
     if fresh_db:
         with app.app_context():
-            from flask_migrate import upgrade as db_upgrade
             from flask_migrate import Migrate
+            from flask_migrate import upgrade as db_upgrade
             logging.disable(logging.ERROR)
             Migrate(app, db)
             db_upgrade()

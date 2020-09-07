@@ -327,11 +327,11 @@ class Checkstyle(Linter):
         try:
             xml_config: ET.Element = defused_xml_fromstring(config)
             assert xml_config is not None
-        except:
+        except BaseException as exc:
             raise ValidationException(
                 'The given xml config could not be parsed.',
                 f'The config {config} could not be parsed as xml.'
-            )
+            ) from exc
         if xml_config.tag != 'module' or xml_config.attrib.get(
             'name'
         ) != 'Checker':
@@ -437,12 +437,12 @@ class PMD(Linter):
         try:
             xml_config: ET.Element = defused_xml_fromstring(config)
             assert xml_config is not None
-        except:
+        except BaseException as exc:
             logger.warning('Error', exc_info=True)
             raise ValidationException(
                 'The given xml config could not be parsed.',
                 f'The config {config} could not be parsed as xml.'
-            )
+            ) from exc
         stack: t.List[ET.Element] = [xml_config]
 
         while stack:
@@ -528,11 +528,11 @@ class ESLint(Linter):
         """
         try:
             json_config = json.loads(config)
-        except ValueError:
+        except ValueError as exc:
             raise ValidationException(
                 'The given json config could not be parsed.',
                 f'The config {config} could not be parsed as json.'
-            )
+            ) from exc
 
         for plugin in json_config.get('plugins', []):
             if '/' in plugin:

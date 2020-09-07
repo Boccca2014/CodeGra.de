@@ -13,10 +13,10 @@ from cg_dt_utils import DatetimeWithTimezone
 from cg_sqlalchemy_helpers import mixins, expression
 
 from . import Base, MyQuery, db
+from . import role as role_models
+from . import user as user_models
+from . import work as work_models
 from .. import auth
-from .role import CourseRole
-from .user import User
-from .work import Work
 from ..helpers import NotEqualMixin
 from .assignment import Assignment
 from .link_tables import user_course
@@ -56,7 +56,9 @@ class CourseRegistrationLink(Base, mixins.UUIDMixin, mixins.TimestampMixin):
         innerjoin=True,
     )
     course_role = db.relationship(
-        lambda: CourseRole, foreign_keys=course_role_id, innerjoin=True
+        lambda: role_models.CourseRole,
+        foreign_keys=course_role_id,
+        innerjoin=True
     )
 
     allow_register = db.Column(
@@ -211,8 +213,9 @@ class Course(NotEqualMixin, Base):
         if virtual:
             return self
 
-        for role_name, perms in CourseRole.get_default_course_roles().items():
-            CourseRole(
+        for role_name, perms in role_models.CourseRole.get_default_course_roles(
+        ).items():
+            role_models.CourseRole(
                 name=role_name, course=self, _permissions=perms, hidden=False
             )
 
@@ -221,10 +224,10 @@ class Course(NotEqualMixin, Base):
         admin_username = psef.current_app.config['ADMIN_USER']
 
         if admin_username is not None:
-            admin_user = User.query.filter_by(
+            admin_user = user_models.User.query.filter_by(
                 username=admin_username,
             ).one_or_none()
-            admin_role = CourseRole.get_admin_role(self)
+            admin_role = role_models.CourseRole.get_admin_role(self)
 
             if admin_user is None:
                 logger.error(
@@ -255,7 +258,7 @@ class Course(NotEqualMixin, Base):
     def __eq__(self, other: object) -> bool:
         """Check if two courses are equal.
 
-        >>> CourseRole.get_default_course_roles = lambda: {}
+        >>> role_models.CourseRole.get_default_course_roles = lambda: {}
         >>> c1 = Course()
         >>> c1.id = 5
         >>> c2 = Course()
@@ -325,24 +328,28 @@ class Course(NotEqualMixin, Base):
     def get_assignments(self) -> MyQuery['Assignment']:
         return Assignment.query.filter(Assignment.course == self)
 
-    def get_all_users_in_course(self, *, include_test_students: bool
-                                ) -> MyQuery['t.Tuple[User, CourseRole]']:
+    def get_all_users_in_course(
+        self, *, include_test_students: bool
+    ) -> MyQuery['t.Tuple[user_models.User, role_models.CourseRole]']:
         """Get a query that returns all users in the current course and their
             role.
 
         :returns: A query that contains all users in the current course and
             their role.
         """
-        res = db.session.query(User, CourseRole).join(
+        res = db.session.query(user_models.User, role_models.CourseRole).join(
             user_course,
-            user_course.c.user_id == User.id,
+            user_course.c.user_id == user_models.User.id,
         ).join(
-            CourseRole,
-            CourseRole.id == user_course.c.course_id,
-        ).filter(CourseRole.course_id == self.id, User.virtual.isnot(True))
+            role_models.CourseRole,
+            role_models.CourseRole.id == user_course.c.course_id,
+        ).filter(
+            role_models.CourseRole.course_id == self.id,
+            user_models.User.virtual.isnot(True)
+        )
 
         if not include_test_students:
-            res = res.filter(~User.is_test_student)
+            res = res.filter(~user_models.User.is_test_student)
 
         return res
 
@@ -372,8 +379,9 @@ class Course(NotEqualMixin, Base):
         for child in copy.copy(tree.values):
             # This is done before we wrap single files to get better author
             # names.
-            work = Work(
-                assignment=assig, user=User.create_virtual_user(child.name)
+            work = work_models.Work(
+                assignment=assig,
+                user=user_models.User.create_virtual_user(child.name)
             )
 
             subdir: psef.files.ExtractFileTreeBase
@@ -389,7 +397,7 @@ class Course(NotEqualMixin, Base):
             work.add_file_tree(subdir)
         return self
 
-    def get_test_student(self) -> User:
+    def get_test_student(self) -> 'user_models.User':
         """Get the test student for this course. If no test student exists yet
         for this course, create a new one and return that.
 
@@ -397,17 +405,17 @@ class Course(NotEqualMixin, Base):
         """
 
         user = self.get_all_users_in_course(include_test_students=True).filter(
-            User.is_test_student,
-        ).from_self(User).first()
+            user_models.User.is_test_student,
+        ).from_self(user_models.User).first()
 
         if user is None:
-            role = CourseRole(
+            role = role_models.CourseRole(
                 name=f'Test_Student_Role__{uuid.uuid4()}',
                 course=self,
                 hidden=True,
             )
             db.session.add(role)
-            user = User.create_new_test_student()
+            user = user_models.User.create_new_test_student()
             user.courses[self.id] = role
             db.session.add(user)
 
