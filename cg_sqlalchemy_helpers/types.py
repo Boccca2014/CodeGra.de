@@ -281,7 +281,7 @@ class MyDb:  # pragma: no cover
         index: bool = False,
         nullable: Literal[False] = False,
         server_default: str = None,
-    ) -> '_MutableColumnProxy[cg_enum.ENUM, cg_enum.ENUM, CGDbColumn[cg_enum.ENUM]]':
+    ) -> '_MutableColumnProxy[cg_enum.ENUM, cg_enum.ENUM, CGEnumDbColumn[cg_enum.ENUM]]':
         ...
 
     @t.overload
@@ -632,7 +632,7 @@ class IndexedJSONColumn(DbColumn[Never]):
         ...
 
 
-class CGDbColumn(t.Generic[cg_enum.ENUM], DbColumn[cg_enum.ENUM]):
+class CGEnumDbColumn(t.Generic[cg_enum.ENUM], DbColumn[cg_enum.ENUM]):
     def __getattr__(self, name: str) -> Never:
         ...
 

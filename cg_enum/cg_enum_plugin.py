@@ -98,7 +98,7 @@ class CgEnumPlugin(Plugin):
     ) -> t.Optional[t.Callable[[AttributeContext], Type]]:
         if fullname.startswith('cg_enum.CGEnum.is_'):
             return analyze_is_method
-        if fullname.startswith(r'cg_sqlalchemy_helpers.types.CGDbColumn'):
+        if fullname.startswith(r'cg_sqlalchemy_helpers.types.CGEnumDbColumn'):
             return analyze_is_method_for_db
         return None
 
