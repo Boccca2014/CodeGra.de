@@ -30,7 +30,7 @@ def test_has_permission_filter(
         rol2.set_permission(perm, False)
         session.commit()
 
-    with describe('Role is include up if permission is true not otherwise'):
+    with describe('Role is include if (and only if) the permission is true'):
         roles = m.CourseRole.get_roles_with_permission(perm).all()
         assert rol1 in roles
         assert rol2 not in roles
