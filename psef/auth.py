@@ -1274,26 +1274,6 @@ class CoursePermissions(CoursePermissionChecker):
 
         return sql_expression.and_(*conditions)
 
-    @staticmethod
-    def ensure_may_see_filter() -> FilterColumn:
-        """Get a database filter that filters out all courses the current user
-        may not see.
-        """
-        user = _get_cur_user_nullable()
-        if user is None:
-            return sql_expression.false()
-
-        course_ids = [cr.course_id for cr in user.courses.values()]
-        base = psef.models.Course.id.in_(course_ids)
-
-        for_course = flask_jwt.get_jwt_claims().get('for_course')
-        if for_course is not None:
-            return sql_expression.and_(
-                base,
-                psef.models.Course.id == for_course,
-            )
-        return base
-
     @CoursePermissionChecker.as_ensure_function
     def ensure_may_see(self) -> None:
         """Make sure the current see this course.
