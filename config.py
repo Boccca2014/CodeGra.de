@@ -104,6 +104,8 @@ FlaskConfig = TypedDict(
         'MAX_NORMAL_UPLOAD_SIZE': int,
         'MAX_LARGE_UPLOAD_SIZE': int,
         'DEFAULT_ROLE': str,
+        'DEFAULT_SSO_ROLE': str,
+        'SSO_METADATA_EXTRA_LANGUAGES': t.List[str],
         'EXTERNAL_DOMAIN': str,
         'EXTERNAL_URL': str,
         'PROXY_BASE_DOMAIN': str,
@@ -143,6 +145,7 @@ FlaskConfig = TypedDict(
         'SENTRY_DSN': t.Optional[str],
         'MIN_FREE_DISK_SPACE': int,
         'REDIS_CACHE_URL': str,
+        'RATELIMIT_STORAGE_URL': t.Optional[str],
     },
     total=True
 )
@@ -196,6 +199,7 @@ def set_int(
     val = int(default if val is None else val)
     ensure_between(item, val, min, max)
     out[item] = val
+
 
 
 def set_str(
@@ -337,6 +341,9 @@ with open(
 # The default site role a user should get. The name of this role should be
 # present as a key in `seed_data/roles.json`.
 set_str(CONFIG, backend_ops, 'DEFAULT_ROLE', 'Student')
+set_str(CONFIG, backend_ops, 'DEFAULT_SSO_ROLE', 'SSO User')
+
+set_list(CONFIG, backend_ops, 'SSO_METADATA_EXTRA_LANGUAGES', ['nl'])
 
 # The external URL the server runs on.
 set_str(CONFIG, backend_ops, 'EXTERNAL_URL', '')
@@ -344,6 +351,7 @@ set_str(CONFIG, backend_ops, 'PROXY_BASE_DOMAIN', '')
 CONFIG['EXTERNAL_DOMAIN'] = urllib.parse.urlparse(
     CONFIG['EXTERNAL_URL']
 ).hostname
+CONFIG['PREFERRED_URL_SCHEME'] = 'https'
 
 set_str(CONFIG, backend_ops, 'JAVA_PATH', 'java')
 
@@ -569,6 +577,8 @@ set_str(CONFIG, backend_ops, '_TRANSIP_USERNAME', '')
 set_str(CONFIG, backend_ops, 'ADMIN_USER', default=None)
 
 set_str(CONFIG, backend_ops, 'REDIS_CACHE_URL', None)
+
+set_str(CONFIG, backend_ops, 'RATELIMIT_STORAGE_URL', 'memory://')
 
 ############
 # FEATURES #

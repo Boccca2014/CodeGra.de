@@ -30,16 +30,20 @@ export default {
         ...mapGetters('pref', ['darkMode']),
 
         registrationUrl() {
-            const courseId = this.$route.query.course_id;
-            const linkId = this.$route.query.course_register_link_id;
-            if (courseId == null || linkId == null) {
-                return '/api/v1/user';
-            }
-            return `/api/v1/courses/${courseId}/registration_links/${linkId}/user`;
+            return '/api/v1/user';
         },
     },
 
     mounted() {
+        const courseId = this.$route.query.course_id;
+        const linkId = this.$route.query.course_register_link_id;
+
+        if (courseId && linkId) {
+            this.$router.replace({
+                name: 'course_enroll',
+                params: { courseId, linkId },
+            });
+        }
         setPageTitle('Register');
     },
 

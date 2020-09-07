@@ -1658,6 +1658,11 @@ class RequestValidatorMixin:
             )
 
         except (oauth2.Error, ValueError) as err:
+            logger.error(
+                'Got invalid oauth request',
+                exc_info=True,
+                report_to_sentry=True
+            )
             return __handle(err)
         # Signature was valid
         return True

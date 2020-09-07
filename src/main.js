@@ -352,7 +352,7 @@ Promise.all([
                             config.url.match(/\/api\/v1\/login/) ||
                             NO_LOGIN_REQUIRED_ROUTES.has(router.currentRoute.name)
                         ) {
-                            return;
+                            throw err;
                         }
 
                         if (store.store.getters['user/dangerousJwtToken'] == null) {

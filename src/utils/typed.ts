@@ -1,3 +1,4 @@
+/* SPDX-License-Identifier: AGPL-3.0-only */
 import moment from 'moment';
 // eslint-disable-next-line
 import type { ICompiledMode } from 'highlightjs';
@@ -16,6 +17,7 @@ export * from 'purify-ts/EitherAsync';
 export * from 'purify-ts/Maybe';
 
 export * from './error';
+export * from './debug';
 
 export type ValueOf<T> = T[keyof T];
 
@@ -179,7 +181,7 @@ export class AssertionError extends Error {
 export function buildUrl(
     parts: ReadonlyArray<string | number> | string,
     args: {
-        query?: Record<string, string | number>;
+        query?: Record<string, string | boolean | number>;
         hash?: string;
         addTrailingSlash?: boolean;
     } & OneOrOther<AllOrNone<{

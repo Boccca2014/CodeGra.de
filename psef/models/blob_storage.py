@@ -6,7 +6,6 @@ data.
 
 SPDX-License-Identifier: AGPL-3.0-only
 """
-
 import json as _json
 import typing as t
 import datetime
@@ -34,7 +33,10 @@ class BlobStorage(Base, UUIDMixin, TimestampMixin):
         ...
 
     def __init__(
-        self, *, data: bytes = None, json: 'psef.helpers.JSONType' = None
+        self,
+        *,
+        data: bytes = None,
+        json: 'psef.helpers.JSONType' = None,
     ) -> None:
         if data is None:
             assert json is not None

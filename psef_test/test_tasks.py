@@ -10,7 +10,6 @@ import requests_stubs
 from psef import tasks as t
 from psef import models as m
 from helpers import create_auto_test, create_assignment, create_submission
-from conftest import DESCRIBE_HOOKS
 from cg_celery import TaskStatus
 from cg_dt_utils import DatetimeWithTimezone
 from cg_flask_helpers import callback_after_this_request
@@ -370,7 +369,7 @@ def test_notify_broker_kill_single_runner(
         session.commit()
 
         ses = requests_stubs.Session()
-        DESCRIBE_HOOKS.append(ses.reset)
+        describe.add_hook(ses.reset)
         monkeypatch.setattr(psef.helpers, 'BrokerSession', lambda *_: ses)
 
     with describe('kill runner'):

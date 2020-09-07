@@ -13,8 +13,7 @@ import redis
 import jinja2
 import structlog
 import flask_jwt_extended as flask_jwt
-from flask import Flask, Response
-from flask_limiter import Limiter, RateLimitExceeded
+from flask import Flask
 from werkzeug.local import LocalProxy
 
 import cg_logger
@@ -42,6 +41,10 @@ class _PsefInterProcessCache:
     lti_access_tokens: cg_cache.inter_request.Backend[str]
     lti_public_keys: cg_cache.inter_request.Backend['_KeySet']
 
+    saml2_ipds: cg_cache.inter_request.Backend[
+        t.Mapping[str, t.Union['psef.models.saml_provider.SamlUiInfo', object]]
+    ]
+
 
 class PsefFlask(Flask):
     """Our subclass of flask.
@@ -53,8 +56,8 @@ class PsefFlask(Flask):
     def __init__(self, name: str, config: dict) -> None:
         super().__init__(name)
         self.config.update(t.cast(t.Any, config))
-        dict_to_load = {}
 
+        dict_to_load = {}
         for key, t_name in [
             ('DIRECT_NOTIFICATION_TEMPLATE_FILE', 'notification.j2'),
             ('DIGEST_NOTIFICATION_TEMPLATE_FILE', 'digest.j2')
@@ -88,8 +91,11 @@ class PsefFlask(Flask):
                 redis_conn,
             ),
             lti_public_keys=cg_cache.inter_request.RedisBackend(
-                'lti_public_keys', timedelta(seconds=3600), redis_conn
+                'lti_public_keys', timedelta(hours=1), redis_conn
             ),
+            saml2_ipds=cg_cache.inter_request.RedisBackend(
+                'saml2_ipds', timedelta(days=1), redis_conn
+            )
         )
 
     @property
@@ -154,18 +160,6 @@ else:
     current_user = flask_jwt.current_user  # pylint: disable=invalid-name
 
 
-def limiter_key_func() -> None:  # pragma: no cover
-    """This is the default key function for the limiter.
-
-    The key function should be set locally at every place the limiter is used
-    so this function always raises a :py:exc:`ValueError`.
-    """
-    raise ValueError('Key function should be overridden')
-
-
-limiter = Limiter(key_func=limiter_key_func)  # pylint: disable=invalid-name
-
-
 def create_app(  # pylint: disable=too-many-statements
     config: t.Mapping = None,
     skip_celery: bool = False,
@@ -210,22 +204,7 @@ def create_app(  # pylint: disable=too-many-statements
     ):  # pragma: no cover
         raise ValueError('The option to generate keys has been removed')
 
-    @resulting_app.errorhandler(RateLimitExceeded)
-    def __handle_error(_: RateLimitExceeded) -> Response:  # pylint: disable=unused-variable
-        res = t.cast(
-            Response,
-            jsonify(
-                errors.APIException(
-                    'Rate limit exceeded, slow down!',
-                    'Rate limit is exceeded',
-                    errors.APICodes.RATE_LIMIT_EXCEEDED,
-                    429,
-                )
-            )
-        )
-        res.status_code = 429
-        return res
-
+    from . import limiter
     limiter.init_app(resulting_app)
 
     cg_logger.init_app(resulting_app)
@@ -281,6 +260,9 @@ def create_app(  # pylint: disable=too-many-statements
 
     from . import signals
     signals.init_app(resulting_app)
+
+    from . import saml2
+    saml2.init_app(resulting_app)
 
     # Make sure celery is working
     if not skip_celery:  # pragma: no cover

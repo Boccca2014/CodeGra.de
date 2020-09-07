@@ -88,10 +88,10 @@ const actions = {
     },
 
     logout({ commit }) {
+        commit(types.LOGOUT);
         return Promise.all([
             commit(`submissions/${types.CLEAR_SUBMISSIONS}`, null, { root: true }),
             commit(`code/${types.CLEAR_CODE_CACHE}`, null, { root: true }),
-            commit(`courses/${types.CLEAR_COURSES}`, null, { root: true }),
             commit(`plagiarism/${types.CLEAR_PLAGIARISM_RUNS}`, null, {
                 root: true,
             }),
@@ -104,7 +104,6 @@ const actions = {
             commit('feedback/commitDeleteAllFeedback', null, { root: true }),
             commit('notification/commitClearNotifications', null, { root: true }),
             commit('peer_feedback/commitClearConnections', null, { root: true }),
-            commit(types.LOGOUT),
         ]);
     },
 

@@ -21,7 +21,7 @@ from cg_sqlalchemy_helpers import CIText, hybrid_property
 
 from . import UUID_LENGTH, Base, DbColumn, db
 from . import course as course_models
-from .. import signals
+from .. import signals, db_locks
 from .role import Role, CourseRole
 from ..helpers import NotEqualMixin, validate, handle_none, maybe_unwrap_proxy
 from .permission import Permission
@@ -109,6 +109,34 @@ class User(NotEqualMixin, Base):
             virtual=virtual,
             courses=handle_none(courses, {}),
         )
+
+    @classmethod
+    def find_possible_username(cls, wanted_username: str) -> str:
+        """Find a possible username for a new user starting with
+        ``wanted_username``.
+
+        :param wanted_username: The username the new user should have in the
+            ideal case. If not available we will try to find a username looking
+            like ``$wanted_username ($number)``.
+
+        :returns: A username that looks like ``wanted_username`` that is still
+                  available.
+        """
+        i = 0
+
+        def _get_username() -> str:
+            return f'{wanted_username} ({i})' if i > 0 else wanted_username
+
+        # Make sure we cannot have collisions, so simply lock this username for
+        # the users while searching.
+        db_locks.acquire_lock(db_locks.LockNamespaces.user, wanted_username)
+
+        while db.session.query(
+            cls.query.filter_by(username=_get_username()).exists()
+        ).scalar():  # pragma: no cover
+            i += 1
+
+        return _get_username()
 
     def _get_id(self) -> int:
         """The id of the user
@@ -718,8 +746,10 @@ class User(NotEqualMixin, Base):
         )
         validate.ensure_valid_email(email)
 
-        if db.session.query(cls.query.filter_by(username=username).exists()
-                            ).scalar():
+        db_locks.acquire_lock(db_locks.LockNamespaces.user, username)
+        if db.session.query(
+            cls.query.filter(cls.username == username).exists()
+        ).scalar():
             raise APIException(
                 'The given username is already in use',
                 f'The username "{username}" is taken',

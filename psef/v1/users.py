@@ -90,7 +90,7 @@ def search_users() -> JSONResponse[t.Sequence[models.User]]:
 
 @api.route('/user', methods=['POST'])
 @features.feature_required(features.Feature.REGISTER)
-@limiter.limit('1 per second', key_func=get_remote_address)
+@limiter.limit('5 per minute', key_func=get_remote_address)
 def register_user() -> JSONResponse[t.Mapping[str, str]]:
     """Create a new :class:`.models.User`.
 

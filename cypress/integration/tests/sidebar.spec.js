@@ -92,8 +92,8 @@ context('Sidebar', () => {
             function submitEmail(email, password) {
                 cy.get('input[name=email]').setText(email)
                 cy.get('input[name=email]').should('have.value', email);
-                cy.get('.password-input input[name=old-password]').setText(password);
-                cy.get('.password-input input[name=old-password]').should('have.value', password);
+                cy.get('input[name=old-password]').setText(password);
+                cy.get('input[name=old-password]').should('have.value', password);
                 return getSubmit();
             }
 

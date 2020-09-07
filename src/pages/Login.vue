@@ -4,7 +4,9 @@
     <div class="login-wrapper">
         <cg-logo :inverted="!darkMode"
                  class="standalone-logo" />
-        <login class="login"/>
+        <login class="login"
+               @login="onLogin"
+               @saml-login="doSamlLogin"/>
     </div>
 </div>
 </template>
@@ -25,6 +27,24 @@ export default {
 
     mounted() {
         setPageTitle('Login');
+    },
+
+    methods: {
+        doSamlLogin(provider) {
+            const next = this.$router.getRestoreRoute();
+            const query = {};
+            if (next) {
+                query.next = next.fullPath;
+            }
+            window.location.replace(this.$utils.buildUrl(
+                provider.loginUrl,
+                { query },
+            ));
+        },
+
+        onLogin() {
+            this.$router.replace({ name: 'home' });
+        },
     },
 
     components: {

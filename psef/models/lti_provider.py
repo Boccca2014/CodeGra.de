@@ -38,7 +38,7 @@ from . import user as user_models
 from . import work as work_models
 from . import course as course_models
 from . import assignment as assignment_models
-from .. import auth, signals, db_locks, current_app
+from .. import auth, signals, current_app
 from ..lti import v1_3 as lti_v1_3
 from ..lti.v1_3 import claims as ltiv1_3_claims
 from ..registry import lti_provider_handlers, lti_1_3_lms_capabilities
@@ -1557,29 +1557,15 @@ class UserLTIProvider(Base, TimestampMixin):
         # New LTI user id is found and no user is logged in or the current
         # user has a different LTI user id. A new user is created and
         # logged in.
-        i = 0
 
-        # Work around for https://github.com/python/mypy/issues/2608
-        _wanted_username = wanted_username
-
-        def _get_username(wanted: str = _wanted_username) -> str:
-            return f'{wanted} ({i})' if i > 0 else wanted
-
-        # Make sure we cannot have collisions, so simply lock this username for
-        # the users while searching.
-        db_locks.acquire_lock(db_locks.LockNamespaces.user, wanted_username)
-
-        while db.session.query(
-            user_models.User.query.filter_by(username=_get_username()).exists()
-        ).scalar():  # pragma: no cover
-            i += 1
+        username = user_models.User.find_possible_username(wanted_username)
 
         user = user_models.User(
             name=full_name,
             email=email,
             active=True,
             password=None,
-            username=_get_username(),
+            username=username,
         )
         db.session.add(user)
         db.session.add(

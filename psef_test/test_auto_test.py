@@ -2670,6 +2670,7 @@ def test_prefer_teacher_revision_option(
 
     with describe('should run the correct code'):
         step_result = res.step_results[0]
+        print(step_result.log)
 
         if prefer_teacher_revision and with_teacher_revision:
             assert step_result.log['stdout'] == 'teacher\n'

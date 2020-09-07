@@ -19,9 +19,6 @@ EOF
 
 pip install -r test_requirements.txt
 
-npm run build &
-NPM_PID="$!"
-
 make pylint &
 PYLINT_PID="$!"
 
@@ -44,13 +41,10 @@ res5=$?
 ( cd docs && make html )
 res6="$?"
 
-wait "$NPM_PID"
-res7="$?"
-
 wait "$PYLINT_PID"
 res1="$?"
 
-[[ $(( res1 + res2 + res3 + res4 + res5 + res6 + res7 )) = 0 ]]
+[[ $(( res1 + res2 + res3 + res4 + res5 + res6 )) = 0 ]]
 exit_code="$?"
 
 exit "$exit_code"
