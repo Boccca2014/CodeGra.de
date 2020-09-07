@@ -20,7 +20,7 @@ from . import role as role_models
 from . import user as user_models
 from . import work as work_models
 from .. import auth
-from ..helpers import NotEqualMixin
+from ..helpers import NotEqualMixin, jsonify_options
 from .assignment import Assignment
 from .link_tables import user_course
 
