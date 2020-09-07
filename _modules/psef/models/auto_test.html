@@ -215,15 +215,16 @@
 <span class="kn">import</span> <span class="nn">itertools</span>
 
 <span class="kn">import</span> <span class="nn">structlog</span>
-<span class="kn">from</span> <span class="nn">sqlalchemy</span> <span class="kn">import</span> <span class="n">orm</span>
-<span class="kn">from</span> <span class="nn">sqlalchemy</span> <span class="kn">import</span> <span class="n">func</span> <span class="k">as</span> <span class="n">sql_func</span>
-<span class="kn">from</span> <span class="nn">sqlalchemy</span> <span class="kn">import</span> <span class="n">distinct</span>
+<span class="kn">from</span> <span class="nn">sqlalchemy</span> <span class="kn">import</span> <span class="n">orm</span><span class="p">,</span> <span class="n">distinct</span>
 <span class="kn">from</span> <span class="nn">sqlalchemy.sql.expression</span> <span class="kn">import</span> <span class="n">or_</span><span class="p">,</span> <span class="n">and_</span><span class="p">,</span> <span class="n">case</span><span class="p">,</span> <span class="n">nullsfirst</span>
 
 <span class="kn">import</span> <span class="nn">psef</span>
+<span class="kn">import</span> <span class="nn">cg_helpers</span>
 <span class="kn">from</span> <span class="nn">cg_dt_utils</span> <span class="kn">import</span> <span class="n">DatetimeWithTimezone</span>
 <span class="kn">from</span> <span class="nn">cg_flask_helpers</span> <span class="kn">import</span> <span class="n">callback_after_this_request</span>
-<span class="kn">from</span> <span class="nn">cg_sqlalchemy_helpers</span> <span class="kn">import</span> <span class="n">UUIDType</span><span class="p">,</span> <span class="n">deferred</span><span class="p">,</span> <span class="n">hybrid_property</span>
+<span class="kn">from</span> <span class="nn">cg_sqlalchemy_helpers</span> <span class="kn">import</span> <span class="n">UUIDType</span>
+<span class="kn">from</span> <span class="nn">cg_sqlalchemy_helpers</span> <span class="kn">import</span> <span class="n">func</span> <span class="k">as</span> <span class="n">sql_func</span>
+<span class="kn">from</span> <span class="nn">cg_sqlalchemy_helpers</span> <span class="kn">import</span> <span class="n">deferred</span><span class="p">,</span> <span class="n">hybrid_property</span>
 <span class="kn">from</span> <span class="nn">cg_sqlalchemy_helpers.mixins</span> <span class="kn">import</span> <span class="n">IdMixin</span><span class="p">,</span> <span class="n">UUIDMixin</span><span class="p">,</span> <span class="n">TimestampMixin</span>
 
 <span class="kn">from</span> <span class="nn">.</span> <span class="kn">import</span> <span class="n">Base</span><span class="p">,</span> <span class="n">MyQuery</span><span class="p">,</span> <span class="n">DbColumn</span><span class="p">,</span> <span class="n">db</span>
@@ -1011,51 +1012,36 @@
 <span class="sd">        :returns: A mapping that should be send to the broker in the metadata</span>
 <span class="sd">            under the ``results`` key.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-
-        <span class="c1"># NOTE: This function does three separate database queries, as each</span>
-        <span class="c1"># query either sorts by a different column, or sorts in a different</span>
-        <span class="c1"># direction. It is probably possible to reduce this to two queries,</span>
-        <span class="c1"># however these queries are pretty fast and don&#39;t seem to be a bottle</span>
-        <span class="c1"># neck at this moment.</span>
-
-        <span class="k">def</span> <span class="nf">get_latest_date</span><span class="p">(</span>
-            <span class="n">state</span><span class="p">:</span> <span class="n">auto_test_step_models</span><span class="o">.</span><span class="n">AutoTestStepResultState</span><span class="p">,</span>
-            <span class="n">col</span><span class="p">:</span> <span class="n">t</span><span class="o">.</span><span class="n">Union</span><span class="p">[</span><span class="n">DbColumn</span><span class="p">[</span><span class="n">DatetimeWithTimezone</span><span class="p">],</span> <span class="n">DbColumn</span><span class="p">[</span>
-                <span class="n">t</span><span class="o">.</span><span class="n">Optional</span><span class="p">[</span><span class="n">DatetimeWithTimezone</span><span class="p">]]],</span>
-            <span class="n">oldest</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
-        <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">t</span><span class="o">.</span><span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
-            <span class="n">date</span> <span class="o">=</span> <span class="n">db</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="n">AutoTestResult</span><span class="p">)</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span>
-                <span class="n">AutoTestResult</span><span class="o">.</span><span class="n">run</span> <span class="o">==</span> <span class="bp">self</span><span class="p">,</span>
-                <span class="n">AutoTestResult</span><span class="o">.</span><span class="n">state</span> <span class="o">==</span> <span class="n">state</span><span class="p">,</span>
-            <span class="p">)</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">work_models</span><span class="o">.</span><span class="n">Work</span><span class="p">)</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span>
-                <span class="o">~</span><span class="n">work_models</span><span class="o">.</span><span class="n">Work</span><span class="o">.</span><span class="n">deleted</span><span class="p">,</span>
-            <span class="p">)</span><span class="o">.</span><span class="n">order_by</span><span class="p">(</span>
-                <span class="n">col</span> <span class="k">if</span> <span class="n">oldest</span> <span class="k">else</span> <span class="n">col</span><span class="o">.</span><span class="n">desc</span><span class="p">(),</span>
-            <span class="p">)</span><span class="o">.</span><span class="n">with_entities</span><span class="p">(</span><span class="n">col</span><span class="p">)</span><span class="o">.</span><span class="n">limit</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">scalar</span><span class="p">()</span>
-
-            <span class="k">if</span> <span class="n">date</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-                <span class="k">return</span> <span class="kc">None</span>
-            <span class="k">return</span> <span class="n">date</span><span class="o">.</span><span class="n">isoformat</span><span class="p">()</span>
-
         <span class="n">ATStepResultState</span> <span class="o">=</span> <span class="n">auto_test_step_models</span><span class="o">.</span><span class="n">AutoTestStepResultState</span>
 
+        <span class="n">query</span> <span class="o">=</span> <span class="n">db</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="n">AutoTestResult</span><span class="p">)</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span>
+            <span class="n">AutoTestResult</span><span class="o">.</span><span class="n">run</span> <span class="o">==</span> <span class="bp">self</span><span class="p">,</span>
+            <span class="n">AutoTestResult</span><span class="o">.</span><span class="n">work_id</span><span class="o">.</span><span class="n">in_</span><span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">auto_test</span><span class="o">.</span><span class="n">assignment</span><span class="o">.</span><span class="n">get_from_latest_submissions</span><span class="p">(</span>
+                    <span class="n">work_models</span><span class="o">.</span><span class="n">Work</span><span class="o">.</span><span class="n">id</span>
+                <span class="p">)</span>
+            <span class="p">),</span>
+        <span class="p">)</span><span class="o">.</span><span class="n">with_entities</span><span class="p">(</span>
+            <span class="n">sql_func</span><span class="o">.</span><span class="n">min</span><span class="p">(</span><span class="n">AutoTestResult</span><span class="o">.</span><span class="n">updated_at</span><span class="p">)</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span>
+                <span class="n">AutoTestResult</span><span class="o">.</span><span class="n">state</span> <span class="o">==</span> <span class="n">ATStepResultState</span><span class="o">.</span><span class="n">not_started</span><span class="p">,</span>
+            <span class="p">),</span>
+            <span class="n">sql_func</span><span class="o">.</span><span class="n">min</span><span class="p">(</span><span class="n">AutoTestResult</span><span class="o">.</span><span class="n">started_at</span><span class="p">)</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span>
+                <span class="n">AutoTestResult</span><span class="o">.</span><span class="n">state</span> <span class="o">==</span> <span class="n">ATStepResultState</span><span class="o">.</span><span class="n">running</span><span class="p">,</span>
+            <span class="p">),</span>
+            <span class="n">sql_func</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">AutoTestResult</span><span class="o">.</span><span class="n">updated_at</span><span class="p">)</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span>
+                <span class="n">AutoTestResult</span><span class="o">.</span><span class="n">state</span> <span class="o">==</span> <span class="n">ATStepResultState</span><span class="o">.</span><span class="n">passed</span><span class="p">,</span>
+            <span class="p">),</span>
+        <span class="p">)</span>
+
+        <span class="k">def</span> <span class="nf">maybe_format</span><span class="p">(</span><span class="n">date</span><span class="p">:</span> <span class="n">t</span><span class="o">.</span><span class="n">Optional</span><span class="p">[</span><span class="n">DatetimeWithTimezone</span><span class="p">]</span>
+                         <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">t</span><span class="o">.</span><span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
+            <span class="k">return</span> <span class="n">cg_helpers</span><span class="o">.</span><span class="n">on_not_none</span><span class="p">(</span><span class="n">date</span><span class="p">,</span> <span class="k">lambda</span> <span class="n">d</span><span class="p">:</span> <span class="n">d</span><span class="o">.</span><span class="n">isoformat</span><span class="p">())</span>
+
+        <span class="n">not_started</span><span class="p">,</span> <span class="n">running</span><span class="p">,</span> <span class="n">passed</span> <span class="o">=</span> <span class="n">query</span><span class="o">.</span><span class="n">one</span><span class="p">()</span>
         <span class="k">return</span> <span class="p">{</span>
-            <span class="s1">&#39;not_started&#39;</span><span class="p">:</span>
-                <span class="n">get_latest_date</span><span class="p">(</span>
-                    <span class="n">ATStepResultState</span><span class="o">.</span><span class="n">not_started</span><span class="p">,</span>
-                    <span class="n">AutoTestResult</span><span class="o">.</span><span class="n">updated_at</span><span class="p">,</span>
-                <span class="p">),</span>
-            <span class="s1">&#39;running&#39;</span><span class="p">:</span>
-                <span class="n">get_latest_date</span><span class="p">(</span>
-                    <span class="n">ATStepResultState</span><span class="o">.</span><span class="n">running</span><span class="p">,</span>
-                    <span class="n">AutoTestResult</span><span class="o">.</span><span class="n">started_at</span><span class="p">,</span>
-                <span class="p">),</span>
-            <span class="s1">&#39;passed&#39;</span><span class="p">:</span>
-                <span class="n">get_latest_date</span><span class="p">(</span>
-                    <span class="n">ATStepResultState</span><span class="o">.</span><span class="n">passed</span><span class="p">,</span>
-                    <span class="n">AutoTestResult</span><span class="o">.</span><span class="n">updated_at</span><span class="p">,</span>
-                    <span class="kc">False</span><span class="p">,</span>
-                <span class="p">),</span>
+            <span class="s1">&#39;not_started&#39;</span><span class="p">:</span> <span class="n">maybe_format</span><span class="p">(</span><span class="n">not_started</span><span class="p">),</span>
+            <span class="s1">&#39;running&#39;</span><span class="p">:</span> <span class="n">maybe_format</span><span class="p">(</span><span class="n">running</span><span class="p">),</span>
+            <span class="s1">&#39;passed&#39;</span><span class="p">:</span> <span class="n">maybe_format</span><span class="p">(</span><span class="n">passed</span><span class="p">),</span>
         <span class="p">}</span></div>
 
 <div class="viewcode-block" id="AutoTestRun.get_broker_metadata"><a class="viewcode-back" href="../../../psef_api/psef.html#psef.models.auto_test.AutoTestRun.get_broker_metadata">[docs]</a>    <span class="k">def</span> <span class="nf">get_broker_metadata</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">t</span><span class="o">.</span><span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">object</span><span class="p">]:</span>
@@ -1130,8 +1116,11 @@
             <span class="n">isouter</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
         <span class="p">)</span><span class="o">.</span><span class="n">having</span><span class="p">(</span>
             <span class="n">or_</span><span class="p">(</span>
-                <span class="n">amount_runners</span> <span class="o">==</span> <span class="mi">0</span><span class="p">,</span> <span class="n">amount_results</span> <span class="o">/</span> <span class="n">amount_runners</span> <span class="o">&gt;</span>
-                <span class="n">psef</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s1">&#39;AUTO_TEST_MAX_JOBS_PER_RUNNER&#39;</span><span class="p">]</span>
+                <span class="n">amount_runners</span> <span class="o">==</span> <span class="mi">0</span><span class="p">,</span>
+                <span class="p">(</span>
+                    <span class="n">amount_results</span> <span class="o">/</span> <span class="n">amount_runners</span> <span class="o">&gt;</span>
+                    <span class="n">psef</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s1">&#39;AUTO_TEST_MAX_JOBS_PER_RUNNER&#39;</span><span class="p">]</span>
+                <span class="p">),</span>
             <span class="p">)</span>
         <span class="p">)</span><span class="o">.</span><span class="n">group_by</span><span class="p">(</span><span class="bp">cls</span><span class="o">.</span><span class="n">id</span><span class="p">)</span><span class="o">.</span><span class="n">order_by</span><span class="p">(</span>
             <span class="n">nullsfirst</span><span class="p">(</span>
