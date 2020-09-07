@@ -12,6 +12,7 @@ import psef
 if t.TYPE_CHECKING and not getattr(t, 'SPHINX', False):  # pragma: no cover
     # pylint: disable=unused-import
     import psef.files
+
     from . import archive
 
 

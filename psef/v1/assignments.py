@@ -869,7 +869,7 @@ def upload_work(assignment_id: int) -> ExtendedJSONResponse[models.Work]:
             'ignored_files',
             'keep',
         )]
-    except KeyError:  # The enum value does not exist
+    except KeyError as exc:  # The enum value does not exist
         raise APIException(
             'The given value for "ignored_files" is invalid',
             (
@@ -878,7 +878,7 @@ def upload_work(assignment_id: int) -> ExtendedJSONResponse[models.Work]:
             ),
             APICodes.INVALID_PARAM,
             400,
-        )
+        ) from exc
 
     tree = psef.files.process_files(
         files,
@@ -1163,13 +1163,13 @@ def set_grader_to_not_done(
         send_mail = grader_id != current_user.id
         assig.set_graders_to_not_done([grader_id], send_mail=send_mail)
         db.session.commit()
-    except ValueError:
+    except ValueError as exc:
         raise APIException(
             'The grader is not finished!',
             f'The grader {grader_id} is not done.',
             APICodes.INVALID_STATE,
             400,
-        )
+        ) from exc
     else:
         return make_empty_response()
 
@@ -1629,7 +1629,7 @@ def start_linting(assignment_id: int) -> JSONResponse[models.AssignmentLinter]:
 
     try:
         linter_cls = linters.get_linter_by_name(name)
-    except KeyError:
+    except KeyError as exc:
         raise APIException(
             f'No linter named "{name}" was found',
             (
@@ -1638,7 +1638,7 @@ def start_linting(assignment_id: int) -> JSONResponse[models.AssignmentLinter]:
             ),
             APICodes.OBJECT_NOT_FOUND,
             404,
-        )
+        ) from exc
     linter_cls.validate_config(cfg)
 
     if linter_cls.RUN_LINTER:
@@ -1765,12 +1765,12 @@ def start_plagiarism_check(
         provider_cls = helpers.get_class_by_name(
             plagiarism.PlagiarismProvider, provider_name
         )
-    except ValueError:
+    except ValueError as exc:
         raise APIException(
             'The given provider does not exist',
             f'The provider "{provider_name}" does not exist',
             APICodes.OBJECT_NOT_FOUND, 404
-        )
+        ) from exc
 
     if any(not isinstance(item, int) for item in old_assig_ids):
         raise APIException(

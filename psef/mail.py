@@ -196,7 +196,7 @@ def send_reset_password_email(user: models.User) -> None:
             html_body, f'Reset password on {psef.app.config["EXTERNAL_URL"]}',
             [user.email]
         )
-    except Exception:
+    except Exception as exc:
         logger.bind(exc_info=True)
         raise APIException(
             'Something went wrong sending the email, '
@@ -204,7 +204,7 @@ def send_reset_password_email(user: models.User) -> None:
             f'Sending email to {user.id} went wrong.',
             APICodes.UNKOWN_ERROR,
             500,
-        )
+        ) from exc
 
 
 def send_digest_notification_email(

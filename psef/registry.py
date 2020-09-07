@@ -9,12 +9,12 @@ from .helpers import register
 
 if t.TYPE_CHECKING and not getattr(t, 'SPHINX', False):  # pragma: no cover
     # pylint: disable=unused-import
-    from .models import AutoTestStepBase, RubricItem, WebhookBase
+    from .models import RubricItem, WebhookBase, AutoTestStepBase
     from .models.rubric import RubricRowBase
+    from .models.analytics import BaseDataSource
     from .models.auto_test import GradeCalculator
     from .models.lti_provider import LTIProviderBase
     from .lti.v1_3.lms_capabilities import LMSCapabilities
-    from .models.analytics import BaseDataSource
 
 Register = register.Register
 TableRegister = register.TableRegister
