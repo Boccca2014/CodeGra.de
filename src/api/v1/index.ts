@@ -3,5 +3,6 @@ import * as lti from './lti';
 import * as submissions from './submissions';
 import * as assignments from './assignments';
 import * as ssoProviders from './sso_providers';
+import * as courses from './courses';
 
-export { lti, submissions, assignments, ssoProviders };
+export { lti, submissions, assignments, ssoProviders, courses };

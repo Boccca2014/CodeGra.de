@@ -42,9 +42,9 @@
         <multiselect
             class="assignment-selector"
             v-model="importAssignment"
-            :options="otherAssignmentsWithRubric || []"
+            :options="otherAssignmentsWithRubric"
             :searchable="true"
-            :custom-label="a => `${a.course.name} - ${a.name}`"
+            :custom-label="getImportLabel"
             :multiple="false"
             track-by="id"
             label="label"
@@ -391,7 +391,7 @@ import 'vue-awesome/icons/times';
 import 'vue-awesome/icons/reply';
 import 'vue-awesome/icons/ellipsis-h';
 
-import { NONEXISTENT } from '@/constants';
+import { NONEXISTENT, INITIAL_COURSES_AMOUNT } from '@/constants';
 import { Rubric } from '@/models';
 import { ValidationError } from '@/models/errors';
 import { formatGrade } from '@/utils';
@@ -459,6 +459,13 @@ export default {
         serverData() {
             this.resetRubric();
         },
+
+        courseIdsWithRubric(newVal) {
+            if (newVal.size > INITIAL_COURSES_AMOUNT) {
+                this.loadAllCourses();
+            }
+            newVal.forEach(courseId => this.loadSingleCourse({ courseId }));
+        },
     },
 
     computed: {
@@ -469,6 +476,9 @@ export default {
         ...mapGetters('rubrics', {
             allRubrics: 'rubrics',
         }),
+
+        ...mapGetters('assignments', ['getAssignment']),
+        ...mapGetters('courses', ['getCourse']),
 
         assignmentId() {
             return this.assignment.id;
@@ -571,12 +581,22 @@ export default {
         },
 
         otherAssignmentsWithRubric() {
-            return this.assignmentsWithRubric.filter(assig => assig.id !== this.assignmentId);
+            return (this.assignmentsWithRubric || []).filter(
+                ({ id }) => id !== this.assignmentId,
+            );
+        },
+
+        courseIdsWithRubric() {
+            return this.otherAssignmentsWithRubric.reduce((acc, assigLike) => {
+                acc.add(assigLike.courseId);
+                return acc;
+            }, new Set());
         },
     },
 
     methods: {
         ...mapActions('submissions', ['forceLoadSubmissions']),
+        ...mapActions('courses', ['loadSingleCourse', 'loadAllCourses']),
 
         ...mapActions('autotest', {
             storeLoadAutoTest: 'loadAutoTest',
@@ -597,12 +617,9 @@ export default {
                 this.storeLoadRubric({
                     assignmentId: this.assignmentId,
                 }).then(
-                    () => {
-                        this.resetRubric();
-                        this.maybeLoadOtherAssignments();
-                    },
+                    () => this.resetRubric(),
                     this.$utils.makeHttpErrorHandler({
-                        404: () => {},
+                        404: () => this.maybeLoadOtherAssignments(),
                     }),
                 ),
                 this.autoTestConfigId &&
@@ -642,9 +659,26 @@ export default {
         loadAssignments() {
             this.loadingAssignments = true;
             this.assignmentsWithRubric = [];
-            this.$http.get('/api/v1/assignments/?only_with_rubric').then(
+            const url = this.$utils.buildUrl(
+                ['api', 'v1', 'assignments'],
+                {
+                    query: {
+                        no_course_in_assignment: true,
+                        only_with_rubric: true,
+                    },
+                    addTrailingSlash: true,
+                },
+            );
+            this.$http.get(url).then(
                 ({ data }) => {
-                    this.assignmentsWithRubric = data;
+                    // We cannot (!) use real models here as all getters will be
+                    // removed by vue-multiselect as it tries to copy the
+                    // objects, however that doesn't work with getters.
+                    this.assignmentsWithRubric = data.map(x => ({
+                        id: x.id,
+                        name: x.name,
+                        courseId: x.course_id,
+                    }));
                     this.loadingAssignments = false;
                 },
                 err => {
@@ -664,7 +698,9 @@ export default {
         afterLoadOldRubric() {
             this.showRubricImporter = false;
             this.importAssignment = null;
-            this.forceLoadSubmissions(this.assignmentId);
+            this.forceLoadSubmissions({
+                assignmentId: this.assignmentId,
+            });
             this.resetRubric();
         },
 
@@ -726,7 +762,7 @@ export default {
         },
 
         afterSubmit() {
-            this.forceLoadSubmissions(this.assignmentId);
+            this.forceLoadSubmissions({ assignmentId: this.assignmentId });
         },
 
         ensureEditable() {
@@ -765,6 +801,14 @@ export default {
         setRowType(idx, type) {
             const row = this.rubric.rows[idx].setType(type);
             this.rubric = this.rubric.updateRow(idx, row);
+        },
+
+        getImportLabel(assigLike) {
+            const courseName = this.getCourse(assigLike.courseId).mapOrDefault(
+                c => c.name,
+                '…',
+            );
+            return `${courseName} - ${assigLike.name}`;
         },
     },
 

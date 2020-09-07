@@ -21,7 +21,7 @@ import psef
 import psef.files
 from psef import app as current_app
 from psef import current_user
-from cg_helpers import on_not_none
+from cg_helpers import handle_none, on_not_none
 from cg_dt_utils import DatetimeWithTimezone
 from psef.models import db
 from psef.helpers import (
@@ -109,6 +109,33 @@ def delete_assignment(assignment_id: int) -> EmptyResponse:
     db.session.commit()
 
     return make_empty_response()
+
+
+@api.route('/assignments/<int:assignment_id>/course', methods=['GET'])
+@auth.login_required
+def get_course_of_assignment(
+    assignment_id: int
+) -> t.Union[ExtendedJSONResponse[models.Course], JSONResponse[models.Course]]:
+    """Get a course of an :class:`.models.Assignment`.
+
+    .. :quickref: Assignment; Get the course an assignment is in.
+
+    :param int assignment_id: The id of the assignment
+    :returns: A response containing the JSON serialized course.
+    """
+    assignment = helpers.get_or_404(
+        models.Assignment,
+        assignment_id,
+        also_error=lambda a: not a.is_visible
+    )
+    auth.AssignmentPermissions(assignment).ensure_may_see()
+
+    if helpers.extended_requested():
+        return ExtendedJSONResponse.make(
+            assignment.course, use_extended=models.Course
+        )
+    else:
+        return JSONResponse.make(assignment.course)
 
 
 @api.route("/assignments/<int:assignment_id>", methods=['GET'])
@@ -324,10 +351,28 @@ def update_assignment(assignment_id: int) -> JSONResponse[models.Assignment]:
     lms_name = on_not_none(lti_provider, lambda prov: prov.lms_name)
 
     if new_available_at is not MISSING:
+        if assig.is_lti:
+            can_set_state = handle_none(
+                on_not_none(
+                    lti_provider, lambda p: p.supports_setting_state()
+                ),
+                False,
+            )
+            if not can_set_state:
+                raise APIException(
+                    (
+                        'The available at of this assignment should be set in '
+                        f'{lms_name}.'
+                    ), f'{assig.name} is an LTI assignment',
+                    APICodes.UNSUPPORTED, 400
+                )
         perm_checker.ensure_may_edit_info()
         assig.available_at = new_available_at
 
     if new_state is not MISSING:
+        # TODO: Check the LTI settings to make sure we can actually set the
+        # state. We should also be able to set the state to 'done' and back to
+        # "not done".
         perm_checker.ensure_may_edit_info()
         assig.set_state_with_string(new_state)
 

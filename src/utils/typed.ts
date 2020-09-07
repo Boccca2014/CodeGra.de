@@ -436,7 +436,7 @@ export function formatDate(date: string | moment.Moment, iso: boolean = false): 
 }
 
 export function formatNullableDate(
-    date: string | moment.Moment | null,
+    date: string | moment.Moment | null | undefined,
     iso: boolean = false,
 ): string | null {
     if (date == null) {
@@ -896,7 +896,7 @@ export function formatTimePart(num: number): string {
     return `${num < 10 ? '0' : ''}${num}`;
 }
 
-function isMaybe<T>(obj: T | Maybe<T>): obj is Maybe<T> {
+export function isMaybe<T>(obj: T | Maybe<T>): obj is Maybe<T> {
     // @ts-ignore
     return obj != null && obj?.constructor === Maybe;
 }
@@ -918,4 +918,11 @@ export function getPropMaybe(obj: any, prop: any): any {
     } else {
         return Maybe.fromNullable(res);
     }
+}
+
+export function pickKeys<T, K extends keyof T>(obj: T, keys: readonly K[]): Pick<T, K> {
+    return keys.reduce((acc, key) => {
+        acc[key] = obj[key];
+        return acc;
+    }, {} as Pick<T, K>);
 }

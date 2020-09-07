@@ -202,11 +202,11 @@ export default {
         },
 
         ltiProvider() {
-            return this.$utils.getProps(this.course, null, 'ltiProvider');
+            return this.course.ltiProvider;
         },
 
         lmsName() {
-            return this.$utils.getProps(this.ltiProvider, null, 'lms');
+            return this.ltiProvider.map(prov => prov.name).extractNullable();
         },
 
         ltiTexts() {

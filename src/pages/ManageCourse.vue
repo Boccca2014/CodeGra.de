@@ -20,6 +20,7 @@
     </local-header>
 
     <loader v-if="!course" page-loader/>
+
     <div class="content" v-else>
         <users-manager :class="{ hidden: selectedCat !== 'members'}"
                        class="cat-wrapper"
@@ -96,18 +97,17 @@ export default {
     },
 
     computed: {
-        ...mapGetters('courses', ['courses']),
+        ...mapGetters('courses', ['getCourse']),
         ...mapGetters('user', {
             userPerms: 'permissions',
         }),
 
         course() {
-            const id = Number(this.$route.params.courseId);
-            return this.courses[id];
+            return this.getCourse(this.courseId).extract();
         },
 
         courseId() {
-            return this.$utils.getProps(this.course, null, 'id');
+            return Number(this.$route.params.courseId);
         },
 
         membersEnabled() {
@@ -179,20 +179,25 @@ export default {
         },
     },
 
-    async mounted() {
-        await this.loadCourses();
-    },
-
     watch: {
+        courseId: {
+            immediate: true,
+            handler() {
+                this.loadSingleCourse({ courseId: this.courseId });
+            },
+        },
+
         course() {
-            if (this.course != null) {
+            if (this.course == null) {
+                this.loadSingleCourse({ courseId: this.courseId });
+            } else {
                 setPageTitle(this.course.name);
             }
         },
     },
 
     methods: {
-        ...mapActions('courses', ['loadCourses']),
+        ...mapActions('courses', ['loadSingleCourse']),
     },
 
     components: {

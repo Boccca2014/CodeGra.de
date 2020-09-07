@@ -108,19 +108,26 @@ def _cache_or_call(
     args: t.Tuple,
     kwargs: t.Dict,
 ) -> t.Any:
-    if not g:
+    try:
+        cache = g._get_current_object()  # pylint: disable=protected-access
+    except RuntimeError:
+        cache = False
+
+    if not cache:
         logger.error('No cache available', with_stacktrace=True)
         return fun(*args, **kwargs)
-    if not hasattr(g, 'cg_function_cache'):
+
+    if not hasattr(cache, 'cg_function_cache'):
         _set_g_vars()
 
-    if key in g.cg_function_cache[master_key]:
-        g.cache_hits += 1
+    mapping = g.cg_function_cache[master_key]
+    if key in mapping:
+        cache.cache_hits += 1
     else:
-        g.cg_function_cache[master_key][key] = fun(*args, **kwargs)
-        g.cache_misses += 1
+        mapping[key] = fun(*args, **kwargs)
+        cache.cache_misses += 1
 
-    return g.cg_function_cache[master_key][key]
+    return mapping[key]
 
 
 def cache_within_request_make_key(

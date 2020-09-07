@@ -96,6 +96,8 @@
 import { mapActions, mapGetters } from 'vuex';
 import Multiselect from 'vue-multiselect';
 
+import * as models from '@/models';
+
 import Loader from './Loader';
 import SubmitButton from './SubmitButton';
 import User from './User';
@@ -105,8 +107,8 @@ export default {
 
     props: {
         assignment: {
-            type: Object,
-            default: null,
+            type: models.Assignment,
+            required: true,
         },
 
         graders: {
@@ -148,10 +150,14 @@ export default {
     },
 
     computed: {
-        ...mapGetters('courses', ['courses', 'assignments']),
+        ...mapGetters('assignments', ['getAssignment']),
+
+        course() {
+            return this.assignment.course;
+        },
 
         currentDivisionParent() {
-            return this.assignments[this.assignment.division_parent_id];
+            this.getDivisionParent(this.assignment);
         },
 
         textDisabledPopover() {
@@ -178,7 +184,7 @@ export default {
         },
 
         divisionChildren() {
-            return this.courses[this.assignment.course.id].assignments
+            return this.course.assignments
                 .filter(a => a.division_parent_id === this.assignment.id)
                 .map(a => ({ id: a.id, name: a.name }));
         },
@@ -196,7 +202,7 @@ export default {
         },
 
         otherAssignments() {
-            return this.courses[this.assignment.course.id].assignments
+            return this.course.assignments
                 .filter(
                     a => a.id !== this.assignment.id,
                     // This map is needed as a recursion error occurs otherwise
@@ -209,11 +215,17 @@ export default {
     },
 
     methods: {
-        ...mapActions('courses', ['updateAssignment']),
+        ...mapActions('assignments', ['updateAssignment']),
         ...mapActions('submissions', ['forceLoadSubmissions']),
 
         getDivisionParent(assig) {
-            return this.assignments[this.assignments[assig.id].division_parent_id];
+            const parentId = assig.division_parent_id;
+            if (parentId == null) {
+                return null;
+            }
+            // This division parent is always in the same course, so it should
+            // also always be loaded here.
+            return this.getAssignment(parentId).unsafeCoerce();
         },
 
         graderChanged(userId) {
@@ -287,7 +299,10 @@ export default {
                     division_parent_id: this.importAssignment && this.importAssignment.id,
                 },
             });
-            this.forceLoadSubmissions(this.assignment.id);
+            this.forceLoadSubmissions({
+                assignmentId: this.assignment.id,
+                courseId: this.assignment.courseId,
+            });
             this.$emit('divided');
         },
     },

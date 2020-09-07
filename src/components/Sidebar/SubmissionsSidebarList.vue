@@ -76,6 +76,11 @@ export default {
             return Number(this.$route.params.assignmentId);
         },
 
+        courseId() {
+            const res = Number(this.$route.params.courseId);
+            return Number.isNaN(res) ? null : res;
+        },
+
         submissionId() {
             return Number(this.$route.params.submissionId);
         },
@@ -200,9 +205,15 @@ export default {
         async reload(force = true) {
             this.$emit('loading');
             if (force) {
-                await this.forceLoadSubmissions(this.assignmentId);
+                await this.forceLoadSubmissions({
+                    assignmentId: this.assignmentId,
+                    courseId: this.courseId,
+                });
             } else {
-                await this.loadSubmissions(this.assignmentId);
+                await this.loadSubmissions({
+                    assignmentId: this.assignmentId,
+                    courseId: this.courseId,
+                });
             }
 
             this.$emit('loaded');

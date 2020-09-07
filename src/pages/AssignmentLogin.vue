@@ -227,12 +227,9 @@ export default class AssignmentLogin extends Vue {
 
         this.$http.get(this.$utils.buildUrl(
             ['api', 'v1', 'login_links', this.loginUuid],
+            { query: { no_course_in_assignment: true } },
         )).then(({ data }) => {
-            this.assignment = models.Assignment.fromServerData(
-                data.assignment,
-                data.assignment.course.id.toString(),
-                false,
-            );
+            this.assignment = models.Assignment.fromServerData(data.assignment);
             this.user = models.makeUser(data.user);
         }, err => {
             this.error = err;

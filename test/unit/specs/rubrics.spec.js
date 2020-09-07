@@ -6,6 +6,7 @@ import { actions, mutations } from '@/store/modules/rubrics';
 import { NONEXISTENT, UNSET_SENTINEL } from '@/constants';
 import { Rubric, ContinuousRubricRow, NormalRubricRow, RubricRow, RubricResult } from '@/models/rubric';
 import { AutoTestResult } from '@/models/auto_test';
+import { CoursesStore, AssignmentsStore } from '@/store';
 
 describe('The rubric store', () => {
     let state;
@@ -20,18 +21,14 @@ describe('The rubric store', () => {
     }
 
     beforeAll(() => {
-        store.commit(`courses/${mutationTypes.SET_COURSES}`, [
-            [{
+        CoursesStore.addCourse({
+            course: {
                 id: 1,
                 assignments: [{
                     id: 1,
                 }],
-            }],
-            {},
-            {},
-            {},
-            {},
-        ]);
+            }
+        })
     });
 
     beforeEach(() => {
@@ -166,7 +163,8 @@ describe('The rubric store', () => {
                 state.rubrics[assignmentId].rows.forEach((row, i) => {
                     expect(row).toEqual(expect.objectContaining(mockRubric[i]));
                 });
-                expect(store.getters['courses/assignments'][assignmentId].fixed_max_rubric_points).toBe(maxPoints);
+                expect(AssignmentsStore.getAssignment()(assignmentId)).toBeJust();
+                expect(AssignmentsStore.getAssignment()(assignmentId).extract().fixed_max_rubric_points).toBe(maxPoints);
             });
         });
 

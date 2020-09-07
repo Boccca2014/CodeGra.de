@@ -17,7 +17,7 @@
                 for
                 <router-link :to="assignmentToLink"
                              @click.native.stop>
-                    "{{ notification.assignment.name }}"
+                    "{{ assignment.extract().name }}"
                 </router-link>
             </div>
 
@@ -68,7 +68,9 @@ import { Vue, Component, Prop, Watch } from 'vue-property-decorator';
 
 import * as models from '@/models';
 import { NotificationStore } from '@/store/modules/notification';
+import { AssignmentsStore } from '@/store/modules/assignments';
 import { SubmitButtonResult } from '@/interfaces';
+import { Maybe } from '@/utils';
 
 @Component({
     components: {
@@ -82,7 +84,7 @@ export default class UserNotification extends Vue {
         return this.notification.submission;
     }
 
-    get assignment(): models.Assignment | undefined {
+    get assignment(): Maybe<models.Assignment> {
         return this.notification.assignment;
     }
 
@@ -129,20 +131,25 @@ export default class UserNotification extends Vue {
     }
 
     get assignmentToLink() {
-        return {
-            name: 'assignment_submissions',
-            params: {
-                courseId: `${this.assignment?.courseId}`,
-                assignmentId: `${this.assignment?.id}`,
-            },
-            query: {},
-            hash: undefined,
-        };
+        return this.assignment.mapOrDefault(
+            assignment => ({
+                name: 'assignment_submissions',
+                params: {
+                    courseId: assignment.courseId,
+                    assignmentId: assignment.id,
+                },
+                query: {},
+                hash: undefined,
+            }),
+            undefined,
+        );
     }
 
     onVisible(isVisible: boolean) {
         if (this.loading && isVisible) {
-            this.$store.dispatch('courses/loadCourses');
+            AssignmentsStore.loadSingleAssignment({
+                assignmentId: this.notification.assignmentId,
+            });
             this.$store.dispatch('submissions/loadSingleSubmission', {
                 assignmentId: this.notification.assignmentId,
                 submissionId: this.notification.submissionId,

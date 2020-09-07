@@ -194,7 +194,7 @@
         </b-alert>
 
         <b-popover class="new-user-popover"
-                   :triggers="course.is_lti ? 'hover' : ''"
+                   :triggers="course.isLTI ? 'hover' : ''"
                    target="new-users-input-field">
             You cannot add users to a lti course.
         </b-popover>
@@ -205,14 +205,14 @@
                                placeholder="New student"
                                :use-selector="canListUsers && canSearchUsers"
                                :extra-params="{ exclude_course: course.id }"
-                               :disabled="course.is_lti"/>
+                               :disabled="course.isLTI"/>
 
                 <template slot="append">
                     <b-dropdown dropup
                                 class="role-dropdown"
                                 toggle-class="h-100 border"
                                 :text="newRole ? newRole.name : 'Role'"
-                                :disabled="course.is_lti">
+                                :disabled="course.isLTI">
                         <b-dropdown-header>Select the new role</b-dropdown-header>
                         <b-dropdown-item v-for="role in roles"
                                          v-on:click="() => {newRole = role; error = '';}"
@@ -224,7 +224,7 @@
                                    label="Add"
                                    :submit="addUser"
                                    @success="afterAddUser"
-                               :disabled="course.is_lti"/>
+                               :disabled="course.isLTI"/>
                 </template>
             </b-input-group>
         </b-form-fieldset>
@@ -364,16 +364,15 @@ export default {
             [
                 ,
                 ,
-                this.canListUsers,
                 this.canSearchUsers,
                 this.registrationLinks,
             ] = await Promise.all([
                 this.getAllUsers(),
                 this.getAllRoles(),
-                this.$hasPermission('can_list_course_users', this.courseId),
                 this.$hasPermission('can_search_users'),
                 this.getRegistrationLinks(),
             ]);
+            this.canListUsers = this.course.hasPermission('can_list_course_users');
 
             this.loading = false;
 

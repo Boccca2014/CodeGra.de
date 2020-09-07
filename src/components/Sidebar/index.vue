@@ -128,12 +128,12 @@
                 <hr class="separator"/>
 
                 <component :is="subMenu.component"
-                            v-show="!loading"
-                            :data="maybeCall(subMenu.data)"
-                            @loading="loading = true"
-                            @loaded="loading = false"
-                            @open-menu="openSubMenu"
-                            @close-menu="closeSubMenu(true)"/>
+                           v-show="subMenu.showWhenLoading || !loading"
+                           :data="maybeCall(subMenu.data)"
+                           @loading="loading = true"
+                           @loaded="loading = false"
+                           @open-menu="openSubMenu"
+                           @close-menu="closeSubMenu(true)"/>
             </div>
         </div>
     </div>
@@ -241,6 +241,7 @@ export default {
                     condition: () => this.loggedIn && !this.$inLTI,
                     reload: true,
                     animateAdd: true,
+                    showWhenLoading: true,
                 },
                 {
                     name: 'assignments',
@@ -250,22 +251,20 @@ export default {
                     condition: () => this.loggedIn && !this.$inLTI,
                     reload: true,
                     animateAdd: true,
+                    showWhenLoading: true,
                 },
                 {
                     name: 'ltiAssignments',
                     icon: 'edit',
                     title: 'Assignments',
-                    header: () => {
-                        const assig = this.assignments[this.$LTIAssignmentId];
-                        return assig ? assig.course.name : 'Assignments';
-                    },
+                    header: () => this.ltiAssignment.mapOrDefault(
+                        assig => assig.course.name,
+                        'Assignments',
+                    ),
                     component: 'assignment-list',
                     condition: () => this.canManageCurrentLtiAssignment,
                     reload: true,
-                    data: () => {
-                        const assig = this.assignments[this.$LTIAssignmentId];
-                        return assig ? { course: assig.course } : {};
-                    },
+                    data: () => this.ltiAssignment.extract(),
                     animateAdd: true,
                 },
                 {
@@ -278,7 +277,7 @@ export default {
                         UserConfig.features.groups &&
                         this.loggedIn &&
                         this.course &&
-                        this.course.group_sets.length > 0,
+                        this.course.groupSets.length > 0,
                     reload: true,
                     animateAdd: true,
                 },
@@ -313,7 +312,8 @@ export default {
     },
 
     computed: {
-        ...mapGetters('courses', ['courses', 'assignments']),
+        ...mapGetters('courses', ['getCourse']),
+        ...mapGetters('assignments', ['getAssignment']),
 
         ...mapGetters('user', ['loggedIn', 'name', 'dangerousJwtToken']),
         ...mapGetters('user', { globalPermissions: 'permissions' }),
@@ -324,32 +324,38 @@ export default {
             return MANAGE_SITE_PERIMSSIONS.some(x => this.globalPermissions[x]);
         },
 
+        ltiAssignment() {
+            return this.getAssignment(this.$LTIAssignmentId);
+        },
+
         canManageCurrentLtiAssignment() {
-            if (this.loggedIn && this.$inLTI && this.$LTIAssignmentId) {
-                const assig = this.assignments[this.$LTIAssignmentId];
-                if (assig) {
-                    return (
-                        assig.course.canManage || assig.course.assignments.some(a => a.canManage)
+            if (this.loggedIn && this.$inLTI) {
+                return this.ltiAssignment
+                    .mapOrDefault(
+                        assig => (
+                            assig.course.canManage ||
+                                assig.course.assignments.some(a => a.canManage)
+                        ),
+                        false,
                     );
-                }
             }
             return false;
         },
 
-        courseId() {
-            return Number(this.$route.params.courseId);
+        course() {
+            return this.getCourse(this.courseId).extractNullable();
         },
 
-        course() {
-            return this.courses[this.courseId] || null;
+        courseId() {
+            return this.$routeParamAsId('courseId');
         },
 
         assignmentId() {
-            return Number(this.$route.params.assignmentId);
+            return this.$routeParamAsId('assignmentId');
         },
 
         assignment() {
-            return (this.assignments || {})[this.assignmentId];
+            return this.getAssignment(this.assignment).extract();
         },
 
         floating() {
@@ -391,6 +397,27 @@ export default {
         subMenus() {
             this.$nextTick(this.fixAppMargin);
         },
+
+        assignmentId: {
+            immediate: true,
+            handler(newVal) {
+                if (newVal) {
+                    this.loadSingleAssignment({
+                        assignmentId: newVal,
+                        courseId: this.courseId,
+                    });
+                }
+            },
+        },
+
+        $LTIAssignmentId: {
+            immediate: true,
+            handler(newVal) {
+                if (newVal) {
+                    this.loadSingleAssignment({ assignmentId: newVal });
+                }
+            },
+        },
     },
 
     async mounted() {
@@ -404,6 +431,7 @@ export default {
             }
         });
 
+        await this.loadCurrentCourse();
         this.$on('sidebar::close', this.onCloseSidebarEvent);
         this.$root.$on('cg::sidebar::close', this.onCloseSidebarEvent);
 
@@ -416,6 +444,8 @@ export default {
     },
 
     methods: {
+        ...mapActions('assignments', ['loadSingleAssignment']),
+        ...mapActions('courses', ['loadSingleCourse']),
         ...mapActions('user', {
             logoutUser: 'logout',
         }),
@@ -595,6 +625,14 @@ export default {
             });
 
             window.open(newRoute.href, '_blank');
+        },
+
+        loadCurrentCourse() {
+            if (this.courseId == null) {
+                return Promise.resolve();
+            } else {
+                return this.loadSingleCourse({ courseId: this.courseId });
+            }
         },
     },
 

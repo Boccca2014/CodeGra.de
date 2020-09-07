@@ -273,7 +273,7 @@ import { mapActions, mapGetters } from 'vuex';
 // @ts-ignore
 import { Submission } from '@/models/submission';
 
-import { Snippet, CourseSnippet, UserSnippet } from '@/interfaces';
+import { Snippet, CourseSnippet } from '@/interfaces';
 
 import { FeedbackReply as FeedbackReplyModel, FeedbackLine, Assignment, User as UserModel } from '@/models';
 // @ts-ignore
@@ -431,7 +431,7 @@ Do you want to overwrite it?`;
 
     get courseSnippets(): CourseSnippet[] {
         return (this.assignment.course.snippets || []).map(
-            (s: UserSnippet) => Object.assign({}, s, { course: true }),
+            (s: CourseSnippet) => Object.assign({}, s, { course: true }),
         );
     }
 

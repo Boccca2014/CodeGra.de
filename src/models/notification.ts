@@ -4,9 +4,11 @@ import axios from 'axios';
 
 import { SubmitButtonResult } from '@/interfaces';
 
-import { store } from '@/store';
+import { store, AssignmentsStore } from '@/store';
 import { FeedbackReplyServerData, FeedbackReply } from '@/models/feedback';
 import { Assignment } from '@/models/assignment';
+import { Maybe } from '@/utils';
+
 import { Submission } from './submission';
 
 export type NotificationReason = 'author' | 'replied' | 'assignee';
@@ -65,8 +67,8 @@ export class CommentNotification {
         };
     }
 
-    get assignment(): Assignment | undefined {
-        return store.getters['courses/assignments'][this.assignmentId];
+    get assignment(): Maybe<Assignment> {
+        return AssignmentsStore.getAssignment()(this.assignmentId);
     }
 
     get submission(): Submission | undefined {

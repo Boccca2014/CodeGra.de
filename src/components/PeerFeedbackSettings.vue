@@ -141,11 +141,11 @@
 
 <script lang="ts">
 import { Vue, Component, Prop, Watch } from 'vue-property-decorator';
-import { mapActions } from 'vuex';
 
 import 'vue-awesome/icons/comments-o';
 
 import * as models from '@/models';
+import { AssignmentsStore } from '@/store';
 import { Either, Right, Maybe, Nothing } from '@/utils';
 
 import { NumberInputValue, numberInputValue } from './NumberInput';
@@ -169,9 +169,6 @@ function secondsToHours(secs?: number | null): NumberInputValue {
 }
 
 @Component({
-    methods: {
-        ...mapActions('courses', ['updateAssignment']),
-    },
     components: {
         Toggle,
     },
@@ -207,13 +204,8 @@ export default class PeerFeedbackSettings extends Vue {
         return days.chain(x => hours.map(y => x + y));
     }
 
-    updateAssignment!: (data: {
-        assignmentId: number,
-        assignmentProps: models.AssignmentUpdateableProps
-    }) => void;
-
     updatePeerFeedbackSettings(settings: models.AssignmentPeerFeedbackSettings | null): void {
-        this.updateAssignment({
+        AssignmentsStore.updateAssignment({
             assignmentId: this.assignment.id,
             assignmentProps: { peer_feedback_settings: settings },
         });

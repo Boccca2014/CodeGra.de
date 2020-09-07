@@ -121,9 +121,13 @@ def test_get_all_extended_courses(ta_user, test_client, logged_in, session):
     ],
     indirect=['named_user']
 )
+@pytest.mark.parametrize('via_assignment', [True, False])
+@pytest.mark.parametrize('extended', [True, False])
+@pytest.mark.parametrize('no_role', [True, False])
 def test_get_course_data(
     error_template, request, logged_in, test_client, named_user, course_name,
-    role, session, add_lti, canvas_lti1p1_provider
+    role, session, add_lti, canvas_lti1p1_provider, extended, via_assignment,
+    no_role
 ):
     perm_err = request.node.get_closest_marker('perm_error')
     if perm_err:
@@ -142,19 +146,45 @@ def test_get_course_data(
                 deployment_id='5',
             )
             session.commit()
+
+        result = {
+            'role': role,
+            'id': course_id,
+            'name': course_name,
+            'created_at': str,
+            'is_lti': add_lti,
+            'virtual': False,
+            'lti_provider': canvas_lti1p1_provider if add_lti else None,
+        }
+
+        if extended:
+            result.update({
+                'assignments': list,
+                'group_sets': [],
+                'snippets': [],
+            })
+
+        if via_assignment:
+            # Doesn't support this legacy
+            no_role = True
+            url = (
+                f'/api/v1/assignments/{course.assignments[0].id}/course'
+                f'?no_course_in_assignment=true&extended={extended}'
+            )
+        else:
+            url = (
+                f'/api/v1/courses/{course.id}?extended={extended}'
+                f'&no_course_in_assignment=true&no_role_name={no_role}'
+            )
+
+        if no_role:
+            del result['role']
+
         test_client.req(
             'get',
-            f'/api/v1/courses/{course.id}',
+            url,
             error or 200,
-            result=error_template if error else {
-                'role': role,
-                'id': course_id,
-                'name': course_name,
-                'created_at': str,
-                'is_lti': add_lti,
-                'virtual': False,
-                'lti_provider': canvas_lti1p1_provider if add_lti else None,
-            }
+            result=error_template if error else result
         )
 
 
@@ -196,6 +226,9 @@ def test_add_course(
                 'virtual': False,
                 'is_lti': False,
                 'lti_provider': None,
+                'assignments': [],
+                'snippets': [],
+                'group_sets': [],
             }
         )
 
@@ -1090,6 +1123,7 @@ def test_add_assignment(
                 'is_lti': False,
                 'lms_name': None,
                 'course': dict,
+                'course_id': course.id,
                 'state': 'hidden',
                 'deadline': None,
                 'description': str,
