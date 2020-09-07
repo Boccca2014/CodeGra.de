@@ -18,8 +18,8 @@
 
     <b-alert show v-if="showReleaseNote" variant="info">
         A new version of CodeGrade has been released:
-        <b>{{ UserConfig.release.version }}</b>.
-        {{ UserConfig.release.message }} You can check the entire
+        <b>{{ $userConfig.release.version }}</b>.
+        {{ $userConfig.release.message }} You can check the entire
         changelog <a href="https://docs.codegra.de/about/changelog.html"
                      target="_blank"
                      class="alert-link">here</a>.
@@ -154,7 +154,6 @@ export default {
     data() {
         return {
             loadingCourses: true,
-            UserConfig,
             amountCoursesToShow: EXTRA_COURSES_AMOUNT,
             searchString: this.$route.query.filter || '',
             renderingMoreCourses: 0,
@@ -190,9 +189,6 @@ export default {
         // Are there more courses available. If this is true we should show the
         // infinite loader.
         moreCoursesAvailable() {
-            if (this.courses.length < INITIAL_COURSES_AMOUNT) {
-                return false;
-            }
             if (!this.retrievedAllCourses) {
                 return true;
             }
@@ -295,6 +291,13 @@ export default {
         async showMoreCourses($state = null) {
             this.renderingMoreCourses += 1;
 
+            // This happens when you reload the courses using the sidebar, if we
+            // don't reset the amount to show we steadily increase the
+            // `amountCoursesToShow`, and at one point we will load all courses.
+            if (this.courses.length === 0) {
+                this.amountCoursesToShow = 0;
+            }
+
             const promises = [this.$afterRerender()];
             const nextToShow = this.amountCoursesToShow + EXTRA_COURSES_AMOUNT;
             if (nextToShow > INITIAL_COURSES_AMOUNT) {
@@ -303,6 +306,7 @@ export default {
 
             await Promise.all(promises);
             this.amountCoursesToShow += EXTRA_COURSES_AMOUNT;
+            await this.$nextTick();
             this.renderingMoreCourses -= 1;
 
             if ($state) {
