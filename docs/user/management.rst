@@ -14,13 +14,15 @@ still allows to click the :fa:`cog` button on the bottom right to show the manag
 Course Management
 -------------------
 On the first tab of the course management page, *General*, you can change the
-name of the course. The name should be at least one character. As the name of
-LTI courses is copied from the LMS, the name of LTI courses cannot be changed
-within CodeGrade. On this tab you can also archive a course. Archiving a course
-will hide it for students (or more precisely all users that do not have
-the "See archived courses" permission), and will sort it below all non archived
-courses. You can still import data from archived courses. Archiving can be
-reversed without data loss.
+name of the course. The name may not be empty. As the name of LTI courses is
+copied from the LMS, the name of LTI courses cannot be changed within
+CodeGrade.
+
+On this tab you can also archive a course. Archiving a course will hide it for
+students (or more precisely all users that do not have the "See archived
+courses" permission), and will sort it below all non archived courses.  You can
+still import data from archived courses. Archiving can be reversed without data
+loss.
 
 The second tab of the course management page, *Members*, displays a list of all
 users (students, teachers and other roles) that are *enrolled* in the
