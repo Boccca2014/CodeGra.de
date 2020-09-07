@@ -242,7 +242,7 @@ def test_sending_login_links(
                 assert link.startswith(external_url)
                 assert users_by_link[link] == student
 
-            assert not outbox_by_email, 'No extra mails should be send'
+            assert not outbox_by_email, 'No extra mails should be sent'
 
     with describe('can see link before available_at, but no login'
                   ), freeze_time(tomorrow - timedelta(hours=1)):
