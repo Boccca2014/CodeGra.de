@@ -200,7 +200,7 @@ context('Sidebar', () => {
                 .find('.course-wrapper')
                 .should('be.visible');
 
-            delayCoursesRoute().then(() => {
+            delayCoursesRoute(3000).then(() => {
                 // Reload from the courses submenu.
                 cy.get('.sidebar .sidebar-entry-courses')
                     .click();
