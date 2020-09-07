@@ -79,7 +79,7 @@ def get_plagiarism_run(
         ],
         also_error=lambda p: not p.assignment.is_visible
     )
-    auth.ensure_permission(CPerm.can_view_plagiarism, run.assignment.course_id)
+    auth.AssignmentPermissions(run.assignment).ensure_may_see_plagiarism()
 
     if helpers.extended_requested():
         helpers.add_deprecate_warning(
@@ -116,7 +116,7 @@ def get_plagiarism_run_cases(
         options=[],
         also_error=lambda p: not p.assignment.is_visible
     )
-    auth.ensure_permission(CPerm.can_view_plagiarism, run.assignment.course_id)
+    auth.AssignmentPermissions(run.assignment).ensure_may_see_plagiarism()
 
     sql = models.PlagiarismCase.query.filter_by(
         plagiarism_run_id=run.id
@@ -165,7 +165,13 @@ def get_plagiarism_case(
         models.PlagiarismCase.plagiarism_run_id == plagiarism_id,
         also_error=lambda c: c.work1.deleted or c.work2.deleted,
     )
-    auth.ensure_can_see_plagiarims_case(case)
+
+    checker = auth.PlagiarismCasePermissions(case)
+    auth.PermissionChecker.all(
+        checker.ensure_may_see,
+        checker.ensure_may_see_other_assignment,
+        checker.ensure_may_see_other_submission,
+    ).check()
 
     return extended_jsonify(
         case,

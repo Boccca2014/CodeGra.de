@@ -119,6 +119,25 @@ in the continuous rubric category.
    points for this level, in the continuous rubric category the student will
    receive :math:`5 \times \frac{7}{10} = 3.5` points.
 
+Running a teacher's revision
+----------------------------
+
+When the preferred revision is set to "Teacher", and a teacher's revision is
+available for a submission, AutoTest is run against the teacher revision
+instead of the code submitted by the student. If no teacher's revision is
+present AutoTest will be run against the code of the student.
+
+This can be useful if a student has made a tiny mistake in their code -- for
+example a misplaced punctuation mark -- that causes the majority of the tests
+to fail. The teacher can correct this mistake and run the tests again to see
+what the score of this student would have been if such a mistake weren't made.
+
+After the teacher has made their changes, the AutoTest should be manually
+restarted if it has already started or finished, to make it run against the
+teacher's revision. You can restart an AutoTest by going to a result, clicking
+on the arrow next to the state of the result, and selecting "Restart this
+result".
+
 Uploading fixtures
 --------------------
 

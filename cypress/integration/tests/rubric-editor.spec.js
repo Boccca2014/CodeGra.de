@@ -78,13 +78,13 @@ context('Rubric Editor', () => {
 
         it('should be an option when an assignment has no rubric', () => {
             cy.get('.rubric-editor')
-                .contains('.action-button', 'Create new rubric')
+                .contains('.wizard-button', 'Create new rubric')
                 .should('be.visible');
         });
 
         it('should show a back button when no categories have been created yet', () => {
             cy.get('.rubric-editor')
-                .contains('.action-button', 'Create new rubric')
+                .contains('.wizard-button', 'Create new rubric')
                 .click();
             cy.get('.rubric-editor')
                 .contains('.btn', 'Go back')
@@ -95,7 +95,7 @@ context('Rubric Editor', () => {
                 .contains('.btn', 'Go back')
                 .should('not.exist');
             cy.get('.rubric-editor')
-                .contains('.action-button', 'Discrete')
+                .contains('.wizard-button', 'Discrete')
                 .click();
             cy.get('.rubric-editor')
                 .find('.submit-button.delete-category')
@@ -108,13 +108,13 @@ context('Rubric Editor', () => {
                 .should('be.visible')
                 .click();
             cy.get('.rubric-editor')
-                .contains('.action-button', 'Create new rubric')
+                .contains('.wizard-button', 'Create new rubric')
                 .should('be.visible');
         });
 
         it('should create an empty rubric', () => {
             cy.get('.rubric-editor')
-                .contains('.action-button', 'Create new rubric')
+                .contains('.wizard-button', 'Create new rubric')
                 .click();
 
             cy.get('.rubric-editor .nav-tabs .nav-item')
@@ -129,7 +129,7 @@ context('Rubric Editor', () => {
 
         it('should not be possible to submit an empty rubric', () => {
             cy.get('.rubric-editor')
-                .contains('.action-button', 'Create new rubric')
+                .contains('.wizard-button', 'Create new rubric')
                 .click();
 
             cy.get('.rubric-editor .submit-button.submit-rubric')
@@ -171,19 +171,19 @@ context('Rubric Editor', () => {
 
         it('should be an option when an assignment has no rubric', () => {
             cy.get('.rubric-editor')
-                .contains('.action-button', 'Copy a rubric')
+                .contains('.wizard-button', 'Copy a rubric')
                 .should('be.visible');
         });
 
         it('should show a back button after clicking the copy button', () => {
             cy.get('.rubric-editor')
-                .contains('.action-button', 'Copy a rubric')
+                .contains('.wizard-button', 'Copy a rubric')
                 .click();
             cy.get('.rubric-editor')
                 .contains('.btn', 'Go back')
                 .click();
             cy.get('.rubric-editor')
-                .contains('.action-button', 'Copy a rubric')
+                .contains('.wizard-button', 'Copy a rubric')
                 .should('be.visible');
         });
 
@@ -193,7 +193,7 @@ context('Rubric Editor', () => {
             loadPage(true);
 
             cy.get('.rubric-editor')
-                .contains('.action-button', 'Copy a rubric')
+                .contains('.wizard-button', 'Copy a rubric')
                 .click()
             cy.get('.rubric-editor')
                 .find('.assignment-selector')
@@ -233,7 +233,7 @@ context('Rubric Editor', () => {
             loadPage(true);
 
             cy.get('.rubric-editor')
-                .contains('.action-button', 'Copy a rubric')
+                .contains('.wizard-button', 'Copy a rubric')
                 .click()
             cy.get('.rubric-editor')
                 .find('.assignment-selector')
@@ -274,7 +274,7 @@ context('Rubric Editor', () => {
             addRow();
 
             cy.get('.rubric-editor')
-                .contains('.action-button', 'Discrete')
+                .contains('.wizard-button', 'Discrete')
                 .click();
 
             if (header != null) {
@@ -292,7 +292,7 @@ context('Rubric Editor', () => {
             addRow();
 
             cy.get('.rubric-editor')
-                .contains('.action-button', 'Continuous')
+                .contains('.wizard-button', 'Continuous')
                 .click();
 
             if (header != null) {
@@ -660,7 +660,7 @@ context('Rubric Editor', () => {
                     confirmInModal: true,
                     waitForDefault: false,
                 });
-            cy.get('.rubric-editor .action-button')
+            cy.get('.rubric-editor .wizard-button')
                 .should('be.visible');
         });
 

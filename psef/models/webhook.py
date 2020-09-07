@@ -342,12 +342,12 @@ class _GitWebhook(WebhookBase):
             # If one user of the group can hand-in submissions we continue,
             # otherwise we raise the last exception.
             try:
-                auth.ensure_can_submit_work(
-                    self.assignment,
-                    author=self.user,
-                    for_user=user,
-                    current_user=user,
-                )
+                with auth.as_current_user(user):
+                    auth.ensure_can_submit_work(
+                        self.assignment,
+                        author=self.user,
+                        for_user=user,
+                    )
             except exceptions.PermissionException as e:
                 logger.info('User cannot submit work', exc_info=True)
                 exc = e

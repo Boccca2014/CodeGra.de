@@ -145,6 +145,6 @@ preliminarily with Continuous Feedback.
 Contact us and support
 ========================
 If you have any questions, don’t hesitate to contact us. You can email us at
-`support@codegra.de <mailto:support@codegra.de>`_. In addition to questions and bug reports,
-we always love to get feedback and suggestions on how we can improve
-CodeGrade to better fit your education.
+`support@codegrade.com <mailto:support@codegrade.com>`_. In addition to
+questions and bug reports, we always love to get feedback and suggestions on
+how we can improve CodeGrade to better fit your education.

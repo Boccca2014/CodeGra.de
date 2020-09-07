@@ -75,9 +75,8 @@ context('Peer feedback', () => {
             cy.wait(2000);
             cy.get('.page.submissions')
                 .should('be.visible')
-                .contains('.action-button', 'Peer feedback')
-                .find('.content-wrapper')
-                .should('have.class', 'disabled');
+                .contains('.wizard-button', 'Peer feedback')
+                .should('be.disabled');
         });
 
         it('should show who the logged in user must give feedback to', () => {
@@ -87,7 +86,7 @@ context('Peer feedback', () => {
             // Go to peer feedback overview.
             cy.get('.page.submissions')
                 .should('be.visible')
-                .contains('.action-button', 'Peer feedback')
+                .contains('.wizard-button', 'Peer feedback')
                 .click();
 
             // Make sure we're connected to the only other student with
@@ -327,7 +326,7 @@ context('Peer feedback', () => {
 
             cy.get('.page.submissions')
                 .should('be.visible')
-                .contains('.action-button', 'Latest submission')
+                .contains('.wizard-button', 'Latest submission')
                 .click();
             cy.get('.page.submission')
                 .should('be.visible');

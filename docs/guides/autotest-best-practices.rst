@@ -4,7 +4,7 @@ Best Practices for AutoTest
 This is a list of common questions and best practices for CodeGrade AutoTest.
 This is by no means a complete list, if you have any other questions, please
 consult the :ref:`AutoTest User Documenation <autotest-overview>` or the
-CodeGrade Support Team at `support@codegra.de <mailto:support@codegra.de>`_.
+CodeGrade Support Team at `support@codegrade.com <mailto:support@codegrade.com>`_.
 
 When to use hidden steps?
 ---------------------------
@@ -164,7 +164,7 @@ to capture the score of the unit tests.
 
 For common unit testing frameworks, we already have written frameworks to
 easily and seamlessly use them in CodeGrade, please contact us at
-`support@codegra.de <mailto:support@codegra.de>`_ for details.
+`support@codegrade.com <mailto:support@codegrade.com>`_ for details.
 
 How to integrate existing grading scripts?
 --------------------------------------------
@@ -177,7 +177,7 @@ script and capture the score.
 .. note::
     If you need any help converting your existing grading scripts to CodeGrade
     grading scripts, feel free to contact us at
-    `support@codegra.de <mailto:support@codegra.de>`_.
+    `support@codegrade.com <mailto:support@codegrade.com>`_.
 
 .. warning::
     It is important to note that rubric calculation and capture points might be a bit
@@ -246,6 +246,8 @@ files are not saved, but they will be when you write them to the ``$AT_OUTPUT``
 directory. The files will then be accessible through the "Autotest output"
 section of the file browser in the Code Viewer.
 
+.. _best-practices-submission-metadata:
+
 How to access submission metadata from the tests
 --------------------------------------------------
 
@@ -260,14 +262,18 @@ When you have done this, all steps in the current category will have an extra
 environment variable named ``$CG_INFO`` defined. This variable contains a JSON
 object with the following keys:
 
-* ``deadline`` The deadline of this assignment.
-* ``submitted_at`` The date and time the student submitted their work.
-* ``result_id`` An identifier unique to this AutoTest result. This value changes
+- ``deadline`` The deadline of this assignment.
+- ``submitted_at`` The date and time the student submitted their work.
+- ``result_id`` An identifier unique to this AutoTest result. This value changes
   every time the AutoTest is run, even if it is run multiple times for the same
   submission of the same student.
-* ``student_id`` An identifier unique to the student for which the AutoTest is
+- ``student_id`` An identifier unique to the student for which the AutoTest is
   run. This value stays constant between runs of different submissions by the
   same student.
+
+If you think it would be useful to have some extra data available, please do
+not hesitate to contact us at `support@codegrade.com
+<mailto:support@codegrade.com>`__ so we can discuss the options.
 
 .. example:: subtracting points for late submissions
 

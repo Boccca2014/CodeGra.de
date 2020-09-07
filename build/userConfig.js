@@ -9,6 +9,10 @@ function resolve (dir) {
   return path.join(__dirname, '..', dir)
 }
 
+const minutes = amount => 60 * amount;
+const hours = amount => minutes(60 * amount);
+const days = amount => hours(24 * amount);
+
 function filterKeys(obj, ...keys) {
     return keys.reduce(
         (acc, key) => {
@@ -97,6 +101,7 @@ config.features = Object.assign({
     groups: false,
     email_students: false,
     peer_feedback: false,
+    course_register: false,
 }, userConfig.Features);
 
 config.autoTest = {
@@ -112,6 +117,21 @@ const backendOpts = userConfig['Back-end'];
 config.proxyBaseDomain = backendOpts ? backendOpts.proxy_base_domain : '';
 config.isProduction = process.env.NODE_ENV === 'production';
 config.externalUrl = backendOpts ? backendOpts.external_url : '';
+
+const beforeTime = backendOpts ? backendOpts.login_token_before_time : null;
+if (beforeTime == null) {
+    // Same as in ``config.py``
+    config.loginTokenBeforeTime = [days(2), minutes(30)]
+} else {
+    config.loginTokenBeforeTime = beforeTime.split(',').map(item => parseFloat(item.trim()))
+}
+
+const examLoginMaxLength = backendOpts ? backendOpts.exam_login_max_length : null;
+if (examLoginMaxLength) {
+    config.examLoginMaxLength = parseInt(examLoginMaxLength);
+} else {
+    config.examLoginMaxLength = hours(12);
+}
 
 if (!config.proxyBaseDomain && config.isProduction) {
     throw new Error('Production can only be used with a proxy url.');

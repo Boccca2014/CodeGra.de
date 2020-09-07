@@ -12,14 +12,14 @@
 
         <tbody :class="{ 'disabled-table': tableDisabled }"
                v-b-popover.top.hover="textDisabledPopover">
-            <tr v-for="grader, i in graders"
+            <tr v-for="grader in graders"
                 :class="{ 'text-muted': tableDisabled }"
                 class="grader">
                 <td class="name shrink">
-                    <b-form-checkbox @change="graderChanged(i)"
+                    <b-form-checkbox @change="graderChanged(grader.userId)"
                                      :disabled="tableDisabled"
-                                     :checked="grader.weight != 0">
-                        <user :user="grader"/>
+                                     :checked="graderWeights[grader.userId] != 0">
+                        <user :user="grader.user"/>
                     </b-form-checkbox>
                 </td>
                 <td class="weight p-0 align-bottom">
@@ -30,11 +30,12 @@
                            min="0"
                            step="any"
                            ref="inputField"
+                           :data-user-id="grader.userId"
                            @keydown.ctrl.enter="$refs.submitButton.onClick"
-                           v-model.number="grader.weight"/>
+                           v-model.number="graderWeights[grader.userId]"/>
                 </td>
                 <td class="percentage shrink">
-                    {{ (100 * grader.weight / totalWeight).toFixed(1) }}%
+                    {{ (100 * graderWeights[grader.userId] / totalWeight).toFixed(1) }}%
                 </td>
             </tr>
         </tbody>
@@ -117,10 +118,18 @@ export default {
     data() {
         return {
             importAssignment: null,
+            graderWeights: {},
         };
     },
 
     watch: {
+        graders: {
+            immediate: true,
+            handler() {
+                this.graderWeights = this.resetGraderWeights();
+            },
+        },
+
         currentDivisionParent(newVal) {
             if (newVal != null && this.importAssignment != null) {
                 this.importAssignment = {
@@ -179,11 +188,11 @@ export default {
         },
 
         totalWeight() {
-            const graderWeight = this.graders.reduce(
-                (tot, grader) => tot + (grader.weight || 0),
+            const graderWeight = Object.values(this.graderWeights).reduce(
+                (acc, w) => acc + (w || 0),
                 0,
             );
-            return Math.max(graderWeight, 1);
+            return graderWeight === 0 ? 1 : graderWeight;
         },
 
         otherAssignments() {
@@ -207,10 +216,21 @@ export default {
             return this.assignments[this.assignments[assig.id].division_parent_id];
         },
 
-        graderChanged(i) {
-            this.graders[i].weight = this.graders[i].weight ? 0 : 1;
-            const field = this.$refs.inputField[i];
-            field.focus();
+        graderChanged(userId) {
+            this.graderWeights[userId] = this.graderWeights[userId] ? 0 : 1;
+            const field = this.$refs.inputField.find(f =>
+                f.getAttribute('data-user-id') === `${userId}`,
+            );
+            if (field != null) {
+                field.focus();
+            }
+        },
+
+        resetGraderWeights() {
+            return this.$utils.mapToObject(
+                this.graders,
+                grader => [grader.userId, grader.weight],
+            );
         },
 
         divideSubmissions() {
@@ -222,7 +242,8 @@ export default {
                     },
                 );
             } else {
-                const negativeWeights = Object.values(this.graders).filter(x => x.weight < 0);
+                const negativeWeights = Object.values(this.graders)
+                    .filter(x => this.graderWeights[x.userId] < 0);
 
                 if (negativeWeights.length) {
                     const names = negativeWeights.map(x => x.name).join(', ');
@@ -249,9 +270,9 @@ export default {
                 return req.then(() =>
                     this.$http.patch(`/api/v1/assignments/${this.assignment.id}/divide`, {
                         graders: Object.values(this.graders)
-                            .filter(x => x.weight !== 0)
+                            .filter(x => this.graderWeights[x.userId] !== 0)
                             .reduce((res, g) => {
-                                res[`${g.id}`] = g.weight;
+                                res[`${g.userId}`] = this.graderWeights[g.userId];
                                 return res;
                             }, {}),
                     }),

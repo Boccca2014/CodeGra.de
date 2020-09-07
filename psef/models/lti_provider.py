@@ -15,7 +15,6 @@ import structlog
 import sqlalchemy
 import jwcrypto.jwk
 import pylti1p3.grade
-import flask_jwt_extended as flask_jwt
 import pylti1p3.exception
 import pylti1p3.names_roles
 import pylti1p3.service_connector
@@ -175,7 +174,9 @@ class LTIProviderBase(Base, TimestampMixin):
             assignment_models.Assignment.is_visible,
         )
         if lock:
-            query = query.with_for_update(read=True)
+            query = query.with_for_update(
+                read=True, of=assignment_models.Assignment
+            )
 
         assig = query.one_or_none()
 
@@ -895,6 +896,8 @@ class LTI1p3Provider(LTIProviderBase):
                 assignment_models.Assignment.lti_assignment_id == lti_assid_id,
                 assignment_models.Assignment.lti_assignment_id.isnot(None),
                 assignment_models.Assignment.is_lti,
+            ).with_for_update(
+                read=True, of=assignment_models.Assignment
             ).one_or_none()
 
         found_assig = find(resource_id)
@@ -1577,10 +1580,7 @@ class UserLTIProvider(Base, TimestampMixin):
         )
         db.session.flush()
 
-        token = flask_jwt.create_access_token(
-            identity=user.id,
-            fresh=True,
-        )
+        token = user.make_access_token()
         return user, token
 
     @classmethod
@@ -1684,10 +1684,7 @@ class UserLTIProvider(Base, TimestampMixin):
                     lti_user=lti_user
                 )
             # LTI users are used before the current logged user.
-            token = flask_jwt.create_access_token(
-                identity=lti_user.id,
-                fresh=True,
-            )
+            token = lti_user.make_access_token()
             user = lti_user
         elif is_logged_in and not cls.user_is_linked(current_user):
             # TODO show some sort of screen if this linking is wanted

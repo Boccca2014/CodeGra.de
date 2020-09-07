@@ -60,6 +60,7 @@ import Toggle from './components/Toggle';
 import Collapse from './components/Collapse';
 import NumberInput from './components/NumberInput';
 import WizardWrapper from './components/WizardWrapper';
+import WizardButton from './components/WizardButton';
 /* eslint-enable import/first */
 
 Vue.component('cg-relative-time', RelativeTime);
@@ -74,6 +75,7 @@ Vue.component('cg-toggle', Toggle);
 Vue.component('cg-collapse', Collapse);
 Vue.component('cg-number-input', NumberInput);
 Vue.component('cg-wizard-wrapper', WizardWrapper);
+Vue.component('cg-wizard-button', WizardButton);
 
 Vue.use(BootstrapVue);
 Vue.use(VueMasonry);
@@ -106,6 +108,14 @@ moment.updateLocale('en', {
         MM: '%d months',
         y: 'a year',
         yy: '%d years',
+    },
+    calendar: {
+        lastDay: '[yesterday at] LT',
+        sameDay: '[today at] LT',
+        nextDay: '[tomorrow at] LT',
+        lastWeek: '[last] dddd [at] LT',
+        nextWeek: 'dddd [at] LT',
+        sameElse: 'YYYY-MM-DD HH:mm',
     },
 });
 

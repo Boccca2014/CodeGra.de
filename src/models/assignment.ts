@@ -9,13 +9,21 @@ import { Rubric } from '@/models';
 
 // @ts-ignore
 import { store } from '@/store';
+
 import { NONEXISTENT } from '@/constants';
 import * as utils from '@/utils/typed';
+import { LTIProvider } from '@/lti_providers';
 
 import * as assignmentState from '@/store/assignment-states';
-import { NormalUserServerData, AnyUser, User } from './user';
+import { AnyUser, User } from './user';
 
 const noop = (_: object): void => undefined as void;
+
+export enum AssignmentKind {
+    normal = 'normal',
+
+    exam = 'exam',
+}
 
 /* eslint-disable camelcase */
 interface AssignmentServerProps {
@@ -41,11 +49,14 @@ interface AssignmentServerProps {
     lms_name: string | null;
     analytics_workspace_ids: number[];
     peer_feedback_settings: AssignmentPeerFeedbackSettings;
+    kind: AssignmentKind;
+    send_login_links: boolean;
 
-    deadline: string;
+    deadline: string | null;
     created_at: string;
     reminder_time: string | null;
     cool_off_period: string;
+    available_at: string | null;
 }
 
 export interface AssignmentUpdateableProps {
@@ -67,13 +78,15 @@ export interface AssignmentUpdateableProps {
     webhook_upload_enabled?: boolean;
     max_submissions?: number | null;
     amount_in_cool_off_period?: number;
+    kind?: AssignmentKind;
+    send_login_links?: boolean;
 
     // Special properties that also may be set.
     reminderTime?: moment.Moment;
     deadline?: moment.Moment;
-    graders?: NormalUserServerData[] | null;
     cool_off_period?: number;
     peer_feedback_settings?: AssignmentPeerFeedbackSettings | null;
+    availableAt?: moment.Moment | null;
 }
 
 const ALLOWED_UPDATE_PROPS = new Set(keys<AssignmentUpdateableProps>());
@@ -142,6 +155,8 @@ abstract class AssignmentData {
 
     readonly createdAt!: moment.Moment;
 
+    readonly availableAt!: moment.Moment | null;
+
     readonly reminderTime!: moment.Moment;
 
     readonly graderIds?: number[] | null;
@@ -149,6 +164,10 @@ abstract class AssignmentData {
     readonly analytics_workspace_ids!: number[];
 
     readonly peer_feedback_settings!: AssignmentPeerFeedbackSettings;
+
+    readonly kind!: AssignmentKind;
+
+    readonly send_login_links!: boolean;
 }
 /* eslint-enable camelcase */
 
@@ -165,6 +184,7 @@ export class Assignment extends AssignmentData {
                 case 'deadline':
                 case 'created_at':
                 case 'reminder_time':
+                case 'available_at':
                 case 'cool_off_period': {
                     break;
                 }
@@ -182,8 +202,13 @@ export class Assignment extends AssignmentData {
         props.courseId = courseId;
         props.canManage = canManage;
 
-        props.deadline = moment.utc(serverData.deadline, moment.ISO_8601);
+        props.deadline = moment.utc(serverData.deadline ?? 'INVALID', moment.ISO_8601);
         props.createdAt = moment.utc(serverData.created_at, moment.ISO_8601);
+        if (serverData.available_at != null) {
+            props.availableAt = moment.utc(serverData.available_at, moment.ISO_8601);
+        } else {
+            props.availableAt = null;
+        }
 
         props.reminderTime = moment.utc(serverData.reminder_time as string, moment.ISO_8601);
 
@@ -194,6 +219,14 @@ export class Assignment extends AssignmentData {
 
     get course(): Record<string, any> {
         return store.getters['courses/courses'][this.courseId];
+    }
+
+    get ltiProvider(): utils.Maybe<LTIProvider> {
+        const course = this.course;
+        if (course == null || !this.is_lti) {
+            return utils.Nothing;
+        }
+        return utils.Maybe.fromNullable(this.course.ltiProvider);
     }
 
     getReminderTimeOrDefault(): moment.Moment {
@@ -279,7 +312,7 @@ export class Assignment extends AssignmentData {
         }
 
         if (!this.hasPermission(CPerm.canUploadAfterDeadline) && this.deadlinePassed(now)) {
-            res.push("the assignment's deadline has passed");
+            res.push("the assignment's deadline has already passed");
         }
 
         return res;
@@ -359,23 +392,7 @@ export class Assignment extends AssignmentData {
                         throw TypeError(`Cannot set assignment property: ${key} to ${value}`);
                     }
 
-                    if (key === 'graders') {
-                        const value = newProps[key];
-                        if (value == null) {
-                            acc.graderIds = null;
-                        } else {
-                            value.forEach(grader =>
-                                store.dispatch(
-                                    'users/addOrUpdateUser',
-                                    {
-                                        user: grader,
-                                    },
-                                    { root: true },
-                                ),
-                            );
-                            acc.graderIds = value.map(g => g.id);
-                        }
-                    } else if (key === 'deadline' || key === 'reminderTime') {
+                    if (key === 'deadline' || key === 'reminderTime') {
                         const value = newProps[key];
                         if (!moment.isMoment(value)) {
                             throw new Error(`${key} can only be set as moment`);
@@ -384,6 +401,12 @@ export class Assignment extends AssignmentData {
                     } else if (key === 'cool_off_period') {
                         const value = newProps[key];
                         acc.coolOffPeriod = moment.duration(value, 'seconds');
+                    } else if (key === 'availableAt') {
+                        const value = newProps[key];
+                        if (!(value === null || moment.isMoment(value))) {
+                            throw new Error(`${key} can only be set as moment or null`);
+                        }
+                        acc[key] = value;
                     } else {
                         // @ts-ignore
                         const value: any = newProps[key];
@@ -395,5 +418,63 @@ export class Assignment extends AssignmentData {
                 }, {} as Mutable<AssignmentData, keyof AssignmentData>),
             ),
         );
+    }
+}
+
+export class AssignmentCapabilities {
+    constructor(private assignment: Assignment) {}
+
+    get canEditState() {
+        return this.canEditInfo;
+    }
+
+    get canEditInfo() {
+        return this.assignment.hasPermission(CPerm.canEditAssignmentInfo);
+    }
+
+    get canEditName() {
+        return this.canEditInfo && !this.assignment.is_lti;
+    }
+
+    get canEditDeadline() {
+        return (
+            this.canEditInfo &&
+            this.assignment.ltiProvider.mapOrDefault(prov => !prov.supportsDeadline, true)
+        );
+    }
+
+    get canEditAvailableAt() {
+        return (
+            this.canEditInfo &&
+            this.assignment.ltiProvider.mapOrDefault(prov => !prov.supportsStateManagement, true)
+        );
+    }
+
+    get canEditMaxGrade() {
+        return (
+            this.assignment.hasPermission(CPerm.canEditMaximumGrade) &&
+            this.assignment.ltiProvider.mapOrDefault(prov => prov.supportsBonusPoints, true)
+        );
+    }
+
+    get canEditSomeGeneralSettings() {
+        return (
+            this.canEditName ||
+            this.canEditDeadline ||
+            this.canEditAvailableAt ||
+            this.canEditMaxGrade
+        );
+    }
+
+    get canEditSubmissionSettings() {
+        return this.canEditInfo;
+    }
+
+    get canUpdateGraderStatus() {
+        return this.assignment.hasPermission(CPerm.canGradeWork) || this.canUpdateOtherGraderStatus;
+    }
+
+    get canUpdateOtherGraderStatus() {
+        return this.assignment.hasPermission(CPerm.canUpdateGraderStatus);
     }
 }

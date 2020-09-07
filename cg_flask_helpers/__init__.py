@@ -9,8 +9,6 @@ import flask
 import celery
 import structlog
 
-from cg_celery import TaskStatus
-
 logger = structlog.get_logger()
 T = t.TypeVar('T')  # pylint: disable=invalid-name
 
@@ -25,13 +23,8 @@ def callback_after_this_request(
         the response as argument, so this function wraps your given callback.
     """
     if celery.current_task:
-
-        @celery.current_app.after_this_task
-        def after_task(res: TaskStatus) -> None:
-            if res == TaskStatus.success:
-                fun()
-
-        return after_task
+        celery.current_task.add_after_task_callback(fun)
+        return lambda x: x
 
     elif flask.has_request_context():
 
