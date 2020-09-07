@@ -232,11 +232,17 @@ def test_jplag(
             query={'no_course_in_assignment': True},
             data=data,
             result=None if code >= 400 else {
-                'id': int, 'state': str, 'provider_name': str, 'config': list,
-                'created_at': str, 'assignment': dict, 'submissions_done': 0,
-                'submissions_total': int, 'log': None, 'assignments': {
-                    str(assignment.id): dict
-                }, 'courses': {str(assignment.course_id): dict}
+                'id': int,
+                'state': str,
+                'provider_name': str,
+                'config': list,
+                'created_at': str,
+                'assignment': dict,
+                'submissions_done': 0,
+                'submissions_total': int,
+                'log': None,
+                'assignments': {str(assignment.id): dict},
+                'courses': {str(assignment.course_id): dict},
             }
         )
         if code >= 400:
