@@ -59,6 +59,10 @@ done
 
 sleep 30
 
+while ! ( curl http://localhost:8080/app.js | head -c 100 | grep '{' ); do
+    sleep 1;
+done
+
 FILES=$(python - <<PYTHON
 import os
 import sys
