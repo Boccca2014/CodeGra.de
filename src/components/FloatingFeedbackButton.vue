@@ -38,7 +38,7 @@
                 ref="feedbackArea"
                 :feedback="feedback"
                 :total-amount-lines="1"
-                :forceSnippetsAbove="forceSnippetsAbove"
+                :force-snippets-above="forceSnippetsAbove"
                 :can-use-snippets="canUseSnippets"
                 :submission="submission" />
         </div>
@@ -269,7 +269,6 @@ export default {
 .feedback-area-wrapper {
     height: 100%;
     width: 100%;
-    overflow-y: auto;
 }
 
 .feedback-button.btn {

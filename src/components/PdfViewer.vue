@@ -17,6 +17,7 @@
     always-show-button
     :visible-without-hover="$root.isEdge"
     add-space
+    force-snippets-above
     button-position="bottom-right">
     <template v-slot:default="slotProps">
         <div class="p-relative d-flex flex-grow flex-column h-100">
@@ -209,5 +210,9 @@ object {
 
 .pdf-viewer.floating-feedback-button .feedback-area-wrapper {
     flex: unset;
+}
+
+.pdf-viewer .Pane {
+    overflow: visible;
 }
 </style>

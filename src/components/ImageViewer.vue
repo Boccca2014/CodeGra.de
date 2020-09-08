@@ -149,4 +149,8 @@ export default {
     min-height: 5rem;
     text-align: center;
 }
+
+.image-viewer .Pane {
+    overflow: visible;
+}
 </style>
