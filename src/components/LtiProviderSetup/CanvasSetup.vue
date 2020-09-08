@@ -218,7 +218,7 @@ export default class CanvasSetup extends Vue {
 
         const url = new URL(base);
         if (url.origin !== base) {
-            return `It looks like the url is contains more than just a
+            return `It looks like the url contains more than just a
 host. This is very likely to be incorrect, so instead of "${base}" it should
 probably be "${url.origin}".`;
         } else if (url.protocol !== 'https:') {
