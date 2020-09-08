@@ -4,6 +4,7 @@ import * as models from '@/models';
 import * as tsx from 'vue-tsx-support';
 import { CoursesStore } from '@/store';
 import { emptyVNode } from '@/utils';
+import { Variant, isVariant } from '@/types';
 import p from 'vue-strict-prop';
 
 const maybeMakeBadge = (h: CreateElement, course: models.Course, variant: string) => {
@@ -26,7 +27,7 @@ const CourseName = tsx.component({
     props: {
         course: p(models.Course).required,
         bold: p(Boolean).default(false),
-        badgeVariant: p(String).default('primary'),
+        badgeVariant: p.ofType<Variant>().default('primary'),
     },
 
     render(h, { props }): VNode {

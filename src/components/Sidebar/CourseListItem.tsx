@@ -5,6 +5,7 @@ import * as models from '@/models';
 import * as tsx from 'vue-tsx-support';
 import p from 'vue-strict-prop';
 import { store } from '@/store';
+import { Variant } from '@/types';
 import CourseName from '@/components/CourseName';
 
 // @ts-ignore
@@ -61,7 +62,7 @@ export default tsx.component({
             'color': 'inherit',
         };
 
-        let badgeVariant;
+        let badgeVariant: Variant;
         if (store.getters['pref/darkMode']) {
             badgeVariant = selected ? 'dark' : 'light';
         } else {
