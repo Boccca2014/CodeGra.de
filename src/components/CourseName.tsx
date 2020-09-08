@@ -6,7 +6,7 @@ import { CoursesStore } from '@/store';
 import { emptyVNode } from '@/utils';
 import p from 'vue-strict-prop';
 
-const maybeMakeBadge = (h: CreateElement, course: models.Course) => {
+const maybeMakeBadge = (h: CreateElement, course: models.Course, variant: string) => {
     const state = course.state;
     const cls = "text-small-uppercase align-middle ml-2";
 
@@ -14,9 +14,9 @@ const maybeMakeBadge = (h: CreateElement, course: models.Course) => {
         case models.CourseState.visible:
             return emptyVNode();
         case models.CourseState.archived:
-            return <b-badge class={cls} variant="primary">archived</b-badge>;
+            return <b-badge class={cls} variant={variant}>archived</b-badge>;
         case models.CourseState.deleted:
-            return <b-badge class={cls} variant="primary">deleted</b-badge>;
+            return <b-badge class={cls} variant={variant}>deleted</b-badge>;
     }
 };
 
@@ -26,10 +26,11 @@ const CourseName = tsx.component({
     props: {
         course: p(models.Course).required,
         bold: p(Boolean).default(false),
+        badgeVariant: p(String).default('primary'),
     },
 
     render(h, { props }): VNode {
-        const { course, bold } = props;
+        const { course, bold, badgeVariant } = props;
 
         const counts = CoursesStore.getCourseCounts()(course);
         // XXX: This has a problem: we don't load all courses at once, so we
@@ -44,7 +45,7 @@ const CourseName = tsx.component({
             extra = ` (${course.createdAt.format('YYYY')})`;
         }
 
-        const badge = maybeMakeBadge(h, course);
+        const badge = maybeMakeBadge(h, course, badgeVariant);
         const title = `${course.name}${extra ?? ''}${course.isArchived ? ' [archived]' : ''}`;
 
         return <span title={title} class="course-name">
