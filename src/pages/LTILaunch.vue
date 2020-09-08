@@ -255,7 +255,7 @@ export default {
             return this.$router.replace({
                 name: 'assignment_submissions',
                 params: {
-                    courseId: data.assignment.course.id,
+                    courseId: data.course.id,
                     assignmentId: data.assignment.id,
                 },
             });
