@@ -27,7 +27,7 @@ const CourseName = tsx.component({
     props: {
         course: p(models.Course).required,
         bold: p(Boolean).default(false),
-        badgeVariant: p.ofType<Variant>().default('primary'),
+        badgeVariant: p.ofType<Variant>().validator(isVariant).default('primary'),
     },
 
     render(h, { props }): VNode {
