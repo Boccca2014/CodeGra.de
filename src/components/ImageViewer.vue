@@ -14,7 +14,8 @@
     slot-description="image"
     snippet-field-above
     always-show-button
-    add-space>
+    add-space
+    force-snippets-above>
     <img :src="imgURL"
          class="img"
          :title="name"
