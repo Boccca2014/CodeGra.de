@@ -16,8 +16,8 @@
             </li>
             <li>
                 <course-list-item :course="currentCourse"
+                                  :route-name="$route.name"
                                   :current-id="currentCourse.id"
-                                  :extra-course-data="courseExtraDataToDisplay[currentCourse.id]"
                                   @open-menu="$emit('open-menu', $event)"/>
             </li>
             <li>
@@ -30,9 +30,9 @@
         <template v-else>
             <course-list-item v-for="course in filteredCourses.slice(0, visibleCourses)"
                               :key="`sorted-course-${course.id}`"
+                              :route-name="$route.name"
                               :course="course"
                               :current-id="currentCourse && currentCourse.id"
-                              :extra-course-data="courseExtraDataToDisplay[course.id]"
                               @open-menu="$emit('open-menu', $event)"/>
 
             <li class="d-flex mx-2 my-1" v-if="moreCoursesAvailable">
@@ -91,7 +91,6 @@ import 'vue-awesome/icons/plus';
 
 import InfiniteLoading from 'vue-infinite-loading';
 
-import { Counter } from '@/utils/counter';
 import { INITIAL_COURSES_AMOUNT } from '@/constants';
 
 import SubmitInput from '../SubmitInput';
@@ -148,30 +147,6 @@ export default {
             return this.getCourse(this.currentCourseId).extract();
         },
 
-        // TODO: This is duplicated from HomeGrid.vue. We should factor it out into a Course or
-        // CourseCollection model or something.
-        courseExtraDataToDisplay() {
-            const courses = this.sortedCourses;
-
-            const getNameAndYear = c => `${c.name} (${c.created_at.slice(0, 4)})`;
-
-            const courseName = new Counter(courses.map(c => c.name));
-            const courseNameAndYear = new Counter(courses.map(getNameAndYear));
-
-            return courses.reduce((acc, course) => {
-                if (courseName.getCount(course.name) > 1) {
-                    if (courseNameAndYear.getCount(getNameAndYear(course)) > 1) {
-                        acc[course.id] = course.created_at.slice(0, 10);
-                    } else {
-                        acc[course.id] = course.created_at.slice(0, 4);
-                    }
-                } else {
-                    acc[course.id] = null;
-                }
-                return acc;
-            }, {});
-        },
-
         moreCoursesAvailable() {
             if (!this.retrievedAllCourses) {
                 return true;
@@ -183,6 +158,13 @@ export default {
     watch: {
         currentCourseId() {
             this.loadCurrentCourse();
+        },
+
+        moreCoursesAvailable() {
+            if (!this.retrievedAllCourses) {
+                return true;
+            }
+            return this.visibleCourses <= this.sortedCourses.length;
         },
     },
 

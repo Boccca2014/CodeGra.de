@@ -10,6 +10,7 @@ import * as models from '@/models';
 import { RootState } from '@/store/state';
 import { INITIAL_COURSES_AMOUNT } from '@/constants';
 
+import { DefaultMap } from '@/utils/defaultdict';
 import { AssignmentsStore } from './assignments';
 
 const storeBuilder = getStoreBuilder<RootState>();
@@ -63,13 +64,56 @@ export namespace CoursesStore {
         'allCourses',
     );
 
-    export const sortedCourses = moduleBuilder.read(
-        state =>
-            utils.sortBy(Object.values(state.courses), course => [course.createdAt, course.name], {
-                reversePerKey: [true, false],
-            }),
-        'sortedCourses',
-    );
+    export const sortedCourses = moduleBuilder.read(state => {
+        const getVisibleNumber = (course: models.Course) => {
+            switch (course.state) {
+                case models.CourseState.visible:
+                    return 0;
+                case models.CourseState.archived:
+                    return 1;
+                case models.CourseState.deleted:
+                    return 2;
+                default:
+                    return utils.AssertionError.assertNever(course.state);
+            }
+        };
+
+        return utils.sortBy(
+            Object.values(state.courses),
+            course => [getVisibleNumber(course), course.createdAt, course.name],
+            { reversePerKey: [false, true, false] },
+        );
+    }, 'sortedCourses');
+
+    type CourseCounts = Readonly<{
+        total: readonly number[];
+        byYear: DefaultMap<number, readonly number[]>;
+    }>;
+
+    // eslint-disable-next-line
+    function _getCourseCounts(_: CoursesState): (course: models.Course) => CourseCounts {
+        // eslint-disable-next-line
+        const lookup = new DefaultMap((name: string) => {
+            // eslint-disable-next-line
+            const byYear: DefaultMap<number, number[]> = new DefaultMap((year: number) => []);
+            return {
+                total: [] as number[],
+                byYear,
+            };
+        });
+
+        sortedCourses().forEach(course => {
+            const value = lookup.get(course.name);
+            value.total.push(course.id);
+            value.byYear.get(course.createdAt.year()).push(course.id);
+        });
+
+        return function getCourseCounts(course: models.Course) {
+            return lookup.get(course.name);
+        };
+    }
+
+    export const getCourseCounts = moduleBuilder.read(_getCourseCounts, 'getCourseCounts');
 
     export const retrievedAllCourses = moduleBuilder.read(
         state => state.gotAllCourses,
@@ -345,6 +389,16 @@ export namespace CoursesStore {
         addCourse({ course: response.data });
         return response;
     }, 'createCourse');
+
+    export const patchCourse = moduleBuilder.dispatch(
+        async (_, payload: { courseId: number; data: api.courses.PatchableProps }) => {
+            const response = await api.courses.patch(payload.courseId, payload.data);
+            await loadPermissions({ force: true });
+            addCourse({ course: response.data });
+            return response;
+        },
+        'patchCourse',
+    );
 }
 
 export function onDone(store: Store<RootState>) {

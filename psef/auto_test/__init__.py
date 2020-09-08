@@ -1438,7 +1438,7 @@ class StartedContainer:
                 stdout=stdout_str,
                 stderr=stderr_str,
                 time_spend=e.time_spend,
-            )
+            ) from e
 
         stdout_str, stderr_str = get_stdout_and_stderr()
         return StudentCommandResult(

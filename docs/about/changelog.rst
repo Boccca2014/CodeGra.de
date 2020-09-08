@@ -21,6 +21,9 @@ Version *Next*
 - Add import of hand-in requirements `(#1420)
   <https://github.com/CodeGra-de/CodeGra.de/pull/1420>`__. You can now import the
   hand-in requirements of other assignments that you have access to.
+- Add course archiving `(#1432)
+  <https://github.com/CodeGra-de/CodeGra.de/pull/1432>`__. You can now archive
+  old courses, hiding them from students and cleaning your own homepage.
 
 **Updates**
 
@@ -46,6 +49,9 @@ Version *Next*
   <https://github.com/CodeGra-de/CodeGra.de>`__. When a test case contains
   a ``<system-out>`` or ``<system-err>`` node its contents will now also be
   displayed in the output of the step.
+- Renaming courses `(#1432)
+  <https://github.com/CodeGra-de/CodeGra.de/pull/1432>`__. It is now possible to
+  rename existing courses.
 
 Version Mosaic
 ---------------

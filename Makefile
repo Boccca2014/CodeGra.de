@@ -109,7 +109,7 @@ seed_data:
 
 .PHONY: isort
 isort:
-	isort --recursive $(PY_ALL_MODULES)
+	isort $(PY_ALL_MODULES)
 
 .PHONY: yapf
 yapf:

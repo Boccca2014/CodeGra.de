@@ -200,7 +200,7 @@ context('Sidebar', () => {
                 .find('.course-wrapper')
                 .should('be.visible');
 
-            delayCoursesRoute().then(() => {
+            delayCoursesRoute(3000).then(() => {
                 // Reload from the courses submenu.
                 cy.get('.sidebar .sidebar-entry-courses')
                     .click();
@@ -507,6 +507,8 @@ context('Sidebar', () => {
 
         it('should not crash the manage course page', () => {
             cy.login('admin', 'admin', `/courses/${course.id}`);
+
+            cy.openCategory('Members');
 
             cy.get('.page.manage-course')
                 .should('be.visible')

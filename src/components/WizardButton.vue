@@ -11,17 +11,17 @@ function isButtonSize(value: any): value is ButtonSize {
     return typeof value === 'string' && ['small', 'medium', 'large'].includes(value);
 }
 
-const ICON_SCALES: Record<ButtonSize, number> = Object.freeze(<const>{
+const ICON_SCALES: Record<ButtonSize, number> = Object.freeze({
     small: 3,
     medium: 4,
     large: 6,
-});
+} as const);
 
-const FILE_ICON_SCALES: Record<ButtonSize, number> = Object.freeze(<const>{
+const FILE_ICON_SCALES: Record<ButtonSize, number> = Object.freeze({
     small: 1.5,
     medium: 2,
     large: 2,
-});
+} as const);
 
 export default Vue.component('wizard-button', {
     functional: true,

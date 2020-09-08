@@ -8,7 +8,13 @@ import { CourseSnippet } from '@/interfaces';
 import { Maybe, nonenumerable, filterMap, formatDate } from '@/utils';
 import { AssignmentsStore, CoursesStore } from '@/store';
 import { makeCache } from '@/utils/cache';
-import { MANAGE_COURSE_PERMISSIONS } from '@/constants';
+import { MANAGE_GENERAL_COURSE_PERMISSIONS } from '@/constants';
+
+export enum CourseState {
+    visible = 'visible',
+    archived = 'archived',
+    deleted = 'deleted',
+}
 
 /* eslint-disable camelcase */
 interface CourseServerData {
@@ -18,6 +24,7 @@ interface CourseServerData {
     is_lti: boolean;
     virtual: boolean;
     lti_provider: null | LTIProviderServerData;
+    state: CourseState;
 }
 
 interface GroupSetServerData {
@@ -37,6 +44,7 @@ export interface CourseExtendedServerData extends CourseServerData {
 
 export interface CourseUpdatableProps {
     name: string;
+    state: CourseState;
     groupSets: ReadonlyArray<GroupSetServerData>;
     snippets: ReadonlyArray<CourseSnippet>;
 }
@@ -50,6 +58,7 @@ export class Course {
         public readonly name: string,
         public readonly createdAt: moment.Moment,
         public readonly virtual: boolean,
+        public readonly state: CourseState,
         public readonly ltiProvider: Maybe<LTIProvider>,
         public readonly assignmentIds: ReadonlyArray<number>,
         public readonly groupSets: ReadonlyArray<GroupSetServerData>,
@@ -76,7 +85,7 @@ export class Course {
     get canManage() {
         return this._cache.get('canManage', () => {
             const perms = this.permissions;
-            return MANAGE_COURSE_PERMISSIONS.some(x => perms[x]);
+            return MANAGE_GENERAL_COURSE_PERMISSIONS.some(x => perms[x]);
         });
     }
 
@@ -90,6 +99,7 @@ export class Course {
             data.name,
             moment.utc(data.created_at, moment.ISO_8601),
             data.virtual,
+            data.state,
             Maybe.fromNullable(data.lti_provider).map(prov => makeLTIProvider(prov)),
             data.assignments.map(a => a.id),
             data.group_sets,
@@ -131,10 +141,15 @@ export class Course {
             props.name ?? this.name,
             this.createdAt,
             this.virtual,
+            this.state,
             this.ltiProvider,
             this.assignmentIds,
             props.groupSets ?? this.groupSets,
             props.snippets ?? this.snippets,
         );
+    }
+
+    get isArchived(): boolean {
+        return this.state === CourseState.archived;
     }
 }

@@ -53,9 +53,11 @@ from . import register, validate, jsonify_options
 from .. import errors, current_tester
 
 if t.TYPE_CHECKING and not getattr(t, 'SPHINX', False):  # pragma: no cover
-    import psef.archive
-    from ..models import Base  # pylint: disable=unused-import
     import werkzeug  # pylint: disable=unused-import
+
+    import psef.archive
+
+    from ..models import Base  # pylint: disable=unused-import
 
 logger = structlog.get_logger()
 

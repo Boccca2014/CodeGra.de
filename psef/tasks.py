@@ -850,13 +850,11 @@ def _send_login_links_to_users_1(
                 p.models.AssignmentLoginLink.assignment == assignment
             )
         }
+        perm = p.permissions.CoursePermission.can_receive_login_links
         users = [
             user for user, _ in assignment.course.get_all_users_in_course(
-                include_test_students=False
-            ).filter(
-                p.models.CourseRole.get_has_permission_filter(
-                    p.permissions.CoursePermission.can_receive_login_links
-                )
+                include_test_students=False,
+                with_permission=perm,
             )
         ]
 

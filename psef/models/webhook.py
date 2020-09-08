@@ -20,7 +20,8 @@ import psef
 from cg_dt_utils import DatetimeWithTimezone
 from cg_sqlalchemy_helpers.mixins import UUIDMixin, TimestampMixin
 
-from . import Base, User, Assignment, db
+from . import Base, User, db
+from . import assignment as assignment_models
 from .. import auth, exceptions
 from ..registry import webhook_handlers
 from ..exceptions import APICodes, APIException
@@ -57,7 +58,7 @@ class WebhookBase(Base, UUIDMixin, TimestampMixin):
     )
 
     assignment = db.relationship(
-        Assignment,
+        lambda: assignment_models.Assignment,
         foreign_keys=assignment_id,
         lazy='joined',
         innerjoin=True,

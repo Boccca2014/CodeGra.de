@@ -30,10 +30,8 @@ export const MANAGE_GENERAL_COURSE_PERMISSIONS = Object.freeze(<const>[
     'can_manage_course_snippets',
     'can_view_course_snippets',
     'can_email_students',
-]);
-
-export const MANAGE_COURSE_PERMISSIONS = Object.freeze(<const>[
-    ...new Set([...MANAGE_ASSIGNMENT_PERMISSIONS, ...MANAGE_GENERAL_COURSE_PERMISSIONS]),
+    'can_archive_courses',
+    'can_edit_course_info',
 ]);
 
 export const MANAGE_SITE_PERIMSSIONS = Object.freeze(<const>[

@@ -16,8 +16,8 @@ from . import file as file_models
 
 if t.TYPE_CHECKING and not getattr(t, 'SPHINX', False):  # pragma: no cover
     # pylint: disable=unused-import
-    from . import assignment
     from . import work as work_models
+    from . import assignment
 
 
 @enum.unique

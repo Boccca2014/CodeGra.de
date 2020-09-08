@@ -54,13 +54,13 @@ def search_users() -> JSONResponse[t.Sequence[models.User]]:
     if 'exclude_course' in request.args:
         try:
             exclude_course = int(request.args['exclude_course'])
-        except ValueError:
+        except ValueError as exc:
             raise APIException(
                 'The "exclude_course" parameter should be an integer', (
                     f'The given parameter "{request.args["exclude_course"]}"'
                     ' could not parsed as an int'
                 ), APICodes.INVALID_PARAM, 400
-            )
+            ) from exc
         auth.ensure_permission(CPerm.can_list_course_users, exclude_course)
 
         base = db.session.query(models.User).join(

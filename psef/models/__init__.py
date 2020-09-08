@@ -159,53 +159,57 @@ else:
     Base = db.Model  # pylint: disable=invalid-name
 
 if True:  # pylint: disable=using-constant-test
-    from .course import Course, CourseSnippet, CourseRegistrationLink
-    from .assignment import (
-        Assignment, AssignmentLinter, AssignmentResult, AssignmentDoneType,
-        AssignmentGraderDone, AssignmentAssignedGrader, AssignmentStateEnum,
-        AssignmentAmbiguousSettingTag, AssignmentVisibilityState,
-        AssignmentPeerFeedbackSettings, AssignmentPeerFeedbackConnection,
-        AssignmentLoginLink, AssignmentKind
-    )
-    from .permission import Permission
-    from .user import User
-    from .lti_provider import (
-        LTIProviderBase, LTI1p1Provider, UserLTIProvider, LTI1p3Provider,
-        CourseLTIProvider
-    )
     from .file import (
-        File, FileOwner, AutoTestFixture, FileMixin, NestedFileMixin,
+        File, FileMixin, FileOwner, AutoTestFixture, NestedFileMixin,
         AutoTestOutputFile
     )
-    from .work import Work, GradeHistory, GradeOrigin, WorkOrigin
+    from .role import Role, CourseRole, AbstractRole
+    from .user import User
+    from .work import Work, WorkOrigin, GradeOrigin, GradeHistory
+    from .group import Group, GroupSet
+    from .proxy import Proxy, ProxyState
+    from .course import (
+        Course, CourseState, CourseSnippet, CourseRegistrationLink
+    )
     from .linter import LinterState, LinterComment, LinterInstance
-    from .plagiarism import (
-        PlagiarismState, PlagiarismRun, PlagiarismCase, PlagiarismMatch
-    )
+    from .rubric import RubricItem
+    from .rubric import RubricRowBase as RubricRow
+    from .rubric import WorkRubricItem
     from .comment import (
-        CommentBase, CommentReply, CommentReplyEdit, CommentReplyType,
-        CommentType
+        CommentBase, CommentType, CommentReply, CommentReplyEdit,
+        CommentReplyType
     )
-    from .role import AbstractRole, Role, CourseRole
     from .snippet import Snippet
-    from .rubric import RubricItem, RubricRowBase as RubricRow, WorkRubricItem
-    from .group import GroupSet, Group
-    from .link_tables import user_course
+    from .webhook import WebhookBase, GitCloneData
+    from .analytics import BaseDataSource, AnalyticsWorkspace
     from .auto_test import (
-        AutoTest, AutoTestSet, AutoTestSuite, AutoTestResult, AutoTestRun,
+        AutoTest, AutoTestRun, AutoTestSet, AutoTestSuite, AutoTestResult,
         AutoTestRunner
     )
-    from .auto_test_step import (
-        AutoTestStepResultState, AutoTestStepResult, AutoTestStepBase
+    from .assignment import (
+        Assignment, AssignmentKind, AssignmentLinter, AssignmentResult,
+        AssignmentDoneType, AssignmentLoginLink, AssignmentStateEnum,
+        AssignmentGraderDone, AssignmentAssignedGrader,
+        AssignmentVisibilityState, AssignmentAmbiguousSettingTag,
+        AssignmentPeerFeedbackSettings, AssignmentPeerFeedbackConnection
     )
-    from .webhook import WebhookBase, GitCloneData
+    from .permission import Permission
+    from .plagiarism import (
+        PlagiarismRun, PlagiarismCase, PlagiarismMatch, PlagiarismState
+    )
+    from .link_tables import user_course
+    from .task_result import TaskResult, TaskReturnType, TaskResultState
     from .blob_storage import BlobStorage
-    from .proxy import Proxy, ProxyState
-    from .analytics import AnalyticsWorkspace, BaseDataSource
+    from .lti_provider import (
+        LTI1p1Provider, LTI1p3Provider, LTIProviderBase, UserLTIProvider,
+        CourseLTIProvider
+    )
     from .notification import Notification, NotificationReasons
     from .user_setting import (
-        NotificationsSetting, SettingBase, EmailNotificationTypes,
+        SettingBase, NotificationsSetting, EmailNotificationTypes,
         NotificationSettingJSON
     )
-    from .task_result import TaskResult, TaskResultState, TaskReturnType
     from .saml_provider import Saml2Provider, UserSamlProvider
+    from .auto_test_step import (
+        AutoTestStepBase, AutoTestStepResult, AutoTestStepResultState
+    )

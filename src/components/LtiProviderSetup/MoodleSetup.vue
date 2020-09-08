@@ -299,8 +299,6 @@ export default class MoodleSetup extends Vue {
 
     authLoginUrl: string | null = null;
 
-    moodleBaseUrl: string | null = null;
-
     iss: string | null = this.ltiProvider.iss;
 
     get showLogo(): boolean {

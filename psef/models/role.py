@@ -10,7 +10,7 @@ from flask import current_app
 from sqlalchemy.orm import selectinload
 from sqlalchemy.orm.collections import attribute_mapped_collection
 
-from cg_sqlalchemy_helpers.types import ColumnProxy, FilterColumn
+from cg_sqlalchemy_helpers.types import MyQuery, ColumnProxy
 
 from . import Base, MyQuery, db
 from . import course as course_models
@@ -341,9 +341,10 @@ class CourseRole(AbstractRole[CoursePermission], Base):
         return res
 
     @classmethod
-    def get_has_permission_filter(
-        cls, permission: CoursePermission
-    ) -> FilterColumn:
+    def get_roles_with_permission(
+        cls,
+        permission: CoursePermission,
+    ) -> MyQuery['CourseRole']:
         """Get a DB filter that does a :py:func:`CourseRole.has_permission`
         check in the database.
 
@@ -359,13 +360,17 @@ class CourseRole(AbstractRole[CoursePermission], Base):
         perm_id = Permission.query_permission(permission).with_entities(
             Permission.id
         )
+
         has_link = db.session.query(course_permissions).filter(
-            course_permissions.c.permission_id == perm_id,
             course_permissions.c.course_role_id == cls.id,
+            course_permissions.c.permission_id == perm_id
         ).exists()
 
         # XOR is not available in postgres (or SQLAlchemy), so we solve it with
         # a simple if.
         if permission.value.default_value:
-            return ~has_link
-        return has_link
+            link_cond = ~has_link
+        else:
+            link_cond = has_link
+
+        return db.session.query(cls).filter(link_cond)

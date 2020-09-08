@@ -18,9 +18,9 @@ def init_app(app: t.Any) -> None:
     # These imports are done for the side effect of registering routes, so they
     # are NOT unused.
     from . import (  # pylint: disable=unused-import, import-outside-toplevel
-        code, login, courses, linters, snippets, assignments, permissions,
-        submissions, files, about, roles, lti, users, plagiarism, groups,
-        group_sets, auto_tests, webhooks, proxies, analytics, comments,
-        notifications, user_settings, task_results, sso_providers, login_links
+        lti, code, about, files, login, roles, users, groups, courses, linters,
+        proxies, comments, snippets, webhooks, analytics, auto_tests,
+        group_sets, plagiarism, assignments, login_links, permissions,
+        submissions, task_results, notifications, sso_providers, user_settings
     )
     app.register_blueprint(api, url_prefix='/api/v1')

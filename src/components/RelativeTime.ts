@@ -1,6 +1,7 @@
 /* SPDX-License-Identifier: AGPL-3.0-only */
 import Vue from 'vue';
 import moment from 'moment';
+import p from 'vue-strict-prop';
 
 // @ts-ignore
 import { readableFormatDate } from '@/utils';
@@ -9,15 +10,7 @@ export default Vue.extend({
     functional: true,
 
     props: {
-        date: {
-            type: Object,
-            validator: moment.isMoment,
-        },
-
-        now: {
-            type: Object,
-            validator: moment.isMoment,
-        },
+        date: p(Object as () => moment.Moment).validator(moment.isMoment).required,
     },
 
     render(h, ctx) {
