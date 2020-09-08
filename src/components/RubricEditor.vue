@@ -448,12 +448,18 @@ export default {
             },
         },
 
-        hidden() {
-            this.maybeLoadOtherAssignments();
+        hidden: {
+            immediate: true,
+            handler() {
+                this.maybeLoadOtherAssignments();
+            },
         },
 
-        editable() {
-            this.maybeLoadOtherAssignments();
+        editable: {
+            immediate: true,
+            handler() {
+                this.maybeLoadOtherAssignments();
+            },
         },
 
         serverData() {
