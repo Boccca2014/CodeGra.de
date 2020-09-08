@@ -412,7 +412,7 @@ export default {
         &:hover {
             background-color: saturate(darken(@color-danger-table-row, 5%), -20%) !important;
 
-            @{dark-mode} {
+            @{dark-mode}.btn-secondary:not(.btn-success):not(.btn-danger):not(.btn-warning):not(.btn-info) {
                 background-color: saturate(darken(@color-danger-dark, 5%), -20%) !important;
             }
         }
