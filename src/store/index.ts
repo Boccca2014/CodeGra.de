@@ -1,8 +1,6 @@
 /* SPDX-License-Identifier: AGPL-3.0-only */
 import Vue from 'vue';
-import Vuex from 'vuex';
-// @ts-ignore
-import createPersistedState from 'vuex-persistedstate';
+import Vuex, { Store } from 'vuex';
 
 import { getStoreBuilder } from 'vuex-typex';
 
@@ -30,34 +28,43 @@ export { CoursesStore } from './modules/courses';
 Vue.use(Vuex);
 
 const debug = process.env.NODE_ENV !== 'production';
-const plugins = [];
 
 let disabledPersistance = false;
 let toastMessage: string | null = null;
 
-try {
-    plugins.push(
-        createPersistedState({
-            paths: ['user', 'pref'],
-            storage: {
-                getItem: (key: string) => window.localStorage.getItem(key),
-                setItem: (key: string, value: string) => {
-                    if (disabledPersistance && key !== '@@') {
-                        const cleanedValue = {
-                            pref: JSON.parse(value).pref,
-                        };
-                        return window.localStorage.setItem(key, JSON.stringify(cleanedValue));
-                    }
-                    return window.localStorage.setItem(key, value);
-                },
-                removeItem: (key: string) => window.localStorage.removeItem(key),
+const pathsToPersist = [
+    ['pref', 'fontSize'],
+    ['pref', 'darkMode'],
+    ['pref', 'contextAmount'],
+    ['user', 'jwtToken'],
+] as const;
+
+const makePersistanceKey = (ns: 'pref' | 'user', path: string) => `CG_PERSIST-${ns}|${path}`;
+
+const enablePersistance = (store: Store<RootState>) => {
+    pathsToPersist.forEach(([ns, path]) => {
+        const key = makePersistanceKey(ns, path);
+        store.watch(
+            state => state[ns][path],
+            value => {
+                if (!disabledPersistance) {
+                    window.localStorage.setItem(key, JSON.stringify(value));
+                }
             },
-        }),
-    );
+        );
+    });
+};
+
+try {
+    window.localStorage.setItem('vuex', '""');
+    window.localStorage.removeItem('vuex');
+    window.localStorage.setItem('@@', '1');
+    window.localStorage.removeItem('@@');
 } catch (e) {
     toastMessage = `Unable to persistently store user credentials, please check
         you browser privacy levels. You will not be logged-in in other tabs or
         when reloading.`;
+    disabledPersistance = true;
 }
 
 const rootBuilder = getStoreBuilder<RootState>();
@@ -80,10 +87,34 @@ Object.entries({
 
 export const store = rootBuilder.vuexStore({
     strict: debug,
-    plugins,
+    mutations: {
+        RESTORE_STATE(
+            state: RootState,
+            payload: { ns: 'user' | 'pref'; path: string; value: any },
+        ) {
+            Vue.set(state[payload.ns], payload.path, payload.value);
+        },
+    },
 });
 
 export function disablePersistance() {
+    if (disabledPersistance) {
+        let error: Error | undefined;
+
+        pathsToPersist.forEach(([ns, path]) => {
+            const key = makePersistanceKey(ns, path);
+            // Even on an error we try to clear all the remaining keys.
+            try {
+                window.localStorage.removeItem(key);
+                window.localStorage.setItem(key, '""');
+            } catch (e) {
+                error = e;
+            }
+        });
+        if (error != null) {
+            throw error;
+        }
+    }
     disabledPersistance = true;
 }
 
@@ -97,6 +128,21 @@ export function onVueCreated($root: Vue) {
             solid: true,
         });
     }
+}
+
+if (!disabledPersistance) {
+    pathsToPersist.forEach(([ns, path]) => {
+        const key = makePersistanceKey(ns, path);
+        const res = window.localStorage.getItem(key);
+        if (res) {
+            store.commit('RESTORE_STATE', {
+                ns,
+                path,
+                value: JSON.parse(res),
+            });
+        }
+    });
+    enablePersistance(store);
 }
 
 coursesOnDone(store);
