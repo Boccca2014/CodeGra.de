@@ -411,10 +411,6 @@ export default {
             type: Boolean,
             default: false,
         },
-        hidden: {
-            type: Boolean,
-            default: false,
-        },
         grow: {
             type: Boolean,
             default: false,
@@ -448,18 +444,8 @@ export default {
             },
         },
 
-        hidden: {
-            immediate: true,
-            handler() {
-                this.maybeLoadOtherAssignments();
-            },
-        },
-
-        editable: {
-            immediate: true,
-            handler() {
-                this.maybeLoadOtherAssignments();
-            },
+        editable() {
+            this.maybeLoadOtherAssignments();
         },
 
         serverData() {
@@ -635,6 +621,7 @@ export default {
                         // eslint-disable-next-line
                         console.log('Could not load AutoTest configuration.', err);
                     }),
+                this.maybeLoadOtherAssignments(),
             ]).then(
                 () => {
                     this.error = null;
@@ -654,7 +641,6 @@ export default {
         maybeLoadOtherAssignments() {
             if (
                 this.editable &&
-                !this.hidden &&
                 this.assignmentsWithRubric === null &&
                 this.rubricRows.length === 0
             ) {
