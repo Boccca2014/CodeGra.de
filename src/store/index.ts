@@ -98,22 +98,20 @@ export const store = rootBuilder.vuexStore({
 });
 
 export function disablePersistance() {
-    if (disabledPersistance) {
-        let error: Error | undefined;
+    let error: Error | undefined;
 
-        pathsToPersist.forEach(([ns, path]) => {
-            const key = makePersistanceKey(ns, path);
-            // Even on an error we try to clear all the remaining keys.
-            try {
-                window.localStorage.removeItem(key);
-                window.localStorage.setItem(key, '""');
-            } catch (e) {
-                error = e;
-            }
-        });
-        if (error != null) {
-            throw error;
+    pathsToPersist.forEach(([ns, path]) => {
+        const key = makePersistanceKey(ns, path);
+        // Even on an error we try to clear all the remaining keys.
+        try {
+            window.localStorage.removeItem(key);
+            window.localStorage.setItem(key, '""');
+        } catch (e) {
+            error = e;
         }
+    });
+    if (error != null) {
+        throw error;
     }
     disabledPersistance = true;
 }
