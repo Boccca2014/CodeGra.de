@@ -106,24 +106,24 @@
                     <b-form-group label="Key set url">
                         <b-input-group>
                             <input class="form-control"
-                                v-model="keySetUrl"
-                                :placeholder="defaultKeySetUrl" />
+                                   v-model="keySetUrl"
+                                   :placeholder="defaultKeySetUrl" />
                         </b-input-group>
                     </b-form-group>
 
                     <b-form-group label="Auth token url">
                         <b-input-group>
                             <input class="form-control"
-                                v-model="authTokenUrl"
-                                :placeholder="defaultAuthTokenUrl" />
+                                   v-model="authTokenUrl"
+                                   :placeholder="defaultAuthTokenUrl" />
                         </b-input-group>
                     </b-form-group>
 
                     <b-form-group class="mb-0" label="Auth login url">
                         <b-input-group>
                             <input class="form-control"
-                                v-model="authLoginUrl"
-                                :placeholder="defaultAuthLoginUrl" />
+                                   v-model="authLoginUrl"
+                                   :placeholder="defaultAuthLoginUrl" />
                         </b-input-group>
                     </b-form-group>
                 </div>
@@ -142,10 +142,16 @@
 
             <div class="d-flex justify-content-end">
                 <cg-submit-button
-                    confirm="After finalizing your configuration you cannot edit it anymore. Are you sure you want to finalize your configuration?"
+                    confirm="true"
                     label="Finalize"
                     :submit="finalizeProvider"
-                    @after-success="afterFinalizeProvider" />
+                    @after-success="afterFinalizeProvider">
+                    <template #confirm>
+                        After finalizing your configuration you cannot edit it
+                        anymore. Are you sure you want to finalize your
+                        configuration?
+                    </template>
+                </cg-submit-button>
             </div>
         </template>
 
