@@ -3,17 +3,26 @@
 <loader v-if="loading" page-loader/>
 <div class="users-manager" v-else>
     <div ref="copyContainer" />
-    <div class="registration-link-wrapper" v-if="course.permissions.can_edit_course_users && UserConfig.features.course_register">
-        <table class="registration-table table">
+    <b-card class="registration-link-wrapper mb-3" v-if="course.permissions.can_edit_course_users && !course.is_lti">
+        <template #header>
+            Course enroll links
+            <cg-description-popover>
+                With these links users can join this course as the role you specify.
+                <template v-if="courseRegister">
+                    If users do not already have an account they can also register with this link.
+                </template>
+            </cg-description-popover>
+        </template>
+
+        <table class="registration-table table mb-0">
             <thead>
                 <tr>
                     <th />
                     <th>
                         Link
                         <description-popover hug-text>
-                            This is the link users can use to register an
-                            automatically enroll in this course. The link does
-                            not enroll already logged-in users.
+                            This is the link users can use to enroll in this
+                            course.
                         </description-popover>
                     </th>
                     <th>
@@ -28,6 +37,12 @@
                             The role users will get in the course after
                             registering with this link.
                         </description-popover>
+                    </th>
+                    <th v-if="courseRegister">
+                        Allow registration
+                        <cg-description-popover hug-text>
+                            Should users be allowed to register using this link.
+                        </cg-description-popover>
                     </th>
                     <th class="shrink" />
                 </tr>
@@ -77,6 +92,11 @@
                             </b-dropdown-item>
                         </b-dropdown>
                     </td>
+                    <td v-if="courseRegister">
+                        <cg-toggle v-model="link.allow_register"
+                                   label-on="Yes"
+                                   label-off="No" />
+                    </td>
                     <td class="shrink">
                         <div class="save-link-wrapper">
                             <submit-button :submit="() => saveLink(link)" label="Save"
@@ -93,13 +113,13 @@
                 </tr>
 
                 <tr v-if="registrationLinks.filter(x => !x.deleted).length === 0">
-                    <td colspan="5" class="text-center text-muted font-italic">
+                    <td :colspan="courseRegister ? 6 : 5" class="text-center text-muted font-italic">
                         There are no registration links yet.
                     </td>
                 </tr>
 
                 <tr>
-                    <td colspan="5">
+                    <td :colspan="courseRegister ? 6 : 5" class="pb-0">
                         <b-btn @click="addRegistrationLink"
                                class="float-right"
                                name="add-registration-link"
@@ -110,105 +130,112 @@
                 </tr>
             </tbody>
         </table>
-    </div>
+    </b-card>
 
-    <template v-if="canListUsers">
-        <b-table striped
-                 ref="table"
-                 class="users-table"
-                 :id="tableId"
-                 :fields="fields"
-                 :items="filteredUsers"
-                 :sort-compare="sortTable"
-                 sort-by="User"
-                 :per-page="perPage"
-                 :current-page="currentPage"
-                 show-empty>
+    <b-card header="Course members" no-body>
+        <div class="m-2">
+            <input class="form-control"
+                   placeholder="Type to search users"
+                   :value="filter"
+                   v-debounce="newFilter => { filter = newFilter }" />
+        </div>
+        <template v-if="canListUsers">
+            <b-table striped
+                     ref="table"
+                     class="users-table"
+                     :id="tableId"
+                     :fields="fields"
+                     :items="filteredUsers"
+                     :sort-compare="sortTable"
+                     sort-by="User"
+                     :per-page="perPage"
+                     :current-page="currentPage"
+                     show-empty>
 
-            <template #cell(User)="item">
-                <span class="username">{{item.value.name}} ({{item.value.username}})</span>
-            </template>
+                <template #cell(User)="item">
+                    <span class="username">{{item.value.name}} ({{item.value.username}})</span>
+                </template>
 
-            <template #cell(CourseRole)="item">
-                <b-dropdown class="role-dropdown"
-                            menu-class="w-100"
-                            v-b-popover.top.hover="item.item.User.id === loggedInUserId ? 'You cannot change your own role' : ''"
-                            :disabled="updating[item.item.User.id] || item.item.User.id === loggedInUserId">
+                <template #cell(CourseRole)="item">
+                    <b-dropdown class="role-dropdown"
+                                menu-class="w-100"
+                                v-b-popover.top.hover="item.item.User.id === loggedInUserId ? 'You cannot change your own role' : ''"
+                                :disabled="updating[item.item.User.id] || item.item.User.id === loggedInUserId">
 
-                    <template slot="button-content"
-                              v-if="updating[item.item.User.id]">
-                        <loader class="d-inline" :scale="1" />
-                    </template>
-                    <template slot="button-content"
-                              v-else>
-                        {{ item.value.name }}
-                    </template>
+                        <template slot="button-content"
+                                  v-if="updating[item.item.User.id]">
+                            <loader class="d-inline" :scale="1" />
+                        </template>
+                        <template slot="button-content"
+                                  v-else>
+                            {{ item.value.name }}
+                        </template>
 
-                    <b-dropdown-header>Select the new role</b-dropdown-header>
-                    <b-dropdown-item v-for="role in roles"
-                                     @click="changed(item.item, role)"
-                                     :key="role.id">
-                        {{ role.name }}
-                    </b-dropdown-item>
-                </b-dropdown>
-            </template>
+                        <b-dropdown-header>Select the new role</b-dropdown-header>
+                        <b-dropdown-item v-for="role in roles"
+                                         @click="changed(item.item, role)"
+                                         :key="role.id">
+                            {{ role.name }}
+                        </b-dropdown-item>
+                    </b-dropdown>
+                </template>
 
-            <template #empty>
-                <div class="text-center font-italic text-muted">
-                    No users found.
-                </div>
-            </template>
-        </b-table>
+                <template #empty>
+                    <div class="text-center font-italic text-muted">
+                        No users found.
+                    </div>
+                </template>
+            </b-table>
 
-        <b-pagination
-            v-if="showPagination"
-            v-model="currentPage"
-            :limit="10"
-            :total-rows="totalRows"
-            :per-page="perPage"
-            :aria-controls="tableId" />
-    </template>
+            <b-pagination
+                v-if="showPagination"
+                v-model="currentPage"
+                :limit="10"
+                :total-rows="totalRows"
+                :per-page="perPage"
+                :aria-controls="tableId" />
+        </template>
+        <b-alert show variant="info" class="mx-3" v-else>
+            You can only actually manage users when you also have the 'list course
+            users' ('can_list_course_users') permission
+        </b-alert>
 
-    <b-alert show variant="danger" v-else>
-        You can only actually manage users when you also have the 'list course
-        users' ('can_list_course_users') permission
-    </b-alert>
+        <b-popover class="new-user-popover"
+                   :triggers="course.isLTI ? 'hover' : ''"
+                   target="new-users-input-field">
+            You cannot add users to a lti course.
+        </b-popover>
+        <b-form-fieldset class="add-student mx-3"
+                         id="new-users-input-field">
+            <b-input-group>
+                <user-selector v-model="newStudentUsername"
+                               placeholder="New student"
+                               :use-selector="canListUsers && canSearchUsers"
+                               :extra-params="{ exclude_course: course.id }"
+                               :disabled="course.isLTI"/>
 
-    <b-popover class="new-user-popover"
-               :triggers="course.is_lti ? 'hover' : ''"
-               target="new-users-input-field">
-        You cannot add users to a lti course.
-    </b-popover>
-    <b-form-fieldset class="add-student"
-                     id="new-users-input-field">
-        <b-input-group>
-            <user-selector v-model="newStudentUsername"
-                           placeholder="New student"
-                           :use-selector="canListUsers && canSearchUsers"
-                           :extra-params="{ exclude_course: course.id }"
-                           :disabled="course.is_lti"/>
-
-            <template slot="append">
-                <b-dropdown dropup
-                            class="role-dropdown"
-                            toggle-class="h-100 border"
-                            :text="newRole ? newRole.name : 'Role'"
-                            :disabled="course.is_lti">
-                    <b-dropdown-header>Select the new role</b-dropdown-header>
-                    <b-dropdown-item v-for="role in roles"
-                                     v-on:click="() => {newRole = role; error = '';}"
-                                     :key="role.id">
-                        {{ role.name }}
-                    </b-dropdown-item>
-                </b-dropdown>
-                <submit-button class="add-user-button"
-                               label="Add"
-                               :submit="addUser"
-                               @success="afterAddUser"
-                               :disabled="course.is_lti"/>
-            </template>
-        </b-input-group>
-    </b-form-fieldset>
+                <template slot="append">
+                    <b-dropdown dropup
+                                class="role-dropdown"
+                                toggle-class="h-100 border"
+                                :text="newRole ? newRole.name : 'Role'"
+                                :disabled="course.isLTI">
+                        <b-dropdown-header>Select the new role</b-dropdown-header>
+                        <b-dropdown-item v-for="role in roles"
+                                         v-on:click="() => {newRole = role; error = '';}"
+                                         :key="role.id">
+                            {{ role.name }}
+                        </b-dropdown-item>
+                    </b-dropdown>
+                    <submit-button class="add-user-button"
+                                   label="Add"
+                                   :submit="addUser"
+                                   @success="afterAddUser"
+                               :disabled="course.isLTI"/>
+                </template>
+            </b-input-group>
+        </b-form-fieldset>
+    </b-card>
 </div>
 </template>
 
@@ -236,11 +263,6 @@ export default {
         course: {
             type: Object,
             required: true,
-        },
-
-        filter: {
-            type: String,
-            default: '',
         },
     },
 
@@ -272,6 +294,7 @@ export default {
             registrationLinks: [],
             UserConfig,
             currentPage: 1,
+            filter: this.$route.query.filterUsers || '',
         };
     },
 
@@ -279,6 +302,10 @@ export default {
         ...mapGetters('user', {
             loggedInUserId: 'id',
         }),
+
+        courseRegister() {
+            return this.$userConfig.features.course_register;
+        },
 
         totalRows() {
             return this.$utils.getProps(this.filteredUsers, 0, 'length');
@@ -314,6 +341,14 @@ export default {
 
         filter() {
             this.currentPage = 1;
+
+            const newQuery = Object.assign({}, this.$route.query);
+            newQuery.filterUsers = this.filter || undefined;
+
+            this.$router.replace({
+                query: newQuery,
+                hash: this.$route.hash,
+            });
         },
     },
 
@@ -340,16 +375,15 @@ export default {
             [
                 ,
                 ,
-                this.canListUsers,
                 this.canSearchUsers,
                 this.registrationLinks,
             ] = await Promise.all([
                 this.getAllUsers(),
                 this.getAllRoles(),
-                this.$hasPermission('can_list_course_users', this.courseId),
                 this.$hasPermission('can_search_users'),
                 this.getRegistrationLinks(),
             ]);
+            this.canListUsers = this.course.hasPermission('can_list_course_users');
 
             this.loading = false;
 
@@ -365,6 +399,7 @@ export default {
                     data.map(link => {
                         link.expiration_date = this.$utils.formatDate(link.expiration_date);
                         link.trackingId = this.$utils.getUniqueId();
+
                         return link;
                     }),
                 () => [],
@@ -408,29 +443,35 @@ export default {
         },
 
         changed(user, role) {
-            for (let i = 0, len = this.users.length; i < len; i += 1) {
-                if (this.users[i].User.id === user.User.id) {
-                    this.$set(user, 'CourseRole', role);
-                    this.$set(this.users, i, user);
-                    break;
-                }
-            }
             this.$set(this.updating, user.User.id, true);
             const req = this.$http.put(`/api/v1/courses/${this.courseId}/users/`, {
                 user_id: user.User.id,
                 role_id: role.id,
             });
 
-            waitAtLeast(250, req)
-                .then(() => {
-                    this.$set(this.updating, user.User.id, false);
-                    delete this.updating[user.User.id];
-                })
-                .catch(err => {
-                    // TODO: visual feedback
-                    // eslint-disable-next-line
-                    console.dir(err);
-                });
+            waitAtLeast(250, req).then(
+                () => {
+                    for (let i = 0, len = this.users.length; i < len; i += 1) {
+                        if (this.users[i].User.id === user.User.id) {
+                            this.$set(user, 'CourseRole', role);
+                            this.$set(this.users, i, user);
+                            break;
+                        }
+                    }
+                },
+                err => {
+                    this.$bvToast.toast(err.response.data.message, {
+                        title: 'Error',
+                        toaster: 'b-toaster-top-right',
+                        variant: 'danger',
+                        noAutoHide: true,
+                        solid: true,
+                    });
+                },
+            ).then(() => {
+                this.$set(this.updating, user.User.id, false);
+                delete this.updating[user.User.id];
+            });
         },
 
         addUser() {
@@ -472,6 +513,7 @@ export default {
                     id: link.id,
                     role_id: link.role.id,
                     expiration_date: this.$utils.convertToUTC(link.expiration_date),
+                    allow_register: link.allow_register,
                 })
                 .then(response => {
                     response.data.expiration_date = link.expiration_date;
@@ -492,17 +534,8 @@ export default {
         getRegistrationLinkUrl(link) {
             const { host, protocol } = window.location;
             return this.$utils.buildUrl(
-                ['register'],
-                {
-                    addTrailingSlash: true,
-                    protocol,
-                    host,
-                    query: {
-                        course_register_link_id: link.id,
-                        course_id: this.course.id,
-                        register_for: this.course.name,
-                    },
-                },
+                ['courses', this.courseId, 'enroll', link.id],
+                { protocol, host },
             );
         },
 
@@ -530,57 +563,63 @@ export default {
 </script>
 
 <style lang="less">
-.users-manager .users-table,
-.users-manager .registration-table {
-    th,
-    td {
-        &:last-child {
-            width: 1px;
+.users-manager {
+    .users-table,
+    .registration-table {
+        th,
+        td {
+            &:last-child {
+                width: 1px;
+            }
         }
     }
-}
 
-.users-table {
-    td {
+    .users-table {
+        td {
+            vertical-align: middle;
+        }
+
+        .dropdown-toggle {
+            padding-top: 3px;
+            padding-bottom: 4px;
+        }
+    }
+
+    .username {
+        word-wrap: break-word;
+        word-break: break-word;
+        -ms-word-break: break-all;
+
+        -webkit-hyphens: auto;
+        -moz-hyphens: auto;
+        -ms-hyphens: auto;
+        hyphens: auto;
+    }
+
+    .role-dropdown {
+        .dropdown-toggle {
+            min-width: 10rem;
+            padding-right: 1.5rem;
+
+            &::after {
+                position: absolute;
+                top: 50%;
+                right: 0.5rem;
+                transform: translateY(-50%);
+            }
+        }
+
+        .dropdown-menu {
+            overflow-y: auto;
+        }
+    }
+
+    .save-link-wrapper {
+        display: flex;
+    }
+
+    .registration-links td {
         vertical-align: middle;
     }
-
-    .dropdown-toggle {
-        padding-top: 3px;
-        padding-bottom: 4px;
-    }
-}
-
-.username {
-    word-wrap: break-word;
-    word-break: break-word;
-    -ms-word-break: break-all;
-
-    -webkit-hyphens: auto;
-    -moz-hyphens: auto;
-    -ms-hyphens: auto;
-    hyphens: auto;
-}
-
-.role-dropdown {
-    .dropdown-toggle {
-        min-width: 10rem;
-        padding-right: 1.5rem;
-
-        &::after {
-            position: absolute;
-            top: 50%;
-            right: 0.5rem;
-            transform: translateY(-50%);
-        }
-    }
-
-    .dropdown-menu {
-        overflow-y: auto;
-    }
-}
-
-.save-link-wrapper {
-    display: flex;
 }
 </style>

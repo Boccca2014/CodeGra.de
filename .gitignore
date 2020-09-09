@@ -32,3 +32,4 @@ PRIVACY_STATEMENT.md
 /src/userConfig.[jt]s
 .#*
 /src/userConfig.ts
+/static/commitHash

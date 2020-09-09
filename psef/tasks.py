@@ -31,7 +31,6 @@ import psef as p
 import cg_celery
 import cg_logger
 from cg_dt_utils import DatetimeWithTimezone
-from cg_sqlalchemy_helpers.types import DbColumn
 
 logger = structlog.get_logger()
 
@@ -297,7 +296,7 @@ def _run_autotest_batch_runs_1() -> None:
     runs = p.models.AutoTestRun.query.join(
         p.models.AutoTestRun.auto_test
     ).join(p.models.Assignment).filter(
-        t.cast(DbColumn[bool], p.models.AutoTestRun.batch_run_done).is_(False),
+        p.models.AutoTestRun.batch_run_done.is_(False),
         p.models.Assignment.deadline < now,
     ).options(contains_eager(p.models.AutoTestRun.auto_test)).order_by(
         p.models.Assignment.deadline
@@ -545,8 +544,9 @@ def _clone_commit_as_submission_1(
         logger.warning('Could not find webhook')
         return
 
-    assignment = p.models.Assignment.query.filter_by(id=webhook.assignment_id
-                                                     ).with_for_update().one()
+    assignment = p.models.Assignment.query.filter_by(
+        id=webhook.assignment_id
+    ).with_for_update(read=True).one()
 
     created_at = DatetimeWithTimezone.utcfromtimestamp(unix_timestamp)
 
@@ -738,9 +738,6 @@ def _send_email_as_user_1(
     if task_result is None:
         logger.error('Could not find task result')
         return
-    if task_result.state != p.models.TaskResultState.not_started:
-        logger.error('Task already started or done', task_result=task_result)
-        return
 
     def __task() -> None:
         receivers = p.helpers.get_in_or_error(
@@ -787,8 +784,112 @@ def _send_email_as_user_1(
                 failed_users=failed_receivers,
             )
 
-    task_result.as_task(__task)
+    if task_result.as_task(__task):
+        p.models.db.session.commit()
+
+
+@celery.task
+def _maybe_open_assignment_at_1(assignment_id: int) -> None:
+    assignment = p.models.Assignment.query.filter(
+        p.models.Assignment.id == assignment_id,
+    ).with_for_update(of=p.models.Assignment).one_or_none()
+
+    if assignment is None or assignment.available_at is None:
+        logger.error(
+            'Could not find assignment with available_at',
+            assignment=assignment,
+            assignment_id=assignment_id
+        )
+        return
+    if not assignment.state.is_hidden:
+        logger.info('State already set to not hidden')
+        return
+
+    if current_task.maybe_delay_task(assignment.available_at):
+        return
+
+    assignment.state = p.models.AssignmentStateEnum.open
     p.models.db.session.commit()
+
+
+@celery.task
+def _send_login_links_to_users_1(
+    assignment_id: int, task_id_hex: str, scheduled_time: str,
+    reset_token_hex: str, mail_idx: int
+) -> None:
+    task_id = uuid.UUID(hex=task_id_hex)
+    task_result = p.models.TaskResult.query.filter(
+        p.models.TaskResult.id == task_id,
+        p.models.TaskResult.state == p.models.TaskResultState.not_started
+    ).with_for_update(of=p.models.TaskResult).one_or_none()
+    eta = DatetimeWithTimezone.fromisoformat(scheduled_time)
+    if task_result is None:
+        logger.error('Could not find task')
+        return
+
+    def __task() -> p.models.TaskReturnType:
+        reset_token = uuid.UUID(hex=reset_token_hex)
+        assignment = p.models.Assignment.query.filter(
+            p.models.Assignment.id == assignment_id,
+        ).with_for_update(of=p.models.Assignment).one_or_none()
+
+        if assignment is None or assignment.deadline_expired:
+            logger.error(
+                'Could not find assignment or deadline expired',
+                assignment_id=assignment_id,
+                assignment=assignment,
+            )
+            return p.models.TaskResultState.skipped
+        elif reset_token != assignment.send_login_links_token:
+            logger.info('Tokens did not match')
+            return p.models.TaskResultState.skipped
+
+        login_link_map = {
+            link.user: link
+            for link in p.models.AssignmentLoginLink.query.filter(
+                p.models.AssignmentLoginLink.assignment == assignment
+            )
+        }
+        perm = p.permissions.CoursePermission.can_receive_login_links
+        users = [
+            user for user, _ in assignment.course.get_all_users_in_course(
+                include_test_students=False,
+                with_permission=perm,
+            )
+        ]
+
+        for user in users:
+            if user not in login_link_map:
+                link = p.models.AssignmentLoginLink(
+                    user_id=user.id, assignment_id=assignment.id
+                )
+                p.models.db.session.add(link)
+                login_link_map[user] = link
+
+        # We commit here to release the locks on all tables before we start
+        # emailing.
+        p.models.db.session.commit()
+
+        with p.mail.mail.connect() as mailer:
+            for user in users:
+                link = login_link_map[user]
+                try:
+                    p.mail.send_login_link_mail(
+                        mailer, link, mail_idx=mail_idx
+                    )
+                # pylint: disable=bare-except
+                except:  # pragma: no cover
+                    logger.warning(
+                        'Could not send email',
+                        receiving_user_id=user.id,
+                        exc_info=True,
+                        report_to_sentry=True,
+                    )
+
+        return p.models.TaskResultState.finished
+
+    if task_result.as_task(__task, eta=eta):
+        p.models.db.session.commit()
 
 
 lint_instances = _lint_instances_1.delay  # pylint: disable=invalid-name
@@ -807,6 +908,11 @@ delete_file_at_time = _delete_file_at_time_1.delay  # pylint: disable=invalid-na
 send_direct_notification_emails = _send_direct_notification_emails_1.delay  # pylint: disable=invalid-name
 send_email_as_user = _send_email_as_user_1.delay  # pylint: disable=invalid-name
 
+send_login_links_to_users: t.Callable[[
+    t.Tuple[int, str, str, str, int],
+    NamedArg(DatetimeWithTimezone, 'eta')
+], object] = _send_login_links_to_users_1.apply_async  # pylint: disable=invalid-name
+
 send_reminder_mails: t.Callable[
     [t.Tuple[int],
      NamedArg(t.Optional[DatetimeWithTimezone], 'eta')], t.
@@ -816,3 +922,8 @@ check_heartbeat_auto_test_run: t.Callable[
     [t.Tuple[str],
      DefaultNamedArg(t.Optional[DatetimeWithTimezone], 'eta')], t.
     Any] = _check_heartbeat_stop_test_runner_1.apply_async  # pylint: disable=invalid-name
+
+maybe_open_assignment_at: t.Callable[[
+    t.Tuple[int],
+    DefaultNamedArg(t.Optional[DatetimeWithTimezone], 'eta')
+], None] = _maybe_open_assignment_at_1.apply_async  # pylint: disable=invalid-name

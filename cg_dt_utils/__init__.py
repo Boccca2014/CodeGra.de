@@ -66,6 +66,10 @@ if t.TYPE_CHECKING:  # pragma: no cover
         ) -> 'DatetimeWithTimezone':
             ...
 
+        @staticmethod
+        def as_datetime(dt: 'DatetimeWithTimezone') -> datetime.datetime:
+            ...
+
     # pylint: enable=all
 else:
 
@@ -82,6 +86,12 @@ else:
 
 
     class DatetimeWithTimezone(datetime.datetime):
+        @staticmethod
+        def as_datetime(dt: 'DatetimeWithTimezone') -> datetime.datetime:
+            # This method is simply needed for when we need to pass normal
+            # datetimes to other code. It does nothing useful.
+            return dt
+
         def __new__(self, *args: t.Any, **kwargs: t.Any) -> t.Any:
             raise Exception(
                 'Do not create new "DatetimeWithTimezone" instances'

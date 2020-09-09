@@ -13,6 +13,7 @@ import logging
 import secrets
 import datetime
 import functools
+import itertools
 import contextlib
 import subprocess
 import collections
@@ -31,16 +32,6 @@ from sqlalchemy import create_engine
 from werkzeug.local import LocalProxy
 from sqlalchemy_utils.functions import drop_database, create_database
 
-import psef
-import manage
-import helpers
-import psef.auth as a
-import psef.models as m
-from helpers import create_error_template, create_user_with_perms
-from lxc_stubs import lxc_stub
-from cg_dt_utils import DatetimeWithTimezone
-from psef.permissions import CoursePermission as CPerm
-
 TESTDB = 'test_project.db'
 TESTDB_PATH = "/tmp/psef/psef-{}-{}".format(TESTDB, random.random())
 TEST_DATABASE_URI = 'sqlite:///' + TESTDB_PATH
@@ -51,6 +42,19 @@ _DATABASE = None
 FreshDatabase = collections.namedtuple(
     'FreshDatabase', ['engine', 'name', 'db_name', 'run_psql']
 )
+
+sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
+
+if True:
+    import psef
+    import manage
+    import helpers
+    import psef.auth as a
+    import psef.models as m
+    from helpers import create_error_template, create_user_with_perms
+    from lxc_stubs import lxc_stub
+    from cg_dt_utils import DatetimeWithTimezone
+    from psef.permissions import CoursePermission as CPerm
 
 
 def get_database_name(request):
@@ -70,7 +74,7 @@ def pytest_addoption(parser):
         parser.addoption(
             "--postgresql",
             action="store",
-            default=False,
+            default='GENERATE',
             help="Run the test using postresql"
         )
     except ValueError:
@@ -100,6 +104,7 @@ def make_app_settings(request):
                 'unknown_lms': ('unknown', ['12345678']),
                 'blackboard_lti': ('Blackboard', ['12345678']),
                 'moodle_lti': ('Moodle', ['12345678']),
+                'sakai_lti': ('Sakai', ['12345678']),
                 'brightspace_lti': ('BrightSpace', ['12345678']),
             },
             'LTI_SECRET_KEY': 'hunter123',
@@ -228,6 +233,7 @@ def test_client(app, session, assert_similar):
         real_data=None,
         include_response=False,
         allow_extra=False,
+        expected_warning=None,
         **kwargs
     ):
         setattr(ctx_stack.top, 'jwt_user', None)
@@ -256,6 +262,12 @@ def test_client(app, session, assert_similar):
         if result is not None:
             assert_similar(val, result)
 
+        if expected_warning is not None:
+            if expected_warning is False:
+                assert 'Warning' not in rv.headers
+            else:
+                assert re.search(expected_warning, rv.headers['Warning'])
+
         session.expire_all()
 
         if include_response:
@@ -263,7 +275,7 @@ def test_client(app, session, assert_similar):
         return res
 
     client.req = req
-    psef.limiter.reset()
+    psef.limiter._LIMITER.reset()
     yield client
 
 
@@ -311,7 +323,10 @@ def assert_similar():
             assert is_list or k in vals
 
             if isinstance(value, psef.models.Base):
-                value = value.__to_json__()
+                import cg_json
+                value = cg_json.JSONResponse.dump_to_object(value)
+            elif isinstance(value, datetime.datetime):
+                value = value.isoformat()
 
             if isinstance(value, type):
                 assert isinstance(vals[k], value), (
@@ -370,9 +385,7 @@ def logged_in():
             res = None
         else:
             _TOKENS.append(
-                flask_jwt.create_access_token(
-                    identity=helpers.to_db_object(user, m.User).id, fresh=True
-                )
+                helpers.to_db_object(user, m.User).make_access_token()
             )
             res = user
 
@@ -570,8 +583,8 @@ def session(app, db, fresh_db, monkeypatch):
 
     if fresh_db:
         with app.app_context():
-            from flask_migrate import upgrade as db_upgrade
             from flask_migrate import Migrate
+            from flask_migrate import upgrade as db_upgrade
             logging.disable(logging.ERROR)
             Migrate(app, db)
             db_upgrade()
@@ -580,6 +593,7 @@ def session(app, db, fresh_db, monkeypatch):
         manage.test_data(psef.models.db)
 
     try:
+        psef.models.validator._update_session(session)
         with monkeypatch.context() as context:
             context.setattr(psef.models.db, 'session', session)
             if not fresh_db:
@@ -623,27 +637,29 @@ def course(session, course_name):
     yield LocalProxy(session.query(m.Course).filter_by(name=course_name).first)
 
 
-DESCRIBE_HOOKS = []
-
-
 @pytest.fixture
 def describe():
-    @contextlib.contextmanager
-    def inner(name):
-        print()
-        sep = '+={}=+'.format('=' * len(name))
-        print(sep)
-        print('|', name, '|')
-        print(sep)
-        print()
-        sys.stdout.flush()
-        yield
-        for i, h in enumerate(DESCRIBE_HOOKS):
-            h()
+    class Describe:
+        def __init__(self):
+            self._hooks = []
 
-    yield inner
+        def add_hook(self, hook):
+            self._hooks.append(hook)
 
-    DESCRIBE_HOOKS.clear()
+        @contextlib.contextmanager
+        def __call__(self, name):
+            print()
+            sep = '+={}=+'.format('=' * len(name))
+            print(sep)
+            print('|', name, '|')
+            print(sep)
+            print()
+            sys.stdout.flush()
+            yield
+            for hook in self._hooks:
+                hook()
+
+    yield Describe()
 
 
 @pytest.fixture(params=[False])
@@ -694,12 +710,24 @@ def filename(request):
 
 @pytest.fixture
 def stub_function(stub_function_class, session, monkeypatch):
-    def inner_stub_function(module, name, *args, **kwargs):
-        stub = stub_function_class(*args, **kwargs)
-        monkeypatch.setattr(module, name, stub)
-        return stub
+    class inner_stub_function:
+        def __init__(self, mk):
+            self.mk = mk
 
-    yield inner_stub_function
+        def __call__(self, *args, **kwargs):
+            return self.stub(*args, **kwargs)
+
+        def stub(self, module, name, *args, **kwargs):
+            stub = stub_function_class(*args, **kwargs)
+            self.mk.setattr(module, name, stub)
+            return stub
+
+        @contextlib.contextmanager
+        def temp_stubs(self):
+            with self.mk.context() as ctx:
+                yield type(self)(ctx)
+
+    yield inner_stub_function(monkeypatch)
 
 
 @pytest.fixture
@@ -771,7 +799,7 @@ def make_function_spy(monkeypatch, stub_function_class):
 
 
 @pytest.fixture
-def stub_function_class():
+def stub_function_class(describe):
     class StubFunction:
         def __init__(
             self, ret_func=lambda: None, with_args=False, pass_self=False
@@ -783,7 +811,7 @@ def stub_function_class():
             self.with_args = with_args
             self.call_dates = []
             self.pass_self = pass_self
-            DESCRIBE_HOOKS.append(self.reset)
+            describe.add_hook(self.reset)
 
         def __call__(self, *args, **kwargs):
             return self.make_callable(self.ret_func)(*args, **kwargs)
@@ -937,7 +965,7 @@ def live_server(app, live_server_url, db):
 
 
 @pytest.fixture
-def stubmailer(monkeypatch):
+def stubmailer(monkeypatch, describe):
     class StubMailer():
         def __init__(self):
             self.msg = None
@@ -946,7 +974,7 @@ def stubmailer(monkeypatch):
             self.args = []
             self.kwargs = []
             self.times_connect_called = 0
-            DESCRIBE_HOOKS.append(self.reset)
+            describe.add_hook(self.reset)
 
         def send(self, msg):
             self.called += 1

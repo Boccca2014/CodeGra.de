@@ -80,7 +80,7 @@ export default {
         background-color: white;
     }
     &:disabled {
-        cursor: not-allowed;
+        cursor: not-allowed !important;
     }
 
     &.flatpickr-input {

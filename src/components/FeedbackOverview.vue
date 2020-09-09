@@ -175,7 +175,6 @@ export default {
 
     computed: {
         ...mapGetters('pref', ['fontSize']),
-        ...mapGetters('courses', ['assignments']),
 
         loading() {
             const feedback = this.feedback;
@@ -288,10 +287,15 @@ export default {
 <style lang="less">
 @import '~mixins.less';
 
+.feedback-overview > .scroller .inner-feedback-viewer,
 .feedback-overview > .scroller .inline-feedback-scroll-part {
     border: 1px solid @border-color;
     border-left-width: 0px;
     border-right-width: 0px;
+
+    @{dark-mode} {
+        border-color: @color-primary-darkest;
+    }
 
     &:first-child {
         border-top-width: 0px;
@@ -325,6 +329,11 @@ export default {
         margin-top: -1px;
         z-index: 100;
         background-color: rgb(247, 247, 247);
+
+        @{dark-mode} {
+            background-color: @color-primary-darker;
+            border-top-color: @color-primary-darkest;
+        }
     }
 }
 </style>

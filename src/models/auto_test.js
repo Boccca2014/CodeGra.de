@@ -183,7 +183,7 @@ export class AutoTestSuiteData {
                 step.data.inputs.forEach((input, i) => {
                     const name = `${withOrdinalSuffix(i + 1)} input output case`;
                     if (isEmpty(input.name)) {
-                        errs.push(`The name of the ${name} is emtpy.`);
+                        errs.push(`The name of the ${name} is empty.`);
                     }
                     if (Number(input.weight) <= 0) {
                         errs.push(`The weight of the ${name} should be a number greater than 0.`);
@@ -349,15 +349,25 @@ export class AutoTestResult {
                     }
                     stepResult.step = step;
 
-                    if (step.type === 'check_points' && stepResult.state === 'failed') {
-                        suiteFailed = true;
-                    } else if (step.type === 'custom_output' && stepResult.state === 'passed') {
-                        const points = stepResult.log.points;
-                        if (points === 0) {
-                            stepResult.state = 'failed';
-                        } else if (points < 1) {
-                            stepResult.state = 'partial';
-                        }
+                    switch (step.type) {
+                        case 'check_points':
+                            if (stepResult.state === 'failed') {
+                                suiteFailed = true;
+                            }
+                            break;
+                        case 'custom_output':
+                        case 'junit_test':
+                            if (stepResult.state === 'passed') {
+                                const points = stepResult.log.points;
+                                if (points === 0) {
+                                    stepResult.state = 'failed';
+                                } else if (points < 1) {
+                                    stepResult.state = 'partial';
+                                }
+                            }
+                            break;
+                        default:
+                            break;
                     }
 
                     suiteResult.achieved += getProps(stepResult, 0, 'achieved_points');

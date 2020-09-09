@@ -288,7 +288,7 @@ def test_lti_no_roles_found(test_client, app, logged_in, ta_user, monkeypatch):
         username='A the A-er',
         lti_id='USER_ID',
         source_id='',
-        published='false',
+        published='true',
         parse=True,
         code=200
     ):
@@ -406,7 +406,7 @@ def test_invalid_lti_role(test_client, app, role, session):
             'ext_roles': role,
             'custom_canvas_user_login_id': 'bla-the-bla-er',
             'custom_canvas_assignment_due_at': due_at.isoformat(),
-            'custom_canvas_assignment_published': 'false',
+            'custom_canvas_assignment_published': 'true',
             'user_id': 'USER_ID2',
             'lis_person_contact_email_primary': 'a@a.nl',
             'lis_person_name_full': 'Bla the Bla-er',
@@ -967,12 +967,18 @@ def test_lti_assignment_create_and_delete(
         test_client.req(
             'post',
             f'/api/v1/courses/{course["id"]}/assignments/',
-            400,
+            200,
             data={
                 'name': 'wow',
             },
             headers={'Authorization': f'Bearer {token}'},
-            result=error_template,
+            result={
+                'course': course,
+                '__allow_extra__': True,
+                'id': int,
+                'is_lti': False,
+                'kind': 'normal',
+            },
         )
 
         # Make sure name of course and assignment is updated with new launches
@@ -1431,7 +1437,7 @@ def test_lti_grade_passback_with_groups(
     with logged_in(teacher_user):
         assig, token = do_lti_launch()
         u1 = create_user_with_perms(
-            session, [CPerm.can_submit_own_work],
+            session, [CPerm.can_submit_own_work, CPerm.can_see_assignments],
             m.Course.query.get(assig['course']['id'])
         )
         u1_lti_id = str(uuid.uuid4())
@@ -1450,14 +1456,13 @@ def test_lti_grade_passback_with_groups(
         )
 
         u2 = create_user_with_perms(
-            session, [CPerm.can_submit_own_work],
+            session, [CPerm.can_submit_own_work, CPerm.can_see_assignments],
             m.Course.query.get(assig['course']['id'])
         )
         u3 = create_user_with_perms(
-            session, [CPerm.can_submit_own_work],
+            session, [CPerm.can_submit_own_work, CPerm.can_see_assignments],
             m.Course.query.get(assig['course']['id'])
         )
-        print(u3)
         session.commit()
 
         g_set = create_group_set(
@@ -2033,7 +2038,7 @@ def test_lti_roles(
                 'resource_link_id': assig,
                 'custom_canvas_assignment_id': assig,
                 'custom_canvas_assignment_title': assig,
-                'custom_canvas_assignment_published': True,
+                'custom_canvas_assignment_published': 'true',
                 'roles': roles,
                 'ext_roles': roles,
                 'user_id': user_id,
@@ -2153,6 +2158,7 @@ def test_lti_roles(
             'blackboard_lti',
             'brightspace_lti',
             'moodle_lti',
+            'sakai_lti',
         ]:
             do_lti_launch(
                 'INVALID_ROLE,urn:lti:instrole:ims/lis/Administrator,urn:lti:instrole:ims/lis/Instructor',
@@ -2161,19 +2167,21 @@ def test_lti_roles(
             )
 
     with describe(
-        'it interprets Moodle\'s roles without a urn: prefix correctly',
+        "it interprets Moodle's and Sakai's roles without a urn: prefix"
+        " correctly"
     ):
-        for srole in lti.LTIGlobalRole._LOOKUP:
-            do_lti_launch(
-                f'urn:lti:instrole:ims/lis/{srole},Learner',
-                crole='Student',
-                oauth_key='moodle_lti',
-            )
-            do_lti_launch(
-                f'urn:lti:instrole:ims/lis/{srole},Instructor',
-                crole='Teacher',
-                oauth_key='moodle_lti',
-            )
+        for lms in ['moodle', 'sakai']:
+            for srole in lti.LTIGlobalRole._LOOKUP:
+                do_lti_launch(
+                    f'urn:lti:instrole:ims/lis/{srole},Learner',
+                    crole='Student',
+                    oauth_key=f'{lms}_lti',
+                )
+                do_lti_launch(
+                    f'urn:lti:instrole:ims/lis/{srole},Instructor',
+                    crole='Teacher',
+                    oauth_key=f'{lms}_lti',
+                )
 
     with describe(
         'it interprets Brightspace roles as both sysroles and course roles '
@@ -2269,6 +2277,7 @@ def test_canvas_new_assignment_without_outcoume_service_url(
             'post',
             '/api/v1/lti/launch/2',
             200,
+            query={'no_course_in_assignment': True},
             data={'blob_id': blob_id},
             include_response=True,
         )

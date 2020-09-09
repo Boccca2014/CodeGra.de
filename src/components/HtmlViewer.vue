@@ -2,9 +2,9 @@
 <template>
 <b-alert show
          v-if="!proxyId && !isMyFile"
-         variant="light"
+         :variant="darkMode ? '' : 'light'"
          style="overflow: auto;"
-         class="html-viewer">
+         class="html-viewer border-0">
     <div>
         <p>
             This file looks like an HTML file. We can render this file, or show its
@@ -168,6 +168,7 @@ export default {
 
     computed: {
         ...mapGetters('feedback', ['getFeedback']),
+        ...mapGetters('pref', ['darkMode']),
         ...mapGetters('user', { myId: 'id' }),
         ...mapGetters('users', ['getUser']),
         ...mapGetters('autotest', {

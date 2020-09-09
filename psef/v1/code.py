@@ -182,10 +182,10 @@ def get_code(file_id: t.Union[int, uuid.UUID]
             also_error=lambda f: f.deleted
         )
 
-        auth.ensure_can_view_files(f.work, f.fileowner == FileOwner.teacher)
+        auth.CodePermisisons(f).ensure_may_see()
     else:
         f = helpers.get_or_404(models.AutoTestOutputFile, file_id)
-        auth.ensure_can_view_autotest_result(f.result)
+        auth.AutoTestResultPermissions(f.result).ensure_may_see_output_files()
 
         assig = f.suite.auto_test_set.auto_test.assignment
         if not assig.is_done:
@@ -247,7 +247,7 @@ def get_feedback(file: models.File, linter: bool = False) -> _FeedbackMapping:
     res: _FeedbackMapping = {}
     try:
         if linter:
-            auth.ensure_can_see_linter_feedback(file.work)
+            auth.WorkPermissions(file.work).ensure_may_see_linter_feedback()
 
             for linter_comment in db.session.query(
                 models.LinterComment,
@@ -302,7 +302,7 @@ def delete_code(file_id: int) -> EmptyResponse:
         models.File, file_id, also_error=lambda f: f.deleted
     )
 
-    auth.ensure_can_edit_work(code.work)
+    auth.CodePermisisons(code).ensure_may_edit()
 
     def _raise_invalid() -> None:
         raise APIException(
@@ -399,8 +399,7 @@ def split_code(
     old_id = code.id
     old_diskname = None if code.is_directory else code.get_diskname()
     db.session.flush()
-    code = t.cast(models.File, db.session.query(models.File).get(code.id))
-    assert code is not None
+    code = models.File.query.filter(models.File.id == code.id).one()
 
     db.session.expunge(code)
     make_transient(code)
@@ -503,7 +502,7 @@ def update_code(file_id: int) -> JSONResponse[models.File]:
         also_error=lambda f: f.deleted,
     )
 
-    auth.ensure_can_edit_work(code.work)
+    auth.CodePermisisons(code).ensure_may_edit()
 
     if (request.content_length or 0) > app.max_single_file_size:
         helpers.raise_file_too_big_exception(

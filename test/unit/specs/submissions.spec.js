@@ -195,7 +195,7 @@ describe('actions', () => {
             const obj2 = {};
             state.submissionsLoaders[obj2] = obj1;
 
-            await expect(store.actions.loadSubmissions(context, obj2)).resolves.toBe(obj1);
+            await expect(store.actions.loadSubmissions(context, { assignmentId: obj2 })).toBe(obj1);
 
             expect(mockDispatch).not.toBeCalled();
             expect(mockCommit).not.toBeCalled();

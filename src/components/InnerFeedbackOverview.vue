@@ -152,7 +152,7 @@ export default class InnerFeedbackOverview extends Vue {
         return {
             name: 'submission_file',
             params: {
-                courseId: this.assignment.course.id,
+                courseId: this.assignment.courseId,
                 assignmentId: this.assignment.id,
                 submissionId: this.submission.id,
                 fileId,

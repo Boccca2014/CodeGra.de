@@ -1,5 +1,7 @@
 # SPDX-License-Identifier: AGPL-3.0-only
+import re
 import copy
+import uuid
 import datetime
 
 import pytest
@@ -508,7 +510,6 @@ def test_reset_password(
     msg = str(stubmailer.msg)
     start_id = msg.find('user=') + len('user=')
     end_id = msg[start_id:].find('&token=') + start_id
-    print(msg, start_id, end_id)
     user_id = int(msg[start_id:end_id])
 
     start_token = end_id + len('&token=')
@@ -729,4 +730,87 @@ def test_timeout_jwt_token(test_client, session, describe, logged_in, app):
             '/api/v1/login',
             401,
             headers={'Authorization': f'Bearer jdalksfjakldfjlkadjsdlkf'}
+        )
+
+
+def test_login_rate_limit(test_client, session, describe, app):
+    with describe('setup'):
+        password = str(uuid.uuid4())
+        new_user1 = m.User(
+            name='NEW_USER',
+            email='a@a.nl',
+            password=password,
+            active=True,
+            username='a-the-a-er',
+            role=session.query(m.Role).first(),
+        )
+        new_user2 = m.User(
+            name='NEW_USER',
+            email='b@b.nl',
+            password=password,
+            active=True,
+            username='b-the-b-er',
+            role=session.query(m.Role).first(),
+        )
+        session.add(new_user1)
+        session.add(new_user2)
+        session.commit()
+
+    with describe('Will get rate limit if trying too much'):
+        for i in range(100):
+            with app.app_context():
+                res = test_client.post(
+                    '/api/v1/login?with_permissions',
+                    json={'username': 'a-the-a-er', 'password': 'not correct'}
+                )
+            if res.status_code == 429:
+                assert i >= 5
+                break
+            else:
+                assert res.status_code >= 400
+        else:
+            assert False, 'Expected 429 at some point'
+
+    with describe('Can still login for another user'):
+        with app.app_context():
+            res = test_client.req(
+                'post',
+                '/api/v1/login?with_permissions',
+                200,
+                data={
+                    'username': 'b-the-b-er',
+                    'password': password,
+                },
+            )
+
+    with describe('Correct login does not fix rate limit'):
+        with app.app_context():
+            res = test_client.req(
+                'post',
+                '/api/v1/login?with_permissions',
+                429,
+                data={
+                    'username': 'a-the-a-er',
+                    'password': password,
+                },
+            )
+
+
+def test_reset_password_without_perm(
+    test_client, session, error_template, describe
+):
+    with describe('setup'):
+        user = create_user_with_perms(session, [], [], gperms=[])
+
+    with describe('Cannot get reset password link'):
+        test_client.req(
+            'patch',
+            '/api/v1/login?type=reset_email',
+            403,
+            data={'username': user.username},
+            result={
+                **error_template,
+                'message':
+                    re.compile('^This user.*necessary.*reset.*own password'),
+            }
         )

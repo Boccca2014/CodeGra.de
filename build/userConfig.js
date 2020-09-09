@@ -9,6 +9,10 @@ function resolve (dir) {
   return path.join(__dirname, '..', dir)
 }
 
+const minutes = amount => 60 * amount;
+const hours = amount => minutes(60 * amount);
+const days = amount => hours(24 * amount);
+
 function filterKeys(obj, ...keys) {
     return keys.reduce(
         (acc, key) => {
@@ -43,9 +47,7 @@ const config = Object.assign({}, {
 config.maxLines = parseInt(config.maxLines, 10);
 config.notificationPollTime = parseInt(config.notificationPollTime, 10);
 
-let version = execFileSync('git', ['describe', '--abbrev=0', '--tags']).toString().trim();
 const branch = execFileSync('git', ['rev-parse', '--abbrev-ref', 'HEAD']).toString().trim();
-const tagMsg = execFileSync('git', ['tag', '-l', '-n400', version]).toString().split('\n');
 const gitCommit = execFileSync('git', ['rev-parse', '--short', 'HEAD']).toString().trim();
 const gitCommitLong = execFileSync('git', ['rev-parse', 'HEAD']).toString().trim();
 let inCorrectPart = false;
@@ -57,8 +59,14 @@ let skip = false;
 // show the commit hash but show the version instead) over a false positive (we
 // show a commit hash instead of a version) as this would mean we would show a
 // commit hash on a production server which looks bad.
-if (version.match(/^[^A-Z]/) && branch.indexOf('stable') < 0) {
-    version = '#' + gitCommit;
+let tagMsg = [];
+let version = '#' + gitCommit;
+if (branch.indexOf('stable') >= 0) {
+    const tag = execFileSync('git', ['describe', '--abbrev=0', '--tags']).toString().trim();
+    tagMsg = execFileSync('git', ['tag', '-l', '-n400', tag]).toString().split('\n');
+    if (tag.match(/^[A-Z]/)) {
+        version = tag;
+    }
 }
 
 config.release = {
@@ -93,6 +101,7 @@ config.features = Object.assign({
     groups: false,
     email_students: false,
     peer_feedback: false,
+    course_register: false,
 }, userConfig.Features);
 
 config.autoTest = {
@@ -108,6 +117,21 @@ const backendOpts = userConfig['Back-end'];
 config.proxyBaseDomain = backendOpts ? backendOpts.proxy_base_domain : '';
 config.isProduction = process.env.NODE_ENV === 'production';
 config.externalUrl = backendOpts ? backendOpts.external_url : '';
+
+const beforeTime = backendOpts ? backendOpts.login_token_before_time : null;
+if (beforeTime == null) {
+    // Same as in ``config.py``
+    config.loginTokenBeforeTime = [days(2), minutes(30)]
+} else {
+    config.loginTokenBeforeTime = beforeTime.split(',').map(item => parseFloat(item.trim()))
+}
+
+const examLoginMaxLength = backendOpts ? backendOpts.exam_login_max_length : null;
+if (examLoginMaxLength) {
+    config.examLoginMaxLength = parseInt(examLoginMaxLength);
+} else {
+    config.examLoginMaxLength = hours(12);
+}
 
 if (!config.proxyBaseDomain && config.isProduction) {
     throw new Error('Production can only be used with a proxy url.');

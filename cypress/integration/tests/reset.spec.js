@@ -7,11 +7,11 @@ context('Reset password', () => {
     });
 
     function fillNew(pw) {
-        cy.get('input[name="new-password"]').type(pw);
+        cy.get('input[name="password"]').type(pw);
     }
 
     function fillConfirm(pw) {
-        cy.get('input[name="confirm-password"]').type(pw);
+        cy.get('input[name="repeat-password"]').type(pw);
     }
 
     function fillBoth(pw1, pw2) {

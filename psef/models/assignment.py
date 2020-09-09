@@ -15,23 +15,31 @@ from collections import Counter, defaultdict
 
 import structlog
 import sqlalchemy
+from furl import furl
 from sqlalchemy.orm import validates
 from mypy_extensions import DefaultArg
 from sqlalchemy.types import JSON
+from sqlalchemy_utils import PasswordType
 from typing_extensions import TypedDict
 from sqlalchemy.orm.collections import attribute_mapped_collection
 
 import psef
+import cg_enum
 import cg_cache
 import cg_sqlalchemy_helpers
-from cg_helpers import handle_none, on_not_none, zip_times_with_offset
+from cg_helpers import (
+    humanize, handle_none, on_not_none, zip_times_with_offset
+)
 from cg_dt_utils import DatetimeWithTimezone
+from cg_flask_helpers import callback_after_this_request
+from cg_sqlalchemy_helpers import UUIDType
 from cg_sqlalchemy_helpers import expression as sql_expression
+from cg_cache.intra_request import cached_property
 from cg_sqlalchemy_helpers.types import (
     _T_BASE, MyQuery, DbColumn, ColumnProxy, MyNonOrderableQuery,
     hybrid_property
 )
-from cg_sqlalchemy_helpers.mixins import IdMixin, TimestampMixin
+from cg_sqlalchemy_helpers.mixins import IdMixin, UUIDMixin, TimestampMixin
 
 from . import UUID_LENGTH, Base, db
 from . import user as user_models
@@ -41,6 +49,8 @@ from . import linter as linter_models
 from . import rubric as rubric_models
 from . import analytics as analytics_models
 from . import auto_test as auto_test_models
+from . import validator
+from . import task_result as task_result_models
 from .. import auth, ignore, helpers, signals, db_locks
 from .role import CourseRole
 from .permission import Permission, PermissionComp
@@ -54,11 +64,8 @@ from ..permissions import CoursePermission as CPerm
 if t.TYPE_CHECKING:  # pragma: no cover
     # pylint: disable=unused-import
     from pylti1p3.assignments_grades import _AssignmentsGradersData
+
     from . import group as group_models
-    cached_property = property  # pylint: disable=invalid-name
-else:
-    # pylint: disable=unused-import
-    from werkzeug.utils import cached_property
 
 T = t.TypeVar('T')
 Y = t.TypeVar('Y')
@@ -100,15 +107,24 @@ class AssignmentJSON(TypedDict, total=True):
     id: int  #: The id of the assignment.
     state: str  #: Current state of the assignment.
     description: t.Optional[str]  #: Description of the assignment.
-    created_at: str  #: ISO UTC date.
-    deadline: t.Optional[str]  #: ISO UTC date.
+    created_at: DatetimeWithTimezone  #: ISO UTC date.
+    deadline: t.Optional[DatetimeWithTimezone]  #: ISO UTC date.
     name: str  #: The name of the assignment.
     is_lti: bool  #: Is this an LTI assignment.
-    course: 'course_models.Course'  #: Course of this assignment.
+    course_id: int  #: Course of this assignment.
     cgignore: t.Optional['psef.helpers.JSONType']  #: The cginore.
     cgignore_version: t.Optional[str]
     #: Has the whitespace linter run on this assignment.
     whitespace_linter: bool
+
+    #: The time the assignment will become available (i.e. the state will
+    #: switch from 'hidden' to 'open'). If the state is not 'hidden' this value
+    #: has no meaning. If this value is not ``None`` you cannot change to state
+    #: to 'hidden' or 'open'.
+    available_at: t.Optional[DatetimeWithTimezone]
+
+    #: Should we send login links to all users before the available_at time.
+    send_login_links: bool
 
     #: The fixed value for the maximum that can be achieved in a rubric. This
     #: can be higher and lower than the actual max. Will be `null` if unset.
@@ -141,7 +157,7 @@ class AssignmentJSON(TypedDict, total=True):
     #: by a user. A user can submit at most `amount_in_cool_off_period`
     #: submissions in `cool_off_period` seconds. `amount_in_cool_off_period`
     #: is always >= 1, so this check is disabled if `cool_off_period == 0`.
-    cool_off_period: float
+    cool_off_period: datetime.timedelta
     amount_in_cool_off_period: int
 
     #: ISO UTC date. This will be `null` if you don't have the permission to
@@ -152,7 +168,7 @@ class AssignmentJSON(TypedDict, total=True):
     lms_name: t.Optional[str]
 
     #: The peer feedback settings for this assignment. If ``null`` this
-    #assignment is not a peer feedback assignment.
+    #: assignment is not a peer feedback assignment.
     peer_feedback_settings: t.Optional['AssignmentPeerFeedbackSettings']
 
     #: The kind of reminder that will be sent.  If you don't have the
@@ -172,6 +188,9 @@ class AssignmentJSON(TypedDict, total=True):
     #: WARNING: This API is still in beta, and might change in the future.
     analytics_workspace_ids: t.List[int]
 
+    #: What kind of assignment is this.
+    kind: 'AssignmentKind'
+
 
 class AssignmentAmbiguousSettingTag(enum.Enum):
     """All items that can contribute to a ambiguous assignment setting.
@@ -180,6 +199,7 @@ class AssignmentAmbiguousSettingTag(enum.Enum):
     cgignore = enum.auto()
     max_submissions = enum.auto()
     cool_off = enum.auto()
+    deadline = enum.auto()
 
 
 @dataclasses.dataclass(frozen=True)
@@ -192,12 +212,20 @@ class _AssignmentAmbiguousSetting:
 
 
 @enum.unique
-class AssignmentStateEnum(enum.IntEnum):
+class AssignmentStateEnum(cg_enum.CGEnum):
     """Describes in what state an :class:`.Assignment` is.
     """
     hidden = 0
     open = 1
     done = 2
+
+
+@enum.unique
+class AssignmentKind(cg_enum.CGEnum):
+    """Describes in what state an :class:`.Assignment` is.
+    """
+    normal = 0
+    exam = 1
 
 
 @enum.unique
@@ -302,20 +330,18 @@ class AssignmentLinter(Base):
     :class:`.linter_models.LinterInstance`.
 
     The name identifies which :class:`.linter_models.Linter` is used.
-
-    :ivar ~.AssignmentLinter.name: The name of the linter which is the
-        `__name__` of a subclass of :py:class:`.linter_models.Linter`.
-    :ivar tests: All the linter instances for this linter, this are the
-        recordings of the running of the actual linter (so in the case of the
-        :py:class:`.Flake8` metadata about the `flake8` program).
-    :ivar config: The config that was passed to the linter.
     """
     __tablename__ = 'AssignmentLinter'  # type: str
-    # This has to be a String object as the id has to be a non guessable uuid.
+    #: This has to be a String object as the id has to be a non guessable uuid.
     id = db.Column(
         'id', db.String(UUID_LENGTH), nullable=False, primary_key=True
     )
+    #: The name of the linter which is the `__name__` of a subclass of
+    #: :py:class:`.linter_models.Linter`.
     name = db.Column('name', db.Unicode, nullable=False)
+    #: All the linter instances for this linter, this are the recordings of the
+    #: running of the actual linter (so in the case of the :py:class:`.Flake8`
+    #: metadata about the `flake8` program).
     tests = db.relationship(
         lambda: linter_models.LinterInstance,
         back_populates="tester",
@@ -323,11 +349,13 @@ class AssignmentLinter(Base):
         order_by=lambda: linter_models.LinterInstance.work_id,
         uselist=True,
     )
+    #: The config that was passed to the linter.
     config = db.Column(
         'config',
         db.Unicode,
         nullable=False,
     )
+    #: The id of the assignment connected to this linter.
     assignment_id = db.Column(
         'Assignment_id',
         db.Integer,
@@ -335,11 +363,18 @@ class AssignmentLinter(Base):
         nullable=False,
     )
 
+    #: The assignment connect to this linter run.
     assignment = db.relationship(
         lambda: Assignment,
         foreign_keys=assignment_id,
         backref=db.backref('linters', uselist=True),
     )
+
+    @classmethod
+    def get_whitespace_linter_query(cls) -> MyQuery['AssignmentLinter']:
+        """Get a query that selects all ``MixedWhitespace`` linters.
+        """
+        return cls.query.filter(AssignmentLinter.name == 'MixedWhitespace')
 
     @property
     def linters_crashed(self) -> int:
@@ -982,6 +1017,74 @@ signals.WORK_CREATED.connect_immediate(
 )
 
 
+class AssignmentLoginLink(Base, UUIDMixin, TimestampMixin):
+    """This class represents a link that a user can use to login for a specific
+    assignment between the ``available_at`` and the ``deadline``.
+    """
+    user_id = db.Column(
+        'user_id',
+        db.Integer,
+        db.ForeignKey('User.id', ondelete='CASCADE'),
+        nullable=False,
+    )
+    user = db.relationship(
+        lambda: user_models.User,
+        foreign_keys=user_id,
+        innerjoin=True,
+        lazy='joined',
+    )
+
+    assignment_id = db.Column(
+        'assignment_id',
+        db.Integer,
+        db.ForeignKey('Assignment.id', ondelete='CASCADE'),
+        nullable=False,
+    )
+    assignment = db.relationship(
+        lambda: Assignment,
+        foreign_keys=assignment_id,
+    )
+
+    password = db.Column(
+        'password',
+        PasswordType(schemes=[
+            'pbkdf2_sha512',
+        ], deprecated=[]),
+        nullable=True,
+    )
+
+    def get_url(self) -> str:
+        return furl(
+            psef.current_app.config['EXTERNAL_URL']
+        ).add(path=['assignments', self.assignment_id, 'login', self.id]
+              ).tostr()
+
+    def get_message_id(self, idx: int) -> str:
+        return '<{self_id}-{token_id}-{idx}@{domain}>'.format(
+            self_id=self.id,
+            token_id=self.assignment.send_login_links_token,
+            idx=idx,
+            domain=psef.current_app.config['EXTERNAL_DOMAIN'],
+        )
+
+    class AsJSON(TypedDict):
+        """The way this class will be represented in JSON.
+        """
+        #: The id of this link.
+        id: uuid.UUID
+        #: The assignment connected to this login link.
+        assignment: 'Assignment'
+        #: The user that is link will login.
+        user: 'user_models.User'
+
+    def __to_json__(self) -> AsJSON:
+        return {
+            'id': self.id,
+            'assignment': self.assignment,
+            'user': self.user,
+        }
+
+
 class AssignmentResult(Base):
     """The class creates the link between an :class:`.user_models.User` and an
     :class:`.Assignment` in the database and the external users LIS sourcedid.
@@ -1045,6 +1148,15 @@ class Assignment(helpers.NotEqualMixin, Base):  # pylint: disable=too-many-publi
         default=AssignmentStateEnum.hidden,
         nullable=False,
     )
+
+    kind = db.Column(
+        'kind',
+        db.Enum(AssignmentKind),
+        default=AssignmentKind.normal,
+        nullable=False,
+        server_default='normal'
+    )
+
     description = db.Column('description', db.Unicode, default='')
     course_id = db.Column(
         'Course_id', db.Integer, db.ForeignKey('Course.id'), nullable=False
@@ -1193,7 +1305,7 @@ class Assignment(helpers.NotEqualMixin, Base):  # pylint: disable=too-many-publi
     linters: ColumnProxy[t.Iterable['AssignmentLinter']]
 
     # This variable is available through a backref
-    submissions: t.Iterable['work_models.Work']
+    submissions: ColumnProxy[t.Iterable['work_models.Work']]
 
     auto_test_id = db.Column(
         'auto_test_id',
@@ -1247,6 +1359,20 @@ class Assignment(helpers.NotEqualMixin, Base):  # pylint: disable=too-many-publi
         cascade='delete-orphan,delete,save-update',
     )
 
+    _available_at = db.Column(
+        'available_at',
+        db.TIMESTAMP(timezone=True),
+        nullable=True,
+        default=None,
+    )
+
+    _send_login_links_token = db.Column(
+        'send_login_links_token',
+        UUIDType,
+        nullable=True,
+        default=None,
+    )
+
     __table_args__ = (
         db.CheckConstraint(
             "files_upload_enabled or webhook_upload_enabled",
@@ -1256,12 +1382,110 @@ class Assignment(helpers.NotEqualMixin, Base):  # pylint: disable=too-many-publi
             'amount_in_cool_off_period >= 1',
             name='amount_in_cool_off_period_check'
         ),
+        db.CheckConstraint(
+            (
+                'available_at IS NULL OR deadline IS NULL OR available_at <'
+                ' deadline'
+            ),
+            name='available_at_before_deadline',
+        ),
+        db.CheckConstraint(
+            'send_login_links_token IS NULL OR available_at IS NOT NULL',
+            name='send_login_links_only_valid_with_available_at',
+        ),
         db.UniqueConstraint(
             lti_assignment_id,
             course_id,
             name='ltiassignmentid_courseid_unique',
+        ),
+    )
+
+    @validator.validates(
+        lambda: (
+            Assignment._available_at,
+            Assignment._deadline,
+            Assignment._send_login_links_token,
         )
     )
+    def _check_available_at_and_login_links(self) -> None:
+        if not self.send_login_links:
+            return
+
+        if self.available_at is None or self.deadline is None:
+            raise APIException(
+                (
+                    'Login links can only be enabled when an available at and'
+                    ' deadline is set'
+                ), f'Some required data was missing for assignment {self.id}',
+                APICodes.INVALID_STATE, 409
+            )
+
+        max_time = psef.current_app.config['EXAM_LOGIN_MAX_LENGTH']
+        if (self.deadline - self.available_at) > max_time:
+            raise APIException(
+                (
+                    'Login links can only be enabled if the deadline is at'
+                    ' most {} after the available at date'
+                ).format(humanize.timedelta(max_time, no_prefix=True)),
+                (
+                    f'The assignment {self.id} has too long between deadline'
+                    f' and available at'
+                ),
+                APICodes.INVALID_STATE,
+                409,
+            )
+
+    @validator.validates(
+        lambda: (Assignment._available_at, Assignment._deadline)
+    )
+    def _check_available_at_and_deadline(self) -> None:
+        if self.available_at is None or self.deadline is None:
+            return
+        if self.available_at >= self.deadline:
+            raise APIException(
+                'The assignment should become available before the deadline.',
+                'The available_at is at or after the deadline',
+                APICodes.INVALID_STATE, 409
+            )
+
+    @validator.validates(
+        lambda: (Assignment.kind, Assignment._send_login_links_token)
+    )
+    def _check_normal_assignment_login_links(self) -> None:
+        if self.kind.is_normal and self.send_login_links:
+            raise APIException(
+                'Login links are only available for exam mode assignments',
+                f'The assignment {self.id} is not an exam assignment',
+                APICodes.INVALID_STATE, 409
+            )
+
+    @validator.validates(
+        lambda: (
+            Assignment.kind,
+            Assignment._available_at,
+            Assignment._deadline,
+        )
+    )
+    def _check_kind_and_required_data(self) -> None:
+        if self.kind.is_exam and (
+            self.available_at is None or self.deadline is None
+        ):
+            raise APIException(
+                (
+                    'Exam mode assignments are required to set an available at'
+                    ' and deadline'
+                ), f'Some required data was missing for assignment {self.id}',
+                APICodes.INVALID_STATE, 409
+            )
+
+    @validator.validates(lambda: (Assignment.is_lti, Assignment.kind))
+    def _exam_mode_not_for_lti(self) -> None:
+        if self.is_lti and self.kind.is_exam:
+            raise APIException(
+                'Exam mode is not available for LTI assignments',
+                'You cannot combine LTI assignments and exam mode',
+                APICodes.INVALID_STATE, 409
+            )
 
     def __init__(
         self,
@@ -1278,16 +1502,18 @@ class Assignment(helpers.NotEqualMixin, Base):  # pylint: disable=too-many-publi
     ) -> None:
         super().__init__(
             course=course,
+            course_id=course.id,
             name=name,
             visibility_state=visibility_state,
             state=state,
-            deadline=deadline,
+            _deadline=deadline,
             lti_assignment_id=lti_assignment_id,
             description=description,
             is_lti=is_lti,
             analytics_workspaces=[
                 analytics_models.AnalyticsWorkspace(assignment=self)
             ],
+            kind=AssignmentKind.normal,
         )
         self._changed_ambiguous_settings: t.Set[AssignmentAmbiguousSettingTag]
         self._on_orm_load()
@@ -1312,6 +1538,9 @@ class Assignment(helpers.NotEqualMixin, Base):  # pylint: disable=too-many-publi
             return self.id == other.id
         return NotImplemented
 
+    def __hash__(self) -> int:
+        return hash((self.id, ))
+
     def _get_deadline(self) -> t.Optional[DatetimeWithTimezone]:
         return self._deadline
 
@@ -1320,9 +1549,24 @@ class Assignment(helpers.NotEqualMixin, Base):  # pylint: disable=too-many-publi
     ) -> None:
         if self._deadline != new_deadline:
             self._deadline = new_deadline
+            self._changed_ambiguous_settings.add(
+                AssignmentAmbiguousSettingTag.deadline
+            )
             signals.ASSIGNMENT_DEADLINE_CHANGED.send(self)
 
     deadline = hybrid_property(_get_deadline, _set_deadline)
+
+    @property
+    def send_login_links_token(self) -> t.Optional[uuid.UUID]:
+        """The login links token.
+
+        This parameter is updated every time we reschedule the tasks to send
+        the login links, and the token is also passed to the task. This makes
+        it possible for the task to see if it should actually execute or not.
+        Do not use a ``is None`` check to see if login tokens are enabled, but
+        use ``send_login_links``.
+        """
+        return self._send_login_links_token
 
     @validates('group_set')
     def validate_group_set(
@@ -1488,14 +1732,110 @@ class Assignment(helpers.NotEqualMixin, Base):  # pylint: disable=too-many-publi
         return self._state
 
     def _state_setter(self, new_value: AssignmentStateEnum) -> None:
-        if new_value != self._state:
-            self._state = new_value
-            signals.ASSIGNMENT_STATE_CHANGED.send(self)
+        if self.available_at is not None and not new_value.is_done:
+            now = helpers.get_request_start_time()
+            expired = now >= self.available_at
+            new_value = (
+                AssignmentStateEnum.open
+                if expired else AssignmentStateEnum.hidden
+            )
+
+        if new_value == self._state:
+            return
+
+        self._state = new_value
+        signals.ASSIGNMENT_STATE_CHANGED.send(self)
 
     state = hybrid_property(_state_getter, _state_setter)
 
+    def _schedule_send_login_links(self) -> None:
+        if self.deadline_expired:
+            helpers.add_warning(
+                (
+                    'The deadline for this assignment already expired, so we'
+                    ' will not send any login links.'
+                ), APIWarnings.ALREADY_EXPIRED
+            )
+        token = uuid.uuid4()
+        self._send_login_links_token = token
+        assig_id = self.id
+
+        tasks = []
+        for offset in psef.current_app.config['LOGIN_TOKEN_BEFORE_TIME']:
+            task = task_result_models.TaskResult(user=None)
+            db.session.add(task)
+            tasks.append((offset, task))
+
+        def _after_req() -> None:
+            assert self.available_at is not None
+            now = helpers.get_request_start_time()
+            for idx, (offset, task) in enumerate(tasks):
+                eta = self.available_at - offset
+                if eta < now and idx != len(tasks) - 1:
+                    continue
+
+                psef.tasks.send_login_links_to_users(
+                    (assig_id, task.id.hex, eta.isoformat(), token.hex, idx),
+                    eta=eta,
+                )
+
+        callback_after_this_request(_after_req)
+
+    @property
+    def send_login_links(self) -> bool:
+        """Should we send login links to the users with permissions to receive
+        one.
+        """
+        return self.send_login_links_token is not None
+
+    @send_login_links.setter
+    def send_login_links(self, new_value: bool) -> None:
+        if new_value == self.send_login_links:
+            return
+
+        if new_value:
+            self._schedule_send_login_links()
+        else:
+            self._send_login_links_token = None
+
+    @property
+    def available_at(self) -> t.Optional[DatetimeWithTimezone]:
+        """At what time should this assignment become available.
+        """
+        return self._available_at
+
+    @available_at.setter
+    def available_at(
+        self, new_value: t.Optional[DatetimeWithTimezone]
+    ) -> None:
+        old_value = self._available_at
+        self._available_at = new_value
+
+        if new_value is None:
+            return
+
+        # The state setter sets this to the correct value based on the
+        # expiration state.
+        if not self.state.is_done:
+            self.state = AssignmentStateEnum.open
+
+        if old_value == new_value:
+            return
+
+        now = helpers.get_request_start_time()
+        expired = now >= new_value
+        if not expired:
+            callback_after_this_request(
+                lambda: psef.tasks.maybe_open_assignment_at(
+                    (self.id, ),
+                    eta=new_value,
+                )
+            )
+        if self.send_login_links:
+            self._schedule_send_login_links()
+
     # We don't use property.setter because in that case `new_val` could only be
-    # a `float` because of https://github.com/python/mypy/issues/220
+    # a `float` because of https://github.com/python/mypy/issues/3004
     def set_max_grade(self, new_val: t.Union[None, float, int]) -> None:
         """Set or unset the maximum grade for this assignment.
 
@@ -1504,8 +1844,8 @@ class Assignment(helpers.NotEqualMixin, Base):  # pylint: disable=too-many-publi
         """
         self._max_grade = new_val
 
+    #: The minimum grade for a submission in this assignment.
     min_grade = 0
-    """The minimum grade for a submission in this assignment."""
 
     def change_notifications(
         self,
@@ -1701,23 +2041,23 @@ class Assignment(helpers.NotEqualMixin, Base):  # pylint: disable=too-many-publi
         """Is the current assignment open, which means the assignment is in the
         state students submit work.
         """
-        return bool(
-            self.deadline is not None and
-            self.state == AssignmentStateEnum.open and
-            not self.deadline_expired
-        )
+        if self.deadline is None:
+            return False
+        if not self.state.is_open:
+            return False
+        return not self.deadline_expired
 
     @property
     def is_hidden(self) -> bool:
         """Is the assignment hidden.
         """
-        return self.state == AssignmentStateEnum.hidden
+        return self.state.is_hidden
 
     @property
     def is_done(self) -> bool:
         """Is the assignment done, which means that grades are open.
         """
-        return self.state == AssignmentStateEnum.done
+        return self.state.is_done
 
     @property
     def should_passback(self) -> bool:
@@ -1733,7 +2073,7 @@ class Assignment(helpers.NotEqualMixin, Base):  # pylint: disable=too-many-publi
 
         :returns: The correct name of the current state.
         """
-        if self.state == AssignmentStateEnum.open:
+        if self.state.is_open:
             return 'submitting' if self.is_open else 'grading'
         return AssignmentStateEnum(self.state).name
 
@@ -1746,11 +2086,10 @@ class Assignment(helpers.NotEqualMixin, Base):  # pylint: disable=too-many-publi
         # defined outside of the init.
         if not hasattr(self, '_whitespace_linter_exists'):
             self._whitespace_linter_exists = db.session.query(
-                AssignmentLinter.query.filter(
+                AssignmentLinter.get_whitespace_linter_query().filter(
                     AssignmentLinter.assignment_id == self.id,
-                    AssignmentLinter.name == 'MixedWhitespace'
-                ).exists()
-            ).scalar() or False
+                ).exists(),
+            ).scalar()
 
         return self._whitespace_linter_exists
 
@@ -1801,12 +2140,11 @@ class Assignment(helpers.NotEqualMixin, Base):  # pylint: disable=too-many-publi
             'id': self.id,
             'state': self.state_name,
             'description': self.description,
-            'created_at': self.created_at.isoformat(),
-            'deadline':
-                None if self.deadline is None else self.deadline.isoformat(),
+            'created_at': self.created_at,
+            'deadline': self.deadline,
             'name': self.name,
             'is_lti': self.is_lti,
-            'course': self.course,
+            'course_id': self.course_id,
             'cgignore': None if cgignore is None else cgignore.export(),
             'cgignore_version': self._cgignore_version,
             'whitespace_linter': self.whitespace_linter,
@@ -1817,9 +2155,12 @@ class Assignment(helpers.NotEqualMixin, Base):  # pylint: disable=too-many-publi
             'files_upload_enabled': self.files_upload_enabled,
             'webhook_upload_enabled': self.webhook_upload_enabled,
             'max_submissions': self.max_submissions,
-            'cool_off_period': self.cool_off_period.total_seconds(),
+            'cool_off_period': self.cool_off_period,
             'amount_in_cool_off_period': self.amount_in_cool_off_period,
             'peer_feedback_settings': self.peer_feedback_settings,
+            'available_at': self.available_at,
+            'send_login_links': self.send_login_links,
+            'kind': self.kind,
 
             # These are all filled in based on permissions and data
             # availability.
@@ -1830,6 +2171,13 @@ class Assignment(helpers.NotEqualMixin, Base):  # pylint: disable=too-many-publi
             'division_parent_id': None,
             'analytics_workspace_ids': [],
         }
+
+        if not helpers.request_arg_true('no_course_in_assignment'):
+            helpers.add_deprecate_warning(
+                'The option to send a complete course with an assignment will'
+                ' be removed in the next major release of CodeGrade'
+            )
+            res['course'] = self.course.__to_json__()  # type: ignore[misc]
 
         if self.course.lti_provider is not None:
             res['lms_name'] = self.course.lti_provider.lms_name
@@ -1867,14 +2215,14 @@ class Assignment(helpers.NotEqualMixin, Base):  # pylint: disable=too-many-publi
         :param state: The new state, can be 'hidden', 'done' or 'open'
         :returns: Nothing
         """
-        if state == 'open':
-            self.state = AssignmentStateEnum.open
-        elif state == 'hidden':
-            self.state = AssignmentStateEnum.hidden
-        elif state == 'done':
-            self.state = AssignmentStateEnum.done
-        else:
-            raise InvalidAssignmentState(f'{state} is not a valid state')
+        try:
+            new_state = AssignmentStateEnum[state]
+        except KeyError as exc:
+            raise InvalidAssignmentState(
+                f'{state} is not a valid state'
+            ) from exc
+
+        self.state = new_state
 
     def get_amount_not_deleted_submissions(self) -> int:
         return handle_none(

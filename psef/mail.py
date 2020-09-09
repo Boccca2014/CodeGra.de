@@ -36,6 +36,18 @@ def _send_mail(
     text_maker = html2text.HTML2Text(bodywidth=78)
     text_maker.inline_links = False
     text_maker.wrap_links = False
+    text_maker.ignore_tables = True
+    text_maker.wrap_links = False
+
+    def _handle_tag(
+        converter: html2text.HTML2Text, tag: str, _attrs: dict, start: bool
+    ) -> bool:
+        if start and tag in ('tr', 'th'):
+            converter.out('\n')
+        return False
+
+    text_maker.tag_callback = _handle_tag  # type: ignore[assignment]
+
     text_body = text_maker.handle(html_body)
 
     logger.info(
@@ -184,7 +196,7 @@ def send_reset_password_email(user: models.User) -> None:
             html_body, f'Reset password on {psef.app.config["EXTERNAL_URL"]}',
             [user.email]
         )
-    except Exception:
+    except Exception as exc:
         logger.bind(exc_info=True)
         raise APIException(
             'Something went wrong sending the email, '
@@ -192,7 +204,7 @@ def send_reset_password_email(user: models.User) -> None:
             f'Sending email to {user.id} went wrong.',
             APICodes.UNKOWN_ERROR,
             500,
-        )
+        ) from exc
 
 
 def send_digest_notification_email(
@@ -337,6 +349,47 @@ def send_student_mail(
     )
 
     mailer.send(message)
+
+
+def send_login_link_mail(
+    mailer: Mail, link: models.AssignmentLoginLink, mail_idx: int
+) -> None:
+    """Send a login link email with a given ``mailer``.
+
+    :param mailer: The mailer to use to send the login link.
+    :param link: The link for which you want to send the email.
+    :param mail_idx: How many emails were already sent to the user about this
+        link? This is used to change the body of the mail.
+
+    :param returns: Nothing.
+    """
+    receiver = link.user
+    subject = current_app.jinja_mail_env.from_string(
+        current_app.config['EXAM_LOGIN_SUBJECT']
+    ).render(
+        site_url=current_app.config["EXTERNAL_URL"], link=link
+    )
+
+    html_body = current_app.jinja_mail_env.get_template(
+        'exam_login.j2'
+    ).render(
+        site_url=current_app.config["EXTERNAL_URL"],
+        subject=subject,
+        link=link,
+        mail_idx=mail_idx,
+    )
+    refereneces = [link.get_message_id(i) for i in range(mail_idx)]
+    in_reply_to = refereneces[-1] if refereneces else None
+
+    _send_mail(
+        html_body,
+        subject,
+        [(receiver.name, receiver.email)],
+        mailer=mailer,
+        message_id=link.get_message_id(mail_idx),
+        in_reply_to=in_reply_to,
+        references=refereneces,
+    )
 
 
 def init_app(app: t.Any) -> None:

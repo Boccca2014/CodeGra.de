@@ -31,6 +31,10 @@ code {
 
 .custom-select {
     .default-select-colors;
+
+    &:disabled {
+        cursor: not-allowed;
+    }
 }
 
 .alert-danger {
@@ -80,7 +84,7 @@ main {
         .secondary-button-color;
     }
 
-    .fa-icon {
+    &:not(.wizard-button) .fa-icon {
         transform: translateY(-1px);
 
         body.cg-edge & {

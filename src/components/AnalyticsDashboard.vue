@@ -56,7 +56,6 @@
 
                     <analytics-filters
                         v-else
-                        :assignment-id="assignmentId"
                         :workspace="baseWorkspace"
                         v-model="filters"
                         @results="filterResults = $event" />
@@ -144,10 +143,12 @@
 </template>
 
 <script>
-import { mapActions, mapGetters } from 'vuex';
+import { mapActions } from 'vuex';
 
 import Icon from 'vue-awesome/components/Icon';
 import 'vue-awesome/icons/percent';
+
+import * as models from '@/models';
 
 import { WorkspaceFilter } from '@/models/analytics';
 import { BarChart, ScatterPlot } from '@/components/Charts';
@@ -167,8 +168,8 @@ export default {
     name: 'analytics-dashboard',
 
     props: {
-        assignmentId: {
-            type: Number,
+        assignment: {
+            type: models.Assignment,
             required: true,
         },
     },
@@ -190,12 +191,6 @@ export default {
     },
 
     computed: {
-        ...mapGetters('courses', ['assignments']),
-
-        assignment() {
-            return this.assignments[this.assignmentId];
-        },
-
         workspaceIds() {
             return this.$utils.getProps(this.assignment, [], 'analytics_workspace_ids');
         },
@@ -292,7 +287,7 @@ export default {
         },
 
         reloadWorkspace() {
-            this.clearAssignmentWorkspaces(this.assignmentId).then(this.loadWorkspaceData);
+            this.clearAssignmentWorkspaces(this.assignment.id).then(this.loadWorkspaceData);
         },
     },
 

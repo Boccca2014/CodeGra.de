@@ -8,7 +8,6 @@ SPDX-License-Identifier: AGPL-3.0-only
 """
 import typing as t
 
-import flask_jwt_extended as flask_jwt
 from flask import request
 from sqlalchemy import case, func
 from flask_limiter.util import get_remote_address
@@ -55,13 +54,13 @@ def search_users() -> JSONResponse[t.Sequence[models.User]]:
     if 'exclude_course' in request.args:
         try:
             exclude_course = int(request.args['exclude_course'])
-        except ValueError:
+        except ValueError as exc:
             raise APIException(
                 'The "exclude_course" parameter should be an integer', (
                     f'The given parameter "{request.args["exclude_course"]}"'
                     ' could not parsed as an int'
                 ), APICodes.INVALID_PARAM, 400
-            )
+            ) from exc
         auth.ensure_permission(CPerm.can_list_course_users, exclude_course)
 
         base = db.session.query(models.User).join(
@@ -90,7 +89,7 @@ def search_users() -> JSONResponse[t.Sequence[models.User]]:
 
 @api.route('/user', methods=['POST'])
 @features.feature_required(features.Feature.REGISTER)
-@limiter.limit('1 per second', key_func=get_remote_address)
+@limiter.limit('5 per minute', key_func=get_remote_address)
 def register_user() -> JSONResponse[t.Mapping[str, str]]:
     """Create a new :class:`.models.User`.
 
@@ -123,8 +122,4 @@ def register_user() -> JSONResponse[t.Mapping[str, str]]:
     )
     db.session.commit()
 
-    token: str = flask_jwt.create_access_token(
-        identity=user.id,
-        fresh=True,
-    )
-    return jsonify({'access_token': token})
+    return jsonify({'access_token': user.make_access_token()})

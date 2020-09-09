@@ -8,14 +8,11 @@ SPDX-License-Identifier: AGPL-3.0-only
 
 import typing as t
 
-from flask import request
-
 from . import api
-from .. import auth, models, features, current_user
+from .. import auth, models, helpers, features, current_user
 from ..helpers import (
     JSONResponse, EmptyResponse, ExtendedJSONResponse, jsonify, get_or_404,
-    get_in_or_error, ensure_json_dict, extended_jsonify, ensure_keys_in_dict,
-    make_empty_response
+    get_in_or_error, extended_jsonify, make_empty_response
 )
 from ..exceptions import APICodes, APIException
 from ..permissions import CoursePermission as CPerm
@@ -38,14 +35,16 @@ def create_group(group_set_id: int) -> ExtendedJSONResponse[models.Group]:
     :returns: The newly created group.
     """
     group_set = get_or_404(models.GroupSet, group_set_id)
-    auth.ensure_permission(
-        CPerm.can_create_groups,
-        group_set.course_id,
-    )
+    # The permissions in this function are not really easy to fit into the
+    # permission checker class model. So simply check if the user can see the
+    # course here.
+    auth.CoursePermissions(group_set.course).ensure_may_see()
+    auth.ensure_permission(CPerm.can_create_groups, group_set.course_id)
 
-    content = ensure_json_dict(request.get_json())
-    ensure_keys_in_dict(content, [('member_ids', list)])
-    member_ids = t.cast(t.List[object], content['member_ids'])
+    with helpers.get_from_request_transaction() as [get, opt_get]:
+        member_ids = get('member_ids', list)
+        group_name = opt_get('name', str, default=None)
+
     if any(not isinstance(m, int) for m in member_ids):
         raise APIException(
             'All member ids should be integers', 'Some ids were not integers',
@@ -62,11 +61,7 @@ def create_group(group_set_id: int) -> ExtendedJSONResponse[models.Group]:
         t.cast(t.List[int], member_ids)
     )
 
-    if 'name' in content:
-        ensure_keys_in_dict(content, [('name', str)])
-    group_name = t.cast(t.Optional[str], content.get('name'))
-
-    group = models.Group.create_group(group_set, members, group_name)
+    group = models.Group.create_group(group_set, members, name=group_name)
     auth.ensure_can_edit_members_of_group(group, members)
 
     models.db.session.add(group)
@@ -88,6 +83,7 @@ def get_groups(group_set_id: int
     :returns: All the groups for the given group set.
     """
     group_set = get_or_404(models.GroupSet, group_set_id)
+    auth.GroupSetPermissions(group_set).ensure_may_see()
 
     groups: t.Sequence[models.Group]
     try:
@@ -120,7 +116,7 @@ def get_group_set(group_set_id: int) -> JSONResponse[models.GroupSet]:
     :returns: A response containing the JSON serialized group set.
     """
     group_set = get_or_404(models.GroupSet, group_set_id)
-    auth.ensure_enrolled(group_set.course_id)
+    auth.GroupSetPermissions(group_set).ensure_may_see()
     return jsonify(group_set)
 
 
@@ -138,7 +134,7 @@ def delete_group_set(group_set_id: int) -> EmptyResponse:
     :param int group_set_id: The id of the group set
     """
     group_set = get_or_404(models.GroupSet, group_set_id)
-    auth.ensure_permission(CPerm.can_edit_group_set, group_set.course_id)
+    auth.GroupSetPermissions(group_set).ensure_may_delete()
 
     if group_set.assignments:
         raise APIException(

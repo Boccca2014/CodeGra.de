@@ -1,52 +1,79 @@
 <!-- SPDX-License-Identifier: AGPL-3.0-only -->
 <template>
 <div class="login">
-    <b-form-fieldset>
-        <input type="text"
-               class="form-control"
-               placeholder="Username"
-               v-model="username"
-               ref="username"
-               name="username"
-               @keyup.enter="$refs.submit.onClick"/>
-    </b-form-fieldset>
+    <b-form @submit="() => $refs.submit.onClick()">
+        <b-form-group label="Username">
+            <input type="text"
+                   class="form-control"
+                   placeholder="Enter your username"
+                   v-model="username"
+                   ref="username"
+                   name="username"
+                   @keyup.enter="$refs.submit.onClick"/>
+        </b-form-group>
 
-    <b-form-fieldset>
-        <password-input v-model="password"
-                        placeholder="Password"
-                        name="password"
-                        @keyup.native.enter="$refs.submit.onClick"/>
-    </b-form-fieldset>
+        <b-form-group label="Password">
+            <input class="form-control"
+                   type="password"
+                   v-model="password"
+                   placeholder="Enter your password"
+                   name="password"
+                   @keyup.enter="$refs.submit.onClick" />
+        </b-form-group>
 
-    <div class="text-center">
-        <submit-button label="Login"
-                       ref="submit"
-                       :submit="submit"
-                       @success="success"
-                       :wait-at-least="0">
-            <template slot="warning" slot-scope="scope">
-                {{ scope.warning.messages.map(x => x.text).join(' ') }}<br>
+        <div class="d-flex align-items-center"
+             :class="{
+                 'justify-content-between': !hideForget,
+                 'justify-content-end': hideForget,
+             }">
+            <router-link :to="{ name: 'forgot' }"
+                         v-show="!hideForget"
+                         class="forget-link">
+                Forgot password
+            </router-link>
+
+            <submit-button :label="loginLabel"
+                           ref="submit"
+                           :submit="submit"
+                           @success="success"
+                           :wait-at-least="0">
+                <template slot="warning" slot-scope="scope">
+                    {{ scope.warning.messages.map(x => x.text).join(' ') }}<br>
                 Close this message to continue.
             </template>
         </submit-button>
 
-        <div class="login-links">
-            <router-link :to="{ name: 'forgot' }">
-                Forgot password
-            </router-link>
-        </div>
     </div>
+    </b-form>
+
+    <sso-providers @saml-login="$emit('saml-login', $event)"
+                   allow-login>
+        <hr />
+        <h5>Or login using</h5>
+    </sso-providers>
 </div>
 </template>
 
 <script>
 import { mapActions } from 'vuex';
 
-import PasswordInput from './PasswordInput';
 import SubmitButton from './SubmitButton';
+import SsoProviders from './SsoProviders';
 
 export default {
     name: 'login',
+
+    props: {
+        hideForget: {
+            type: Boolean,
+            default: false,
+        },
+
+        loginLabel: {
+            type: String,
+            default: 'Login',
+        },
+    },
 
     data() {
         return {
@@ -56,15 +83,16 @@ export default {
     },
 
     components: {
-        PasswordInput,
         SubmitButton,
+        SsoProviders,
     },
 
-    async mounted() {
-        const userInput = await this.$waitForRef('username');
-        if (userInput != null) {
-            this.$refs.username.focus();
-        }
+    mounted() {
+        this.$waitForRef('username').then(userInput => {
+            if (userInput != null) {
+                this.$refs.username.focus();
+            }
+        });
     },
 
     methods: {
@@ -83,7 +111,6 @@ export default {
 
         success(response) {
             this.login(response).then(() => {
-                this.$router.replace({ name: 'home' });
                 this.$emit('login');
             });
         },
@@ -92,12 +119,7 @@ export default {
 </script>
 
 <style lang="less" scoped>
-@link-margin: 2em;
-.login-links {
-    margin-top: 1rem;
-
-    a {
-        text-decoration: underline !important;
-    }
+a.forget-link {
+    text-decoration: underline !important;
 }
 </style>

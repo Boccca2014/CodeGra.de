@@ -702,11 +702,11 @@ class FileRule:
 
         try:
             rule_type = cls.RuleType[data.get('rule_type')]  # type: ignore
-        except KeyError:
+        except KeyError as exc:
             raise ParseError(
                 f'The given rule type ("{data.get("rule_type")}") is not'
                 ' valid.'
-            )
+            ) from exc
 
         if data.get('file_type') not in {'file', 'directory'}:
             raise ParseError(

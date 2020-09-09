@@ -77,7 +77,7 @@ class SettingBase(TimestampMixin, IdMixin):
                 token,
                 max_age=round(psef.current_app.config['SETTING_TOKEN_TIME']),
             )
-        except SignatureExpired:
+        except SignatureExpired as exc:
             logger.warning(
                 'Expired signature encountered', token=token, exc_info=True
             )
@@ -88,8 +88,8 @@ class SettingBase(TimestampMixin, IdMixin):
                     ' a couple of days old.'
                 ), f'The given token {token} is not valid.',
                 APICodes.INVALID_CREDENTIALS, 403
-            )
-        except BadSignature:
+            ) from exc
+        except BadSignature as exc:
             logger.warning(
                 'Invalid setting change token encountered',
                 token=token,
@@ -99,7 +99,7 @@ class SettingBase(TimestampMixin, IdMixin):
                 'The given token is not valid',
                 f'The given token {token} is not valid.',
                 APICodes.INVALID_CREDENTIALS, 403
-            )
+            ) from exc
 
         return psef.helpers.get_or_404(User, user_id)
 

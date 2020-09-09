@@ -4,27 +4,41 @@
     <cg-logo :inverted="!darkMode"
              class="standalone-logo" />
 
-    <b-form-fieldset class="col-sm-8 text-center form-wrapper"
-                     @keyup.native.ctrl.enter="$refs.btn.onClick">
+    <div class="form-wrapper">
         <h4>Reset your password</h4>
 
-        <password-input label="New password"
-                        name="new-password"
-                        v-model="newPw"/>
-        <password-input label="Confirm password"
-                        name="confirm-password"
-                        v-model="confirmPw"/>
+        <b-form @submit="() => $refs.btn.onClick()">
+            <b-form-group label="New password">
+                <input class="form-control"
+                       type="password"
+                       v-model="newPw"
+                       placeholder="Enter your new password"
+                       name="password"
+                       @keyup.enter="$refs.btn.onClick" />
+            </b-form-group>
 
-        <submit-button ref="btn"
-                       :submit="submit"
-                       @after-success="afterSubmit"
-                       popover-placement="bottom"
-                       :confirm="PASSWORD_UNIQUE_MESSAGE">
-            <template slot="error" slot-scope="error" v-if="error.error">
-                <password-suggestions :error="error.error"/>
-            </template>
-        </submit-button>
-    </b-form-fieldset>
+            <b-form-group label="Repeat password">
+                <input class="form-control"
+                       type="password"
+                       v-model="confirmPw"
+                       placeholder="Repeat your new password"
+                       name="repeat-password"
+                       @keyup.enter="$refs.btn.onClick" />
+            </b-form-group>
+
+            <div class="text-right">
+                <submit-button ref="btn"
+                               :submit="submit"
+                               @after-success="afterSubmit"
+                               popover-placement="bottom"
+                               :confirm="PASSWORD_UNIQUE_MESSAGE">
+                    <template slot="error" slot-scope="error" v-if="error.error">
+                        <password-suggestions :error="error.error"/>
+                    </template>
+                </submit-button>
+            </div>
+        </b-form>
+    </div>
 </div>
 </template>
 
@@ -36,7 +50,7 @@ import { mapActions, mapGetters } from 'vuex';
 
 import { PASSWORD_UNIQUE_MESSAGE } from '@/constants';
 
-import { CgLogo, SubmitButton, PasswordInput, PasswordSuggestions } from '@/components';
+import { CgLogo, SubmitButton, PasswordSuggestions } from '@/components';
 
 export default {
     name: 'reset-password',
@@ -53,7 +67,6 @@ export default {
         Icon,
         CgLogo,
         SubmitButton,
-        PasswordInput,
         PasswordSuggestions,
     },
 

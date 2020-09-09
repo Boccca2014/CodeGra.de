@@ -19,6 +19,7 @@
 
 import os
 import sys
+import json
 import subprocess
 from datetime import date
 
@@ -27,13 +28,15 @@ import sphinx_fontawesome
 from sphinx.search import IndexBuilder
 
 sys.path.insert(0, os.path.abspath('../'))
-sys.path.append(os.path.abspath("./_ext"))
+sys.path.append(os.path.abspath('./_ext'))
 
 # -- General configuration ------------------------------------------------
 
 # If your documentation needs a minimal Sphinx version, state it here.
 #
 # needs_sphinx = '1.0'
+
+sphinx_fontawesome.register_icons(json.load(open('../src/icons.json')))
 
 # Add any Sphinx extension module names here, as strings. They can be
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom

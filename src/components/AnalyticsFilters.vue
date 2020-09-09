@@ -488,7 +488,6 @@ export default {
     },
 
     computed: {
-        ...mapGetters('courses', ['assignments']),
         ...mapGetters('users', ['getUser']),
 
         currentUrl() {

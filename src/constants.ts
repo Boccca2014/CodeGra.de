@@ -30,10 +30,8 @@ export const MANAGE_GENERAL_COURSE_PERMISSIONS = Object.freeze(<const>[
     'can_manage_course_snippets',
     'can_view_course_snippets',
     'can_email_students',
-]);
-
-export const MANAGE_COURSE_PERMISSIONS = Object.freeze(<const>[
-    ...new Set([...MANAGE_ASSIGNMENT_PERMISSIONS, ...MANAGE_GENERAL_COURSE_PERMISSIONS]),
+    'can_archive_courses',
+    'can_edit_course_info',
 ]);
 
 export const MANAGE_SITE_PERIMSSIONS = Object.freeze(<const>[
@@ -56,12 +54,18 @@ export const NO_LOGIN_REQUIRED_ROUTES = new Set(<const>[
     'login_and_redirect',
     'unsubscribe',
     'lti_provider_setup',
+    'assignment_login',
+    'course_enroll',
+    'sso_login',
 ]);
 
 export const NO_SIDEBAR_ROUTES = new Set(<const>[
     'lti-launch',
     'unsubscribe',
     'lti_provider_setup',
+    'assignment_login',
+    'course_enroll',
+    'sso_login',
 ]);
 
 export const NO_FOOTER_ROUTES = new Set(<const>[
@@ -108,3 +112,5 @@ export const COLOR_PAIRS = Object.freeze(
         <const>{ background: 'rgb(231, 238, 233)', color: 'dark' },
     ].map(x => Object.freeze(x)), // This `x` is needed for type inference.
 );
+
+export const INITIAL_COURSES_AMOUNT = 30;

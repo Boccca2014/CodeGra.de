@@ -102,7 +102,7 @@ export default {
     },
 
     computed: {
-        ...mapGetters('courses', ['assignments']),
+        ...mapGetters('assignments', ['getAssignment']),
         ...mapGetters('user', { myUserId: 'id' }),
         ...mapGetters('submissions', ['getSubmissionsByUser']),
 
@@ -121,7 +121,7 @@ export default {
 
     methods: {
         ...mapActions('user', ['logout', 'updateAccessToken']),
-        ...mapActions('courses', ['reloadCourses']),
+        ...mapActions('assignments', ['loadSingleAssignment']),
         ...mapActions('submissions', ['forceLoadSubmissions']),
         ...mapActions('plagiarism', { clearPlagiarismCases: 'clear' }),
 
@@ -131,7 +131,7 @@ export default {
             setPageTitle('LTI is launching, please wait');
 
             this.$http
-                .post('/api/v1/lti/launch/2?extended', {
+                .post('/api/v1/lti/launch/2?extended&no_course_in_assignment=true', {
                     jwt_token: this.$route.query.jwt,
                     blob_id: this.$route.query.blob_id,
                 })
@@ -192,9 +192,10 @@ export default {
             }
 
 
-            if (!this.assignments[data.assignment.id]) {
-                await this.reloadCourses();
-            }
+            await this.loadSingleAssignment({
+                assignmentId: data.assignment.id,
+                courseId: data.course.id,
+            });
             this.$LTIAssignmentId = data.assignment.id;
 
             if (data.new_role_created) {
@@ -220,12 +221,15 @@ export default {
             if (this.$route.query.redirect && this.$route.query.redirect.startsWith('/')) {
                 return this.$router.replace(this.$route.query.redirect);
             } else if (this.$utils.parseBool(this.$route.query.goto_latest_submission, false)) {
-                const assignment = this.assignments[data.assignment.id];
+                const assignment = this.getAssignment(data.assignment.id).extract();
                 if (!assignment || !assignment.course.isStudent) {
                     return this.doDefaultRedirect(data);
                 }
 
-                await this.forceLoadSubmissions(assignment.id);
+                await this.forceLoadSubmissions({
+                    assignmentId: assignment.id,
+                    courseId: assignment.courseId,
+                });
                 const subs = this.getSubmissionsByUser(assignment.id, this.myUserId, {
                     includeGroupSubmissions: true,
                 });
@@ -251,7 +255,7 @@ export default {
             return this.$router.replace({
                 name: 'assignment_submissions',
                 params: {
-                    courseId: data.assignment.course.id,
+                    courseId: data.course.id,
                     assignmentId: data.assignment.id,
                 },
             });

@@ -2,7 +2,7 @@
 <template>
 <div class="userinfo">
     <loader class="col-md-12 text-center" v-if="loading" :scale="1"/>
-    <div @keyup.enter="$refs.submitButton.onClick" v-else>
+    <b-form @keyup.enter="$refs.submitButton.onClick" v-else>
         <b-form-fieldset>
             <b-input-group prepend="Username">
                 <div v-b-popover.top.hover="'You cannot change your username'"
@@ -36,53 +36,67 @@
             </b-input-group>
         </b-form-fieldset>
 
-        <password-input v-model="oldPw"
-                        name="old-password"
-                        v-if="canEditPw || canEditInfo">
-            <b-input-group-prepend is-text slot="prepend">
-                Current Password
-                <description-popover hug-text
-                                     placement="right"
-                                     title="What is my current password?">
-                    <p slot="description"
-                       class="text-left mb-1">
-                        If your account was created by using an
-                        <span title="Learning Management System, e.g. Canvas or Blackboard"
-                              class="cursor-help"
-                              style="border-bottom: 1px dotted currentColor;">
-                            LMS</span>
-                        it can happen that you don't know this password. In
-                        this case you should use the
-                        <router-link :to="{ name: 'forgot' }" target="_blank">
-                            reset password</router-link>
-                        page.<br><br>
+        <b-form-fieldset v-if="canEditPw || canEditInfo">
+            <b-input-group>
+                <b-input-group-prepend is-text>
+                    Current Password
+                    <description-popover hug-text
+                                         placement="right"
+                                         title="What is my current password?">
+                        <p slot="description"
+                           class="text-left mb-1">
+                            If your account was created by using an
+                            <span title="Learning Management System, e.g. Canvas or Blackboard"
+                                  class="cursor-help"
+                                  style="border-bottom: 1px dotted currentColor;">
+                                LMS</span>
+                            it can happen that you don't know this password. In
+                            this case you should use the
+                            <router-link :to="{ name: 'forgot' }" target="_blank">
+                                reset password</router-link>
+                            page.<br><br>
 
-                        However this does require that your email is correct.
-                        If this is not the case you can force CodeGrade to copy
-                        the email that your LMS gives us the next time you use
-                        CodeGrade within your LMS. To do this please
-                        press <submit-button
-                                  label="here"
-                                  id="resetOnLtiButton-fixPopover"
-                                  size="sm"
-                                  :submit="resetEmailOnLti"
-                                  style="display: inline;"/>
-                        <!-- The id for the submit button is needed as vue
-                             reuses elements and if that is done here the
-                             popover will not show correctly. -->
-                    </p>
-                </description-popover>
-            </b-input-group-prepend>
-        </password-input>
+                            However this does require that your email is correct.
+                            If this is not the case you can force CodeGrade to copy
+                            the email that your LMS gives us the next time you use
+                            CodeGrade within your LMS. To do this please
+                            press <submit-button
+                                      label="here"
+                                      id="resetOnLtiButton-fixPopover"
+                                      size="sm"
+                                      :submit="resetEmailOnLti"
+                                      style="display: inline;"/>
+                            <!-- The id for the submit button is needed as vue
+                            reuses elements and if that is done here the
+                            popover will not show correctly. -->
+                        </p>
+                    </description-popover>
+                </b-input-group-prepend>
 
-        <password-input v-model="newPw"
-                        label="New password"
-                        name="new-password"
-                        v-if="canEditPw"/>
-        <password-input v-model="confirmPw"
-                        label="Confirm password"
-                        name="confirm-password"
-                        v-if="canEditPw"/>
+                <input name="old-password"
+                       class="form-control"
+                       v-model="oldPw"
+                       type="password" />
+            </b-input-group>
+        </b-form-fieldset>
+
+        <b-form-fieldset v-if="canEditPw">
+            <b-input-group prepend="New password">
+                <input class="form-control"
+                       v-model="newPw"
+                       name="new-password"
+                       type="password" />
+            </b-input-group>
+        </b-form-fieldset>
+
+        <b-form-fieldset v-if="canEditPw">
+            <b-input-group prepend="Confirm password">
+                <input class="form-control"
+                       v-model="confirmPw"
+                       name="confirm-password"
+                       type="password" />
+            </b-input-group>
+        </b-form-fieldset>
 
         <b-button-toolbar justify v-if="canEditInfo || canEditPw">
             <b-button variant="danger" @click="reset">Reset</b-button>
@@ -97,7 +111,7 @@
                 </template>
             </submit-button>
         </b-button-toolbar>
-    </div>
+    </b-form>
 </div>
 </template>
 
@@ -116,7 +130,6 @@ import { PASSWORD_UNIQUE_MESSAGE } from '@/constants';
 import Loader from './Loader';
 import DescriptionPopover from './DescriptionPopover';
 import SubmitButton from './SubmitButton';
-import PasswordInput from './PasswordInput';
 import PasswordSuggestions from './PasswordSuggestions';
 
 export default {
@@ -203,8 +216,13 @@ export default {
         Loader,
         DescriptionPopover,
         SubmitButton,
-        PasswordInput,
         PasswordSuggestions,
     },
 };
 </script>
+
+<style lang="less" scoped>
+.userinfo form fieldset:last-child {
+    margin-bottom: 0;
+}
+</style>

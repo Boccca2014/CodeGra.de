@@ -114,6 +114,7 @@ class GlobalPermission(BasePermission):
     :ivar can_search_users: Users with this permission can search for users on the side, this means they can see all other users on the site.
     :ivar can_impersonate_users: Users with this permission can impersonate users, i.e. they can login as other users.
     :ivar can_manage_lti_providers: Users with this permission can edit and list existing, and create new LTI providers.
+    :ivar can_manage_sso_providers: Users with this permission can connect new SSO Identity Providers.
     """
 
     @staticmethod
@@ -129,6 +130,7 @@ class GlobalPermission(BasePermission):
     can_search_users = _PermissionValue(item=6, default_value=True)
     can_impersonate_users = _PermissionValue(item=7, default_value=False)
     can_manage_lti_providers = _PermissionValue(item=8, default_value=False)
+    can_manage_sso_providers = _PermissionValue(item=9, default_value=False)
 
 
 @enum.unique
@@ -199,6 +201,10 @@ class CoursePermission(BasePermission):
     :ivar can_view_inline_feedback_before_approved: Users with this permission can view unapproved inline comments, comments that need approval include peer feedback comments. Users still need to have the permission to see the feedback, so this permission alone is not enough to see peer feedback.
     :ivar can_approve_inline_comments: Users with this permission can approve inline comments, comments that need approval include peer feedback comments.
     :ivar can_edit_peer_feedback_settings: Users with this permission can edit the peer feedback status of an assignment.
+    :ivar can_receive_login_links: Users with this permission will receive login links if this is enabled for the assignment. You should not give this permission to users with powerful permissions (such as "Can grade work").
+    :ivar can_see_archived_courses: Users will be able to see a course that is archived. Users that do not have this permission will not be able to see any data (e.g. submissions) connected to an archived course.
+    :ivar can_archive_courses: Users will be able to archive courses. After archiving a course users that do not have the "See archived courses" permission will no longer be able too see the course.
+    :ivar can_edit_course_info: Users with this permission can edit general information of a course, for example the name.
     """
 
     @staticmethod
@@ -264,6 +270,10 @@ class CoursePermission(BasePermission):
     can_view_inline_feedback_before_approved = _PermissionValue(item=56, default_value=False)
     can_approve_inline_comments = _PermissionValue(item=57, default_value=False)
     can_edit_peer_feedback_settings = _PermissionValue(item=58, default_value=False)
+    can_receive_login_links = _PermissionValue(item=59, default_value=True)
+    can_see_archived_courses = _PermissionValue(item=60, default_value=False)
+    can_archive_courses = _PermissionValue(item=61, default_value=False)
+    can_edit_course_info = _PermissionValue(item=62, default_value=False)
 
 
 @dataclasses.dataclass(frozen=True)

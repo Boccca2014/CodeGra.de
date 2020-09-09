@@ -23,10 +23,9 @@
                     <cg-user :user="sub.user" />
                 </td>
                 <td class="text-center shrink">
-                    <b-badge variant="primary"
-                             v-b-popover.hover.top="'The number of comments you gave to this student on their latest submission / all their submissions.'">
-                        {{ commentsPerStudent[sub.user.id].latest }} /
-                        {{ commentsPerStudent[sub.user.id].all }}
+                    <b-badge :variant="getBadgeVariant(commentsPerStudent[sub.user.id])"
+                             v-b-popover.hover.top="getBadgePopover(commentsPerStudent[sub.user.id])">
+                        {{ commentsPerStudent[sub.user.id].latest }}
                     </b-badge>
                 </td>
             </tr>
@@ -56,6 +55,16 @@ import * as models from '@/models';
 import { defaultdict } from '@/utils/defaultdict';
 
 import { FeedbackStore } from '@/store/modules/feedback';
+
+type PeerFeedbackCommentCount = {
+    all: number;
+    latest: number;
+    nonLatest: number;
+} | {
+    all: '-';
+    latest: '-';
+    nonLatest: '-';
+};
 
 @Component({
     methods: {
@@ -115,11 +124,11 @@ export default class PeerFeedbackOverview extends Vue {
         );
     }
 
-    get commentsPerStudent(): Record<number, { latest: number | string; all: number | string; }> {
+    get commentsPerStudent(): Record<number, PeerFeedbackCommentCount> {
         const fb = this.commentsPerSubmission;
 
         if (fb == null) {
-            return defaultdict(() => ({ latest: '-', all: '-' }));
+            return defaultdict(() => ({ all: '-', latest: '-', nonLatest: '-' }));
         }
 
         return this.$utils.mapToObject(this.latestSubmissions, sub => {
@@ -129,7 +138,11 @@ export default class PeerFeedbackOverview extends Vue {
             const onLatest = fb[sub.id] ?? 0;
             const onAllSubs = subs.reduce((acc, s) => acc + (fb[s.id] ?? 0), 0);
 
-            return [user.id, { latest: onLatest, all: onAllSubs }];
+            return [user.id, {
+                latest: onLatest,
+                nonLatest: onAllSubs - onLatest,
+                all: onAllSubs,
+            }];
         });
     }
 
@@ -167,6 +180,34 @@ export default class PeerFeedbackOverview extends Vue {
                 peerFeedback: 'true',
             },
         });
+    }
+
+    // eslint-disable-next-line class-methods-use-this
+    getBadgeVariant(comments: PeerFeedbackCommentCount) {
+        const { latest, nonLatest } = comments;
+
+        if (typeof latest !== 'number' || typeof nonLatest !== 'number') {
+            return 'secondary';
+        }
+
+        if (comments.nonLatest > 0) {
+            return 'warning';
+        } else if (comments.latest > 0) {
+            return 'primary';
+        } else {
+            return 'secondary';
+        }
+    }
+
+    // eslint-disable-next-line class-methods-use-this
+    getBadgePopover(comments: PeerFeedbackCommentCount) {
+        if (typeof comments.nonLatest !== 'number') {
+            return '';
+        } else if (comments.nonLatest > 0) {
+            return `You have also given ${comments.nonLatest} comments on older submissions.`;
+        } else {
+            return '';
+        }
     }
 }
 </script>

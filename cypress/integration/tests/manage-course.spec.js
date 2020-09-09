@@ -47,6 +47,7 @@ context('Manage Course', () => {
     it('should be possible to add users to the course without the can_search_users permission', () => {
         cy.setSitePermission('can_search_users', 'Admin', false);
         cy.reload();
+        cy.openCategory('Members');
 
         cy.get('input.user-selector').type('Devin');
         cy.get('.add-student .dropdown .btn').click();
@@ -87,9 +88,7 @@ context('Manage Course', () => {
 
         cy.get('.registration-links td:nth-child(2)').then($el => {
             const url = new URL($el.text());
-            expect(url.pathname).to.equal('/register/');
-            expect(url.searchParams.get('course_id')).to.equal(`${course.id}`);
-            expect(url.searchParams.get('register_for')).to.equal(uniqueName);
+            expect(url.pathname).to.match(/.courses.\d+.enroll.[0-9A-Za-z-]{36}/);
         });
         cy.get('.registration-links td:nth-child(2)').first().find('code').then($code => {
             expect(getComputedStyle($code.get(0)).textDecoration).not.to.contain('line-through');

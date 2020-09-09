@@ -104,6 +104,8 @@ FlaskConfig = TypedDict(
         'MAX_NORMAL_UPLOAD_SIZE': int,
         'MAX_LARGE_UPLOAD_SIZE': int,
         'DEFAULT_ROLE': str,
+        'DEFAULT_SSO_ROLE': str,
+        'SSO_METADATA_EXTRA_LANGUAGES': t.List[str],
         'EXTERNAL_DOMAIN': str,
         'EXTERNAL_URL': str,
         'PROXY_BASE_DOMAIN': str,
@@ -127,6 +129,11 @@ FlaskConfig = TypedDict(
         'DONE_TEMPLATE': str,
         'DIRECT_NOTIFICATION_TEMPLATE_FILE': t.Optional[str],
         'DIRECT_NOTIFICATION_SUBJECT': str,
+        'DIGEST_NOTIFICATION_SUBJECT': str,
+        'DIGEST_NOTIFICATION_TEMPLATE_FILE': t.Optional[str],
+        'EXAM_LOGIN_TEMPLATE_FILE': t.Optional[str],
+        'EXAM_LOGIN_SUBJECT': str,
+        'EXAM_LOGIN_MAX_LENGTH': datetime.timedelta,
         'MIN_PASSWORD_SCORE': int,
         'CHECKSTYLE_PROGRAM': t.List[str],
         'PMD_PROGRAM': t.List[str],
@@ -143,6 +150,8 @@ FlaskConfig = TypedDict(
         'SENTRY_DSN': t.Optional[str],
         'MIN_FREE_DISK_SPACE': int,
         'REDIS_CACHE_URL': str,
+        'LOGIN_TOKEN_BEFORE_TIME': t.Sequence[datetime.timedelta],
+        'RATELIMIT_STORAGE_URL': t.Optional[str],
     },
     total=True
 )
@@ -196,6 +205,7 @@ def set_int(
     val = int(default if val is None else val)
     ensure_between(item, val, min, max)
     out[item] = val
+
 
 
 def set_str(
@@ -337,6 +347,9 @@ with open(
 # The default site role a user should get. The name of this role should be
 # present as a key in `seed_data/roles.json`.
 set_str(CONFIG, backend_ops, 'DEFAULT_ROLE', 'Student')
+set_str(CONFIG, backend_ops, 'DEFAULT_SSO_ROLE', 'SSO User')
+
+set_list(CONFIG, backend_ops, 'SSO_METADATA_EXTRA_LANGUAGES', ['nl'])
 
 # The external URL the server runs on.
 set_str(CONFIG, backend_ops, 'EXTERNAL_URL', '')
@@ -344,6 +357,7 @@ set_str(CONFIG, backend_ops, 'PROXY_BASE_DOMAIN', '')
 CONFIG['EXTERNAL_DOMAIN'] = urllib.parse.urlparse(
     CONFIG['EXTERNAL_URL']
 ).hostname
+CONFIG['PREFERRED_URL_SCHEME'] = 'https'
 
 set_str(CONFIG, backend_ops, 'JAVA_PATH', 'java')
 
@@ -493,6 +507,15 @@ CONFIG['DIRECT_NOTIFICATION_TEMPLATE_FILE'] = backend_ops.get(
     'DIRECT_NOTIFICATION_TEMPLATE_FILE'
 )
 
+set_str(
+    CONFIG, backend_ops, 'EXAM_LOGIN_SUBJECT', """
+{% set assignment = link.assignment -%}
+Your CodeGrade login link for the {{ assignment.name }} in the {{ assignment.course.name }} course
+""".strip()
+)
+
+set_str(CONFIG, backend_ops, 'EXAM_LOGIN_TEMPLATE_FILE', None)
+
 set_float(CONFIG, backend_ops, 'MIN_PASSWORD_SCORE', 3, min=0, max=4)
 
 set_list(
@@ -569,6 +592,25 @@ set_str(CONFIG, backend_ops, '_TRANSIP_USERNAME', '')
 set_str(CONFIG, backend_ops, 'ADMIN_USER', default=None)
 
 set_str(CONFIG, backend_ops, 'REDIS_CACHE_URL', None)
+
+login_before_str = backend_ops.get('LOGIN_TOKEN_BEFORE_TIME', None)
+if login_before_str:
+    login_before = [
+        datetime.timedelta(seconds=int(x.strip()))
+        for x in login_before_str.split(',')
+    ]
+else:
+    # This default is also hard coded in `build/userConfig.js`
+    login_before = [datetime.timedelta(days=2), datetime.timedelta(minutes=30)]
+CONFIG['LOGIN_TOKEN_BEFORE_TIME'] = sorted(login_before, reverse=True)
+
+max_login_length = backend_ops.getfloat(
+    'EXAM_LOGIN_MAX_LENGTH',
+    fallback=datetime.timedelta(hours=12).total_seconds()
+)
+CONFIG['EXAM_LOGIN_MAX_LENGTH'] = datetime.timedelta(seconds=max_login_length)
+
+set_str(CONFIG, backend_ops, 'RATELIMIT_STORAGE_URL', 'memory://')
 
 ############
 # FEATURES #

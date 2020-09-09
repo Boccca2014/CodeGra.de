@@ -201,7 +201,7 @@ def _get_second_phase_lti_launch_data(blob_id: str) -> _LTILaunchResult:
             app.config['LTI_SECRET_KEY'],
             algorithms=['HS512'],
         )['params']
-    except jwt.PyJWTError:
+    except jwt.PyJWTError as exc:
         logger.warning(
             'Invalid JWT token encountered',
             blob_id=str(blob.id),
@@ -215,7 +215,7 @@ def _get_second_phase_lti_launch_data(blob_id: str) -> _LTILaunchResult:
             'The decoding of jwt failed.',
             errors.APICodes.INVALID_PARAM,
             400,
-        )
+        ) from exc
     else:
         db.session.delete(blob)
 

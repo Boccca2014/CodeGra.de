@@ -2,7 +2,7 @@
 TEST_MODULES ?= $(wildcard cg_*/tests/)
 TEST_FILE ?= $(TEST_MODULES) psef_test/
 TEST_FLAGS ?=
-DOCTEST_MODULES ?= psef cg_cache cg_helpers cg_enum
+DOCTEST_MODULES ?= psef cg_cache cg_helpers cg_enum cg_sqlalchemy_helpers
 SHELL := $(shell which bash)
 PYTHON ?= env/bin/python3
 export PYTHONPATH=$(CURDIR)
@@ -109,7 +109,7 @@ seed_data:
 
 .PHONY: isort
 isort:
-	isort --recursive $(PY_ALL_MODULES)
+	isort $(PY_ALL_MODULES)
 
 .PHONY: yapf
 yapf:

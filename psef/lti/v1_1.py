@@ -373,6 +373,17 @@ class LTI(AbstractLTIConnector):  # pylint: disable=too-many-public-methods
         return False
 
     @staticmethod
+    def supports_state_management() -> bool:
+        """Determines whether this LMS sends the assignment state to CodeGrade.
+        If this is ``True`` you cannot change state info, e.g. the
+        ``available_at``.
+
+        :returns: A boolean indicating whether this LTI instance gives the
+                  assignment state to CodeGrade.
+        """
+        return False
+
+    @staticmethod
     def supports_deadline() -> bool:
         """Determines whether this LMS sends the deadline of an assignment
         along with the lti launch request. If it does, the deadline for
@@ -952,6 +963,10 @@ class CanvasLTI(LTI):
     def supports_deadline() -> bool:
         return True
 
+    @staticmethod
+    def supports_state_management() -> bool:
+        return True
+
     @property
     def assignment_points_possible(self) -> t.Optional[float]:
         """The amount of points possible for the launched assignment.
@@ -1013,7 +1028,6 @@ class CanvasLTI(LTI):
 
     @property
     def assignment_state(self) -> models.AssignmentStateEnum:
-        # pylint: disable=protected-access
         if self.launch_params['custom_canvas_assignment_published'] == 'true':
             return models.AssignmentStateEnum.open
         else:
@@ -1129,7 +1143,6 @@ class BareBonesLTIProvider(LTI):
 
     @property
     def assignment_state(self) -> models.AssignmentStateEnum:
-        # pylint: disable=protected-access
         return models.AssignmentStateEnum.open
 
     @property
@@ -1197,8 +1210,38 @@ class BlackboardLTI(BareBonesLTIProvider):
     """
 
 
+class _BareRolesLTIProvider(BareBonesLTIProvider):
+    """This mixin is for LMSes that give the "Instructor" and "Learner" without
+    any namespace, but they should be considered course roles.
+    """
+
+    def _get_unsorted_roles(self, key: str, role_type: t.Type[T_LTI_ROLE]
+                            ) -> t.List[T_LTI_ROLE]:
+        roles: t.List[T_LTI_ROLE] = []
+
+        for role in self.launch_params[key].split(','):
+            if role in {
+                'Instructor', 'Learner'
+            } and role_type == LTICourseRole:
+                roles.append(
+                    t.cast(T_LTI_ROLE, LTICourseRole(name=role, subnames=[]))
+                )
+            try:
+                roles.append(role_type.parse(role))
+            except LTIRoleException:
+                pass
+
+        return roles
+
+
+@lti_classes.register('Sakai')
+class SakaiLTI(_BareRolesLTIProvider):
+    """The LTI class used for the Sakai LMS.
+    """
+
+
 @lti_classes.register('Moodle')
-class MoodleLTI(BareBonesLTIProvider):
+class MoodleLTI(_BareRolesLTIProvider):
     """The LTI class used for the Moodle LMS.
     """
 
@@ -1212,25 +1255,6 @@ class MoodleLTI(BareBonesLTIProvider):
     def supports_lti_common_cartridge() -> bool:
         """Moodle supports common cartridges"""
         return True
-
-    def _get_unsorted_roles(self, key: str, role_type: t.Type[T_LTI_ROLE]
-                            ) -> t.List[T_LTI_ROLE]:
-        roles: t.List[T_LTI_ROLE] = []
-
-        for role in self.launch_params[key].split(','):
-            # Moodle is strange, it gives these two roles as course roles
-            if role in {
-                'Instructor', 'Learner'
-            } and role_type == LTICourseRole:
-                roles.append(
-                    t.cast(T_LTI_ROLE, LTICourseRole(name=role, subnames=[]))
-                )
-            try:
-                roles.append(role_type.parse(role))
-            except LTIRoleException:
-                pass
-
-        return roles
 
     @classmethod
     def passback_grade(

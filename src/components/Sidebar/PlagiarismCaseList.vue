@@ -124,7 +124,7 @@ export default {
             return {
                 name: 'plagiarism_detail',
                 params: {
-                    courseId: this.run.assignment.course.id,
+                    courseId: this.run.assignment.course_id,
                     assignmentId: this.run.assignment.id,
                     plagiarismRunId: this.run.id,
                     plagiarismCaseId: curCase.id,

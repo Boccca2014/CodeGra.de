@@ -2,7 +2,9 @@ import time
 import uuid
 from datetime import timedelta
 
+import flask
 import pytest
+from freezegun import freeze_time
 
 import psef
 import helpers
@@ -10,15 +12,8 @@ import requests_stubs
 from psef import tasks as t
 from psef import models as m
 from helpers import create_auto_test, create_assignment, create_submission
-from conftest import DESCRIBE_HOOKS
-from cg_celery import TaskStatus
 from cg_dt_utils import DatetimeWithTimezone
 from cg_flask_helpers import callback_after_this_request
-
-
-def flush_callbacks():
-    t.celery._call_callbacks(TaskStatus.success)
-    t.celery._after_task_callbacks = []
 
 
 @pytest.mark.parametrize(
@@ -79,8 +74,7 @@ def test_check_heartbeat(
         session.commit()
 
     with describe('not expired'):
-        t._check_heartbeat_stop_test_runner_1(runner.id.hex)
-        flush_callbacks()
+        t._check_heartbeat_stop_test_runner_1.delay(runner.id.hex)
         now = DatetimeWithTimezone.utcnow()
 
         # As the heartbeats have not expired yet a new check should be
@@ -99,8 +93,7 @@ def test_check_heartbeat(
         old_job_id = run.get_job_id()
         session.commit()
         run = runner.run
-        t._check_heartbeat_stop_test_runner_1(runner.id.hex)
-        flush_callbacks()
+        t._check_heartbeat_stop_test_runner_1.delay(runner.id.hex)
 
         assert not stub_heart.called
         assert len(stub_notify_new.all_args) == 0
@@ -118,8 +111,7 @@ def test_check_heartbeat(
         ), 'Passed results should not be cleared'
 
     with describe('With non existing runner'):
-        t._check_heartbeat_stop_test_runner_1(uuid.uuid4().hex)
-        flush_callbacks()
+        t._check_heartbeat_stop_test_runner_1.delay(uuid.uuid4().hex)
 
         assert not stub_heart.called
         assert not stub_notify_new.called
@@ -127,19 +119,21 @@ def test_check_heartbeat(
         assert not stub_notify_kill_single.called
 
 
-def test_after_this_request_in_celery(monkeypatch_celery):
+def test_after_this_request_in_celery():
     res = []
     amount = -1
 
     @t.celery.task
     def test_task():
         nonlocal amount
+        print('CALL', amount)
         if amount == -1:
             amount += 2
             test_task()
 
         @callback_after_this_request
         def after():
+            print('AFTER')
             res.append(3)
 
         res.append(amount)
@@ -147,6 +141,9 @@ def test_after_this_request_in_celery(monkeypatch_celery):
 
     test_task.delay()
     assert res == [1, 2, 3, 3]
+    amount = -1
+    test_task.delay()
+    assert res == [1, 2, 3, 3, 1, 2, 3, 3]
 
 
 @pytest.mark.parametrize(
@@ -370,8 +367,10 @@ def test_notify_broker_kill_single_runner(
         session.commit()
 
         ses = requests_stubs.Session()
-        DESCRIBE_HOOKS.append(ses.reset)
-        monkeypatch.setattr(psef.helpers, 'BrokerSession', lambda *_: ses)
+        describe.add_hook(ses.reset)
+        monkeypatch.setattr(
+            psef.helpers, 'BrokerSession', lambda *_, **__: ses
+        )
 
     with describe('kill runner'):
         psef.tasks._notify_broker_kill_single_runner_1(run.id, runner.id.hex)
@@ -433,3 +432,140 @@ def test_send_email_as_user(describe, session, stubmailer):
         assert m.TaskResult.query.get(
             task_result2.id
         ).state == m.TaskResultState.crashed
+
+
+def test_maybe_open_assignment(
+    describe, session, test_client, logged_in, admin_user, tomorrow,
+    stub_function
+):
+    with describe('setup'), logged_in(admin_user):
+        assig = helpers.create_assignment(test_client)
+        stub_apply = stub_function(
+            psef.tasks._maybe_open_assignment_at_1, 'apply_async'
+        )
+        assig_id = helpers.get_id(assig)
+
+    with describe('Can call without available_at set'):
+        psef.tasks._maybe_open_assignment_at_1(assig_id)
+        assert m.Assignment.query.get(assig_id).state.is_hidden
+        assert not stub_apply.called
+
+    with describe('Can call with non existant id'):
+        psef.tasks._maybe_open_assignment_at_1(1000000000)
+        assert not stub_apply.called
+
+    with describe('Can call with non existant id'):
+        m.Assignment.query.filter_by(id=assig_id).update({
+            '_available_at': tomorrow.isoformat()
+        })
+        psef.tasks._maybe_open_assignment_at_1(assig_id)
+        assert stub_apply.called_amount == 1
+        assert stub_apply.kwargs[0]['eta'] == tomorrow
+
+
+def test_maybe_open_assignment(
+    describe, session, test_client, logged_in, admin_user, tomorrow,
+    stub_function
+):
+    with describe('setup'), logged_in(admin_user):
+        assig = helpers.create_assignment(test_client)
+        stub_apply = stub_function(
+            psef.tasks._maybe_open_assignment_at_1, 'apply_async'
+        )
+        assig_id = helpers.get_id(assig)
+
+    with describe('Can call without available_at set'):
+        psef.tasks._maybe_open_assignment_at_1(assig_id)
+        assert m.Assignment.query.get(assig_id).state.is_hidden
+        assert not stub_apply.called
+
+    with describe('Can call with non existant id'):
+        psef.tasks._maybe_open_assignment_at_1(1000000000)
+        assert not stub_apply.called
+
+    with describe('Can call with non existant id'):
+        m.Assignment.query.filter_by(id=assig_id).update({
+            '_available_at': tomorrow.isoformat()
+        })
+        psef.tasks._maybe_open_assignment_at_1(assig_id)
+        assert stub_apply.called_amount == 1
+        assert stub_apply.kwargs[0]['eta'] == tomorrow
+
+
+def test_send_login_links(
+    describe, session, test_client, logged_in, admin_user, tomorrow,
+    stub_function, yesterday
+):
+    with describe('setup'), logged_in(admin_user):
+        stub_apply = stub_function(
+            psef.tasks._send_login_links_to_users_1, 'apply_async'
+        )
+        stub_mail = stub_function(psef.mail, 'send_login_link_mail')
+
+        assig = helpers.create_assignment(test_client)
+        assig_id = helpers.get_id(assig)
+        login_links_token = uuid.uuid4()
+        m.Assignment.query.filter_by(id=assig_id).update({
+            '_available_at': tomorrow.isoformat(),
+            '_deadline': (tomorrow + timedelta(minutes=1)).isoformat(),
+            '_send_login_links_token': login_links_token,
+            'kind': 'exam',
+        })
+
+        task_result = m.TaskResult(user=None)
+        session.add(task_result)
+        session.commit()
+
+        student = helpers.create_user_with_role(
+            session, 'Student', assig['course']
+        )
+
+    with describe('does not crash if task does not exist'):
+        psef.tasks._send_login_links_to_users_1(
+            assig_id,
+            uuid.uuid4().hex, tomorrow.isoformat(), login_links_token, 1
+        )
+        assert task_result.state.is_not_started
+
+    with describe('reschedules when called too early'):
+        psef.tasks._send_login_links_to_users_1(
+            assig_id, task_result.id.hex, tomorrow.isoformat(),
+            login_links_token.hex, 1
+        )
+
+        assert stub_apply.called_amount == 1
+        assert task_result.state.is_not_started
+
+    with describe('Does nothing when token is different'):
+        psef.tasks._send_login_links_to_users_1(
+            assig_id, task_result.id.hex, yesterday.isoformat(),
+            uuid.uuid4().hex, 1
+        )
+        assert not stub_mail.called
+        assert task_result.state.is_skipped
+        task_result.state = m.TaskResultState.not_started
+        session.commit()
+
+    with describe('Does nothing when deadline expired'):
+        del flask.g.request_start_time
+        with freeze_time(tomorrow + timedelta(days=1)):
+            psef.tasks._send_login_links_to_users_1(
+                assig_id, task_result.id.hex, yesterday.isoformat(),
+                login_links_token.hex, 1
+            )
+
+        assert not stub_mail.called
+        assert task_result.state.is_skipped
+        task_result.state = m.TaskResultState.not_started
+        session.commit()
+
+    with describe('Does nothing when task was already finished'):
+        task_result.state = m.TaskResultState.finished
+        session.commit()
+
+        psef.tasks._send_login_links_to_users_1(
+            assig_id, task_result.id.hex, yesterday.isoformat(),
+            login_links_token.hex, 1
+        )
+        assert not stub_mail.called
+        assert task_result.state.is_finished

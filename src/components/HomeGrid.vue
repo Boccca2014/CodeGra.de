@@ -8,7 +8,8 @@
 
         <div class="search-logo-wrapper">
             <input class="search form-control mr-3"
-                   v-model="searchString"
+                   :value="searchString"
+                   v-debounce="newSearchString => { searchString = newSearchString }"
                    ref="searchInput"
                    placeholder="Type to search"/>
             <cg-logo :small="$root.$isSmallWindow" :inverted="!darkMode" />
@@ -17,8 +18,8 @@
 
     <b-alert show v-if="showReleaseNote" variant="info">
         A new version of CodeGrade has been released:
-        <b>{{ UserConfig.release.version }}</b>.
-        {{ UserConfig.release.message }} You can check the entire
+        <b>{{ $userConfig.release.version }}</b>.
+        {{ $userConfig.release.message }} You can check the entire
         changelog <a href="https://docs.codegra.de/about/changelog.html"
                      target="_blank"
                      class="alert-link">here</a>.
@@ -26,11 +27,11 @@
 
     <loader v-if="loadingCourses" page-loader/>
 
-    <template v-else-if="courses.length === 0">
+    <template v-else-if="courses.length === 0 && !moreCoursesAvailable">
         <h3 class="text-center font-italic text-muted">You have no courses yet!</h3>
     </template>
 
-    <template v-else-if="filteredCourses.length === 0">
+    <template v-else-if="filteredCourses.length === 0 && !moreCoursesAvailable">
         <h3 class="text-center font-italic text-muted">No matching courses found!</h3>
     </template>
 
@@ -46,12 +47,7 @@
                 <b-card-header :class="`text-${getColorPair(course.name).color}`"
                                :style="{ backgroundColor: `${getColorPair(course.name).background} !important` }">
                     <div style="display: flex">
-                        <div class="course-name">
-                            <b>{{ course.name }}</b>
-                            <i v-if="courseExtraDataToDisplay[course.id]">
-                                ({{ courseExtraDataToDisplay[course.id] }})
-                            </i>
-                        </div>
+                        <course-name :course="course" :bold="true" />
                         <router-link v-if="course.canManage"
                                      :to="manageCourseRoute(course)"
                                      v-b-popover.window.top.hover="'Manage course'"
@@ -61,40 +57,16 @@
                     </div>
                 </b-card-header>
                 <b-card-body class="card-no-padding">
-                    <div class="card-text">
-                        <table class="table table-hover assig-list"
-                               v-if="course.assignments.length > 0">
-                            <tbody>
-                                <router-link v-for="{ assignment, filtered } in getAssignments(course)"
-                                             :key="assignment.id"
-                                             :to="submissionsRoute(assignment)"
-                                             :class="filtered ? 'text-muted' : ''"
-                                             class="assig-list-item">
-                                    <td>
-                                        <span>{{ assignment.name }}</span><br>
-
-                                        <small v-if="assignment.hasDeadline">
-                                            Due <cg-relative-time :date="assignment.deadline" />
-                                        </small>
-                                        <small v-else class="text-muted font-italic">
-                                            No deadline
-                                        </small>
-                                    </td>
-                                    <td class="shrink">
-                                        <assignment-state :assignment="assignment"
-                                                          :editable="false"
-                                                          size="sm"/>
-                                    </td>
-                                    <td v-if="assignment.canManage"
-                                        class="shrink">
-                                        <router-link :to="manageAssignmentRoute(assignment)"
-                                                     v-b-popover.window.top.hover="'Manage assignment'">
-                                            <icon name="gear" class="gear-icon"/>
-                                        </router-link>
-                                    </td>
-                                </router-link>
-                            </tbody>
-                        </table>
+                    <div class="card-text d-flex">
+                        <ul class="assig-list"
+                            v-if="course.assignments.length > 0">
+                            <assignment-list-item :assignment="assignment" v-for="{ assignment, filtered } in getAssignments(course)"
+                                                  manage-border
+                                                  :class="{ 'text-muted': filtered }"
+                                                  class="border-bottom"
+                                                  :key="assignment.id"
+                                                  :show-course-name="false"/>
+                        </ul>
 
                         <p class="m-3 font-italic text-muted" v-else>
                             No assignments for this course.
@@ -105,12 +77,14 @@
         </div>
     </masonry>
 
-
     <b-btn class="extra-load-btn"
            v-if="moreCoursesAvailable && !loadingCourses"
            @click="showMoreCourses()">
-        <loader v-if="renderingMoreCourses > 0" :scale="1" class="py-1"/>
-        <span v-else>
+        <span v-if="renderingMoreCourses > 0">
+            <span class="align-middle">Loading <template v-if="courses.length > 0">more</template> courses</span>
+            <loader :scale="1" :center="false" />
+        </span>
+        <span v-else v-b-visible="visible => visible && showMoreCourses()">
             Load more courses
         </span>
         <infinite-loading @infinite="showMoreCourses" :distance="150">
@@ -133,14 +107,16 @@ import Icon from 'vue-awesome/components/Icon';
 import 'vue-awesome/icons/gear';
 import InfiniteLoading from 'vue-infinite-loading';
 
-import { hashString, cmpNoCaseMany } from '@/utils';
-import { Counter } from '@/utils/counter';
+import { hashString } from '@/utils';
+import { INITIAL_COURSES_AMOUNT } from '@/constants';
 
 import AssignmentState from './AssignmentState';
 import UserInfo from './UserInfo';
 import Loader from './Loader';
 import LocalHeader from './LocalHeader';
 import CgLogo from './CgLogo';
+import AssignmentListItem from './Sidebar/AssignmentListItem';
+import CourseName from './CourseName';
 
 // We can't use the COLOR_PAIRS from constants.js because that one is slightly
 // different and because we use hashes to index this list that would change most
@@ -169,10 +145,8 @@ const COLOR_PAIRS = [
 ];
 
 // The amount of extra courses that should be loaded when we reach the end of
-// the infinite scroll list. This is a multiple of 3 and of 2 (and 1 ofc) as
-// those are the amount of columns we use in our masonry. So by using a multiple
-// we increase the chance that we fill the masonry nice and even.
-const EXTRA_COURSES_AMOUNT = 12;
+// the infinite scroll list.
+const EXTRA_COURSES_AMOUNT = INITIAL_COURSES_AMOUNT / 3;
 
 export default {
     name: 'home-grid',
@@ -180,45 +154,16 @@ export default {
     data() {
         return {
             loadingCourses: true,
-            UserConfig,
             amountCoursesToShow: EXTRA_COURSES_AMOUNT,
-            searchString: '',
+            searchString: this.$route.query.filter || '',
             renderingMoreCourses: 0,
         };
     },
 
     computed: {
-        ...mapGetters('courses', { unsortedCourses: 'courses' }),
+        ...mapGetters('courses', { courses: 'sortedCourses', retrievedAllCourses: 'retrievedAllCourses' }),
         ...mapGetters('user', { nameOfUser: 'name' }),
         ...mapGetters('pref', ['darkMode']),
-
-        courses() {
-            return Object.values(this.unsortedCourses).sort((a, b) =>
-                cmpNoCaseMany([b.created_at, a.created_at], [a.name, b.name]),
-            );
-        },
-
-        // TODO: This is duplicated in Sidebar/CourseList.vue. We should factor
-        // it out into a Course or CourseCollection model or something.
-        courseExtraDataToDisplay() {
-            const getNameAndYear = c => `${c.name} (${c.created_at.slice(0, 4)})`;
-
-            const courseName = new Counter(this.courses.map(c => c.name));
-            const courseNameAndYear = new Counter(this.courses.map(getNameAndYear));
-
-            return this.courses.reduce((acc, course) => {
-                if (courseName.getCount(course.name) > 1) {
-                    if (courseNameAndYear.getCount(getNameAndYear(course)) > 1) {
-                        acc[course.id] = course.created_at.slice(0, 10);
-                    } else {
-                        acc[course.id] = course.created_at.slice(0, 4);
-                    }
-                } else {
-                    acc[course.id] = null;
-                }
-                return acc;
-            }, {});
-        },
 
         filteredCourses() {
             if (!this.searchString) {
@@ -244,12 +189,15 @@ export default {
         // Are there more courses available. If this is true we should show the
         // infinite loader.
         moreCoursesAvailable() {
+            if (!this.retrievedAllCourses) {
+                return true;
+            }
             return this.filteredCourses.length > this.amountCoursesToShow;
         },
     },
 
     async mounted() {
-        await Promise.all([this.$afterRerender(), this.loadCourses()]);
+        await Promise.all([this.$afterRerender(), this.loadFirstCourses()]);
         this.loadingCourses = false;
 
         const searchInput = await this.$waitForRef('searchInput');
@@ -258,8 +206,20 @@ export default {
         }
     },
 
+    watch: {
+        searchString() {
+            const newQuery = Object.assign({}, this.$route.query);
+            newQuery.filter = this.searchString || undefined;
+
+            this.$router.replace({
+                query: newQuery,
+                hash: this.$route.hash,
+            });
+        },
+    },
+
     methods: {
-        ...mapActions('courses', ['loadCourses']),
+        ...mapActions('courses', ['loadFirstCourses', 'loadAllCourses']),
 
         getAssignments(course) {
             if (!this.searchString) {
@@ -330,8 +290,23 @@ export default {
         // `loaded` and `complete`.
         async showMoreCourses($state = null) {
             this.renderingMoreCourses += 1;
-            await this.$afterRerender();
+
+            // This happens when you reload the courses using the sidebar, if we
+            // don't reset the amount to show we steadily increase the
+            // `amountCoursesToShow`, and at one point we will load all courses.
+            if (this.courses.length === 0) {
+                this.amountCoursesToShow = 0;
+            }
+
+            const promises = [this.$afterRerender()];
+            const nextToShow = this.amountCoursesToShow + EXTRA_COURSES_AMOUNT;
+            if (nextToShow > INITIAL_COURSES_AMOUNT) {
+                promises.push(this.loadAllCourses());
+            }
+
+            await Promise.all(promises);
             this.amountCoursesToShow += EXTRA_COURSES_AMOUNT;
+            await this.$nextTick();
             this.renderingMoreCourses -= 1;
 
             if ($state) {
@@ -353,6 +328,8 @@ export default {
         Loader,
         LocalHeader,
         InfiniteLoading,
+        AssignmentListItem,
+        CourseName,
     },
 };
 </script>
@@ -373,43 +350,6 @@ export default {
 .home-grid .outer-block {
     .card-body.card-no-padding {
         padding: 0;
-    }
-
-    .assig-list {
-        margin-bottom: 0;
-
-        .assig-list-item {
-            display: table-row;
-
-            @{dark-mode},
-            @{dark-mode} .fa-icon {
-                color: rgb(210, 212, 213);
-            }
-
-            &:first-child td {
-                border-top-width: 0;
-            }
-
-            &:nth-of-type(even) {
-                background-color: rgba(0, 0, 0, 0.05);
-            }
-
-            &:hover {
-                background-color: rgba(0, 0, 0, 0.075);
-            }
-        }
-
-        a:hover {
-            text-decoration: none;
-
-            .fa-icon {
-                border-bottom-color: transparent;
-            }
-        }
-
-        .fa-icon {
-            margin-top: 5px;
-        }
     }
 
     .course-wrapper {
@@ -497,5 +437,47 @@ a {
 
 .extra-load-btn {
     margin: 0 auto;
+}
+</style>
+
+<style lang="less">
+@import '~mixins.less';
+
+.home-grid  .course-wrapper .assig-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    flex: 1 1 auto;
+    overflow-y: auto;
+
+    .sidebar-list-item {
+        a {
+            @{dark-mode} {
+                color: @text-color-dark;
+
+                &:hover {
+                    color: darken(@text-color-dark, 10%);
+                }
+            }
+        }
+        &.text-muted a {
+            color: @text-color-muted !important;
+        }
+        display: flex;
+        flex-direction: row;
+
+        .sidebar-item {
+            padding: 0.75rem;
+        }
+        &:nth-child(even) {
+            background-color: rgba(0, 0, 0, 0.05);
+        }
+        .sidebar-item:hover {
+            background-color: rgba(0, 0, 0, 0.075);
+        }
+        &:last-child {
+            border-bottom: 0 !important;
+        }
+    }
 }
 </style>

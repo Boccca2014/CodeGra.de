@@ -14,3 +14,6 @@ export { default as Groups } from './Groups';
 export { default as LoginAndRedirect } from './LoginAndRedirect';
 export { default as UnsubscribePage } from './UnsubscribePage';
 export { default as LTIProviderSetup } from './LTIProviderSetup';
+export { default as AssignmentLogin } from './AssignmentLogin';
+export { default as CourseEnroll } from './CourseEnroll';
+export { default as SsoLogin } from './SsoLogin';

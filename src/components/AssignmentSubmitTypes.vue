@@ -1,173 +1,77 @@
 <!-- SPDX-License-Identifier: AGPL-3.0-only -->
 <template>
-<div class="assignment-submit-types">
-    <b-input-group class="d-flex">
-        <b-input-group-prepend is-text>
-            Allowed upload types
+<b-list-group class="assignment-submit-types">
+    <b-list-group-item>
+        <b-form-checkbox v-model="files"
+                         :id="`assignment-submit-files-${uniqueId}-checkbox`">
+            File uploader
 
-            <description-popover hug-text>
-                Select how you want your student to hand in their
-                submissions. You can either select a file uploader, via a
-                GitHub/GitLab webhook, or both.
-            </description-popover>
-        </b-input-group-prepend>
+            <cg-description-popover hug-text>
+                Your students will be able to upload files via a file uploader.
+                They can submit archives which are automatically extracted or
+                regular files. If you set up hand-in requirements, the handed
+                in files will be checked on these requirements.
+            </cg-description-popover>
+        </b-form-checkbox>
+    </b-list-group-item>
 
-        <b-input-group-prepend class="flex-grow-1">
-            <b-input-group-text class="flex-grow-1 no-bg">
-                <b-form-checkbox v-model="files">
-                    File uploader
+    <b-list-group-item>
+        <b-form-checkbox v-model="webhook"
+                         :id="`assignment-submit-webhook-${uniqueId}-checkbox`">
+            GitHub/GitLab
 
-                    <description-popover hug-text>
-                        Your students will be able to upload files via a file
-                        uploader, they can submit archives which are
-                        automatically extracted or regular files. If you setup
-                        hand-in requirements, the handed in files will be
-                        checked on these requirements.
-                    </description-popover>
-                </b-form-checkbox>
-            </b-input-group-text>
-        </b-input-group-prepend>
-
-        <b-input-group-prepend class="flex-grow-1">
-            <b-input-group-text class="flex-grow-1 no-bg">
-                <b-form-checkbox v-model="webhook">
-                    GitHub/GitLab
-
-                    <description-popover hug-text>
-                        Your students will be able to hand in via a GitHub or
-                        GitLab webhook. Instructions on how to set this up will
-                        be shown on the hand in page. Hand-in requirements will
-                        be ignored on submissions handed in through this method.
-                    </description-popover>
-                </b-form-checkbox>
-            </b-input-group-text>
-        </b-input-group-prepend>
-        <b-input-group-append v-if="!withoutAssignment">
-            <submit-button :submit="submit" ref="submitButton"/>
-        </b-input-group-append>
-    </b-input-group>
-</div>
+            <cg-description-popover hug-text>
+                Your students will be able to hand in via a GitHub or GitLab
+                webhook. Instructions on how to set this up will be shown on
+                the hand in page. Hand-in requirements will be ignored on
+                submissions handed in through this method.
+            </cg-description-popover>
+        </b-form-checkbox>
+    </b-list-group-item>
+</b-list-group>
 </template>
 
-<script>
-import Icon from 'vue-awesome/components/Icon';
-import { mapGetters, mapActions } from 'vuex';
-import 'vue-awesome/icons/reply';
+<script lang="ts">
+import { Vue, Component, Prop, Watch } from 'vue-property-decorator';
+import { Either, Left, Right } from '@/utils';
 
-import SubmitButton from './SubmitButton';
-import DescriptionPopover from './DescriptionPopover';
+export type AssignmentSubmitTypesValue = Either<Error, {
+    files: boolean;
+    webhook: boolean;
+}>;
 
-export default {
-    name: 'assignment-submit-types',
+@Component({})
+export default class AssignmentSubmitTypes extends Vue {
+    @Prop({ required: true })
+    value!: AssignmentSubmitTypesValue;
 
-    props: {
-        assignmentId: {
-            type: Number,
-            required: false,
-        },
+    @Prop({ default: 'assignment-submit-types' })
+    inputId!: string;
 
-        value: {
-            type: Object,
-            default: null,
-        },
-    },
+    files: boolean = true;
 
-    data() {
-        return {
-            files: true,
-            webhook: true,
-        };
-    },
+    webhook: boolean = true;
 
-    watch: {
-        assignmentId: {
-            handler() {
-                this.setRemoteData();
-            },
-            immediate: true,
-        },
+    readonly uniqueId: number = this.$utils.getUniqueId();
 
-        value: {
-            immediate: true,
-            handler() {
-                if (this.value != null) {
-                    this.webhook = this.value.webhook;
-                    this.files = this.value.files;
-                } else {
-                    this.emitValue();
-                }
-            },
-        },
+    @Watch('value', { immediate: true })
+    onValueChanged() {
+        this.value.ifRight(value => {
+            this.webhook = value.webhook;
+            this.files = value.files;
+        });
+    }
 
-        webhook() {
-            this.emitValue();
-        },
-
-        files() {
-            this.emitValue();
-        },
-    },
-
-    computed: {
-        ...mapGetters('courses', ['assignments']),
-
-        withoutAssignment() {
-            return this.assignmentId == null;
-        },
-
-        assignment() {
-            return this.assignments[this.assignmentId];
-        },
-    },
-
-    methods: {
-        ...mapActions('courses', ['updateAssignment']),
-
-        emitValue() {
-            this.$emit('input', { webhook: this.webhook, files: this.files });
-        },
-
-        setRemoteData() {
-            if (this.withoutAssignment) {
-                this.files = true;
-                this.webhook = true;
-            } else {
-                this.files = this.assignment.files_upload_enabled;
-                this.webhook = this.assignment.webhook_upload_enabled;
-            }
-        },
-
-        submit() {
-            if (this.withoutAssignment) {
-                return Promise.resolve();
-            }
-
-            const data = {
-                files_upload_enabled: this.files,
-                webhook_upload_enabled: this.webhook,
-            };
-            return this.$http
-                .patch(`/api/v1/assignments/${this.assignment.id}`, data)
-                .then(response => {
-                    this.updateAssignment({
-                        assignmentId: this.assignmentId,
-                        assignmentProps: data,
-                    });
-                    return response;
-                });
-        },
-    },
-
-    components: {
-        Icon,
-        SubmitButton,
-        DescriptionPopover,
-    },
-};
-</script>
-
-<style lang="less">
-.flex-grow-1 {
-    flex: 1 1 auto;
+    @Watch('files')
+    @Watch('webhook')
+    emitValue() {
+        let value: AssignmentSubmitTypesValue;
+        if (this.webhook || this.files) {
+            value = Right({ webhook: this.webhook, files: this.files });
+        } else {
+            value = Left(new Error('Enable at least one way of uploading.'));
+        }
+        this.$emit('input', value);
+    }
 }
-</style>
+</script>

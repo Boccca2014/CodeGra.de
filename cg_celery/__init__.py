@@ -93,27 +93,16 @@ else:
     Celery = _Celery
 
 
-class TaskStatus(enum.Enum):
-    success = enum.auto()
-    failure = enum.auto()
-
-
 class CGCelery(Celery):
     """A subclass of celery that makes sure tasks are always called with a
     flask app context
     """
-
-    def after_this_task(self, callback: t.Callable[[TaskStatus], None]
-                        ) -> t.Callable[[object], object]:
-        self._after_task_callbacks.append(callback)
-        return lambda x: x
 
     def __init__(self, name: str, signals: t.Any) -> None:
         super().__init__(name)
         self._signals = signals
         self._flask_app: t.Any = None
         self.__enable_callbacks()
-        self._after_task_callbacks: t.List[t.Callable[[TaskStatus], None]] = []
 
         if t.TYPE_CHECKING:  # pragma: no cover
             TaskBase = CeleryTask[t.Callable[..., t.Any]]
@@ -124,6 +113,8 @@ class CGCelery(Celery):
         outer_self = self
 
         class _ContextTask(TaskBase):
+            _after_task_callbacks: t.List[t.Callable[[], None]] = []
+
             def maybe_delay_task(
                 self, wanted_time: DatetimeWithTimezone
             ) -> bool:
@@ -161,6 +152,29 @@ class CGCelery(Celery):
                 )
                 return True
 
+            def add_after_task_callback(
+                self, callback: t.Callable[[], None]
+            ) -> None:
+                self._after_task_callbacks.append(callback)
+
+            @signals.task_postrun.connect(weak=False)
+            @signals.task_prerun.connect(weak=False)
+            def _postrun_callback(
+                *, sender: '_ContextTask', **kwargs: object
+            ) -> None:
+                sender._after_task_callbacks.clear()
+
+            def on_success(self, *args: object, **kwargs: object) -> None:
+                for callback in self._after_task_callbacks:
+                    try:
+                        callback()
+                    except:  # pragma: no cover
+                        logger.error(
+                            'Callback failed',
+                            callback=callback,
+                            exc_info=True
+                        )
+
             def __call__(self, *args: t.Any, **kwargs: t.Any) -> t.Any:
                 # This is not written by us but taken from here:
                 # https://web.archive.org/web/20150617151604/http://slides.skien.cc/flask-hacks-and-best-practices/#15
@@ -184,7 +198,6 @@ class CGCelery(Celery):
                     argsrepr=repr(args),
                     kwargsrepr=repr(kwargs),
                 )
-                outer_self._after_task_callbacks = []
 
                 def set_g_vars() -> None:
                     g.request_id = self.request.id
@@ -194,24 +207,22 @@ class CGCelery(Celery):
                     g.query_start = None
                     g.request_start_time = DatetimeWithTimezone.utcnow()
 
+                super_call = super().__call__
+
+                def do_call() -> t.Any:
+                    set_g_vars()
+                    result = super_call(*args, **kwargs)
+                    logger.bind(
+                        queries_amount=g.queries_amount,
+                        queries_max_duration=g.queries_max_duration,
+                        queries_total_duration=g.queries_total_duration,
+                    )
+                    return result
+
                 if outer_self._flask_app.testing:
-                    set_g_vars()
-                    result = super().__call__(*args, **kwargs)
-                    logger.bind(
-                        queries_amount=g.queries_amount,
-                        queries_max_duration=g.queries_max_duration,
-                        queries_total_duration=g.queries_total_duration,
-                    )
-                    return result
+                    return do_call()
                 with outer_self._flask_app.app_context():  # pragma: no cover
-                    set_g_vars()
-                    result = super().__call__(*args, **kwargs)
-                    logger.bind(
-                        queries_amount=g.queries_amount,
-                        queries_max_duration=g.queries_max_duration,
-                        queries_total_duration=g.queries_total_duration,
-                    )
-                    return result
+                    return do_call()
 
         self.Task = _ContextTask  # pylint: disable=invalid-name
 
@@ -226,15 +237,6 @@ class CGCelery(Celery):
         })
         self._flask_app = app
         app.celery = self
-
-    def _call_callbacks(self, status: TaskStatus) -> None:
-        for callback in self._after_task_callbacks:
-            try:
-                callback(status)
-            except:  # pragma: no cover
-                logger.error(
-                    'Callback failed', callback=callback, exc_info=True
-                )
 
     def __enable_callbacks(self) -> None:
         system_logging.getLogger('cg_celery').setLevel(system_logging.DEBUG)
@@ -253,7 +255,6 @@ class CGCelery(Celery):
 
         @self._signals.task_success.connect(weak=False)
         def __celery_success(**kwargs: object) -> None:
-            self._call_callbacks(TaskStatus.success)
             logger.info(
                 'Task finished',
                 result=kwargs['result'],
@@ -261,7 +262,6 @@ class CGCelery(Celery):
 
         @self._signals.task_retry.connect(weak=False)
         def __celery_retry(**_: object) -> None:  # pragma: no cover
-            self._call_callbacks(TaskStatus.failure)
             logger.error(
                 'Task failed',
                 exc_info=True,
@@ -269,7 +269,6 @@ class CGCelery(Celery):
 
         @self._signals.task_failure.connect(weak=False)
         def __celery_failure(**_: object) -> None:  # pragma: no cover
-            self._call_callbacks(TaskStatus.failure)
             logger.error(
                 'Task failed',
                 exc_info=True,

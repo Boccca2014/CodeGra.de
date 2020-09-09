@@ -14,7 +14,7 @@ import {
     render,
 } from '@/utils/Document';
 import { User } from '@/models';
-import { mapCustom, flatMap1, AssertionError } from '../typed';
+import { mapCustom, flatMap1, AssertionError } from '@/utils/typed';
 
 export interface PlagiarismOptions {
     // The number of context lines to render before/after each match. Ignored

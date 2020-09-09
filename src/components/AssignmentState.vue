@@ -2,33 +2,13 @@
 <template>
 <div class="assignment-state" v-if="editable">
     <b-button-group>
-        <b-button-group v-if="canManageLTIState"
-                        v-b-popover.window.top.hover="managedByLTIPopover">
-            <submit-button class="state-button larger state-hidden state-open"
-                           :variant="ltiHiddenOpenVariant"
-                           :duration="0"
-                           confirm="true"
-                           :submit="() => updateState(states.OPEN)"
-                           @success="afterUpdateState">
-                <icon :name="icons[states.HIDDEN]"/>
-                <icon :name="icons[states.OPEN]"/>
-
-                <template #confirm>
-                    Students will not be able to see their grade. Whether they
-                    can see the assignment at all is determined by the
-                    assignment's state in {{ lmsName }}.
-                </template>
-            </submit-button>
-        </b-button-group>
-
-        <b-button-group v-else>
+        <template v-if="canManageOpenState">
             <b-button-group v-b-popover.window.top.hover="labels[states.HIDDEN]">
                 <submit-button class="state-button state-hidden"
                             :variant="hiddenVariant"
                             :duration="0"
                             confirm="true"
-                            :submit="() => updateState(states.HIDDEN)"
-                            @success="afterUpdateState">
+                            :submit="() => updateState(states.HIDDEN)">
                     <icon :name="icons[states.HIDDEN]"/>
 
                     <template #confirm>
@@ -43,8 +23,7 @@
                             :variant="openVariant"
                             :duration="0"
                             confirm="true"
-                            :submit="() => updateState(states.OPEN)"
-                            @success="afterUpdateState">
+                            :submit="() => updateState(states.OPEN)">
                     <icon :name="icons[states.OPEN]"/>
 
                     <template #confirm>
@@ -54,15 +33,44 @@
                     </template>
                 </submit-button>
             </b-button-group>
+        </template>
+
+        <b-button-group v-else
+                        v-b-popover.window.top.hover="openOrClosePopover">
+            <submit-button class="state-button larger state-hidden state-open"
+                           :variant="ltiHiddenOpenVariant"
+                           :duration="0"
+                           confirm="true"
+                           :submit="() => updateState(states.OPEN)">
+                <icon :name="icons[states.HIDDEN]"/>
+                <icon :name="icons[states.OPEN]"/>
+
+                <template #confirm v-if="assignment.availableAt">
+                    Students will not be able to see their grade.
+                    <template v-if="assignment.availableAt.isBefore($root.$now)">
+                        They will be able to see the assignment.
+                    </template>
+                    <template v-else>
+                        They will be able to see the assignment in
+                        <cg-relative-time :date="assignment.availableAt"
+                                          :now="$root.$now" />.
+                    </template>
+                </template>
+                <template #confirm v-else>
+                    Students will not be able to see their grade. Whether they
+                    can see the assignment at all is determined by the
+                    assignment's state in {{ lmsName }}.
+                </template>
+            </submit-button>
         </b-button-group>
+
 
         <b-button-group v-b-popover.window.top.hover="labels[states.DONE]">
             <submit-button class="state-button state-done"
                            :variant="doneVariant"
                            :duration="0"
                            confirm="true"
-                           :submit="() => updateState(states.DONE)"
-                           @success="afterUpdateState">
+                           :submit="() => updateState(states.DONE)">
                 <icon :name="icons[states.DONE]"/>
 
                 <template #confirm>
@@ -75,7 +83,7 @@
 <icon :name="icons[assignment.state]"
       class="assignment-state state-icon"
       :class="`assignment-state-${labels[assignment.state]}`"
-      v-b-popover.window.top.hover="labels[assignment.state]"
+      v-b-popover.window.top.hover="currentStatePopover"
       v-else/>
 </template>
 
@@ -152,18 +160,52 @@ export default {
         },
 
         ltiProvider() {
-            return this.$utils.getProps(this.assignment, null, 'course', 'ltiProvider');
+            return this.$utils.getPropMaybe(this.assignment, 'ltiProvider');
         },
 
-        canManageLTIState() {
-            return this.$utils.getProps(this.ltiProvider, false, 'supportsStateManagement');
+        canManageOpenState() {
+            if (this.assignment.availableAt) {
+                return false;
+            }
+            return this.ltiProvider.mapOrDefault(prov => !prov.supportsStateManagement, true);
         },
 
         lmsName() {
-            return this.$utils.getProps(this.ltiProvider, null, 'lms');
+            return this.ltiProvider.mapOrDefault(prov => prov.lms, null);
         },
 
-        managedByLTIPopover() {
+        openOrClosePopover() {
+            const availableAt = this.$utils.getProps(this.assignment, null, 'availableAt');
+            if (availableAt != null) {
+                let base = '';
+                const readable = availableAt.clone().local().calendar(this.$root.$now);
+
+                switch (this.assignment.state) {
+                case states.SUBMITTING:
+                case states.OPEN:
+                    base = `Openend ${readable}`;
+                    break;
+                case states.HIDDEN:
+                    base = `Hidden until ${readable}`;
+                    break;
+                case states.DONE:
+                    if (availableAt.isBefore(this.$root.$now)) {
+                        base = `Opened ${readable}`;
+                    } else {
+                        base = `Hidden until ${readable}`;
+                    }
+                    break;
+                default:
+                    break;
+                }
+
+                let managedBy = '';
+                if (this.lmsName != null) {
+                    managedBy = `, managed by ${this.lmsName}`;
+                }
+                return `${base}${managedBy}.`;
+            }
+
             let curState = '';
             switch (this.assignment.state) {
             case states.SUBMITTING:
@@ -178,21 +220,21 @@ export default {
             }
             return `Hidden or open, managed by ${this.lmsName}${curState}.`;
         },
+
+        currentStatePopover() {
+            if (this.assignment.state === states.HIDDEN && this.assignment.availableAt) {
+                const time = this.assignment.availableAt.clone().local().calendar(this.$root.$now);
+                return `Hidden until ${time}`;
+            }
+            return this.labels[this.assignment.state];
+        },
     },
 
     methods: {
-        ...mapActions('courses', ['updateAssignment']),
+        ...mapActions('assignments', ['patchAssignment']),
 
         updateState(pendingState) {
-            return this.$http
-                .patch(`/api/v1/assignments/${this.assignment.id}`, {
-                    state: pendingState,
-                })
-                .then(() => pendingState);
-        },
-
-        afterUpdateState(pendingState) {
-            this.updateAssignment({
+            return this.patchAssignment({
                 assignmentId: this.assignment.id,
                 assignmentProps: {
                     state: pendingState,

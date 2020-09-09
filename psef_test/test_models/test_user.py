@@ -25,7 +25,9 @@ def test_get_all_permissions(describe):
         assert set(list(GlobalPermission)) == set(perms.keys())
         assert not any(perms.values())
 
-        cperms = user_without_role.get_all_permissions(course_id=1)
+        cperms = user_without_role.get_all_permissions(
+            course=m.Course.query.get(1)
+        )
         assert not any(cperms.values())
 
 

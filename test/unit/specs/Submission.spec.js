@@ -119,15 +119,14 @@ describe('Submission.vue', () => {
                 id: 2,
                 state: 'open',
                 auto_test_id: null,
+                course_id: 1,
             }, {
                 id: 100,
                 state: 'done',
                 auto_test_id: null,
+                course_id: 1,
             }],
             is_lti: false,
-            permissions: {
-                can_see_grade_before_done: true,
-            },
         }];
 
         autoTests = {
@@ -165,10 +164,16 @@ describe('Submission.vue', () => {
                 } else {
                     res = submissions.map(s => Object.assign({}, s)).slice(-1);
                 }
+            } else if (/^.api.v1.assignments.([0-9]+|NaN).graders./.test(path)) {
+                res = [];
+            } else if (/^.api.v1.courses.1(\?.*)?/.test(path)) {
+                res = courses[0];
             } else if (/^.api.v1.courses./.test(path)) {
                 res = courses;
             } else if (/^.api.v1.permissions.*type=course/.test(path)) {
-                res = {};
+                res = {
+                    1: { can_see_grade_before_done: true },
+                };
             } else if (/^.api.v1.auto_tests.1/.test(path)) {
                 res = {
                     sets: [],
@@ -233,8 +238,6 @@ describe('Submission.vue', () => {
         });
         comp = wrapper.vm;
 
-        await store.dispatch('courses/loadCourses');
-
         await wait();
     });
 
@@ -244,7 +247,7 @@ describe('Submission.vue', () => {
     });
 
     describe('Computed', () => {
-        it('ids should be numbers', () => {
+        it('ids should be numbers', async () => {
             expect(comp.courseId).toBeNumber();
             expect(comp.assignmentId).toBeNumber();
             expect(comp.submissionId).toBeNumber();
@@ -336,136 +339,6 @@ describe('Submission.vue', () => {
                     hasFeedback,
                     autoTestRun,
                 )).toBe(expected);
-            });
-        });
-
-        describe('setDefaultCat', () => {
-            it('should be "Code" when the assignment is not done and there is no Continuous Feedback', async () => {
-                store.dispatch('courses/updateAssignment', {
-                    assignmentId: comp.assignmentId,
-                    assignmentProps: {
-                        state: assignmentState.SUBMITTING,
-                        auto_test_id: null,
-                    },
-                });
-                await wait();
-                comp.setDefaultCat();
-
-                expect(comp.defaultCat).toBe('code');
-            });
-
-            it('should be "Feedback Overview" when the assignment is done and the submission has feedback', async () => {
-                await comp.loadData();
-
-                store.dispatch('courses/updateAssignment', {
-                    assignmentId: comp.assignmentId,
-                    assignmentProps: {
-                        state: assignmentState.DONE,
-                    },
-                });
-                setFeedback({
-                    general: 'abc',
-                    user: [],
-                });
-                await wait();
-                comp.setDefaultCat();
-
-                expect(comp.defaultCat).toBe('feedback-overview');
-
-                setFeedback({
-                    general: '',
-                    user: [{
-                        file: 1,
-                        line: 1,
-                        id: 4,
-                        replies: [{
-                            comment: 'abc',
-                            id: 4,
-                            reply_type: 'plain_text',
-                        }],
-                    }],
-                })
-                await wait();
-                comp.setDefaultCat();
-
-                expect(comp.defaultCat).toBe('feedback-overview');
-            });
-
-            it('should be "Feedback Overview" when the assignment is done and there is no feedback and no AutoTest', async () => {
-                store.dispatch('courses/updateAssignment', {
-                    assignmentId: comp.assignmentId,
-                    assignmentProps: {
-                        state: assignmentState.DONE,
-                        auto_test_id: null,
-                    },
-                });
-                setFeedback({
-                    general: '',
-                    user: {},
-                });
-                await wait();
-                comp.setDefaultCat();
-
-                expect(comp.defaultCat).toBe('feedback-overview');
-            });
-
-            it('should be "AutoTest" when the assignment is done and has an AutoTest but the submission does not have feedback', async () => {
-                store.dispatch('courses/updateAssignment', {
-                    assignmentId: comp.assignmentId,
-                    assignmentProps: {
-                        state: assignmentState.DONE,
-                        auto_test_id: 1,
-                    },
-                });
-                setFeedback({
-                    general: '',
-                    user: [],
-                    linter: {},
-                });
-                await wait(100);
-                comp.setDefaultCat();
-
-                expect(comp.defaultCat).toBe('auto-test');
-            });
-
-            it('should be "Code" when a submission is not graded or the user cannot view the feedback', async () => {
-                comp.canSeeFeedback = false;
-                store.dispatch('submissions/updateSubmission', {
-                    assignmentId: comp.assignmentId,
-                    submissionId: comp.submissionId,
-                    submissionProps: {
-                        grade: null,
-                    },
-                });
-                await wait();
-                comp.setDefaultCat();
-
-                expect(comp.defaultCat).toBe('code');
-
-                for (let i = 0; i <= 10; i++) {
-                    store.dispatch('submissions/updateSubmission', {
-                        assignmentId: comp.assignmentId,
-                        submissionId: comp.submissionId,
-                        submissionProps: {
-                            grade: i,
-                        },
-                    });
-                    await wait(2);
-                    expect(comp.defaultCat).toBe('code');
-                }
-
-                comp.canSeeFeedback = true;
-                store.dispatch('submissions/updateSubmission', {
-                    assignmentId: comp.assignmentId,
-                    submissionId: comp.submissionId,
-                    submissionProps: {
-                        grade: null,
-                    },
-                });
-                await wait();
-                comp.setDefaultCat();
-
-                expect(comp.defaultCat).toBe('code');
             });
         });
     });

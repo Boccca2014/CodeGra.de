@@ -60,6 +60,8 @@ import Toggle from './components/Toggle';
 import Collapse from './components/Collapse';
 import NumberInput from './components/NumberInput';
 import WizardWrapper from './components/WizardWrapper';
+import Error from './components/Error';
+import WizardButton from './components/WizardButton';
 /* eslint-enable import/first */
 
 Vue.component('cg-relative-time', RelativeTime);
@@ -74,6 +76,8 @@ Vue.component('cg-toggle', Toggle);
 Vue.component('cg-collapse', Collapse);
 Vue.component('cg-number-input', NumberInput);
 Vue.component('cg-wizard-wrapper', WizardWrapper);
+Vue.component('cg-error', Error);
+Vue.component('cg-wizard-button', WizardButton);
 
 Vue.use(BootstrapVue);
 Vue.use(VueMasonry);
@@ -106,6 +110,14 @@ moment.updateLocale('en', {
         MM: '%d months',
         y: 'a year',
         yy: '%d years',
+    },
+    calendar: {
+        lastDay: '[yesterday at] LT',
+        sameDay: '[today at] LT',
+        nextDay: '[tomorrow at] LT',
+        lastWeek: '[last] dddd [at] LT',
+        nextWeek: 'dddd [at] LT',
+        sameElse: 'YYYY-MM-DD HH:mm',
     },
 });
 
@@ -169,6 +181,10 @@ try {
     Vue.prototype.$devMode = false;
 }
 Vue.prototype.$utils = utils;
+Vue.prototype.$routeParamAsId = function $routeParamAsId(name) {
+    const res = utils.parseOrKeepFloat(this.$route.params[name]);
+    return Number.isNaN(res) ? undefined : res;
+};
 Vue.prototype.$userConfig = UserConfig;
 
 Vue.prototype.$afterRerender = function doubleRequestAnimationFrame(cb) {
@@ -223,7 +239,7 @@ Promise.all([
         }
     });
 
-    Vue.prototype.$hasPermission = (permission, courseId, asMap) => {
+    Vue.prototype.$hasPermission = (permission, _, asMap) => {
         function makeResponse(map) {
             if (typeof permission === 'string') {
                 return map[permission];
@@ -233,14 +249,7 @@ Promise.all([
                 return permission.map(p => map[p]);
             }
         }
-        if (courseId) {
-            return store.store.dispatch('courses/loadCourses').then(() => {
-                const map = store.store.getters['courses/courses'][courseId].permissions;
-                return makeResponse(map);
-            });
-        } else {
-            return Promise.resolve(makeResponse(store.store.getters['user/permissions']));
-        }
+        return Promise.resolve(makeResponse(store.store.getters['user/permissions']));
     };
 
     function getUTCEpoch() {
@@ -352,7 +361,7 @@ Promise.all([
                             config.url.match(/\/api\/v1\/login/) ||
                             NO_LOGIN_REQUIRED_ROUTES.has(router.currentRoute.name)
                         ) {
-                            return;
+                            throw err;
                         }
 
                         if (store.store.getters['user/dangerousJwtToken'] == null) {
@@ -423,8 +432,16 @@ Promise.all([
             },
 
             async _checkForUpdates() {
-                const res = await this.$http.get('/api/v1/about').catch(() => ({ data: {} }));
-                if (UserConfig.isProduction && res.data.commit !== UserConfig.release.commitHash) {
+                const res = await this.$http
+                    .get(
+                        utils.buildUrl(['static', 'commitHash'], {
+                            query: { cacheBuster: Math.random() },
+                        }),
+                    )
+                    .catch(() => null);
+                const ourCommit = UserConfig.release.commitHash;
+                const remoteCommit = utils.getProps(res, ourCommit, 'data');
+                if (UserConfig.isProduction && ourCommit !== remoteCommit) {
                     this.$emit('cg::app::toast', {
                         tag: 'UpdateAvailable',
                         title: 'CodeGrade update available!',

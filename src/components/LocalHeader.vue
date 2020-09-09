@@ -39,7 +39,10 @@
         </b-input-group-append>
 
         <template v-if="showLogo">
-            <cg-logo :inverted="!darkMode" class="local-header-logo" />
+            <component :is="logoIsLink ? 'router-link' : 'span'"
+                       :to="logoIsLink ? '/' : undefined">
+                <cg-logo :inverted="!darkMode" class="local-header-logo" />
+            </component>
         </template>
     </b-button-toolbar>
 
@@ -93,6 +96,11 @@ export default {
         },
 
         showLogo: {
+            type: Boolean,
+            default: false,
+        },
+
+        logoIsLink: {
             type: Boolean,
             default: false,
         },

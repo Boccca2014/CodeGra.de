@@ -15,7 +15,6 @@ import structlog
 import sqlalchemy
 import jwcrypto.jwk
 import pylti1p3.grade
-import flask_jwt_extended as flask_jwt
 import pylti1p3.exception
 import pylti1p3.names_roles
 import pylti1p3.service_connector
@@ -38,7 +37,7 @@ from . import user as user_models
 from . import work as work_models
 from . import course as course_models
 from . import assignment as assignment_models
-from .. import auth, signals, db_locks, current_app
+from .. import auth, signals, current_app
 from ..lti import v1_3 as lti_v1_3
 from ..lti.v1_3 import claims as ltiv1_3_claims
 from ..registry import lti_provider_handlers, lti_1_3_lms_capabilities
@@ -64,8 +63,9 @@ _PASSBACK_CELERY_OPTS: Final = {
 
 if t.TYPE_CHECKING:  # pragma: no cover
     # pylint: disable=unused-import, invalid-name
+    from pylti1p3.names_roles import _Member, _NamesAndRolesData
+
     from .work import Work
-    from pylti1p3.names_roles import _NamesAndRolesData, _Member
 
 _ALL_LTI_PROVIDERS = sorted(['lti1.1', 'lti1.3'])
 lti_provider_handlers.set_possible_options(_ALL_LTI_PROVIDERS)
@@ -175,7 +175,9 @@ class LTIProviderBase(Base, TimestampMixin):
             assignment_models.Assignment.is_visible,
         )
         if lock:
-            query = query.with_for_update(read=True)
+            query = query.with_for_update(
+                read=True, of=assignment_models.Assignment
+            )
 
         assig = query.one_or_none()
 
@@ -233,6 +235,12 @@ class LTIProviderBase(Base, TimestampMixin):
         """The name of the LMS for this LTIProvider.
 
         :getter: Get the LMS name.
+        """
+        raise NotImplementedError
+
+    @abc.abstractmethod
+    def supports_setting_state(self) -> bool:
+        """May users change the available at of the assignment within CodeGrade.
         """
         raise NotImplementedError
 
@@ -524,6 +532,12 @@ class LTI1p1Provider(LTIProviderBase):
         """Only some LMSes pass the deadline in LTI launches.
         """
         return not self.lti_class.supports_deadline()
+
+    def supports_setting_state(self) -> bool:
+        """We cannot set the state of the assignment when the LMS
+            manages the state.
+        """
+        return not self.lti_class.supports_state_management()
 
     def supports_max_points(self) -> bool:
         """Only some LMSes support bonus points using the LTI 1.1 standard.
@@ -895,6 +909,8 @@ class LTI1p3Provider(LTIProviderBase):
                 assignment_models.Assignment.lti_assignment_id == lti_assid_id,
                 assignment_models.Assignment.lti_assignment_id.isnot(None),
                 assignment_models.Assignment.is_lti,
+            ).with_for_update(
+                read=True, of=assignment_models.Assignment
             ).one_or_none()
 
         found_assig = find(resource_id)
@@ -1318,6 +1334,11 @@ class LTI1p3Provider(LTIProviderBase):
         """
         return self.lms_capabilities.set_deadline
 
+    def supports_setting_state(self) -> bool:
+        """Does the LMS support the available at.
+        """
+        return self.lms_capabilities.set_state
+
     @property
     def _custom_fields(self) -> t.Mapping[str, str]:
         return psef.lti.v1_3.CGCustomClaims.get_variable_claims_config(
@@ -1557,29 +1578,15 @@ class UserLTIProvider(Base, TimestampMixin):
         # New LTI user id is found and no user is logged in or the current
         # user has a different LTI user id. A new user is created and
         # logged in.
-        i = 0
 
-        # Work around for https://github.com/python/mypy/issues/2608
-        _wanted_username = wanted_username
-
-        def _get_username(wanted: str = _wanted_username) -> str:
-            return f'{wanted} ({i})' if i > 0 else wanted
-
-        # Make sure we cannot have collisions, so simply lock this username for
-        # the users while searching.
-        db_locks.acquire_lock(db_locks.LockNamespaces.user, wanted_username)
-
-        while db.session.query(
-            user_models.User.query.filter_by(username=_get_username()).exists()
-        ).scalar():  # pragma: no cover
-            i += 1
+        username = user_models.User.find_possible_username(wanted_username)
 
         user = user_models.User(
             name=full_name,
             email=email,
             active=True,
             password=None,
-            username=_get_username(),
+            username=username,
         )
         db.session.add(user)
         db.session.add(
@@ -1591,10 +1598,7 @@ class UserLTIProvider(Base, TimestampMixin):
         )
         db.session.flush()
 
-        token = flask_jwt.create_access_token(
-            identity=user.id,
-            fresh=True,
-        )
+        token = user.make_access_token()
         return user, token
 
     @classmethod
@@ -1698,10 +1702,7 @@ class UserLTIProvider(Base, TimestampMixin):
                     lti_user=lti_user
                 )
             # LTI users are used before the current logged user.
-            token = flask_jwt.create_access_token(
-                identity=lti_user.id,
-                fresh=True,
-            )
+            token = lti_user.make_access_token()
             user = lti_user
         elif is_logged_in and not cls.user_is_linked(current_user):
             # TODO show some sort of screen if this linking is wanted

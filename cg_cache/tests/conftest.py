@@ -1,7 +1,10 @@
+import os
+import sys
+
 import flask
 import pytest
 
-import cg_cache.intra_request as c
+sys.path.append(os.path.join(os.path.dirname(__file__), '..', '..'))
 
 
 def pytest_addoption(parser):
@@ -18,6 +21,7 @@ def pytest_addoption(parser):
 
 @pytest.fixture(scope='session')
 def app():
+    import cg_cache.intra_request as c
     app = flask.Flask(__name__)
     c.init_app(app)
     yield app

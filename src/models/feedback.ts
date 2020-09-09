@@ -6,14 +6,13 @@ import axios, { AxiosResponse } from 'axios';
 import DiffMatchPatch from 'diff-match-patch';
 
 // @ts-ignore
-import { setProps, coerceToString, getUniqueId, htmlEscape, withSentry } from '@/utils';
+import { setProps, coerceToString, getUniqueId, htmlEscape, withSentry, Maybe } from '@/utils';
 import { NEWLINE_CHAR } from '@/utils/diff';
 import { Assignment, Submission } from '@/models';
 
 import { CoursePermission as CPerm } from '@/permissions';
 
-import { store } from '@/store';
-import { PeerFeedbackStore } from '@/store/modules/peer_feedback';
+import { store, PeerFeedbackStore } from '@/store';
 import * as assignmentState from '@/store/assignment-states';
 import { SubmitButtonResult } from '../interfaces';
 
@@ -375,6 +374,7 @@ export class FeedbackLine {
     static canAddReply(submission: Submission) {
         const assignment: Assignment = submission.assignment;
 
+        const currentUser: Maybe<NormalUser> = store.getters['user/currentUser'];
         // @ts-ignore
         const author: AnyUser = submission.user;
         const perms = [CPerm.canGradeWork];
@@ -384,6 +384,11 @@ export class FeedbackLine {
         }
         if (perms.some(x => assignment.hasPermission(x))) {
             return true;
+        }
+
+        const submissionIsOwn = currentUser.map(u => submission.user.isEqualOrMemberOf(u));
+        if (submissionIsOwn.orDefault(false)) {
+            return false;
         }
 
         if (assignment.peer_feedback_settings) {

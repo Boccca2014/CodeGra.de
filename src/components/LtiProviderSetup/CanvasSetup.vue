@@ -62,15 +62,16 @@
 
             </p>
 
-            <b-form-group class="mb-3 d-block">
-                <b-input-group prepend="Client ID">
+            <b-form-group label="Client ID">
+                <b-input-group>
                     <input class="form-control" v-model="newClientId"
                            placeholder="The client id from Canvas" />
-                    <b-input-group-append>
-                        <cg-submit-button :submit="submitClientId" />
-                    </b-input-group-append>
                 </b-input-group>
             </b-form-group>
+
+            <div class="d-flex mb-3 justify-content-end">
+                <cg-submit-button :submit="submitClientId" />
+            </div>
 
             <p v-if="ltiProvider.client_id">
                 We received the client id, you can
@@ -95,51 +96,63 @@
             </p>
 
             <advanced-collapse class="mb-3">
-                <p>
-                    These options are the same for all Canvas default production
-                    instances, however you can change them if you have a custom
-                    Canvas setup.
-                </p>
+                <div class="border rounded p-3">
+                    <p>
+                        These options are the same for all Canvas default production
+                        instances, however you can change them if you have a custom
+                        Canvas setup.
+                    </p>
 
-                <b-form-group>
-                    <b-input-group prepend="Key set url">
-                        <input class="form-control"
-                               v-model="keySetUrl"
-                               :placeholder="defaultKeySetUrl" />
-                    </b-input-group>
-                </b-form-group>
+                    <b-form-group label="Key set url">
+                        <b-input-group>
+                            <input class="form-control"
+                                   v-model="keySetUrl"
+                                   :placeholder="defaultKeySetUrl" />
+                        </b-input-group>
+                    </b-form-group>
 
-                <b-form-group>
-                    <b-input-group prepend="Auth token url">
-                        <input class="form-control"
-                               v-model="authTokenUrl"
-                               :placeholder="defaultAuthTokenUrl" />
-                    </b-input-group>
-                </b-form-group>
+                    <b-form-group label="Auth token url">
+                        <b-input-group>
+                            <input class="form-control"
+                                   v-model="authTokenUrl"
+                                   :placeholder="defaultAuthTokenUrl" />
+                        </b-input-group>
+                    </b-form-group>
 
-                <b-form-group class="mb-0">
-                    <b-input-group prepend="Auth login url">
-                        <input class="form-control"
-                               v-model="authLoginUrl"
-                               :placeholder="defaultAuthLoginUrl" />
-                    </b-input-group>
-                </b-form-group>
+                    <b-form-group class="mb-0" label="Auth login url">
+                        <b-input-group>
+                            <input class="form-control"
+                                   v-model="authLoginUrl"
+                                   :placeholder="defaultAuthLoginUrl" />
+                        </b-input-group>
+                    </b-form-group>
+                </div>
             </advanced-collapse>
 
-            <b-form-group>
+            <b-form-group :invalid-feedback="maybeWarningCanvasBaseUrl || ''"
+                          label="The base url of your Canvas instance"
+                          :state="maybeWarningCanvasBaseUrl == null">
                 <b-input-group>
                     <input class="form-control"
                            v-model="canvasBaseUrl"
                            placeholder="https://canvas." />
-                    <b-input-group-append>
-                        <cg-submit-button
-                            confirm="After finalizing your configuration you cannot edit it anymore. Are you sure you want to finalize your configuration?"
-                            label="Finalize"
-                            :submit="finalizeProvider"
-                            @after-success="afterFinalizeProvider" />
-                    </b-input-group-append>
                 </b-input-group>
             </b-form-group>
+
+
+            <div class="d-flex justify-content-end">
+                <cg-submit-button
+                    confirm="true"
+                    label="Finalize"
+                    :submit="finalizeProvider"
+                    @after-success="afterFinalizeProvider">
+                    <template #confirm>
+                        After finalizing your configuration you cannot edit it
+                        anymore. Are you sure you want to finalize your
+                        configuration?
+                    </template>
+                </cg-submit-button>
+            </div>
         </template>
 
         <template #page-4>
@@ -187,16 +200,44 @@ export default class CanvasSetup extends Vue {
 
     canvasBaseUrl: string | null = null;
 
+    get trimmedCanvasBaseUrl() {
+        const base = this.canvasBaseUrl;
+        if (base == null) {
+            return null;
+        }
+        return base.replace(/\/*$/, '');
+    }
+
+    get maybeWarningCanvasBaseUrl() {
+        const base = this.trimmedCanvasBaseUrl;
+        if (base == null) {
+            return null;
+        } else if (!this.$utils.isValidHttpUrl(base)) {
+            return "This doesn't look like valid url.";
+        }
+
+        const url = new URL(base);
+        if (url.origin !== base) {
+            return `It looks like the url contains more than just a
+host. This is very likely to be incorrect, so instead of "${base}" it should
+probably be "${url.origin}".`;
+        } else if (url.protocol !== 'https:') {
+            return 'Supplying CodeGrade with non "https" urls is not secure, and we strongly advise you to use https.';
+        }
+
+        return null;
+    }
+
     get defaultAuthTokenUrl() {
-        return `${this.canvasBaseUrl ?? ''}/login/oauth2/token`;
+        return `${this.trimmedCanvasBaseUrl ?? ''}/login/oauth2/token`;
     }
 
     get defaultAuthLoginUrl() {
-        return `${this.canvasBaseUrl ?? ''}/api/lti/authorize_redirect`;
+        return `${this.trimmedCanvasBaseUrl ?? ''}/api/lti/authorize_redirect`;
     }
 
     get defaultKeySetUrl() {
-        return `${this.canvasBaseUrl ?? ''}/api/lti/security/jwks`;
+        return `${this.trimmedCanvasBaseUrl ?? ''}/api/lti/security/jwks`;
     }
 
     get showLogo(): boolean {
@@ -204,7 +245,7 @@ export default class CanvasSetup extends Vue {
     }
 
     get redirectUrl(): string {
-        return (<const>['launch_to_latest_submission', 'launch']).map(
+        return (['launch_to_latest_submission', 'launch'] as const).map(
             extraPath => this.$utils.buildUrl(
                 ['api', 'v1', 'lti1.3', extraPath],
                 {
@@ -245,11 +286,11 @@ export default class CanvasSetup extends Vue {
     }
 
     finalizeProvider() {
-        if (!this.canvasBaseUrl) {
+        if (this.trimmedCanvasBaseUrl == null) {
             if (!this.keySetUrl || !this.authTokenUrl || !this.authLoginUrl) {
                 throw new Error('Please insert a base url');
             }
-        } else if (!this.$utils.isValidHttpUrl(this.canvasBaseUrl)) {
+        } else if (!this.$utils.isValidHttpUrl(this.trimmedCanvasBaseUrl)) {
             throw new Error('The base url does not look like a valid url');
         }
 

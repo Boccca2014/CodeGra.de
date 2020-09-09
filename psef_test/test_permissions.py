@@ -5,6 +5,7 @@ import json
 
 import pytest
 
+import helpers
 import psef.auth as a
 import psef.models as m
 from helpers import create_marker
@@ -63,9 +64,13 @@ def test_course_permissions(
 
     if not error:
         for course, val in zip([bs_course, pse_course, prolog_course], vals):
-            with pytest.raises(APIException) as err:
-                a.ensure_permission(perm, course_id=course.id)
-            assert err.value.api_code == APICodes.NOT_LOGGED_IN
+            with logged_in('NOT_LOGGED_IN'):
+                res = test_client.req(
+                    'get', f'/api/v1/courses/{course.id}/permissions/', 401
+                )
+                with pytest.raises(APIException) as err:
+                    a.ensure_permission(perm, course_id=course.id)
+                assert err.value.api_code == APICodes.NOT_LOGGED_IN
 
 
 @pytest.mark.parametrize('perm', ['wow_nope'])
@@ -113,10 +118,10 @@ def test_non_existing_course(ta_user, bs_course, perm):
 def test_role_permissions(
     ta_user, admin_user, perm, vals, logged_in, test_client
 ):
-    for user, val in zip([ta_user, admin_user], vals):
+    query = {'type': 'global'}
 
+    for user, val in zip([ta_user, admin_user], vals):
         with logged_in(user):
-            query = {'type': 'global'}
             res = test_client.req(
                 'get', '/api/v1/permissions/', 200, query=query
             )
@@ -130,9 +135,11 @@ def test_role_permissions(
                     a.ensure_permission(perm, course_id=None)
                 assert err.value.api_code == APICodes.INCORRECT_PERMISSION
 
-    with pytest.raises(APIException) as err:
-        a.ensure_permission(perm)
-    assert err.value.api_code == APICodes.NOT_LOGGED_IN
+    with logged_in('NOT_LOGGED_IN'):
+        test_client.req('get', '/api/v1/permissions/', 401, query=query)
+        with pytest.raises(APIException) as err:
+            a.ensure_permission(perm)
+        assert err.value.api_code == APICodes.NOT_LOGGED_IN
 
 
 def test_all_permissions(
@@ -213,3 +220,88 @@ def test_get_all_permissions(
                 assert p_val[p.name] == named_user.has_permission(
                     CoursePermission.get_by_name(p.name), int(course_id)
                 )
+
+
+def test_ensure_may_see_filter(
+    logged_in, test_client, describe, admin_user, session
+):
+    with describe('setup'), logged_in(admin_user):
+        course1 = helpers.create_course(test_client)
+        course2 = helpers.create_course(test_client)
+        course3 = helpers.create_course(test_client)
+
+        archived_course1 = helpers.create_course(test_client)
+        archived_course1 = m.Course.query.get(helpers.get_id(archived_course1))
+        archived_course1.state = m.CourseState.archived
+        session.commit()
+
+        archived_course2 = helpers.create_course(test_client)
+        archived_course2 = m.Course.query.get(helpers.get_id(archived_course2))
+        archived_course2.state = m.CourseState.archived
+        session.commit()
+
+        deleted_course = helpers.create_course(test_client)
+        deleted_course = m.Course.query.get(helpers.get_id(deleted_course))
+        deleted_course.state = m.CourseState.deleted
+        session.commit()
+
+        user = m.User.resolve(
+            helpers.create_user_with_role(
+                session, 'Student',
+                [course1, course2, archived_course1, deleted_course]
+            )
+        )
+        user.courses[archived_course2.id] = m.CourseRole.query.filter_by(
+            name='Teacher', course=archived_course2
+        ).one()
+
+    with describe('Returns no courses when not logged in'):
+        assert not m.Course.query.filter(
+            a.CoursePermissions.ensure_may_see_filter()
+        ).all()
+
+    with describe('Returns all archived course as teacher when logged in'):
+        with a.as_current_user(admin_user):
+            query = m.Course.query.filter(
+                a.CoursePermissions.ensure_may_see_filter()
+            ).with_entities(m.Course.id)
+            course_ids = sorted(c_id for c_id, in query)
+            assert course_ids == sorted([
+                helpers.get_id(c) for c in [
+                    course1, course2, course3, archived_course1,
+                    archived_course2
+                ]
+            ])
+
+    with describe('Returns all courses when logged in'):
+        with a.as_current_user(user):
+            query = m.Course.query.filter(
+                a.CoursePermissions.ensure_may_see_filter()
+            ).with_entities(m.Course.id)
+            course_ids = sorted(c_id for c_id, in query)
+            assert course_ids == sorted([
+                # We can see archived_course2, but not archived_course1
+                helpers.get_id(c)
+                for c in [course1, course2, archived_course2]
+            ])
+
+    with describe('Returns single courses when logged in for a single course'):
+        with a.as_current_user(
+            user, jwt_claims={'for_course': helpers.get_id(course2)}
+        ):
+            course_id = m.Course.query.filter(
+                a.CoursePermissions.ensure_may_see_filter()
+            ).with_entities(m.Course.id).all()
+            assert len(course_id) == 1
+            assert course_id[0] == (helpers.get_id(course2), )
+
+    with describe(
+        'Returns no courses when logged in for course that the user is not'
+        ' enrolled in'
+    ):
+        with a.as_current_user(
+            user, jwt_claims={'for_course': helpers.get_id(course3)}
+        ):
+            assert not m.Course.query.filter(
+                a.CoursePermissions.ensure_may_see_filter()
+            ).with_entities(m.Course.id).all()

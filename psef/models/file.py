@@ -16,6 +16,7 @@ from sqlalchemy import event
 from sqlalchemy_utils import UUIDType
 
 import psef
+from cg_enum import CGEnum
 from cg_dt_utils import DatetimeWithTimezone
 from cg_sqlalchemy_helpers import hybrid_property
 from cg_sqlalchemy_helpers.types import (
@@ -34,7 +35,7 @@ T = t.TypeVar('T', covariant=True)
 
 
 @enum.unique
-class FileOwner(enum.IntEnum):
+class FileOwner(CGEnum):
     """Describes to which version of a submission (student's submission or
     teacher's revision) a file belongs. When a student adds or changes a file
     after the deadline for the assignment has passed, the original file's owner
@@ -48,9 +49,9 @@ class FileOwner(enum.IntEnum):
         to both versions.
     """
 
-    student: int = 1
-    teacher: int = 2
-    both: int = 3
+    student = 1
+    teacher = 2
+    both = 3
 
 
 class FileMixin(t.Generic[T]):

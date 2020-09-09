@@ -2,6 +2,10 @@
 <template>
 <loader v-if="loading" page-loader/>
 <div class="permissions-manager" v-else>
+    <input class="form-control mb-2"
+           placeholder="Type to search permissions"
+           :value="filter"
+           v-debounce="newFilter => { filter = newFilter }" />
     <table class="table table-striped"
            :class="{ 'mb-0': !showAddRole }">
         <thead>
@@ -121,10 +125,6 @@ export default {
             type: Number,
             default: null,
         },
-        filter: {
-            type: String,
-            default: '',
-        },
         fixedPermission: {
             default: 'can_edit_course_roles',
             type: String,
@@ -159,6 +159,7 @@ export default {
             newRoleName: '',
             hideChanged: false,
             changed: {},
+            filter: this.$route.query.filterPermissions || '',
         };
     },
 
@@ -201,6 +202,16 @@ export default {
                 this.changed = {};
             }
             this.loadData();
+        },
+
+        filter() {
+            const newQuery = Object.assign({}, this.$route.query);
+            newQuery.filterPermissions = this.filter || undefined;
+
+            this.$router.replace({
+                query: newQuery,
+                hash: this.$route.hash,
+            });
         },
     },
 

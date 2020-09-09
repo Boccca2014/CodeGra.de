@@ -127,9 +127,11 @@ def get_submission(
             request.args.get('owner'),
             work.assignment.course_id,
         )
-        return extended_jsonify(get_zip(work, exclude_owner))
+        return extended_jsonify(
+            get_zip(work, exclude_owner), use_extended=dict
+        )
     elif request.args.get('type') == 'feedback':
-        return extended_jsonify(get_feedback(work))
+        return extended_jsonify(get_feedback(work), use_extended=dict)
     return extended_jsonify(work, use_extended=models.Work)
 
 
@@ -236,6 +238,8 @@ def delete_submission(submission_id: int) -> EmptyResponse:
         models.Assignment.id == submission.assignment_id,
         with_for_update=True
     )
+    auth.WorkPermissions(submission).ensure_may_delete()
+
     user = submission.user
     was_latest = helpers.handle_none(
         db.session.query(
@@ -252,9 +256,6 @@ def delete_submission(submission_id: int) -> EmptyResponse:
         was_latest=was_latest
     )
 
-    auth.ensure_permission(
-        CPerm.can_delete_submission, submission.assignment.course_id
-    )
     submission.deleted = True
     db.session.flush()
 
@@ -353,6 +354,7 @@ def get_feedback_from_submission(
         models.Work, models.Work.id == submission_id, ~models.Work.deleted
     )
     perms = auth.WorkPermissions(work)
+    perms.ensure_may_see()
 
     if not perms.ensure_may_see_linter_feedback.as_bool():
         linter_comments = {}
@@ -429,9 +431,7 @@ def get_rubric(submission_id: int) -> JSONResponse[t.Mapping[str, t.Any]]:
             selectinload(models.Work.selected_items),
         ]
     )
-    auth.ensure_permission(
-        CPerm.can_see_assignments, work.assignment.course_id
-    )
+    auth.WorkPermissions(work).ensure_may_see()
     return jsonify(work.__rubric_to_json__())
 
 
@@ -470,7 +470,7 @@ def select_rubric_items(submission_id: int
     )
     assig = submission.assignment
 
-    auth.ensure_permission(CPerm.can_grade_work, assig.course_id)
+    auth.WorkPermissions(submission).ensure_may_edit_grade()
 
     content = ensure_json_dict(request.get_json())
     ensure_keys_in_dict(content, [('items', list)])
@@ -614,9 +614,7 @@ def unselect_rubric_item(
         models.Work, models.Work.id == submission_id, ~models.Work.deleted
     )
 
-    auth.ensure_permission(
-        CPerm.can_grade_work, submission.assignment.course_id
-    )
+    auth.WorkPermissions(submission).ensure_may_edit_grade()
 
     new_items = [
         item for item in submission.selected_items
@@ -665,6 +663,7 @@ def select_rubric_item(
     work = helpers.filter_single_or_404(
         models.Work, models.Work.id == submission_id, ~models.Work.deleted
     )
+    auth.WorkPermissions(work).ensure_may_edit_grade()
     item = helpers.get_or_404(models.RubricItem, rubricitem_id)
     row = item.rubricrow
 
@@ -673,7 +672,6 @@ def select_rubric_item(
                                           ) as [_, opt_get]:
         multiplier = opt_get('multiplier', (float, int), 1.0)
 
-    auth.ensure_permission(CPerm.can_grade_work, work.assignment.course_id)
     if row.assignment_id != work.assignment_id:
         raise APIException(
             'Rubric item selected does not match assignment',
@@ -718,7 +716,7 @@ def patch_submission(submission_id: int) -> ExtendedJSONResponse[models.Work]:
     )
     content = ensure_json_dict(request.get_json())
 
-    auth.ensure_permission(CPerm.can_grade_work, work.assignment.course_id)
+    auth.WorkPermissions(work).ensure_may_edit_grade()
 
     if 'feedback' in content:
         ensure_keys_in_dict(content, [('feedback', str)])
@@ -771,11 +769,10 @@ def update_submission_grader(submission_id: int) -> EmptyResponse:
     work = helpers.filter_single_or_404(
         models.Work, models.Work.id == submission_id, ~models.Work.deleted
     )
-    content = ensure_json_dict(request.get_json())
-    ensure_keys_in_dict(content, [('user_id', int)])
-    user_id = t.cast(int, content['user_id'])
+    with helpers.get_from_request_transaction() as [get, _]:
+        user_id = get('user_id', int)
 
-    auth.ensure_permission(CPerm.can_assign_graders, work.assignment.course_id)
+    auth.AssignmentPermissions(work.assignment).ensure_may_assign_graders()
 
     if work.user.is_test_student:
         raise APIException(
@@ -819,8 +816,7 @@ def delete_submission_grader(submission_id: int) -> EmptyResponse:
     work = helpers.filter_single_or_404(
         models.Work, models.Work.id == submission_id, ~models.Work.deleted
     )
-
-    auth.ensure_permission(CPerm.can_assign_graders, work.assignment.course_id)
+    auth.AssignmentPermissions(work.assignment).ensure_may_assign_graders()
 
     work.assignee = None
     db.session.commit()
@@ -844,14 +840,11 @@ def get_grade_history(submission_id: int
         models.Work, models.Work.id == submission_id, ~models.Work.deleted
     )
 
-    auth.ensure_permission(
-        CPerm.can_see_grade_history, work.assignment.course_id
-    )
+    auth.WorkPermissions(work).ensure_may_see_grade_history()
 
-    hist: t.MutableSequence[models.GradeHistory]
     hist = db.session.query(
-        models.GradeHistory,
-    ).filter_by(work_id=work.id).order_by(
+        models.GradeHistory
+    ).filter(models.GradeHistory.work == work).order_by(
         models.GradeHistory.changed_at.desc(),
     ).all()
 
@@ -881,7 +874,7 @@ def create_new_file(submission_id: int) -> JSONResponse[t.Mapping[str, t.Any]]:
         'auto', work.assignment.course_id
     )
 
-    auth.ensure_can_edit_work(work)
+    auth.WorkPermissions(work).ensure_may_edit()
     if exclude_owner == FileOwner.teacher:  # we are a student
         assig = work.assignment
         new_owner = FileOwner.both if assig.is_open else FileOwner.student

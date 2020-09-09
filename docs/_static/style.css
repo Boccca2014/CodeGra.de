@@ -64,3 +64,7 @@
 .admonition-title:hover .headerlink {
     display: inline;
 }
+
+.fa.codegrade svg {
+    vertical-align: middle;
+}

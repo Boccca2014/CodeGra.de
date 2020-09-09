@@ -1,6 +1,6 @@
 <!-- SPDX-License-Identifier: AGPL-3.0-only -->
 <template>
-<div class="course-list sidebar-list-wrapper">
+<div class="course-list sidebar-list-wrapper" v-b-visible="maybeLoadFirstCourses">
     <div class="sidebar-filter">
         <input class="form-control"
                placeholder="Filter courses"
@@ -9,29 +9,50 @@
     </div>
 
     <ul class="sidebar-list"
-        v-if="sortedCourses.length > 0">
-        <li class="sidebar-list-section-header text-muted"
-            v-if="showTopCourses">
-            <small>Courses with closest deadlines</small>
+        v-if="sortedCourses.length > 0 || loading > 0">
+        <template v-if="currentCourse">
+            <li class="sidebar-list-section-header text-muted">
+                <small>Current course</small>
+            </li>
+            <li>
+                <course-list-item :course="currentCourse"
+                                  :route-name="$route.name"
+                                  :current-id="currentCourse.id"
+                                  @open-menu="$emit('open-menu', $event)"/>
+            </li>
+            <li>
+                <hr class="separator"/>
+            </li>
+        </template>
+        <li v-if="loading > 0">
+            <cg-loader :scale="1" />
         </li>
+        <template v-else>
+            <course-list-item v-for="course in filteredCourses.slice(0, visibleCourses)"
+                              :key="`sorted-course-${course.id}`"
+                              :route-name="$route.name"
+                              :course="course"
+                              :current-id="currentCourse && currentCourse.id"
+                              @open-menu="$emit('open-menu', $event)"/>
 
-        <course-list-item v-for="course in topCourses"
-                          :key="`top-course-${course.id}`"
-                          v-if="showTopCourses"
-                          :course="course"
-                          :current-id="currentCourse && currentCourse.id"
-                          @open-menu="$emit('open-menu', $event)"/>
-
-        <li v-if="showTopCourses">
-            <hr class="separator">
+            <li class="d-flex mx-2 my-1" v-if="moreCoursesAvailable">
+                <b-btn class="flex-grow"
+                       @click="showMoreCourses()">
+                    <cg-loader v-if="renderingMoreCourses > 0" :scale="1" class="py-1"/>
+                    <span v-else v-b-visible="visible => visible && showMoreCourses()">
+                        Load more courses
+                    </span>
+                    <infinite-loading @infinite="showMoreCourses" :distance="150">
+                        <div slot="spinner"></div>
+                        <div slot="no-more"></div>
+                        <div slot="no-results"></div>
+                        <div slot="error" slot-scope="err">
+                            {{ err }}
+                        </div>
+                </infinite-loading>
+            </b-btn>
         </li>
-
-        <course-list-item v-for="course in (filteredCourses || sortedCourses)"
-                          :key="`sorted-course-${course.id}`"
-                          :course="course"
-                          :current-id="currentCourse && currentCourse.id"
-                          :extra-course-data="courseExtraDataToDisplay[course.id]"
-                          @open-menu="$emit('open-menu', $event)"/>
+        </template>
     </ul>
     <span v-else class="sidebar-list no-items-text">
         You don't have any courses yet.
@@ -54,6 +75,7 @@
                 <submit-input style="width: 18rem;"
                               placeholder="New course name"
                               @create="createNewCourse"
+                              @after-submit="afterCreateNewCouse"
                               @cancel="closePopover"/>
             </b-popover>
         </b-btn>
@@ -67,13 +89,16 @@ import { mapActions, mapGetters } from 'vuex';
 import Icon from 'vue-awesome/components/Icon';
 import 'vue-awesome/icons/plus';
 
-import { cmpNoCase } from '@/utils';
-import { Counter } from '@/utils/counter';
+import InfiniteLoading from 'vue-infinite-loading';
+
+import { INITIAL_COURSES_AMOUNT } from '@/constants';
 
 import SubmitInput from '../SubmitInput';
 import CourseListItem from './CourseListItem';
 
 let idNum = 0;
+
+const EXTRA_COURSES = INITIAL_COURSES_AMOUNT / 2;
 
 export default {
     name: 'course-list',
@@ -91,91 +116,55 @@ export default {
             filter: '',
             addButtonId: `course-add-btn-${id}`,
             popoverId: `course-add-popover-${id}`,
+            loading: false,
             showAddButton: false,
+            renderingMoreCourses: 0,
+            visibleCourses: EXTRA_COURSES,
         };
     },
 
     computed: {
-        ...mapGetters('courses', ['courses']),
-
-        topCourses() {
-            const now = this.$root.$now;
-
-            function closestDeadline(course) {
-                if (!course.assignments.length) {
-                    return Infinity;
-                }
-                return Math.min(
-                    ...course.assignments.map(assig => {
-                        if (assig.hasDeadline) {
-                            return Math.abs(assig.deadline.diff(now));
-                        } else {
-                            return Infinity;
-                        }
-                    }),
-                );
-            }
-
-            const lookup = Object.values(this.courses).reduce((res, course) => {
-                const deadline = closestDeadline(course);
-                if (deadline !== Infinity) {
-                    res[course.id] = deadline;
-                }
-                return res;
-            }, {});
-
-            return Object.values(this.courses)
-                .filter(a => lookup[a.id] != null)
-                .sort((a, b) => lookup[a.id] - lookup[b.id])
-                .slice(0, 3);
-        },
-
-        showTopCourses() {
-            return !this.filter && this.sortedCourses.length >= this.topCourses.length + 2;
-        },
-
-        sortedCourses() {
-            return Object.values(this.courses).sort((a, b) => cmpNoCase(a.name, b.name));
-        },
+        ...mapGetters('courses', ['sortedCourses', 'getCourse', 'retrievedAllCourses']),
 
         filteredCourses() {
+            const base = this.sortedCourses;
             if (!this.filter) {
-                return null;
+                return base;
             }
 
             const filterParts = this.filter.toLocaleLowerCase().split(' ');
 
-            return this.sortedCourses.filter(course =>
+            return base.filter(course =>
                 filterParts.every(part => course.name.toLocaleLowerCase().indexOf(part) > -1),
             );
         },
 
-        currentCourse() {
-            return this.courses[this.$route.params.courseId];
+        currentCourseId() {
+            return this.$routeParamAsId('courseId');
         },
 
-        // TODO: This is duplicated from HomeGrid.vue. We should factor it out into a Course or
-        // CourseCollection model or something.
-        courseExtraDataToDisplay() {
-            const courses = this.sortedCourses;
+        currentCourse() {
+            return this.getCourse(this.currentCourseId).extract();
+        },
 
-            const getNameAndYear = c => `${c.name} (${c.created_at.slice(0, 4)})`;
+        moreCoursesAvailable() {
+            if (!this.retrievedAllCourses) {
+                return true;
+            }
+            return this.visibleCourses <= this.sortedCourses.length;
+        },
+    },
 
-            const courseName = new Counter(courses.map(c => c.name));
-            const courseNameAndYear = new Counter(courses.map(getNameAndYear));
+    watch: {
+        currentCourseId() {
+            this.loadCurrentCourse();
+        },
 
-            return courses.reduce((acc, course) => {
-                if (courseName.getCount(course.name) > 1) {
-                    if (courseNameAndYear.getCount(getNameAndYear(course)) > 1) {
-                        acc[course.id] = course.created_at.slice(0, 10);
-                    } else {
-                        acc[course.id] = course.created_at.slice(0, 4);
-                    }
-                } else {
-                    acc[course.id] = null;
-                }
-                return acc;
-            }, {});
+        moreCoursesAvailable() {
+            if (!this.retrievedAllCourses) {
+                return true;
+            }
+            return this.visibleCourses <= this.sortedCourses.length;
         },
     },
 
@@ -186,13 +175,7 @@ export default {
             this.showAddButton = create;
         });
 
-        const res = this.loadCourses();
-        if (res != null) {
-            this.$emit('loading');
-            await res;
-            this.$emit('loaded');
-        }
-
+        await this.asLoader(this.loadCurrentCourse());
         await this.$nextTick();
 
         const activeEl = document.activeElement;
@@ -210,46 +193,74 @@ export default {
     },
 
     methods: {
-        ...mapActions('courses', ['loadCourses', 'reloadCourses']),
+        ...mapActions('courses', ['loadFirstCourses', 'loadSingleCourse', 'loadAllCourses', 'reloadCourses', 'createCourse']),
+
+        async asLoader(promise) {
+            if (this.loading === 0) {
+                this.$emit('loading');
+            }
+
+            this.loading += 1;
+            await promise;
+            this.loading = Math.max(0, this.loading - 1);
+
+            if (this.loading === 0) {
+                this.$emit('loaded');
+            }
+        },
+
+        maybeLoadFirstCourses(doLoad) {
+            if (doLoad) {
+                this.asLoader(this.loadFirstCourses());
+            }
+        },
 
         reload() {
-            this.$emit('loading');
-            this.reloadCourses().then(() => {
-                this.$emit('loaded');
-            });
+            const fullReload = this.visibleCourses > INITIAL_COURSES_AMOUNT;
+            this.asLoader(this.reloadCourses({ fullReload }).then(
+                () => this.loadCurrentCourse(),
+            ));
         },
 
         createNewCourse(name, resolve, reject) {
-            this.$http
-                .post('/api/v1/courses/', {
-                    name,
-                })
-                .then(
-                    res => {
-                        const course = res.data;
-                        res.onAfterSuccess = () => {
-                            this.$emit('loading');
-                            this.reloadCourses().then(() => {
-                                this.$emit('loaded');
-                                this.$router.push({
-                                    name: 'manage_course',
-                                    params: {
-                                        courseId: course.id,
-                                    },
-                                });
-                            });
-                        };
+            return this.createCourse({ name }).then(resolve, reject);
+        },
 
-                        resolve(res);
-                    },
-                    err => {
-                        reject(err);
-                    },
-                );
+        afterCreateNewCouse({ data: course }) {
+            this.$router.push({
+                name: 'manage_course',
+                params: { courseId: course.id },
+            });
         },
 
         closePopover() {
             this.$root.$emit('bv::hide::popover', this.popoverId);
+        },
+
+        async showMoreCourses(state = null) {
+            this.renderingMoreCourses += 1;
+            this.visibleCourses += EXTRA_COURSES;
+            if (!this.retrievedAllCourses && this.visibleCourses > INITIAL_COURSES_AMOUNT) {
+                await this.loadAllCourses();
+            } else if (this.visibleCourses <= INITIAL_COURSES_AMOUNT) {
+                await this.loadFirstCourses();
+            }
+            this.renderingMoreCourses -= 1;
+            if (state) {
+                if (this.moreCoursesAvailable) {
+                    state.loaded();
+                } else {
+                    state.complete();
+                }
+            }
+        },
+
+
+        loadCurrentCourse() {
+            if (this.currentCourseId) {
+                return this.loadSingleCourse({ courseId: this.currentCourseId });
+            }
+            return null;
         },
     },
 
@@ -257,6 +268,7 @@ export default {
         CourseListItem,
         Icon,
         SubmitInput,
+        InfiniteLoading,
     },
 };
 </script>

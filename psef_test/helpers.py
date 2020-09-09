@@ -5,6 +5,7 @@ import re
 import json
 import uuid
 import datetime
+import contextlib
 from copy import deepcopy
 
 import pytest
@@ -16,6 +17,10 @@ import psef.models as m
 from cg_dt_utils import DatetimeWithTimezone
 from psef.permissions import CoursePermission as CPerm
 from psef.permissions import GlobalPermission as GPerm
+
+
+def test_data(*path):
+    return os.path.join(os.path.dirname(__file__), '..', 'test_data', *path)
 
 
 def get_id(obj):
@@ -117,7 +122,7 @@ def create_lti1p3_course(test_client, session, provider, membership_url=None):
     course = to_db_object(create_course(test_client), m.Course)
     course_lti_prov = m.CourseLTIProvider.create_and_add(
         course=course,
-        lti_provider=provider,
+        lti_provider=to_db_object(provider, m.LTI1p3Provider),
         lti_context_id=str(uuid.uuid4()),
         deployment_id=str(uuid.uuid4()),
     )
@@ -199,9 +204,15 @@ def create_lti1p3_provider(
     )
 
 
-def create_lti_course(session, app, user=None):
+def create_lti_course(session, app, user=None, lms='Canvas'):
     name = f'__NEW_LTI_COURSE__-{uuid.uuid4()}'
-    key = list(app.config['LTI_CONSUMER_KEY_SECRETS'].keys())[0]
+    for key, (found_lms, _) in app.config['LTI_CONSUMER_KEY_SECRETS'].items():
+        if found_lms == lms:
+            key = key
+            break
+    else:
+        assert False, 'Could not find requested LMS'
+
     lti_provider = m.LTI1p1Provider(key=key)
     assert lti_provider is not None
 
@@ -301,10 +312,7 @@ def create_submission(
     assignment_id=None,
     err=None,
     submission_data=(
-        (
-            f'{os.path.dirname(__file__)}/../test_data/test_submissions/'
-            'multiple_dir_archive.zip'
-        ),
+        test_data('test_submissions', 'multiple_dir_archive.zip'),
         'f.zip',
     ),
     is_test_submission=False,
@@ -446,7 +454,10 @@ def create_group(test_client, group_set_id, member_ids):
 
 
 def create_error_template():
-    return {'code': str, 'message': str, 'description': str}
+    return {
+        'code': str, 'message': str, 'description': str,
+        '?missing_permissions?': list
+    }
 
 
 def get_newest_submissions(test_client, assignment):
@@ -461,6 +472,78 @@ def get_newest_submissions(test_client, assignment):
             )
         )
     }
+
+
+def create_sso_provider(
+    test_client,
+    stub_function,
+    name,
+    *,
+    err=False,
+    no_call=None,
+    ui_info=None,
+    description='A test SSO',
+    no_stub=False,
+):
+    no_call = psef.helpers.handle_none(no_call, err)
+
+    @contextlib.contextmanager
+    def stubbed():
+        if no_stub:
+            yield None, None
+        else:
+            with stub_function.temp_stubs() as stubber:
+                stub_parse = stubber.stub(
+                    psef.models.saml_provider._MetadataParser,
+                    'parse',
+                    lambda: {
+                        'idp': {
+                            'ui_info':
+                                ui_info or {
+                                    'name': name,
+                                    'description': name + ' ' + name,
+                                    'logo': None,
+                                }
+                        }
+                    },
+                )
+                stub_download = stubber.stub(
+                    psef.models.saml_provider._MetadataParser,
+                    'get_metadata', lambda: ''
+                )
+                yield stub_parse, stub_download
+
+    with stubbed() as (stub_parse, stub_download):
+        prov = test_client.req(
+            'post',
+            '/api/v1/sso_providers/',
+            err or 200,
+            real_data={
+                'json': (
+                    io.BytesIO(
+                        json.dumps({
+                            'metadata_url': 'test.com',
+                            'name': name,
+                            'description': description,
+                        }).encode()
+                    ), 'json'
+                ),
+                'logo': (test_data('test_images', 'codegrade.svg'), 'logo'),
+            },
+            result=create_error_template() if err else {
+                'id': str,
+                'metadata_url': 'test.com',
+                'ui_info': dict,
+            }
+        )
+
+        if not no_stub:
+            assert stub_parse.called_amount == 0 if no_call else 1
+            assert stub_download.called == 0 if no_call else 1
+            for kwarg in stub_download.kwargs:
+                assert kwarg['validate_cert'] is True
+
+        return prov
 
 
 def get_simple_rubric():
