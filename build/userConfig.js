@@ -59,13 +59,13 @@ let skip = false;
 // show the commit hash but show the version instead) over a false positive (we
 // show a commit hash instead of a version) as this would mean we would show a
 // commit hash on a production server which looks bad.
-let tagMsg = '';
+let tagMsg = [];
 let version = '#' + gitCommit;
-if (branch.indexOf('stable') < 0) {
-    tagMsg = execFileSync('git', ['tag', '-l', '-n400', version]).toString().split('\n');
-    const foundVersion = execFileSync('git', ['describe', '--abbrev=0', '--tags']).toString().trim();
-    if (version.match(/^[A-Z]/)) {
-        version = foundVersion;
+if (branch.indexOf('stable') >= 0) {
+    const tag = execFileSync('git', ['describe', '--abbrev=0', '--tags']).toString().trim();
+    tagMsg = execFileSync('git', ['tag', '-l', '-n400', tag]).toString().split('\n');
+    if (tag.match(/^[A-Z]/)) {
+        version = tag;
     }
 }
 
