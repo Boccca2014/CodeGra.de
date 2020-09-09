@@ -3,6 +3,7 @@ import Vue from 'vue';
 import axios from 'axios';
 import jwtDecode from 'jwt-decode';
 
+import { store } from '@/store';
 import * as utils from '@/utils';
 import * as types from '../mutation-types';
 
@@ -39,6 +40,9 @@ const getters = {
         }
         return utils.getProps(jwtDecode(jwt), {}, 'user_claims') || {};
     },
+    currentUser: state =>
+        // user/id is always a number, reset to 0 on logout.
+        utils.Maybe.fromNullable(store.getters['users/getUser'](state.id)),
 };
 
 const actions = {
