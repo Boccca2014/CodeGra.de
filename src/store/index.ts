@@ -32,7 +32,7 @@ const debug = process.env.NODE_ENV !== 'production';
 let disabledPersistance = false;
 let localStorageError = false;
 let toastMessage: string | null = null;
-const useLocalStorage: () => boolean = () => !disabledPersistance && !localStorage;
+const useLocalStorage: () => boolean = () => !disabledPersistance && !localStorageError;
 
 const pathsToPersist = [
     ['pref', 'fontSize'],
