@@ -388,7 +388,7 @@ export class FeedbackLine {
 
         if (
             assignment.peer_feedback_settings &&
-            !currentUser.map(u => submission.user.isEqualOrMemberOf(u))
+            !currentUser.mapOrDefault(u => submission.user.isEqualOrMemberOf(u), true)
         ) {
             const userId = store.getters['user/id'];
             const connections = PeerFeedbackStore.getConnectionsForUser()(assignment.id, userId);
