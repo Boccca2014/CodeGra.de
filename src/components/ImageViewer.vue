@@ -14,7 +14,8 @@
     slot-description="image"
     snippet-field-above
     always-show-button
-    add-space>
+    add-space
+    force-snippets-above>
     <img :src="imgURL"
          class="img"
          :title="name"
@@ -148,5 +149,9 @@ export default {
     display: block;
     min-height: 5rem;
     text-align: center;
+}
+
+.image-viewer .Pane {
+    overflow: visible;
 }
 </style>

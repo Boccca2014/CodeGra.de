@@ -1,8 +1,11 @@
 /* SPDX-License-Identifier: AGPL-3.0-only */
 import { VNode, CreateElement, RenderContext } from 'vue';
+import { mapGetters } from 'vuex';
 import * as models from '@/models';
 import * as tsx from 'vue-tsx-support';
 import p from 'vue-strict-prop';
+import { store } from '@/store';
+import { Variant } from '@/types';
 import CourseName from '@/components/CourseName';
 
 // @ts-ignore
@@ -59,6 +62,13 @@ export default tsx.component({
             'color': 'inherit',
         };
 
+        let badgeVariant: Variant;
+        if (store.getters['pref/darkMode']) {
+            badgeVariant = selected ? 'dark' : 'light';
+        } else {
+            badgeVariant = selected ? 'light' : 'primary';
+        }
+
         let manageLink;
         if (course.canManage) {
             manageLink = (
@@ -74,7 +84,7 @@ export default tsx.component({
             <a class="sidebar-item course-name flex-grow-1 text-truncate"
                style={aStyle}
                onClick={() => maybeEmit(ctx)}>
-                <CourseName course={course} />
+                <CourseName course={course} badge-variant={badgeVariant} />
             </a>
             {manageLink}
         </li>;

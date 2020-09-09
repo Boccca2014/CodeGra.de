@@ -152,6 +152,7 @@ class AbstractLTIConnector(abc.ABC):
             new_role_created = self.set_user_course_role(user, course)
 
             models.db.session.commit()
+            auth.AssignmentPermissions(assig).ensure_may_see()
 
             return LTILaunchData(
                 assignment=assig,

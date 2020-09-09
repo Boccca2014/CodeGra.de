@@ -86,7 +86,7 @@
                 </b-tab>
                 <b-tab title="Hand-in instructions" class="ignore-tab">
                     <b-card class="ignore-card" no-body>
-                        <c-g-ignore-file :assignment-id="assignment.id"
+                        <c-g-ignore-file :assignment="assignment"
                                          summary-mode
                                          :editable="false"/>
                     </b-card>

@@ -132,6 +132,9 @@
                             @loaded="loading = false"
                             @open-menu="openSubMenu"
                             @close-menu="closeSubMenu(true)"/>
+                <cg-loader v-if="loading && !subMenu.showWhenLoading"
+                           :scale="1"
+                           class="pt-2"/>
             </div>
         </div>
     </div>

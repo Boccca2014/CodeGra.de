@@ -1,19 +1,22 @@
 module.exports = {
     "presets": [
         [
-            "@vue/babel-preset-jsx",
+            "@babel/preset-env",
             {
-                "modules": false,
+                "modules": "auto",
+                "bugfixes": true,
                 "targets": {
                     "browsers": [
                         ">0.5%",
                         "not ie >= 11",
                         "not op_mini All",
+                        "edge >= 43",
                         "Firefox ESR"
                     ]
                 }
             }
-        ]
+        ],
+        "@vue/babel-preset-jsx"
     ],
     "plugins": [
         [

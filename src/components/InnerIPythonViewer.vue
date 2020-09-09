@@ -24,7 +24,8 @@
                     :submission="submission"
                     :editable="editable"
                     no-resize
-                    :can-use-snippets="canUseSnippets">
+                    :can-use-snippets="canUseSnippets"
+                    force-snippets-above>
                     <inner-markdown-viewer
                         :markdown="cell.source"
                         :show-code-whitespace="showWhitespace"/>

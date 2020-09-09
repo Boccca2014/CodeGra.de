@@ -173,7 +173,7 @@ export default class AssignmentLogin extends Vue {
         const now = this.$root.$epoch;
         if (seconds > 0) {
             if (seconds < 45) {
-                return `${seconds.toFixed(0)} seconds`;
+                return `in ${seconds.toFixed(0)} seconds`;
             } else if (seconds <= 15 * 60) {
                 return this.loginTime.from(now);
             }

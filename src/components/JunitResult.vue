@@ -170,6 +170,10 @@ export default class JunitResult extends Vue {
 
 .junit-suite:not(:last-child) {
     border-bottom: 1px solid @border-color;
+
+    @{dark-mode} {
+        border-bottom-color: @color-primary-darker;
+    }
 }
 
 .badge.classname {
