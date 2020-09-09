@@ -450,8 +450,10 @@
     <span class="k">def</span> <span class="nf">_global_ensure</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">perm</span><span class="p">:</span> <span class="n">GPerm</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
         <span class="n">ensure_permission</span><span class="p">(</span><span class="n">perm</span><span class="p">,</span> <span class="n">user</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">user</span><span class="p">)</span>
 
-    <span class="k">def</span> <span class="nf">_ensure</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">perm</span><span class="p">:</span> <span class="n">CPerm</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="n">ensure_permission</span><span class="p">(</span><span class="n">perm</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">course_id</span><span class="p">,</span> <span class="n">user</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">user</span><span class="p">)</span>
+    <span class="k">def</span> <span class="nf">_ensure</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">perm</span><span class="p">:</span> <span class="n">CPerm</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">extra_message</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">ensure_permission</span><span class="p">(</span>
+            <span class="n">perm</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">course_id</span><span class="p">,</span> <span class="n">user</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">user</span><span class="p">,</span> <span class="n">extra_message</span><span class="o">=</span><span class="n">extra_message</span>
+        <span class="p">)</span>
 
     <span class="k">def</span> <span class="nf">_ensure_for_course</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span> <span class="n">perm</span><span class="p">:</span> <span class="n">CPerm</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">course</span><span class="p">:</span> <span class="s1">&#39;psef.models.Course&#39;</span>
@@ -1035,9 +1037,7 @@
             <span class="n">CPerm</span><span class="o">.</span><span class="n">can_edit_groups_after_submission</span><span class="p">,</span>
             <span class="n">group</span><span class="o">.</span><span class="n">group_set</span><span class="o">.</span><span class="n">course_id</span><span class="p">,</span>
             <span class="n">extra_message</span><span class="o">=</span><span class="p">(</span>
-                <span class="c1"># The leading space is needed as the message of the default</span>
-                <span class="c1"># exception ends with a .</span>
-                <span class="s2">&quot; This is because you don&#39;t have the permission to&quot;</span>
+                <span class="s2">&quot;This is because you don&#39;t have the permission to&quot;</span>
                 <span class="s2">&quot; change the users of a group after the group handed in a&quot;</span>
                 <span class="s2">&quot; submission.&quot;</span>
             <span class="p">)</span>
@@ -1569,10 +1569,22 @@
                 <span class="n">APICodes</span><span class="o">.</span><span class="n">INCORRECT_PERMISSION</span><span class="p">,</span> <span class="mi">403</span>
             <span class="p">)</span>
 
-        <span class="bp">self</span><span class="o">.</span><span class="n">_ensure</span><span class="p">(</span><span class="n">CPerm</span><span class="o">.</span><span class="n">can_see_assignments</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_ensure</span><span class="p">(</span>
+            <span class="n">CPerm</span><span class="o">.</span><span class="n">can_see_assignments</span><span class="p">,</span>
+            <span class="n">extra_message</span><span class="o">=</span><span class="p">(</span>
+                <span class="s1">&#39;The permission to see assignments has not been enabled for&#39;</span>
+                <span class="s1">&#39; your account.&#39;</span>
+            <span class="p">),</span>
+        <span class="p">)</span>
 
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">assignment</span><span class="o">.</span><span class="n">is_hidden</span><span class="p">:</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">_ensure</span><span class="p">(</span><span class="n">CPerm</span><span class="o">.</span><span class="n">can_see_hidden_assignments</span><span class="p">)</span></div>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_ensure</span><span class="p">(</span>
+                <span class="n">CPerm</span><span class="o">.</span><span class="n">can_see_hidden_assignments</span><span class="p">,</span>
+                <span class="n">extra_message</span><span class="o">=</span><span class="p">(</span>
+                    <span class="s1">&#39;This assignment is still hidden, and you do not have the&#39;</span>
+                    <span class="s1">&#39; permission to see hidden assignments.&#39;</span>
+                <span class="p">),</span>
+            <span class="p">)</span></div>
 
 <div class="viewcode-block" id="AssignmentPermissions.ensure_may_see_plagiarism"><a class="viewcode-back" href="../../psef_api/psef.html#psef.auth.AssignmentPermissions.ensure_may_see_plagiarism">[docs]</a>    <span class="nd">@CoursePermissionChecker</span><span class="o">.</span><span class="n">as_ensure_function</span>
     <span class="k">def</span> <span class="nf">ensure_may_see_plagiarism</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
@@ -2131,8 +2143,10 @@
             <span class="k">else</span><span class="p">:</span>
                 <span class="n">you_do</span> <span class="o">=</span> <span class="sa">f</span><span class="s1">&#39;</span><span class="si">{</span><span class="n">user</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s1"> does&#39;</span>
 
+            <span class="n">maybe_space</span> <span class="o">=</span> <span class="s1">&#39; &#39;</span> <span class="k">if</span> <span class="n">extra_message</span> <span class="k">else</span> <span class="s1">&#39;&#39;</span>
             <span class="n">msg</span> <span class="o">=</span> <span class="p">(</span>
-                <span class="sa">f</span><span class="s1">&#39;</span><span class="si">{</span><span class="n">you_do</span><span class="si">}</span><span class="s1"> not have the permission to do this.</span><span class="si">{</span><span class="n">extra_message</span><span class="si">}</span><span class="s1">&#39;</span>
+                <span class="sa">f</span><span class="s1">&#39;</span><span class="si">{</span><span class="n">you_do</span><span class="si">}</span><span class="s1"> not have the permission to do this.&#39;</span>
+                <span class="sa">f</span><span class="s1">&#39;</span><span class="si">{</span><span class="n">maybe_space</span><span class="si">}{</span><span class="n">extra_message</span><span class="si">}</span><span class="s1">&#39;</span>
             <span class="p">)</span>
 
             <span class="k">raise</span> <span class="n">PermissionException</span><span class="p">(</span>
