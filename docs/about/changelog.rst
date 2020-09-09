@@ -6,6 +6,16 @@ Version *Next*
 
 **Released**: TBD
 
+Version Mosaic.1
+-----------------
+
+**Released**: September 9th, 2020
+
+CodeGrade now has an Exam mode in which students will be able to log in to
+CodeGrade and only have access to the course of the exam. Other changes
+include course archiving, importing of hand-in requirements, and including even
+more information in the AutoTest Unit Test output.
+
 **Features**
 
 - Add Sakai support `(#1408)
