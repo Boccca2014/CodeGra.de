@@ -6,7 +6,7 @@ import axios, { AxiosResponse } from 'axios';
 import DiffMatchPatch from 'diff-match-patch';
 
 // @ts-ignore
-import { setProps, coerceToString, getUniqueId, htmlEscape, withSentry } from '@/utils';
+import { setProps, coerceToString, getUniqueId, htmlEscape, withSentry, Maybe } from '@/utils';
 import { NEWLINE_CHAR } from '@/utils/diff';
 import { Assignment, Submission } from '@/models';
 
@@ -374,6 +374,7 @@ export class FeedbackLine {
     static canAddReply(submission: Submission) {
         const assignment: Assignment = submission.assignment;
 
+        const currentUser: Maybe<NormalUser> = store.getters['user/currentUser'];
         // @ts-ignore
         const author: AnyUser = submission.user;
         const perms = [CPerm.canGradeWork];
@@ -383,6 +384,11 @@ export class FeedbackLine {
         }
         if (perms.some(x => assignment.hasPermission(x))) {
             return true;
+        }
+
+        const submissionIsOwn = currentUser.map(u => submission.user.isEqualOrMemberOf(u));
+        if (submissionIsOwn.orDefault(false)) {
+            return false;
         }
 
         if (assignment.peer_feedback_settings) {

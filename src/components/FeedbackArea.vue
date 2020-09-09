@@ -28,7 +28,7 @@
                         :can-use-snippets="canUseSnippets"
                         :reply="reply"
                         :feedback-line="feedback"
-                        :force-snippets-above="false"
+                        :force-snippets-above="forceSnippetsAbove"
                         :total-amount-lines="totalAmountLines"
                         @updated="replyUpdated"
                         @deleted="replyDeleted"
@@ -100,6 +100,8 @@ export default class FeedbackArea extends Vue {
     @Prop({ required: true }) readonly totalAmountLines!: number;
 
     @Prop({ default: false }) readonly nonEditable!: boolean;
+
+    @Prop({ default: false }) readonly forceSnippetsAbove!: boolean;
 
     // A function that receives a thread and a reply as arguments, and returns
     // a boolean value indicating whether a reply within a thread should be

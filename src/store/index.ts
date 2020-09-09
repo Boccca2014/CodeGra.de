@@ -1,8 +1,6 @@
 /* SPDX-License-Identifier: AGPL-3.0-only */
 import Vue from 'vue';
-import Vuex from 'vuex';
-// @ts-ignore
-import createPersistedState from 'vuex-persistedstate';
+import Vuex, { Store } from 'vuex';
 
 import { getStoreBuilder } from 'vuex-typex';
 
@@ -30,31 +28,46 @@ export { CoursesStore } from './modules/courses';
 Vue.use(Vuex);
 
 const debug = process.env.NODE_ENV !== 'production';
-const plugins = [];
 
 let disabledPersistance = false;
+let localStorageError = false;
 let toastMessage: string | null = null;
+const useLocalStorage: () => boolean = () => !disabledPersistance && !localStorageError;
+
+const pathsToPersist = [
+    ['pref', 'fontSize'],
+    ['pref', 'darkMode'],
+    ['pref', 'contextAmount'],
+    ['user', 'jwtToken'],
+    ['user', 'id'],
+] as const;
+
+const makePersistanceKey = (ns: 'pref' | 'user', path: string) => `CG_PERSIST-${ns}|${path}`;
+
+const enablePersistance = (store: Store<RootState>) => {
+    pathsToPersist.forEach(([ns, path]) => {
+        const key = makePersistanceKey(ns, path);
+        store.watch(
+            state => state[ns][path],
+            value => {
+                if (useLocalStorage()) {
+                    window.localStorage.setItem(key, JSON.stringify(value));
+                }
+            },
+        );
+    });
+};
 
 try {
-    plugins.push(
-        createPersistedState({
-            paths: ['user', 'pref'],
-            storage: {
-                getItem: (key: string) => window.localStorage.getItem(key),
-                setItem: (key: string, value: string) => {
-                    if (disabledPersistance && key !== '@@') {
-                        const cleanedValue = {
-                            pref: JSON.parse(value).pref,
-                        };
-                        return window.localStorage.setItem(key, JSON.stringify(cleanedValue));
-                    }
-                    return window.localStorage.setItem(key, value);
-                },
-                removeItem: (key: string) => window.localStorage.removeItem(key),
-            },
-        }),
-    );
+    window.localStorage.setItem('vuex', '""');
+    window.localStorage.removeItem('vuex');
+    window.localStorage.setItem('@@', '1');
+    if (window.localStorage.getItem('@@') !== '1') {
+        throw new Error('Localstorage did not save state');
+    }
+    window.localStorage.removeItem('@@');
 } catch (e) {
+    localStorageError = true;
     toastMessage = `Unable to persistently store user credentials, please check
         you browser privacy levels. You will not be logged-in in other tabs or
         when reloading.`;
@@ -78,25 +91,59 @@ Object.entries({
     builder.vuexModule = () => value;
 });
 
-export const store = rootBuilder.vuexStore({
-    strict: debug,
-    plugins,
-});
+export const store = rootBuilder.vuexStore({ strict: debug });
 
 export function disablePersistance() {
+    let error: Error | undefined;
+    if (!useLocalStorage()) {
+        disabledPersistance = true;
+        return;
+    }
+
+    pathsToPersist.forEach(([ns, path]) => {
+        const key = makePersistanceKey(ns, path);
+        // Even on an error we try to clear all the remaining keys.
+        try {
+            window.localStorage.removeItem(key);
+            window.localStorage.setItem(key, '""');
+        } catch (e) {
+            error = e;
+        }
+    });
+    if (error != null) {
+        throw error;
+    }
     disabledPersistance = true;
 }
 
 export function onVueCreated($root: Vue) {
-    if (!disabledPersistance && toastMessage != null) {
-        $root.$bvToast.toast(toastMessage, {
-            title: 'Warning',
-            variant: 'warning',
-            toaster: 'b-toaster-top-right',
-            noAutoHide: true,
-            solid: true,
-        });
-    }
+    // Do this in a timeout so that when we disable persistence when launching
+    // in LTI we do not show this warning message as it makes no sense.
+    setTimeout(() => {
+        if (!disabledPersistance && toastMessage != null) {
+            $root.$bvToast.toast(toastMessage, {
+                title: 'Warning',
+                variant: 'warning',
+                toaster: 'b-toaster-top-right',
+                noAutoHide: true,
+                solid: true,
+            });
+        }
+    }, 1000);
+}
+
+if (useLocalStorage()) {
+    const newState = pathsToPersist.reduce((acc, [ns, path]) => {
+        const key = makePersistanceKey(ns, path);
+        const res = window.localStorage.getItem(key);
+        if (res) {
+            acc[ns] = Object.assign({}, acc[ns], { [path]: JSON.parse(res) });
+        }
+        return acc;
+    }, Object.assign({}, store.state));
+
+    store.replaceState(newState);
+    enablePersistance(store);
 }
 
 coursesOnDone(store);

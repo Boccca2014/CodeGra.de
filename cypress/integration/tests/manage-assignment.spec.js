@@ -68,7 +68,9 @@ context('Manage Assignment', () => {
                 .setText('59{enter}');
             cy.get('.assignment-general-settings .submit-button')
                 .submit('success');
+
             cy.reload();
+            cy.login('admin', 'admin');
 
             cy.get('.local-header h4')
                 .should('contain', moment().add(2, 'day').format('YYYY-MM-DD'))
@@ -436,6 +438,7 @@ context('Manage Assignment', () => {
                 // Should be the same after a reload
                 if (i == 0) {
                     cy.reload();
+                    cy.login('admin', 'admin');
                     setAliases();
                 }
             }
@@ -486,6 +489,7 @@ context('Manage Assignment', () => {
                 // Should be the same after a reload
                 if (i == 0) {
                     cy.reload();
+                    cy.login('admin', 'admin');
                     setAliases();
                 }
             }
@@ -708,6 +712,7 @@ context('Manage Assignment', () => {
                     confirmMsg: 'Changing the amount of students will redistribute',
                 });
             cy.reload();
+            cy.login('admin', 'admin');
             cy.get('.peer-feedback-settings')
                 .contains('.form-group', 'Amount of students')
                 .find('input')
@@ -727,6 +732,7 @@ context('Manage Assignment', () => {
                 .contains('.submit-button', 'Submit')
                 .submit('success');
             cy.reload();
+            cy.login('admin', 'admin');
 
             cy.get('.peer-feedback-settings')
                 .contains('.form-group', 'Time to give peer feedback')

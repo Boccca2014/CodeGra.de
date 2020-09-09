@@ -12782,11 +12782,6 @@
       "integrity": "sha1-s2nW+128E+7PUk+RsHD+7cNXzzQ=",
       "dev": true
     },
-    "deepmerge": {
-      "version": "2.0.1",
-      "resolved": "https://registry.npmjs.org/deepmerge/-/deepmerge-2.0.1.tgz",
-      "integrity": "sha512-VIPwiMJqJ13ZQfaCsIFnp5Me9tnjURiaIFxfz7EH0Ci0dTSQpZtSLrqOicXqEd/z2r+z+Klk9GzmnRsgpgbOsQ=="
-    },
     "defaults": {
       "version": "1.0.3",
       "resolved": "https://registry.npmjs.org/defaults/-/defaults-1.0.3.tgz",
@@ -29582,11 +29577,6 @@
         "nanoid": "^2.1.0"
       }
     },
-    "shvl": {
-      "version": "1.2.0",
-      "resolved": "https://registry.npmjs.org/shvl/-/shvl-1.2.0.tgz",
-      "integrity": "sha512-gwmb6yz+bzgQY+TAH2e3Uzx7A/LAU0cwZ1vIXzGLJK/K/DlEi9eKxgbH3R7/W5POezI2Rpqo5GNP4822H5H8uA=="
-    },
     "sigmund": {
       "version": "1.0.1",
       "resolved": "https://registry.npmjs.org/sigmund/-/sigmund-1.0.1.tgz",
@@ -34369,15 +34359,6 @@
       "version": "0.3.2",
       "resolved": "https://registry.npmjs.org/vuex-class/-/vuex-class-0.3.2.tgz",
       "integrity": "sha512-m0w7/FMsNcwJgunJeM+wcNaHzK2KX1K1rw2WUQf7Q16ndXHo7pflRyOV/E8795JO/7fstyjH3EgqBI4h4n4qXQ=="
-    },
-    "vuex-persistedstate": {
-      "version": "2.4.2",
-      "resolved": "https://registry.npmjs.org/vuex-persistedstate/-/vuex-persistedstate-2.4.2.tgz",
-      "integrity": "sha512-syhniP78ZhfijX0RLAAsiGs4QOSol3XAlCgWQDu2GWW5uPWzeP1RJZ85lke+zs0CjZk2y80srGNSMWuwdWVRhA==",
-      "requires": {
-        "deepmerge": "^2.0.1",
-        "shvl": "^1.1.1"
-      }
     },
     "vuex-typex": {
       "version": "3.1.5",

@@ -288,7 +288,7 @@ def test_lti_no_roles_found(test_client, app, logged_in, ta_user, monkeypatch):
         username='A the A-er',
         lti_id='USER_ID',
         source_id='',
-        published='false',
+        published='true',
         parse=True,
         code=200
     ):
@@ -406,7 +406,7 @@ def test_invalid_lti_role(test_client, app, role, session):
             'ext_roles': role,
             'custom_canvas_user_login_id': 'bla-the-bla-er',
             'custom_canvas_assignment_due_at': due_at.isoformat(),
-            'custom_canvas_assignment_published': 'false',
+            'custom_canvas_assignment_published': 'true',
             'user_id': 'USER_ID2',
             'lis_person_contact_email_primary': 'a@a.nl',
             'lis_person_name_full': 'Bla the Bla-er',
@@ -2038,7 +2038,7 @@ def test_lti_roles(
                 'resource_link_id': assig,
                 'custom_canvas_assignment_id': assig,
                 'custom_canvas_assignment_title': assig,
-                'custom_canvas_assignment_published': True,
+                'custom_canvas_assignment_published': 'true',
                 'roles': roles,
                 'ext_roles': roles,
                 'user_id': user_id,

@@ -213,7 +213,6 @@
             <b-card header="Rubric" v-if="canUseRubrics && visibleCats.rubric">
                 <!-- TODO: Proper fix instead of :key hack -->
                 <rubric-editor :key="assignment.id"
-                               :hidden="selectedCat !== 'rubric'"
                                editable
                                :assignment="assignment" />
             </b-card>

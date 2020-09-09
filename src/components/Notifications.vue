@@ -142,7 +142,7 @@ divided or because they were assigned work manually.`,
 
             const newReminderTime = moment(this.reminderTime, moment.ISO_8601).utc();
             const reminderTime = newReminderTime.isValid()
-                ? this.$utils.formatDate(newReminderTime)
+                ? this.$utils.formatDate(newReminderTime, true)
                 : null;
 
             return this.patchAssignment({

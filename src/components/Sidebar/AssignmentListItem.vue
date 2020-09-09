@@ -7,8 +7,10 @@
                  :to="submissionsRoute(assignment)">
         <div class="assignment-wrapper">
             <span :title="assignment.name" class="assignment text-truncate">{{ assignment.name }}</span>
-            <div class="flex-grow-1 text-small-uppercase mx-2 d-flex align-self-center">
-                <b-badge class="exam-badge" v-if="assignment.kind === 'exam'" :variant="examBadgeVariant">
+            <div class="flex-grow-1 text-small-uppercase d-flex align-self-center">
+                <b-badge class="exam-badge mx-2"
+                         v-if="assignment.kind === 'exam'"
+                         :variant="examBadgeVariant">
                     exam
                 </b-badge>
             </div>
