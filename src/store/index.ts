@@ -30,7 +30,9 @@ Vue.use(Vuex);
 const debug = process.env.NODE_ENV !== 'production';
 
 let disabledPersistance = false;
+let localStorageError = false;
 let toastMessage: string | null = null;
+const useLocalStorage: () => boolean = () => !disabledPersistance && !localStorage;
 
 const pathsToPersist = [
     ['pref', 'fontSize'],
@@ -47,7 +49,7 @@ const enablePersistance = (store: Store<RootState>) => {
         store.watch(
             state => state[ns][path],
             value => {
-                if (!disabledPersistance) {
+                if (useLocalStorage()) {
                     window.localStorage.setItem(key, JSON.stringify(value));
                 }
             },
@@ -59,12 +61,15 @@ try {
     window.localStorage.setItem('vuex', '""');
     window.localStorage.removeItem('vuex');
     window.localStorage.setItem('@@', '1');
+    if (window.localStorage.getItem('@@') !== '1') {
+        throw new Error('Localstorage did not save state');
+    }
     window.localStorage.removeItem('@@');
 } catch (e) {
+    localStorageError = true;
     toastMessage = `Unable to persistently store user credentials, please check
         you browser privacy levels. You will not be logged-in in other tabs or
         when reloading.`;
-    disabledPersistance = true;
 }
 
 const rootBuilder = getStoreBuilder<RootState>();
@@ -99,6 +104,10 @@ export const store = rootBuilder.vuexStore({
 
 export function disablePersistance() {
     let error: Error | undefined;
+    if (!useLocalStorage()) {
+        disabledPersistance = true;
+        return;
+    }
 
     pathsToPersist.forEach(([ns, path]) => {
         const key = makePersistanceKey(ns, path);
@@ -117,18 +126,22 @@ export function disablePersistance() {
 }
 
 export function onVueCreated($root: Vue) {
-    if (!disabledPersistance && toastMessage != null) {
-        $root.$bvToast.toast(toastMessage, {
-            title: 'Warning',
-            variant: 'warning',
-            toaster: 'b-toaster-top-right',
-            noAutoHide: true,
-            solid: true,
-        });
-    }
+    // Do this in a timeout so that when we disable persistence when launching
+    // in LTI we do not show this warning message as it makes no sense.
+    setTimeout(() => {
+        if (!disabledPersistance && toastMessage != null) {
+            $root.$bvToast.toast(toastMessage, {
+                title: 'Warning',
+                variant: 'warning',
+                toaster: 'b-toaster-top-right',
+                noAutoHide: true,
+                solid: true,
+            });
+        }
+    }, 1000);
 }
 
-if (!disabledPersistance) {
+if (useLocalStorage()) {
     pathsToPersist.forEach(([ns, path]) => {
         const key = makePersistanceKey(ns, path);
         const res = window.localStorage.getItem(key);
