@@ -39,6 +39,7 @@ const pathsToPersist = [
     ['pref', 'darkMode'],
     ['pref', 'contextAmount'],
     ['user', 'jwtToken'],
+    ['user', 'id'],
 ] as const;
 
 const makePersistanceKey = (ns: 'pref' | 'user', path: string) => `CG_PERSIST-${ns}|${path}`;
@@ -90,17 +91,7 @@ Object.entries({
     builder.vuexModule = () => value;
 });
 
-export const store = rootBuilder.vuexStore({
-    strict: debug,
-    mutations: {
-        RESTORE_STATE(
-            state: RootState,
-            payload: { ns: 'user' | 'pref'; path: string; value: any },
-        ) {
-            Vue.set(state[payload.ns], payload.path, payload.value);
-        },
-    },
-});
+export const store = rootBuilder.vuexStore({ strict: debug });
 
 export function disablePersistance() {
     let error: Error | undefined;
@@ -142,17 +133,16 @@ export function onVueCreated($root: Vue) {
 }
 
 if (useLocalStorage()) {
-    pathsToPersist.forEach(([ns, path]) => {
+    const newState = pathsToPersist.reduce((acc, [ns, path]) => {
         const key = makePersistanceKey(ns, path);
         const res = window.localStorage.getItem(key);
         if (res) {
-            store.commit('RESTORE_STATE', {
-                ns,
-                path,
-                value: JSON.parse(res),
-            });
+            acc[ns] = Object.assign({}, acc[ns], { [path]: JSON.parse(res) });
         }
-    });
+        return acc;
+    }, Object.assign({}, store.state));
+
+    store.replaceState(newState);
     enablePersistance(store);
 }
 
