@@ -40,9 +40,14 @@ const getters = {
         }
         return utils.getProps(jwtDecode(jwt), {}, 'user_claims') || {};
     },
-    currentUser: state =>
+    currentUser: state => {
+        const myId = state.id;
         // user/id is always a number, reset to 0 on logout.
-        utils.Maybe.fromNullable(store.getters['users/getUser'](state.id)),
+        if (myId === 0) {
+            return utils.Nothing;
+        }
+        return utils.Maybe.fromNullable(store.getters['users/getUser'](myId));
+    },
 };
 
 const actions = {
