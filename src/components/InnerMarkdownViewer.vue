@@ -82,6 +82,30 @@ export default {
 @import '~mixins.less';
 
 .inner-markdown-viewer {
+    h1 {
+        font-size: 2.5em;
+    }
+
+    h2 {
+        font-size: 2em;
+    }
+
+    h3 {
+        font-size: 1.75em;
+    }
+
+    h4 {
+        font-size: 1.5em;
+    }
+
+    h5 {
+        font-size: 1.25em;
+    }
+
+    h6 {
+        font-size: 1em;
+    }
+
     pre {
         padding: 0.75rem 1.25rem;
         background-color: @color-lightest-gray;
