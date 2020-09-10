@@ -1,12 +1,47 @@
 Changelog
 ==========
 
+Version *Next Major*
+---------------------
+
+**Released**: TBD
+
+Removals
+^^^^^^^^
+API
+***
+- The option to get an entire course when getting an assignment has been
+  removed. You should now request the course using the
+  ``/api/v1/courses/<course_id>`` route go retrieve this course. The
+  ``course_id`` is given when requesting an assignment.
+- A plagiarism cases will no longer contain the two linked assignments. They do
+  contain the two linked assignment ids (under the ``assignment_ids`` key), and
+  the plagiarism run contains a lookup from assignment id to an assignment like
+  object.
+- When requesting all courses using the ``/api/v1/courses/`` route we will no
+  longer provide the name of the role that the current user has in this
+  course. Please either use the ``/api/v1/permissions/`` route to retrieve your
+  own permissions, or the ``/api/v1/courses/<course_id>/users/`` to retrieve the
+  role of a user.
+
+
 Version *Next*
 ---------------
 
 **Released**: TBD
 
-**Features**
+Version Mosaic.1
+-----------------
+
+**Released**: September 9th, 2020
+
+CodeGrade now has an Exam mode in which students will be able to log in to
+CodeGrade and only have access to the course of the exam. Other changes
+include course archiving, importing of hand-in requirements, and including even
+more information in the AutoTest Unit Test output.
+
+Features
+^^^^^^^^^^^^^^^^^^^^
 
 - Add Sakai support `(#1408)
   <https://github.com/CodeGra-de/CodeGra.de/pull/1408>`__. Full LTI integration
@@ -25,7 +60,8 @@ Version *Next*
   <https://github.com/CodeGra-de/CodeGra.de/pull/1432>`__. You can now archive
   old courses, hiding them from students and cleaning your own homepage.
 
-**Updates**
+Updates
+^^^^^^^^^^^^^^^^^^^^
 
 - Use the same icons from the "Capture Points" AutoTest step for the "Unit
   Test" step `(#1403) <https://github.com/CodeGra-de/CodeGra.de/pull/1403>`__.
@@ -53,6 +89,32 @@ Version *Next*
   <https://github.com/CodeGra-de/CodeGra.de/pull/1432>`__. It is now possible to
   rename existing courses.
 
+Deprecations
+^^^^^^^^^^^^
+API
+***
+- The option to get an entire course when getting an assignment has been
+  deprecated. You should now request the course using the
+  ``/api/v1/courses/<course_id>`` route go retrieve this course. The
+  ``course_id`` is given when requesting an assignment. If you still use the old
+  behavior you will get a warning, you can already opt-in to the new behavior by
+  providing ``no_course_in_assignment=true`` in the request arguments.
+- When requesting a plagiarism case we have deprecated getting the two linked
+  assignments within the plagiarism case object. The case will now contain the
+  two linked assignment ids (under the ``assignment_ids`` key), and the
+  plagiarism run contains a lookup from assignment id to an assignment like
+  object. If you still use the old behavior you will get a warning, you can
+  already opt-in to the new behavior by providing
+  ``no_assignment_in_case=true`` in the request arguments.
+- When requesting all courses using the ``/api/v1/courses/`` route getting
+  name of the role that the current user has in this
+  course has been deprecated. Please either use the ``/api/v1/permissions/``
+  route to retrieve your own permissions, or the
+  ``/api/v1/courses/<course_id>/users/`` to retrieve the role of a user. If you
+  still use the old behavior you will get a warning, you can already opt-in to
+  the new behavior by providing ``no_role_name=true`` in the request arguments.
+
+
 Version Mosaic
 ---------------
 
@@ -63,7 +125,8 @@ other students, allowing them to learn from each other. Furthermore, it is even
 easier to integrate existing unit tests in AutoTest, by utilizing the new "Unit
 test" step type.
 
-**Features**
+Features
+^^^^^^^^^^^^^^^^^^^^
 
 - Add "Unit Test" AutoTest step `(#1385)
   <https://github.com/CodeGra-de/CodeGra.de/pull/1385>`__. This new AutoTest
@@ -83,7 +146,8 @@ test" step type.
   is enabled for an assignment, students can give each other feedback after the
   deadline of an assignment has passed.
 
-**Updates**
+Updates
+^^^^^^^^^^^^^^^^^^^^
 
 - Automatically focus the percentage input in continuous rubric rows
   `(#1370) <https://github.com/CodeGra-de/CodeGra.de/pull/1370>`__.
@@ -100,7 +164,8 @@ test" step type.
 - It is now possible to restart the AutoTest run for a single student
   `(#1397) <https://github.com/CodeGra-de/CodeGra.de/pull/1397>`__.
 
-**Fixes**
+Fixes
+^^^^^^^^^^^^^^^^^^^^
 
 - Fix IPython ``execute_result`` cell outputs `(#1367)
   <https://github.com/CodeGra-de/CodeGra.de/pull/1367>`__.
@@ -122,7 +187,8 @@ possible to get submission metadata in AutoTest, for instance to automate late
 day penalties. Finally, we have upgraded CodeGrade to the newest version of
 LTI: LTI 1.3 Advantage!
 
-**Features**
+Features
+^^^^^^^^^^^^^^^^^^^^
 
 - Course feedback `(#1342)
   <https://github.com/CodeGra-de/CodeGra.de/pull/1335>`__. Adds an overview of
@@ -145,12 +211,14 @@ LTI: LTI 1.3 Advantage!
   points based on the submission date and deadline, or to generate a unique
   input for each submission or student.
 
-**Updates**
+Updates
+^^^^^^^^^^^^^^^^^^^^
 
 - Use Bootstrap-Vue toasts instead of vue-toasted
   `(#1319) <https://github.com/CodeGra-de/CodeGra.de/pull/1319>`__,
 
-**Fixes**
+Fixes
+^^^^^^^^^^^^^^^^^^^^
 
 - Fix AutoTest result being in state "done" while it has steps that are in
   state "waiting to be started" `(#1349)
@@ -187,7 +255,8 @@ You can now view assignment statistics on the Analytics Dashboard, giving you
 insight into student performance. Students can now also comment on their own
 code, and they can reply to comments placed by teachers.
 
-**Features**
+Features
+^^^^^^^^^^^^^^^^^^^^
 
 - Analytics dashboard (`#1300
   <https://github.com/CodeGra-de/CodeGra.de/pull/1300>`__). The analytics
@@ -205,7 +274,8 @@ code, and they can reply to comments placed by teachers.
   multiple students in a course.
 
 
-**Updates**
+Updates
+^^^^^^^^^^^^^^^^^^^^
 
 - Make usernames case insensitive (`#1310
   <https://github.com/CodeGra-de/CodeGra.de/pull/1310>`__). This reduces
@@ -218,7 +288,8 @@ code, and they can reply to comments placed by teachers.
 - Plagiarism support for newer versions of Java. You can now use the Plagiarism
   checker for newer versions of Java.
 
-**Fixes**
+Fixes
+^^^^^^^^^^^^^^^^^^^^
 
 - Make sure that empty markdown files show a useful error `(#1244)
   <https://github.com/CodeGra-de/CodeGra.de/pull/1244>`__.
@@ -231,7 +302,8 @@ Version Knoet.3
 You can now render HTML pages submitted by students right inside CodeGrade,
 allowing you to preview webpages or test Javascript more easily than ever.
 
-**Features**
+Features
+^^^^^^^^^^^^^^^^^^^^
 
 - Make it possible to render html pages `(#1246)
   <https://github.com/CodeGra-de/CodeGra.de/pull/1246>`__: It is now possible to
@@ -243,7 +315,8 @@ allowing you to preview webpages or test Javascript more easily than ever.
   the course will be appended to the name.
 
 
-**Updates**
+Updates
+^^^^^^^^^^^^^^^^^^^^
 
 - Upgrade bootstrap-vue `(#1259)
   <https://github.com/CodeGra-de/CodeGra.de/pull/1259>`__.
@@ -263,7 +336,8 @@ allowing you to preview webpages or test Javascript more easily than ever.
 - Start using timezones everywhere when dealing with datetimes `(#1257)
   <https://github.com/CodeGra-de/CodeGra.de/pull/1257>`__.
 
-**Fixes**
+Fixes
+^^^^^^^^^^^^^^^^^^^^
 
 - Do not discard changed rubric viewer when saving general feedback `(#1283)
   <https://github.com/CodeGra-de/CodeGra.de/pull/1283>`__: The previous version
@@ -283,7 +357,8 @@ You can now add Continuous Rubric Categories, which can score anywhere on a
 continuous scale and work great with AutoTest. You can also now set student
 submission limits and a cool off period.
 
-**Features**
+Features
+^^^^^^^^^^^^^^^^^^^^
 
 - Continuous rubric categories `(#1235)
   <https://github.com/CodeGra-de/CodeGra.de/pull/1235>`__: this new type of
@@ -307,7 +382,8 @@ submission limits and a cool off period.
   these types of feedback before an assignment is set to done while still
   hiding others.
 
-**Minor updates**
+Minor updates
+^^^^^^^^^^^^^^^^^^^^
 
 - Add warning when creating a wrong external tool link in Canvas `(#1248)
   <https://github.com/CodeGra-de/CodeGra.de/pull/1248>`__: Canvas has multiple
@@ -315,7 +391,8 @@ submission limits and a cool off period.
   communicate correctly with it. This update displays a message when this
   happens.
 
-**Fixes**
+Fixes
+^^^^^^^^^^^^^^^^^^^^
 
 - Use the most privileged LTI role available
   `(#1248) <https://github.com/CodeGra-de/CodeGra.de/pull/1248>`__.
@@ -331,7 +408,8 @@ The hand in page for students has been completely redesigned, making it simpler
 and easier to use. You can now import AutoTest configurations and the ESLint
 linter is now available.
 
-**Features**
+Features
+^^^^^^^^^^^^^^^^^^^^
 
 - Submissions page redesign `(#1215) <https://github.com/CodeGra-de/CodeGra.de/pull/1215>`__:
   the hand in page has been completely redesigned and simplified for students.
@@ -348,7 +426,8 @@ linter is now available.
   for standalone courses, you can let users register via a unique URL. You can
   set this up on the Course Management Page.
 
-**Minor updates**
+Minor updates
+^^^^^^^^^^^^^^^^^^^^
 
 - Update git instructions `(#1221) <https://github.com/CodeGra-de/CodeGra.de/pull/1221>`__:
   the git instructions have been updated to be more compatible with git GUIs. We've
@@ -357,7 +436,8 @@ linter is now available.
   you're now only logged in persistently when pressing the "New Tab" button. This fixes some issues
   where users were always logged in via LTI.
 
-**Fixes**
+Fixes
+^^^^^^^^^^^^^^^^^^^^
 
 - Set groups of user in AutoTest run `(#1223) <https://github.com/CodeGra-de/CodeGra.de/pull/1223>`__.
 - Fix the default configurations for Checkstyle `(#1224) <https://github.com/CodeGra-de/CodeGra.de/pull/1224>`__.
@@ -373,7 +453,8 @@ Version 1.16.2 (Knoet)
 It is now possible to hand in via GitHub or GitLab. You can now also write
 files back from AutoTest to the Code Viewer to ease manual grading.
 
-**Features**
+Features
+^^^^^^^^^^^^^^^^^^^^
 
 - Make it possible to hand in submission through GitHub+GitLab `(#1182) <https://github.com/CodeGra-de/CodeGra.de/pull/1182>`__:
   this makes it possible for students to automatically hand in submissions by pushing to
@@ -387,7 +468,8 @@ files back from AutoTest to the Code Viewer to ease manual grading.
 - AutoTest Best Practices in docs `(#1186) <https://github.com/CodeGra-de/CodeGra.de/pull/1186>`__:
   there is now a Best Practices for AutoTest guide in the documentation.
 
-**Minor updates**
+Minor updates
+^^^^^^^^^^^^^^^^^^^^
 
 - Add year to old assignments dropdown `(#1196) <https://github.com/CodeGra-de/CodeGra.de/pull/1196>`__:
   this makes it easier to distinguish between courses with the same name.
@@ -398,7 +480,8 @@ files back from AutoTest to the Code Viewer to ease manual grading.
 - Improve the first render speed for AutoTest `(#1162) <https://github.com/CodeGra-de/CodeGra.de/pull/1162>`__:
   AutoTest now loads much faster.
 
-**Fixes**
+Fixes
+^^^^^^^^^^^^^^^^^^^^
 
 - Fix giving feedback on PDF files in edge `(#1195) <https://github.com/CodeGra-de/CodeGra.de/pull/1195>`__.
 - Fix incorrect late submission clock `(#1192) <https://github.com/CodeGra-de/CodeGra.de/pull/1192>`__.
@@ -425,7 +508,8 @@ are always run immediately after handing in, and even fill in the rubric
 directly when possible. Teachers can still choose when to make results visible
 to students.
 
-**Features**
+Features
+^^^^^^^^^^^^^^^^^^^^
 
 - Merge AutoTest & Continuous Feedback `(#1127) <https://github.com/CodeGra-de/CodeGra.de/pull/1127>`__:
   AutoTest and Continuous Feedback are now integrated together. AutoTest
@@ -435,7 +519,8 @@ to students.
 - Brightspace support `(#1102) <https://github.com/CodeGra-de/CodeGra.de/pull/1102>`__:
   CodeGrade now fully supports Brightspace.
 
-**Minor updates**
+Minor updates
+^^^^^^^^^^^^^^^^^^^^
 
 - Improve scrolling on the submission list page `(#1129) <https://github.com/CodeGra-de/CodeGra.de/pull/1129>`__:
   on small screens the rubric sometimes overlaps with the upload field, this has
@@ -451,7 +536,8 @@ to students.
   without them being able to edit the plagiairism run.
 - The CodeViewer is faster, and works better when dealing with large files `(#1127) <https://github.com/CodeGra-de/CodeGra.de/pull/1127>`__.
 
-**Fixes**
+Fixes
+^^^^^^^^^^^^^^^^^^^^
 
 - Fix race condition in editable rubric editor `(#1131) <https://github.com/CodeGra-de/CodeGra.de/pull/1131>`__.
 - Fix late submission warning `(#1132) <https://github.com/CodeGra-de/CodeGra.de/pull/1132>`__.
@@ -470,7 +556,8 @@ AutoTest and Continuous Feedback are now more reliable and efficient by fixing
 many small bugs and tweaks in the back-end. Additionally, a diff-viewer is added
 to the output of IO tests.
 
-**Features**
+Features
+^^^^^^^^^^^^^^^^^^^^
 
 -  Add diff view to IO test
    `(#1070) <https://github.com/CodeGra-de/CodeGra.de/pull/1070>`__: Adds a
@@ -480,7 +567,8 @@ to the output of IO tests.
    starting Continuous Feedback after an AutoTest run finished.
 
 
-**Minor updates**
+Minor updates
+^^^^^^^^^^^^^^^^^^^^
 
 -  Add Test Submissions
    `(#1063) <https://github.com/CodeGra-de/CodeGra.de/pull/1063>`__:
@@ -523,7 +611,8 @@ to the output of IO tests.
    upcoming assignments list. This is reversed now.
 
 
-**Fixes**
+Fixes
+^^^^^^^^^^^^^^^^^^^^
 
 -  Fix rubric item deletion bug
    `(#1061) <https://github.com/CodeGra-de/CodeGra.de/pull/1061>`__:
@@ -562,7 +651,8 @@ It is now significantly more efficient to run AutoTest or Continuous Feedback by
 a big improvement in our back-end. Additionally, our latest update adds further
 improvements to CodeGrade and fixes several minor and rare bugs.
 
-**Features**
+Features
+^^^^^^^^^^^^^^^^^^^^
 
 -  Use multiple runners
    `(#1037) <https://github.com/CodeGra-de/CodeGra.de/pull/1037>`__: make
@@ -576,7 +666,8 @@ improvements to CodeGrade and fixes several minor and rare bugs.
    adds an improved dropdown to switch between submissions of one student.
 
 
-**Minor updates**
+Minor updates
+^^^^^^^^^^^^^^^^^^^^
 
 -  Improve popovers for locked rubric rows
    `(#1016) <https://github.com/CodeGra-de/CodeGra.de/pull/1016>`__:
@@ -608,7 +699,8 @@ improvements to CodeGrade and fixes several minor and rare bugs.
    many results for an AutoTest run the results will be paginated, which
    decreases loading time and makes the page responsive.
 
-**Fixes**
+Fixes
+^^^^^^^^^^^^^^^^^^^^
 
 -  Fix general feedback overflow
    `(#1012) <https://github.com/CodeGra-de/CodeGra.de/pull/1012>`__:
@@ -661,7 +753,8 @@ new extension of AutoTest called Continuous Feedback. To better present
 this feedback to students, we have redesigned the entire submission page to be
 more intuitive.
 
-**Features**
+Features
+^^^^^^^^^^^^^^^^^^^^
 
 -  Rewrite submission page
    `(#959) <https://github.com/CodeGra-de/CodeGra.de/pull/959>`__: make overview
@@ -673,7 +766,8 @@ more intuitive.
 -  Add Scala as plagiarism option
    `(#972) <https://github.com/CodeGra-de/CodeGra.de/pull/972>`__.
 
-**Minor updates**
+Minor updates
+^^^^^^^^^^^^^^^^^^^^
 
 -  Add *all_whitespace* option to IO test
    `(#969) <https://github.com/CodeGra-de/CodeGra.de/pull/969>`__: add new
@@ -689,7 +783,8 @@ more intuitive.
       **not** backwards compatible. Previous stop / check points break if not
       updated to percentages.
 
-**Fixes**
+Fixes
+^^^^^^^^^^^^^^^^^^^^
 
 -  Improve plagiarism export
    `(#968) <https://github.com/CodeGra-de/CodeGra.de/pull/968>`__:
@@ -707,14 +802,16 @@ You can now automatically grade code of students using our brand new feature
 called *AutoTest*. This enables teachers to easily create test configurations
 and students to automatically get insightful feedback.
 
-**Features**
+Features
+^^^^^^^^^^^^^^^^^^^^
 
 - AutoTest is CodeGrade's new Automatic Grading Environment `(#938)
   <https://github.com/CodeGra-de/CodeGra.de/pull/938>`__: with AutoTest you can
   automatically grade code of students and provide them with insightful
   feedback.
 
-**Fixes**
+Fixes
+^^^^^^^^^^^^^^^^^^^^
 
 - Improve documentation `(#915) <https://github.com/CodeGra-de/CodeGra.de/pull/915>`__
   `(#937) <https://github.com/CodeGra-de/CodeGra.de/pull/937>`__: We are always
@@ -736,7 +833,8 @@ You can now set up detailed hand-in requirements for your students,
 create course snippets and the submission page is easier to and has more
 information (including the possibility to upload multiple files).
 
-**Features**
+Features
+^^^^^^^^^^^^^^^^^^^^
 
 -  Add a new version of the ignore file
    `(#889) <https://github.com/CodeGra-de/CodeGra.de/pull/889>`__: this
@@ -760,7 +858,8 @@ information (including the possibility to upload multiple files).
    `(#885) <https://github.com/CodeGra-de/CodeGra.de/pull/885>`__: more
    information, including a better visible rubric for students.
 
-**Minor updates**
+Minor updates
+^^^^^^^^^^^^^^^^^^^^
 
 -  Edit snippets in modal
    `(#855) <https://github.com/CodeGra-de/CodeGra.de/pull/855>`__: a
@@ -788,7 +887,8 @@ information (including the possibility to upload multiple files).
    `(#893) <https://github.com/CodeGra-de/CodeGra.de/pull/893>`__:
    increased the efficiency of the filtering.
 
-**Fixes**
+Fixes
+^^^^^^^^^^^^^^^^^^^^
 
 -  Make sure duplicate filenames are detected and renamed
    `(#898) <https://github.com/CodeGra-de/CodeGra.de/pull/898>`__.
@@ -815,7 +915,8 @@ Version 1.3.29 (Izanami.1)
 Along with many UI improvements and bug fixes, you can connect grading divisions
 between assignments and import rubrics from previous assignments.
 
-**Features**
+Features
+^^^^^^^^^^^^^^^^^^^^
 
 - Make it possible to connect assignment divisions  `(#794)
   <https://github.com/CodeGra-de/CodeGra.de/pull/794>`__: This makes it possible
@@ -833,7 +934,8 @@ between assignments and import rubrics from previous assignments.
   <https://github.com/CodeGra-de/CodeGra.de/pull/804>`__
   `(#834) <https://github.com/CodeGra-de/CodeGra.de/pull/834>`__.
 
-**Minor updates**
+Minor updates
+^^^^^^^^^^^^^^^^^^^^
 
 - Make it impossible to list all users on the system by searching `(#798)
   <https://github.com/CodeGra-de/CodeGra.de/pull/798>`__: All users on the
@@ -876,7 +978,8 @@ between assignments and import rubrics from previous assignments.
   of CodeGrade is installed, a notification will be shown on the home page with
   a link to this changelog.
 
-**Fixes**
+Fixes
+^^^^^^^^^^^^^^^^^^^^
 
 - Add formatted_deadline property to the course store for assignments `(#835)
   <https://github.com/CodeGra-de/CodeGra.de/pull/835>`__.
@@ -916,7 +1019,8 @@ Version 1.2.19 (Izanami)
 
 **Released**: February 07th, 2019
 
-**Features**
+Features
+^^^^^^^^^^^^^^^^^^^^
 
 - Group assignments `(#715)
   <https://github.com/CodeGra-de/CodeGra.de/pull/715>`__: With this release
@@ -935,7 +1039,8 @@ Version 1.2.19 (Izanami)
   comments in both types of files, as well as on image files now. This also
   adds a message when a file does not end in a newline character.
 
-**Minor updates**
+Minor updates
+^^^^^^^^^^^^^^^^^^^^
 
 - Show message when uploaded file is empty `(#766)
   <https://github.com/CodeGra-de/CodeGra.de/pull/766>`__: When a file is empty,
@@ -952,7 +1057,8 @@ Version 1.2.19 (Izanami)
 - Change icon for user in the sidebar `(#747)
   <https://github.com/CodeGra-de/CodeGra.de/pull/747>`__
 
-**Fixes**
+Fixes
+^^^^^^^^^^^^^^^^^^^^
 
 - Hide plagiarism providers when there is only one `(#745)
   <https://github.com/CodeGra-de/CodeGra.de/pull/745>`__
@@ -976,7 +1082,8 @@ Version 1.1.4 (HereBeMonsters.3)
 
 **Released**: January 16th, 2019
 
-**Features**
+Features
+^^^^^^^^^^^^^^^^^^^^
 
 - Add PMD and Checkstyle linters `(#734)
   <https://github.com/CodeGra-de/CodeGra.de/pull/683>`__: Addition of two Java
@@ -987,7 +1094,8 @@ Version 1.1.4 (HereBeMonsters.3)
    `(#655) <https://github.com/CodeGra-de/CodeGra.de/pull/655>`__: This
    makes it easier for users to use and add snippets.
 
-**Fixes**
+Fixes
+^^^^^^^^^^^^^^^^^^^^
 
 -  Fix a bug hiding indentation on lines with linter errors
    `(#710) <https://github.com/CodeGra-de/CodeGra.de/pull/710>`__: When
@@ -1014,7 +1122,8 @@ Version 1.0.22 (HereBeMonsters.2)
 
 **Released**: November 21st, 2018
 
-**Features**
+Features
+^^^^^^^^^^^^^^^^^^^^
 
 -  Enforce minimal password strength
    `(#683) <https://github.com/CodeGra-de/CodeGra.de/pull/683>`__
@@ -1035,7 +1144,8 @@ Version 1.0.22 (HereBeMonsters.2)
    are still running.
    `(#700) <https://github.com/CodeGra-de/CodeGra.de/pull/700>`__
 
-**Fixes**
+Fixes
+^^^^^^^^^^^^^^^^^^^^
 
 -  Only show register button when the feature is enabled.
    `(#679) <https://github.com/CodeGra-de/CodeGra.de/pull/679>`__
@@ -1074,12 +1184,14 @@ Version 1.0.7 (HereBeMonsters.1)
 
 **Released**: November 12th, 2018
 
-**Features**
+Features
+^^^^^^^^^^^^^^^^^^^^
 
 - Support files encoded as ISO-8859-1 (latin1) in the frontend.
   `(#666) <https://github.com/CodeGra-de/CodeGra.de/pull/666>`_
 
-**Fixes**
+Fixes
+^^^^^^^^^^^^^^^^^^^^
 
 - Make it impossible to override the special files of the CodeGrade
   filesystem. `(#673) <https://github.com/CodeGra-de/CodeGra.de/pull/673>`_
@@ -1091,7 +1203,8 @@ Version 1.0.0 (HereBeMonsters)
 
 **Released**: October 30th, 2018
 
-**Features**
+Features
+^^^^^^^^^^^^^^^^^^^^
 
 -  Add Plagiarism checkers `(#486) <https://github.com/CodeGra-de/CodeGra.de/pull/486>`_ `(#513) <https://github.com/CodeGra-de/CodeGra.de/pull/513>`_ `(#536) <https://github.com/CodeGra-de/CodeGra.de/pull/536>`_ `(#555) <https://github.com/CodeGra-de/CodeGra.de/pull/555>`_ `(#508) <https://github.com/CodeGra-de/CodeGra.de/pull/508>`_ `(#556) <https://github.com/CodeGra-de/CodeGra.de/pull/556>`_
    `(#645) <https://github.com/CodeGra-de/CodeGra.de/pull/645>`_ `(#576) <https://github.com/CodeGra-de/CodeGra.de/pull/576>`_: It is now possible to check for plagiarism in
@@ -1115,7 +1228,8 @@ Version 1.0.0 (HereBeMonsters)
         $Canvas.assignment.pointsPossible
       </lticm:property>
 
-**Minor updates**
+Minor updates
+^^^^^^^^^^^^^^^^^^^^
 
 -  Change homepage to login screen `(#480) <https://github.com/CodeGra-de/CodeGra.de/pull/480>`_ `(#496) <https://github.com/CodeGra-de/CodeGra.de/pull/496>`_ `(#501) <https://github.com/CodeGra-de/CodeGra.de/pull/501>`_ `(#557) <https://github.com/CodeGra-de/CodeGra.de/pull/557>`_ `(#616) <https://github.com/CodeGra-de/CodeGra.de/pull/616>`_:
    The homepage has been improved to show all your courses and
@@ -1159,7 +1273,8 @@ Version 1.0.0 (HereBeMonsters)
    bonus categories simply use the ‘Max points’ option in the rubric
    editor. All existing rubrics are not changed.
 
-**Fixes**
+Fixes
+^^^^^^^^^^^^^^^^^^^^
 
 -  Various small bugs in the sidebar
 -  Add a minimum duration on the permission manager loaders `(#521) <https://github.com/CodeGra-de/CodeGra.de/pull/521>`_: This
@@ -1234,7 +1349,8 @@ Version 0.23.21 (GodfriedMetDenBaard.2)
 
 **Released**: May 4th, 2018
 
-**Fixes**
+Fixes
+^^^^^^^^^^^^^^^^^^^^
 
 * Make long rubric item headers show an ellipsis `(#457) <https://github.com/CodeGra-de/CodeGra.de/pull/457>`_
 * Fix sidebar shadow with more than one submenu level `(#456) <https://github.com/CodeGra-de/CodeGra.de/pull/456>`_
@@ -1248,7 +1364,8 @@ Version 0.23.13 (GodfriedMetDenBaard.1)
 
 **Released**: April 24th, 2018
 
-**Fixes**
+Fixes
+^^^^^^^^^^^^^^^^^^^^
 
 * Actually make sure permissions are not deleted in migration `(#431) <https://github.com/CodeGra-de/CodeGra.de/pull/431>`_
 * Make sure data is reloaded when switching course `(#432) <https://github.com/CodeGra-de/CodeGra.de/pull/432>`_
@@ -1265,7 +1382,8 @@ Version 0.23.5 (GodfriedMetDenBaard)
 
 **Released**: April 24th, 2018
 
-**Features**
+Features
+^^^^^^^^^^^^^^^^^^^^
 
 * Update readme and add new sections to it `(#391) <https://github.com/CodeGra-de/CodeGra.de/pull/391>`_
 * Add linters feature `(#387) <https://github.com/CodeGra-de/CodeGra.de/pull/387>`_
@@ -1275,7 +1393,8 @@ Version 0.23.5 (GodfriedMetDenBaard)
 * Revamp entire frontend design `(#404) <https://github.com/CodeGra-de/CodeGra.de/pull/404>`_
 * Make sure docs are published at docs.codegra.de `(#416) <https://github.com/CodeGra-de/CodeGra.de/pull/416>`_
 
-**Fixes**
+Fixes
+^^^^^^^^^^^^^^^^^^^^
 
 * Make sure upload dialog is visible after deadline `(#375) <https://github.com/CodeGra-de/CodeGra.de/pull/375>`_
 * Fix assignment state component `(#377) <https://github.com/CodeGra-de/CodeGra.de/pull/377>`_
@@ -1290,7 +1409,8 @@ Version 0.23.5 (GodfriedMetDenBaard)
 * Fix not catching errors caused by invalid files `(#410) <https://github.com/CodeGra-de/CodeGra.de/pull/410>`_
 * Fix error when submitting for an LTI assignment without sourcedid `(#411) <https://github.com/CodeGra-de/CodeGra.de/pull/411>`_
 
-**Packages Updates**
+Packages Updates
+^^^^^^^^^^^^^^^^^^^^
 
 * Upgrade NPM packages `(#370) <https://github.com/CodeGra-de/CodeGra.de/pull/370>`_
 
@@ -1299,7 +1419,8 @@ Version 0.22.1 (FlipFloppedWhiteSocked.2)
 
 **Released**: February 17th, 2018
 
-**Fixes**
+Fixes
+^^^^^^^^^^^^^^^^^^^^
 
 * Make sure upload dialog is visible after deadline `(#375) <https://github.com/CodeGra-de/CodeGra.de/pull/375>`_
 
@@ -1308,7 +1429,8 @@ Version 0.21.5 (FlipFloppedWhiteSocked.1)
 
 **Released**: January 25th, 2018
 
-**Fixes**
+Fixes
+^^^^^^^^^^^^^^^^^^^^
 
 * Fix assignment state buttons for LTI assignment `(#367) <https://github.com/CodeGra-de/CodeGra.de/pull/367>`_
 
@@ -1318,7 +1440,8 @@ Version 0.21.4 (FlipFloppedWhiteSocked)
 
 **Released**: January 24th, 2018
 
-**Features**
+Features
+^^^^^^^^^^^^^^^^^^^^
 
 * Make it possible to force reset of email when using LTI `(#347) <https://github.com/CodeGra-de/CodeGra.de/pull/347>`_
 * Add done grading notification email `(#346) <https://github.com/CodeGra-de/CodeGra.de/pull/346>`_
@@ -1332,7 +1455,8 @@ Version 0.21.4 (FlipFloppedWhiteSocked)
 * Make it possible to reset password even if old password was NULL. `(#323) <https://github.com/CodeGra-de/CodeGra.de/pull/323>`_
 * Add permission descriptions `(#312) <https://github.com/CodeGra-de/CodeGra.de/pull/312>`_
 
-**Fixes**
+Fixes
+^^^^^^^^^^^^^^^^^^^^
 
 * Fix the reload behaviour of snippets `(#344) <https://github.com/CodeGra-de/CodeGra.de/pull/344>`_
 * Make sure very large rubrics do not overflow the interface `(#343) <https://github.com/CodeGra-de/CodeGra.de/pull/343>`_
@@ -1353,7 +1477,8 @@ Version 0.16.9 (ExportHell)
 
 **Released**: November 23rd, 2017
 
-**Features**
+Features
+^^^^^^^^^^^^^^^^^^^^
 
 * Make it possible to give feedback without any grade `(#282) <https://github.com/CodeGra-de/CodeGra.de/pull/282>`_
 * Make it possible to export username and user-id in csv `(#276) <https://github.com/CodeGra-de/CodeGra.de/pull/276>`_
@@ -1363,7 +1488,8 @@ Version 0.16.9 (ExportHell)
 * Add weight fields to submission divider `(#221) <https://github.com/CodeGra-de/CodeGra.de/pull/221>`_
 * Courses actions buttons *nicefied* `(#247) <https://github.com/CodeGra-de/CodeGra.de/pull/247>`_
 
-**Fixes**
+Fixes
+^^^^^^^^^^^^^^^^^^^^
 
 * Fix `null` in submission navbar `(#286) <https://github.com/CodeGra-de/CodeGra.de/pull/286>`_
 * Fix various bugs with boolean parsing for sorting `(#285) <https://github.com/CodeGra-de/CodeGra.de/pull/285>`_
@@ -1388,12 +1514,14 @@ Version 0.12.6 (DobbeleJava)
 
 **Released**: September 21st, 2017
 
-**Features**
+Features
+^^^^^^^^^^^^^^^^^^^^
 
 * Add a dark theme to the website.
 * Revamping exporting all submissions by making it possible to include feedback and fixed a bug that prevented the name of the grader to show.
 
-**Fixes**
+Fixes
+^^^^^^^^^^^^^^^^^^^^
 
 * Fix bug that prevented downloading code of persons non `latin-1` characters in their names.
 * Fix behaviour of next and previous buttons in the code viewer.
@@ -1413,7 +1541,8 @@ Version 0.10.0 (Columbus)
 
 **Released**: September 12th, 2017
 
-**Features**
+Features
+^^^^^^^^^^^^^^^^^^^^
 
 * Make it possible for a user to reset its password `(#198) <https://github.com/CodeGra-de/CodeGra.de/pull/198>`_
 * Allow to change font size and store it in vuex `(#191) <https://github.com/CodeGra-de/CodeGra.de/pull/191>`_
@@ -1422,7 +1551,8 @@ Version 0.10.0 (Columbus)
 * Add new course and assignment `(#186) <https://github.com/CodeGra-de/CodeGra.de/pull/186>`_
 * Add global permission managing system `(#176) <https://github.com/CodeGra-de/CodeGra.de/pull/176>`_
 
-**Fixes**
+Fixes
+^^^^^^^^^^^^^^^^^^^^
 
 * Fix jumping text when toggling directories in the file tree `(#199) <https://github.com/CodeGra-de/CodeGra.de/pull/199>`_
 * Fix unicode errors while creating files. `(#197) <https://github.com/CodeGra-de/CodeGra.de/pull/197>`_
@@ -1435,7 +1565,8 @@ Version 0.10.0 (Columbus)
 * Make sure global permissions are checked in the front- and back-end `(#177) <https://github.com/CodeGra-de/CodeGra.de/pull/177>`_
 * Fix issue where error would disappear immediately after submitting with the keyboard `(#180) <https://github.com/CodeGra-de/CodeGra.de/pull/180>`_
 
-**Packages Updates:**
+Packages Updates:
+^^^^^^^^^^^^^^^^^^^^
 
 * Upgrade bootstrap-vue `(#200) <https://github.com/CodeGra-de/CodeGra.de/pull/200>`_
 
@@ -1444,7 +1575,8 @@ Version 0.3.2 (Belhamel)
 
 **Released**: September 4th, 2017
 
-**Features**
+Features
+^^^^^^^^^^^^^^^^^^^^
 
 * Add delete submission feature `(#166) <https://github.com/CodeGra-de/CodeGra.de/pull/166>`_
 * Add privacy notes `(#169) <https://github.com/CodeGra-de/CodeGra.de/pull/169>`_
@@ -1464,7 +1596,8 @@ Version 0.3.2 (Belhamel)
 * Make it possible again to grade work `(#125) <https://github.com/CodeGra-de/CodeGra.de/pull/125>`_
 * Make duplicate emails possible `(#116) <https://github.com/CodeGra-de/CodeGra.de/pull/116>`_
 
-**Fixes**
+Fixes
+^^^^^^^^^^^^^^^^^^^^
 
 * Fix all missing or wrong quickrefs on api calls `(#172) <https://github.com/CodeGra-de/CodeGra.de/pull/172>`_
 * Fix stat api route `(#163) <https://github.com/CodeGra-de/CodeGra.de/pull/163>`_
@@ -1485,7 +1618,8 @@ Version 0.3.2 (Belhamel)
 * Fix bugs introduced by postgres `(#109) <https://github.com/CodeGra-de/CodeGra.de/pull/109>`_
 * Add links to them fine shields `(#104) <https://github.com/CodeGra-de/CodeGra.de/pull/104>`_
 
-**Package Updates**
+Package Updates
+^^^^^^^^^^^^^^^^^^^^
 
 * Remove pdfobject and pdf.js dependencies `(#159) <https://github.com/CodeGra-de/CodeGra.de/pull/159>`_
 * Move bootstrap-vue dependency to own org `(#142) <https://github.com/CodeGra-de/CodeGra.de/pull/142>`_

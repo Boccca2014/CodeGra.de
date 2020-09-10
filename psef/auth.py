@@ -245,8 +245,10 @@ class CoursePermissionChecker(PermissionChecker):
     def _global_ensure(self, perm: GPerm) -> None:
         ensure_permission(perm, user=self.user)
 
-    def _ensure(self, perm: CPerm) -> None:
-        ensure_permission(perm, self.course_id, user=self.user)
+    def _ensure(self, perm: CPerm, *, extra_message: str = '') -> None:
+        ensure_permission(
+            perm, self.course_id, user=self.user, extra_message=extra_message
+        )
 
     def _ensure_for_course(
         self, perm: CPerm, *, course: 'psef.models.Course'
@@ -830,9 +832,7 @@ def ensure_can_edit_members_of_group(
             CPerm.can_edit_groups_after_submission,
             group.group_set.course_id,
             extra_message=(
-                # The leading space is needed as the message of the default
-                # exception ends with a .
-                " This is because you don't have the permission to"
+                "This is because you don't have the permission to"
                 " change the users of a group after the group handed in a"
                 " submission."
             )
@@ -1364,10 +1364,22 @@ class AssignmentPermissions(CoursePermissionChecker):
                 APICodes.INCORRECT_PERMISSION, 403
             )
 
-        self._ensure(CPerm.can_see_assignments)
+        self._ensure(
+            CPerm.can_see_assignments,
+            extra_message=(
+                'The permission to see assignments has not been enabled for'
+                ' your account.'
+            ),
+        )
 
         if self.assignment.is_hidden:
-            self._ensure(CPerm.can_see_hidden_assignments)
+            self._ensure(
+                CPerm.can_see_hidden_assignments,
+                extra_message=(
+                    'This assignment is still hidden, and you do not have the'
+                    ' permission to see hidden assignments.'
+                ),
+            )
 
     @CoursePermissionChecker.as_ensure_function
     def ensure_may_see_plagiarism(self) -> None:
@@ -1926,8 +1938,10 @@ def ensure_permission(  # pylint: disable=function-redefined
             else:
                 you_do = f'{user.name} does'
 
+            maybe_space = ' ' if extra_message else ''
             msg = (
-                f'{you_do} not have the permission to do this.{extra_message}'
+                f'{you_do} not have the permission to do this.'
+                f'{maybe_space}{extra_message}'
             )
 
             raise PermissionException(

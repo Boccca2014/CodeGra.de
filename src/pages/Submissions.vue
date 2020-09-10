@@ -218,7 +218,7 @@
                             Hand-in instructions
                         </b-card-header>
 
-                        <c-g-ignore-file :assignmentId="assignment.id"
+                        <c-g-ignore-file :assignment="assignment"
                                          :editable="false"
                                          summary-mode />
                     </collapse>
@@ -265,7 +265,7 @@
             <div v-if="selectedCat === 'hand-in-instructions'"
                  class="flex-grow-1">
                 <c-g-ignore-file class="border rounded mb-3"
-                                 :assignment-id="assignment.id"
+                                 :assignment="assignment"
                                  :editable="false"
                                  summary-mode/>
             </div>

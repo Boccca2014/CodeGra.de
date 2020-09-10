@@ -14,7 +14,8 @@
     slot-description="file"
     snippet-field-above
     always-show-button
-    add-space>
+    add-space
+    force-snippets-above>
     <inner-markdown-viewer v-if="data"
                            class="w-100 py-2 px-3"
                            :markdown="data"
@@ -115,3 +116,9 @@ export default {
     },
 };
 </script>
+
+<style lang="less">
+.markdown-viewer .Pane {
+    overflow: visible;
+}
+</style>

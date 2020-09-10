@@ -587,6 +587,10 @@ export default class PeerFeedbackByUser extends Vue {
 
 .border-top-not-first:not(:first-child) {
     border-top: 1px solid @border-color;
+
+    @{dark-mode} {
+        border-top-color: @color-primary-darker;
+    }
 }
 </style>
 

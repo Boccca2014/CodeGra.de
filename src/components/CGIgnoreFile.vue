@@ -20,7 +20,7 @@
         <pre>{{ oldCgignore }}</pre>
     </div>
     <div v-else-if="!editable && !policy"
-         class="font-italic text-muted">
+         class="font-italic text-muted p-3">
         No validation set.
     </div>
     <div v-else-if="!assignmentHasInstructions && showImporter">

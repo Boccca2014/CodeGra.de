@@ -893,10 +893,6 @@ export default {
 .plagiarism-detail .input-group-prepend {
     margin-top: 0;
 }
-
-.modal#plagiarism-export .toggle-container {
-    font-variant: small-caps;
-}
 </style>
 
 <style lang="less">
