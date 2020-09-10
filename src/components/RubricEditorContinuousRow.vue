@@ -20,17 +20,17 @@
                                   class="cursor-help"
                                   is-text
                                   v-b-popover.top.hover="lockPopover">
-                <icon class="lock-icon" name="lock" />
+                <fa-icon class="lock-icon" name="lock" />
             </b-input-group-append>
 
             <b-input-group-append v-else>
-                <submit-button variant="danger"
-                               class="delete-category"
-                               label="Remove category"
-                               :wait-at-least="0"
-                               :submit="() => {}"
-                               @after-success="$emit('delete')"
-                               confirm="Do you really want to delete this category?" />
+                <cg-submit-button variant="danger"
+                                  class="delete-category"
+                                  label="Remove category"
+                                  :wait-at-least="0"
+                                  :submit="() => {}"
+                                  @after-success="$emit('delete')"
+                                  confirm="Do you really want to delete this category?" />
             </b-input-group-append>
         </b-input-group>
 
@@ -63,18 +63,19 @@
                        triggers=""
                        placement="top" />
 
-            <icon name="lock"
-                    class="float-right"
-                    :id="`rubric-lock-${id}`" />
+            <fa-icon name="lock"
+                     class="float-right"
+                     :id="`rubric-lock-${id}`" />
         </template>
 
-        <p v-if="value.description"
-           class="mb-3 pb-3 border-bottom text-wrap-pre"
+        <p v-if="!value.description"
+           class="mb-3 pb-3 border-bottom text-muted font-italic"
+           >This category has no description.</p>
+        <inner-markdown-viewer
+            v-else-if="value.descriptionType === 'markdown'"
+            :markdown="value.description" />
+        <p v-else class="mb-3 pb-3 border-bottom text-wrap-pre"
            >{{ value.description }}</p>
-        <p v-else
-           class="mb-3 pb-3 border-bottom text-muted font-italic">
-            This category has no description.
-        </p>
 
         <p class="mb-0 pb-3">
             This is a continuous rubric category. You can score anywhere between
@@ -85,10 +86,9 @@
 </template>
 
 <script>
-import Icon from 'vue-awesome/components/Icon';
 import 'vue-awesome/icons/lock';
 
-import SubmitButton from './SubmitButton';
+import InnerMarkdownViewer from './InnerMarkdownViewer';
 
 export default {
     name: 'rubric-editor-continuous-row',
@@ -180,8 +180,7 @@ export default {
     },
 
     components: {
-        Icon,
-        SubmitButton,
+        InnerMarkdownViewer,
     },
 };
 </script>

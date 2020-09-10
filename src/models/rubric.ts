@@ -21,11 +21,17 @@ import { AutoTestRun, AutoTestResult } from '@/models';
 import { RubricResultValidationError, RubricRowValidationError } from './errors';
 import { Submission } from './submission';
 
+type RubricDescriptionType = 'plain_text' | 'markdown';
+
+const defaultDescriptionType: RubricDescriptionType = 'markdown';
+
 interface RubricItemServerData {
     id: number;
     points: number;
     header: string;
     description: string;
+    // eslint-disable-next-line camelcase
+    description_type: RubricDescriptionType;
 }
 
 interface IRubricItem<T> {
@@ -36,6 +42,8 @@ interface IRubricItem<T> {
     header: string;
 
     description: string;
+
+    descriptionType: RubricDescriptionType;
 
     trackingId?: number;
 }
@@ -48,6 +56,7 @@ export class RubricItem<T = number | undefined> {
             points: data.points,
             header: data.header,
             description: data.description,
+            descriptionType: data.description_type,
             trackingId: undefined,
         });
     }
@@ -58,6 +67,7 @@ export class RubricItem<T = number | undefined> {
             points: '',
             header: '',
             description: '',
+            descriptionType: defaultDescriptionType,
             trackingId: getUniqueId(),
         });
     }
@@ -84,6 +94,8 @@ interface BaseRubricRowServerData {
     id: number;
     header: string;
     description: string;
+    // eslint-disable-next-line camelcase
+    description_type: RubricDescriptionType;
     locked: false | 'auto_test';
     items: RubricItemServerData[];
 }
@@ -106,6 +118,7 @@ interface IRubricRow<T, Y = T> {
     type: '' | keyof typeof RubricRowsTypes;
     header: string;
     description: string;
+    descriptionType: RubricDescriptionType;
     locked: false | 'auto_test';
     items: RubricItem<T>[];
 }
@@ -129,6 +142,7 @@ export class RubricRow<T extends number | undefined | null> {
             type: '',
             header: '',
             description: '',
+            descriptionType: defaultDescriptionType,
             locked: false,
             items: [],
         });
@@ -378,6 +392,7 @@ export class NormalRubricRow<T extends number | undefined | null> extends Rubric
             type: data.type,
             header: data.header,
             description: data.description,
+            descriptionType: data.description_type,
             locked: data.locked,
             items: data.items.map(item => RubricItem.fromServerData(item)),
         });
@@ -389,6 +404,7 @@ export class NormalRubricRow<T extends number | undefined | null> extends Rubric
             type: 'normal',
             header: '',
             description: '',
+            descriptionType: defaultDescriptionType,
             locked: false,
             items: [],
         });
@@ -433,6 +449,7 @@ export class ContinuousRubricRow<T extends number | undefined | null> extends Ru
             type: data.type,
             header: data.header,
             description: data.description,
+            descriptionType: data.description_type,
             locked: data.locked,
             items: data.items.map(item => RubricItem.fromServerData(item)),
         });
@@ -444,6 +461,7 @@ export class ContinuousRubricRow<T extends number | undefined | null> extends Ru
             type: 'continuous',
             header: '',
             description: '',
+            descriptionType: defaultDescriptionType,
             locked: false,
             items: [RubricItem.createEmpty().update({ header: 'Continuous' })],
         });
@@ -649,6 +667,8 @@ export class RubricResult {
         } else {
             selected[rowId] = Object.assign({}, item, {
                 multiplier: 1,
+                // Needed for TypeScript.
+                description_type: item.descriptionType,
             });
         }
 
@@ -672,6 +692,8 @@ export class RubricResult {
         } else {
             selected[rowId] = Object.assign({}, item, {
                 multiplier: Number(multiplier),
+                // Needed for TypeScript.
+                description_type: item.descriptionType,
             });
         }
 

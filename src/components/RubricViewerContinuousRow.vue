@@ -6,22 +6,24 @@
      @mouseleave="lockPopoverVisible = false">
     <div class="rubric-row-header">
         <div class="row-description d-flex border-bottom">
-            <p v-if="rubricRow.description"
-               class="flex-grow-1 my-2 px-3 text-wrap-pre">{{
-                rubricRow.description
-            }}</p>
+            <p v-if="!rubricRow.description"
+               class="flex-grow-1 my-2 px-3 text-muted font-italic"
+               >This category has no description.</p>
+            <inner-markdown-viewer
+                v-else-if="rubricRow.descriptionType === 'markdown'"
+                :markdown="rubricRow.description"
+                class="my-2 px-3" />
             <p v-else
-               class="flex-grow-1 my-2 px-3 text-muted font-italic">
-                This category has no description.
-            </p>
+               class="flex-grow-1 my-2 px-3 text-wrap-pre"
+               >{{ rubricRow.description }}</p>
 
             <template v-if="locked">
                 <!-- Due to a rendering issue in edge, giving the icon
                      a margin-right moves it left by twice that amount... -->
-                <icon name="lock"
-                      class="rubric-lock my-2"
-                      :class="{ 'mr-3': !$root.isEdge, 'mr-2': $root.isEdge }"
-                      :id="`rubric-lock-${id}`" />
+                <fa-icon name="lock"
+                         class="rubric-lock my-2"
+                         :class="{ 'mr-3': !$root.isEdge, 'mr-2': $root.isEdge }"
+                         :id="`rubric-lock-${id}`" />
 
                 <!-- We need to key this popover to make sure it actually
                     changes when the content changes. -->
@@ -70,11 +72,12 @@
 </template>
 
 <script>
-import Icon from 'vue-awesome/components/Icon';
 import 'vue-awesome/icons/lock';
 import 'vue-awesome/icons/check';
 
 import { AutoTestResult, RubricRow, RubricResult } from '@/models';
+
+import InnerMarkdownViewer from './InnerMarkdownViewer';
 
 export default {
     name: 'rubric-viewer-continuous-row',
@@ -251,7 +254,7 @@ export default {
     },
 
     components: {
-        Icon,
+        InnerMarkdownViewer,
     },
 };
 </script>

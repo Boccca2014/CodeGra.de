@@ -10,6 +10,7 @@ from sqlalchemy import select
 from mypy_extensions import TypedDict
 
 import psef
+import cg_enum
 import cg_json
 from cg_dt_utils import DatetimeWithTimezone
 from cg_sqlalchemy_helpers import hybrid_property, hybrid_expression
@@ -176,6 +177,16 @@ class WorkRubricItem(helpers.NotEqualMixin, Base):
     points = hybrid_property(_get_points, expr=_get_points_expr)
 
 
+@enum.unique
+class RubricDescriptionType(cg_enum.CGEnum):
+    """The type of formatting used for the description of a rubric row or item.
+    """
+    #: The description is plain text.
+    plain_text = enum.auto()
+    #: The description should be interpreted as markdown.
+    markdown = enum.auto()
+
+
 class RubricLockReason(cg_json.SerializableEnum, enum.Enum):
     auto_test = enum.auto()
 
@@ -194,6 +205,12 @@ class RubricItem(helpers.NotEqualMixin, Base):
         nullable=False,
     )
     header = db.Column('header', db.Unicode, default='', nullable=False)
+    description_type = db.Column(
+        'description_type',
+        db.Enum(RubricDescriptionType),
+        nullable=False,
+        server_default=RubricDescriptionType.plain_text.name,
+    )
     description = db.Column(
         'description', db.Unicode, default='', nullable=False
     )
@@ -209,15 +226,17 @@ class RubricItem(helpers.NotEqualMixin, Base):
         header: str
         points: numbers.Real
 
-    class JSONSerialization(JSONBaseSerialization, total=True):
+    class AsJSON(JSONBaseSerialization, total=True):
         id: int
+        description_type: RubricDescriptionType
 
-    def __to_json__(self) -> 'RubricItem.JSONSerialization':
+    def __to_json__(self) -> AsJSON:
         """Creates a JSON serializable representation of this object.
         """
         return {
             'id': self.id,
             'description': self.description,
+            'description_type': self.description_type,
             'header': self.header,
             # A float is a ``Real``, mypy issue:
             # https://github.com/python/mypy/issues/2636
@@ -228,6 +247,7 @@ class RubricItem(helpers.NotEqualMixin, Base):
         return RubricItem(
             header=self.header,
             description=self.description,
+            description_type=self.description_type,
             points=self.points,
         )
 
@@ -265,6 +285,12 @@ class RubricRowBase(helpers.NotEqualMixin, Base):
     )
     header = db.Column('header', db.Unicode, nullable=False)
     description = db.Column('description', db.Unicode, default='')
+    description_type = db.Column(
+        'description_type',
+        db.Enum(RubricDescriptionType),
+        nullable=False,
+        server_default=RubricDescriptionType.plain_text.name,
+    )
     created_at = db.Column(
         'created_at',
         db.TIMESTAMP(timezone=True),
@@ -336,6 +362,7 @@ class RubricRowBase(helpers.NotEqualMixin, Base):
         return RubricRowBase(
             created_at=DatetimeWithTimezone.utcnow(),
             description=self.description,
+            description_type=self.description_type,
             header=self.header,
             assignment_id=self.assignment_id,
             items=[item.copy() for item in self.items],
@@ -374,13 +401,23 @@ class RubricRowBase(helpers.NotEqualMixin, Base):
             return False
         return self.assignment.locked_rubric_rows.get(self.id, False)
 
-    def __to_json__(self) -> t.Mapping[str, t.Any]:
+    class AsJSON(TypedDict, total=True):
+        id: int
+        header: str
+        description: str
+        description_type: RubricDescriptionType
+        items: t.List[RubricItem]
+        locked: bool
+        type: str
+
+    def __to_json__(self) -> AsJSON:
         """Creates a JSON serializable representation of this object.
         """
         return {
             'id': self.id,
             'header': self.header,
             'description': self.description,
+            'description_type': self.description_type,
             'items': self.items,
             'locked': self.locked,
             'type': self.rubric_row_type,
@@ -441,6 +478,7 @@ class RubricRowBase(helpers.NotEqualMixin, Base):
                 rubric_item = RubricItem(
                     rubricrow=self,
                     description=item_description,
+                    description_type=RubricDescriptionType.markdown,
                     header=item_header,
                     points=points
                 )
@@ -485,7 +523,11 @@ class RubricRowBase(helpers.NotEqualMixin, Base):
             :meth:`.RubricRowBase.update_items_from_json`.
         :returns: The newly created row.
         """
-        self = cls(header=header, description=description)
+        self = cls(
+            header=header,
+            description=description,
+            description_type=RubricDescriptionType.markdown,
+        )
         self.update_items_from_json(items)
 
         return self

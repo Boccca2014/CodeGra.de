@@ -20,17 +20,17 @@
                                   class="cursor-help"
                                   is-text
                                   v-b-popover.top.hover="lockPopover">
-                <icon class="lock-icon" name="lock" />
+                <fa-icon class="lock-icon" name="lock" />
             </b-input-group-append>
 
             <b-input-group-append v-else>
-                <submit-button variant="danger"
-                               class="delete-category"
-                               label="Remove category"
-                               :wait-at-least="0"
-                               :submit="() => {}"
-                               @after-success="deleteRow"
-                               confirm="Do you really want to delete this category?" />
+                <cg-submit-button variant="danger"
+                                  class="delete-category"
+                                  label="Remove category"
+                                  :wait-at-least="0"
+                                  :submit="() => {}"
+                                  @after-success="deleteRow"
+                                  confirm="Do you really want to delete this category?" />
             </b-input-group-append>
         </b-input-group>
 
@@ -51,18 +51,19 @@
                        triggers=""
                        placement="top" />
 
-            <icon name="lock"
-                  class="float-right"
-                  :id="`rubric-lock-${id}`" />
+            <fa-icon name="lock"
+                     class="float-right"
+                     :id="`rubric-lock-${id}`" />
         </template>
 
-        <p v-if="value.description"
-           class="mb-0 text-wrap-pre"
+        <p v-if="!value.description"
+           class="mb-0 text-muted font-italic"
+           >This category has no description.</p>
+        <inner-markdown-viewer
+            v-else-if="value.descriptionType === 'markdown'"
+            :markdown="value.description" />
+        <p v-else class="mb-0 text-wrap-pre"
            >{{ value.description }}</p>
-        <p v-else
-           class="mb-0 text-muted font-italic">
-            This category has no description.
-        </p>
     </div>
 
     <div class="item-container row d-flex flex-row flex-wrap">
@@ -95,7 +96,7 @@
                         class="delete-item rounded-bottom-0 text-muted cursor-pointer"
                         v-b-popover.top.hover="'Delete this item.'"
                         @click="deleteItem(i)">
-                        <icon name="times" />
+                        <fa-icon name="times" />
                     </b-input-group-append>
                 </b-input-group>
 
@@ -115,10 +116,13 @@
                     <b class="header pl-1">{{ item.header }}</b>
                 </span>
 
-                <!-- Weird formatting required for text-wrap-pre formatting. -->
-                <p class="description flex-grow-1 border rounded mb-0 px-3 py-2 text-wrap-pre"
-                    ><template v-if="item.description">{{ item.description }}</template
-                    ><span v-else class="text-muted font-italic">No description.</span>
+                <p class="description flex-grow-1 border rounded mb-0 px-3 py-2">
+                    <span v-if="!item.description"
+                          class="text-muted font-italic">No description</span>
+                    <inner-markdown-viewer
+                        v-else-if="item.descriptionType === 'markdown'"
+                        :markdown="item.description" />
+                    <template v-else>{{ item.description }}</template>
                 </p>
             </template>
         </div>
@@ -145,7 +149,7 @@
                       disabled />
 
             <div class="overlay rounded cursor-pointer">
-                <icon name="plus" :scale="3" />
+                <fa-icon name="plus" :scale="3" />
             </div>
         </div>
     </div>
@@ -153,12 +157,11 @@
 </template>
 
 <script>
-import Icon from 'vue-awesome/components/Icon';
 import 'vue-awesome/icons/times';
 import 'vue-awesome/icons/plus';
 import 'vue-awesome/icons/lock';
 
-import SubmitButton from './SubmitButton';
+import InnerMarkdownViewer from './InnerMarkdownViewer';
 
 export default {
     name: 'rubric-editor-normal-row',
@@ -262,8 +265,7 @@ export default {
     },
 
     components: {
-        Icon,
-        SubmitButton,
+        InnerMarkdownViewer,
     },
 };
 </script>
