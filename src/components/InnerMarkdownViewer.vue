@@ -83,18 +83,25 @@ export default {
 
 .inner-markdown-viewer {
     pre {
-        margin-bottom: 1rem;
+        padding: 0.75rem 1.25rem;
+        background-color: @color-lightest-gray;
+        border-radius: 0.25rem;
         font-size: 100%;
         white-space: pre-wrap;
         word-wrap: break-word;
         word-break: break-word;
         hyphens: auto;
-        margin-left: 1.5rem;
+
+        @{dark-mode} {
+            color: @text-color-dark;
+            background-color: fade(@color-primary-darker, 50%);
+        }
     }
 
     img,
     .MathJax_SVG svg {
         max-width: 100%;
+
         @media @media-large {
             max-width: 30rem;
         }
