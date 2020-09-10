@@ -21,6 +21,13 @@ import { AutoTestRun, AutoTestResult } from '@/models';
 import { RubricResultValidationError, RubricRowValidationError } from './errors';
 import { Submission } from './submission';
 
+enum RubricDescriptionType {
+    'plain_text',
+    'markdown',
+}
+
+const defaultDescriptionType: RubricDescriptionType = RubricDescriptionType.markdown;
+
 interface RubricItemServerData {
     id: number;
     points: number;
@@ -84,6 +91,8 @@ interface BaseRubricRowServerData {
     id: number;
     header: string;
     description: string;
+    // eslint-disable-next-line camelcase
+    description_type: keyof typeof RubricDescriptionType;
     locked: false | 'auto_test';
     items: RubricItemServerData[];
 }
@@ -106,6 +115,7 @@ interface IRubricRow<T, Y = T> {
     type: '' | keyof typeof RubricRowsTypes;
     header: string;
     description: string;
+    descriptionType: RubricDescriptionType;
     locked: false | 'auto_test';
     items: RubricItem<T>[];
 }
@@ -129,6 +139,7 @@ export class RubricRow<T extends number | undefined | null> {
             type: '',
             header: '',
             description: '',
+            descriptionType: defaultDescriptionType,
             locked: false,
             items: [],
         });
@@ -146,6 +157,10 @@ export class RubricRow<T extends number | undefined | null> {
         Object.freeze(this.items);
 
         Object.freeze(this);
+    }
+
+    get isMarkdown(): boolean {
+        return this.descriptionType === RubricDescriptionType.markdown;
     }
 
     get minPoints(): number {
@@ -378,6 +393,7 @@ export class NormalRubricRow<T extends number | undefined | null> extends Rubric
             type: data.type,
             header: data.header,
             description: data.description,
+            descriptionType: RubricDescriptionType[data.description_type],
             locked: data.locked,
             items: data.items.map(item => RubricItem.fromServerData(item)),
         });
@@ -389,6 +405,7 @@ export class NormalRubricRow<T extends number | undefined | null> extends Rubric
             type: 'normal',
             header: '',
             description: '',
+            descriptionType: defaultDescriptionType,
             locked: false,
             items: [],
         });
@@ -433,6 +450,7 @@ export class ContinuousRubricRow<T extends number | undefined | null> extends Ru
             type: data.type,
             header: data.header,
             description: data.description,
+            descriptionType: RubricDescriptionType[data.description_type],
             locked: data.locked,
             items: data.items.map(item => RubricItem.fromServerData(item)),
         });
@@ -444,6 +462,7 @@ export class ContinuousRubricRow<T extends number | undefined | null> extends Ru
             type: 'continuous',
             header: '',
             description: '',
+            descriptionType: defaultDescriptionType,
             locked: false,
             items: [RubricItem.createEmpty().update({ header: 'Continuous' })],
         });

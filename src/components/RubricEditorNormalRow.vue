@@ -1,7 +1,6 @@
 <!-- SPDX-License-Identifier: AGPL-3.0-only -->
 <template>
 <div class="rubric-editor-row normal"
-     :class="{ grow }"
      @mouseenter="lockPopoverVisible = true"
      @mouseleave="lockPopoverVisible = false">
     <template v-if="editable">
@@ -20,30 +19,39 @@
                                   class="cursor-help"
                                   is-text
                                   v-b-popover.top.hover="lockPopover">
-                <icon class="lock-icon" name="lock" />
+                <fa-icon class="lock-icon" name="lock" />
             </b-input-group-append>
 
             <b-input-group-append v-else>
-                <submit-button variant="danger"
-                               class="delete-category"
-                               label="Remove category"
-                               :wait-at-least="0"
-                               :submit="() => {}"
-                               @after-success="deleteRow"
-                               confirm="Do you really want to delete this category?" />
+                <cg-submit-button variant="danger"
+                                  class="delete-category"
+                                  label="Remove category"
+                                  :wait-at-least="0"
+                                  :submit="() => {}"
+                                  @after-success="deleteRow"
+                                  confirm="Do you really want to delete this category?" />
             </b-input-group-append>
         </b-input-group>
 
-        <textarea class="category-description form-control mb-3"
-                  placeholder="Category description"
-                  :tabindex="active ? null : -1"
-                  :value="value.description"
-                  @input="updateProp($event, 'description')"
-                  @keydown.ctrl.enter.prevent="submitRubric" />
+        <previewable-markdown-editor
+            class="category-description mb-3"
+            :rows="5"
+            placeholder="Category description"
+            :tabindex="active ? null : -1"
+            :value="value.description"
+            @input="updateProp($event, 'description')"
+            @submit="submitRubric"
+            :hide-toggle="!value.isMarkdown">
+            <template #empty>
+                No description...
+            </template>
+        </previewable-markdown-editor>
+
+        <labelled-hr label="Items" />
     </template>
 
     <div v-else
-         class="mb-3 pb-3 border-bottom">
+         class="mb-3">
         <template v-if="value.locked">
             <b-popover :show="lockPopoverVisible"
                        :target="`rubric-lock-${id}`"
@@ -51,24 +59,28 @@
                        triggers=""
                        placement="top" />
 
-            <icon name="lock"
-                  class="float-right"
-                  :id="`rubric-lock-${id}`" />
+            <fa-icon name="lock"
+                     class="float-right"
+                     :id="`rubric-lock-${id}`" />
         </template>
 
-        <p v-if="value.description"
-           class="mb-0 text-wrap-pre"
+        <p v-if="!value.description"
+           class="text-muted font-italic"
+           >This category has no description.</p>
+        <inner-markdown-viewer
+            v-else-if="value.isMarkdown"
+            :markdown="value.description"
+            class="mb-3" />
+        <p v-else class="text-wrap-pre"
            >{{ value.description }}</p>
-        <p v-else
-           class="mb-0 text-muted font-italic">
-            This category has no description.
-        </p>
+
+        <labelled-hr label="Items" />
     </div>
 
     <div class="item-container row d-flex flex-row flex-wrap">
         <div v-for="item, i in value.items"
              :key="item.id || -item.trackingId"
-             class="rubric-item col-6 col-lg-4 mb-3 d-flex flex-column"
+             class="rubric-item col-12 col-md-6 col-xl-4 mb-3 d-flex flex-column"
              ref="rubricItems">
             <template v-if="editable">
                 <b-input-group>
@@ -95,17 +107,23 @@
                         class="delete-item rounded-bottom-0 text-muted cursor-pointer"
                         v-b-popover.top.hover="'Delete this item.'"
                         @click="deleteItem(i)">
-                        <icon name="times" />
+                        <fa-icon name="times" />
                     </b-input-group-append>
                 </b-input-group>
 
-                <textarea class="description form-control border-top-0 rounded-top-0"
-                          :rows="8"
-                          placeholder="Description"
-                          :tabindex="active ? null : -1"
-                          :value="item.description"
-                          @input="updateItem(i, 'description', $event)"
-                          @keydown.ctrl.enter.prevent="submitRubric" />
+                <previewable-markdown-editor
+                    class="description border-top-0 rounded-top-0"
+                    :rows="8"
+                    placeholder="Description"
+                    :tabindex="active ? null : -1"
+                    :value="item.description"
+                    @input="updateItem(i, 'description', $event)"
+                    @submit="submitRubric"
+                    :hide-toggle="!value.isMarkdown">
+                    <template #empty>
+                        No description...
+                    </template>
+                </previewable-markdown-editor>
             </template>
 
             <template v-else>
@@ -115,37 +133,45 @@
                     <b class="header pl-1">{{ item.header }}</b>
                 </span>
 
-                <!-- Weird formatting required for text-wrap-pre formatting. -->
-                <p class="description flex-grow-1 border rounded mb-0 px-3 py-2 text-wrap-pre"
-                    ><template v-if="item.description">{{ item.description }}</template
-                    ><span v-else class="text-muted font-italic">No description.</span>
+                <p class="description flex-grow-1 border rounded mb-0 px-3 py-2">
+                    <span v-if="!item.description"
+                          class="text-muted font-italic">No description</span>
+                    <inner-markdown-viewer
+                        v-else-if="item.isMarkdown"
+                        :markdown="item.description" />
+                    <span v-else class="text-wrap-pre">{{ item.description }}</span>
                 </p>
             </template>
         </div>
 
-        <div v-if="editable && canChangeItems"
-             class="rubric-item add-button col-6 col-lg-4 mb-3"
+        <div v-if="canChangeItems"
+             class="rubric-item add-button col-12 col-md-6 col-xl-4 mb-3"
              @click="createItem">
-            <b-input-group>
-                <input type="number"
-                       class="points form-control rounded-bottom-0 px-2"
-                       step="any"
-                       placeholder="Pts."
-                       disabled />
+            <div class="wrapper">
+                <b-input-group>
+                    <input type="number"
+                           class="points form-control rounded-bottom-0 px-2"
+                           step="any"
+                           placeholder="Pts."
+                           disabled />
 
-                <input type="text"
-                       class="header form-control rounded-bottom-0"
-                       placeholder="Header"
-                       disabled />
-            </b-input-group>
+                    <input type="text"
+                           class="header form-control rounded-bottom-0"
+                           placeholder="Header"
+                           disabled />
+                </b-input-group>
 
-            <textarea class="description form-control border-top-0 rounded-top-0"
-                      :rows="8"
-                      placeholder="Description"
-                      disabled />
+                <previewable-markdown-editor
+                    class="description border-top-0 rounded-top-0"
+                    value=""
+                    :rows="8"
+                    placeholder="Description"
+                    disabled
+                    :hide-toggle="!value.isMarkdown" />
 
-            <div class="overlay rounded cursor-pointer">
-                <icon name="plus" :scale="3" />
+                <div class="overlay rounded cursor-pointer">
+                    <fa-icon name="plus" :scale="3" />
+                </div>
             </div>
         </div>
     </div>
@@ -153,12 +179,13 @@
 </template>
 
 <script>
-import Icon from 'vue-awesome/components/Icon';
 import 'vue-awesome/icons/times';
 import 'vue-awesome/icons/plus';
 import 'vue-awesome/icons/lock';
 
-import SubmitButton from './SubmitButton';
+import LabelledHr from './LabelledHr';
+import InnerMarkdownViewer from './InnerMarkdownViewer';
+import PreviewableMarkdownEditor from './PreviewableMarkdownEditor';
 
 export default {
     name: 'rubric-editor-normal-row',
@@ -181,10 +208,6 @@ export default {
             default: false,
         },
         active: {
-            type: Boolean,
-            default: false,
-        },
-        grow: {
             type: Boolean,
             default: false,
         },
@@ -262,8 +285,9 @@ export default {
     },
 
     components: {
-        Icon,
-        SubmitButton,
+        LabelledHr,
+        InnerMarkdownViewer,
+        PreviewableMarkdownEditor,
     },
 };
 </script>
@@ -280,15 +304,16 @@ export default {
     padding: 0 0.5rem 0 0.5rem;
 }
 
-.add-buton {
+.add-button .wrapper {
     position: relative;
+    opacity: 0.66;
 }
 
 .add-button .overlay {
     height: 100%;
+    width: 100%;
     top: 0;
-    left: 0.5rem;
-    right: 0.5rem;
+    left: 0;
     position: absolute;
     background-color: rgba(0, 0, 0, 0.0625);
     transition: background-color @transition-duration;
@@ -302,7 +327,6 @@ export default {
         left: 50%;
         top: 50%;
         transform: translate(-50%, -50%);
-        opacity: 0.8;
     }
 }
 
@@ -310,20 +334,23 @@ input.points {
     max-width: 3rem;
 }
 
-p.description {
-    background-color: rgba(0, 0, 0, 0.0325);
-
-    .rubric-editor-row.normal:not(.grow) & {
-        height: 10rem;
-    }
+.rubric-editor-row.normal p.description {
+    max-height: 10rem;
+    overflow: auto;
 }
 </style>
 
 <style lang="less">
+@import '~mixins';
+
 .rubric-editor-row.normal {
     .input-group-append.rounded-bottom-0 .input-group-text {
         border-bottom-left-radius: 0 !important;
         border-bottom-right-radius: 0 !important;
+    }
+
+    .add-button [disabled] {
+        .default-background;
     }
 }
 </style>

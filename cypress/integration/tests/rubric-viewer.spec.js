@@ -286,13 +286,6 @@ context('Rubric Viewer', () => {
             checkGrade('');
         });
 
-        it('should be possible to input a negative value in a continuous category', () => {
-            selectContinuous(2, '-10');
-            checkGrade('0.00');
-            cy.get('.rubric-viewer .rubric-viewer-row.continuous:nth(0) input.percentage')
-                .should('have.value', '-10');
-        });
-
         it('should be possible to clear all selected items', () => {
             giveMaxGrade();
             submitGrade('success');

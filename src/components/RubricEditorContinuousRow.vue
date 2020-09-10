@@ -1,7 +1,6 @@
 <!-- SPDX-License-Identifier: AGPL-3.0-only -->
 <template>
 <div class="rubric-editor-row continuous"
-     :class="{ grow }"
      @mouseenter="lockPopoverVisible = true"
      @mouseleave="lockPopoverVisible = false">
     <template v-if="editable">
@@ -20,17 +19,17 @@
                                   class="cursor-help"
                                   is-text
                                   v-b-popover.top.hover="lockPopover">
-                <icon class="lock-icon" name="lock" />
+                <fa-icon class="lock-icon" name="lock" />
             </b-input-group-append>
 
             <b-input-group-append v-else>
-                <submit-button variant="danger"
-                               class="delete-category"
-                               label="Remove category"
-                               :wait-at-least="0"
-                               :submit="() => {}"
-                               @after-success="$emit('delete')"
-                               confirm="Do you really want to delete this category?" />
+                <cg-submit-button variant="danger"
+                                  class="delete-category"
+                                  label="Remove category"
+                                  :wait-at-least="0"
+                                  :submit="() => {}"
+                                  @after-success="$emit('delete')"
+                                  confirm="Do you really want to delete this category?" />
             </b-input-group-append>
         </b-input-group>
 
@@ -47,12 +46,19 @@
                    @keydown.ctrl.enter="submitRubric" />
         </b-input-group>
 
-        <textarea class="category-description form-control mb-3"
-                  placeholder="Description"
-                  :tabindex="active ? null : -1"
-                  :value="value.description"
-                  @input="updateProp($event, 'description')"
-                  @keydown.ctrl.enter.prevent="submitRubric" />
+        <previewable-markdown-editor
+            class="category-description mb-3"
+            :rows="5"
+            placeholder="Description"
+            :tabindex="active ? null : -1"
+            :value="value.description"
+            @input="updateProp($event, 'description')"
+            @submit="submitRubric"
+            :hide-toggle="!value.isMarkdown">
+            <template #empty>
+                No description...
+            </template>
+        </previewable-markdown-editor>
     </template>
 
     <div v-else>
@@ -63,18 +69,19 @@
                        triggers=""
                        placement="top" />
 
-            <icon name="lock"
-                    class="float-right"
-                    :id="`rubric-lock-${id}`" />
+            <fa-icon name="lock"
+                     class="float-right"
+                     :id="`rubric-lock-${id}`" />
         </template>
 
-        <p v-if="value.description"
-           class="mb-3 pb-3 border-bottom text-wrap-pre"
+        <p v-if="!value.description"
+           class="mb-3 pb-3 border-bottom text-muted font-italic"
+           >This category has no description.</p>
+        <inner-markdown-viewer
+            v-else-if="value.isMarkdown"
+            :markdown="value.description" />
+        <p v-else class="mb-3 pb-3 border-bottom text-wrap-pre"
            >{{ value.description }}</p>
-        <p v-else
-           class="mb-3 pb-3 border-bottom text-muted font-italic">
-            This category has no description.
-        </p>
 
         <p class="mb-0 pb-3">
             This is a continuous rubric category. You can score anywhere between
@@ -85,10 +92,10 @@
 </template>
 
 <script>
-import Icon from 'vue-awesome/components/Icon';
 import 'vue-awesome/icons/lock';
 
-import SubmitButton from './SubmitButton';
+import InnerMarkdownViewer from './InnerMarkdownViewer';
+import PreviewableMarkdownEditor from './PreviewableMarkdownEditor';
 
 export default {
     name: 'rubric-editor-continuous-row',
@@ -111,10 +118,6 @@ export default {
             default: false,
         },
         active: {
-            type: Boolean,
-            default: false,
-        },
-        grow: {
             type: Boolean,
             default: false,
         },
@@ -180,8 +183,8 @@ export default {
     },
 
     components: {
-        Icon,
-        SubmitButton,
+        InnerMarkdownViewer,
+        PreviewableMarkdownEditor,
     },
 };
 </script>

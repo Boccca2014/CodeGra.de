@@ -58,6 +58,7 @@ def rubric(
             result=[{
                 'header': original['rows'][0]['header'],
                 'description': original['rows'][0]['description'],
+                'description_type': 'markdown',
                 'id': int,
                 'items': list,
                 'locked': False,
@@ -525,6 +526,7 @@ def test_get_and_add_rubric_row(
             'id': int,
             'header': row['header'],
             'description': row['description'],
+            'description_type': 'markdown',
             'items': [{
                 'id': int,
                 'description': item['description'],
@@ -616,11 +618,13 @@ def test_update_add_rubric_wrong_permissions(
 ):
     marker = request.node.get_closest_marker('http_err')
     rubric = {
-        'header': f'My header', 'description': f'My description', 'items': [{
+        'header': f'My header',
+        'description': f'My description',
+        'items': [{
             'header': 'The header',
             'description': f'item description',
             'points': 2,
-        }, ]
+        }],
     }
     with logged_in(named_user):
         res = test_client.req(
@@ -4024,6 +4028,7 @@ def test_duplicating_rubric(
             result=[{
                 'header': original_rubric_data['rows'][0]['header'],
                 'description': original_rubric_data['rows'][0]['description'],
+                'description_type': 'markdown',
                 'id': int,
                 'items': list,
                 'locked': False,

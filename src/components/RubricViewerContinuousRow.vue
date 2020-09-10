@@ -6,22 +6,24 @@
      @mouseleave="lockPopoverVisible = false">
     <div class="rubric-row-header">
         <div class="row-description d-flex border-bottom">
-            <p v-if="rubricRow.description"
-               class="flex-grow-1 my-2 px-3 text-wrap-pre">{{
-                rubricRow.description
-            }}</p>
+            <p v-if="!rubricRow.description"
+               class="flex-grow-1 my-2 px-3 text-muted font-italic"
+               >This category has no description.</p>
+            <inner-markdown-viewer
+                v-else-if="rubricRow.isMarkdown"
+                :markdown="rubricRow.description"
+                class="flex-grow-1 my-2 px-3" />
             <p v-else
-               class="flex-grow-1 my-2 px-3 text-muted font-italic">
-                This category has no description.
-            </p>
+               class="flex-grow-1 my-2 px-3 text-wrap-pre"
+               >{{ rubricRow.description }}</p>
 
             <template v-if="locked">
                 <!-- Due to a rendering issue in edge, giving the icon
                      a margin-right moves it left by twice that amount... -->
-                <icon name="lock"
-                      class="rubric-lock my-2"
-                      :class="{ 'mr-3': !$root.isEdge, 'mr-2': $root.isEdge }"
-                      :id="`rubric-lock-${id}`" />
+                <fa-icon name="lock"
+                         class="rubric-lock my-2"
+                         :class="{ 'mr-3': !$root.isEdge, 'mr-2': $root.isEdge }"
+                         :id="`rubric-lock-${id}`" />
 
                 <!-- We need to key this popover to make sure it actually
                     changes when the content changes. -->
@@ -35,8 +37,7 @@
             </template>
         </div>
 
-        <div class="position-relative mb-0 pt-2 pb-3 px-4"
-             :class="{ 'pb-4': showProgressMeter }">
+        <div class="position-relative mb-0 pt-2 pb-4 px-4">
             <b>0</b>
             <b class="float-right">{{ onlyItem.points }}</b>
 
@@ -46,7 +47,7 @@
                      width: `${progressWidth}%`,
                  }">
                 <small class="text-center" :class="`progress-${readableMultiplier}`">
-                    {{ $utils.toMaxNDecimals(onlyItem.points * multiplier / 100, 2) }}
+                    {{ readableScore }}
                 </small>
             </div>
         </div>
@@ -54,27 +55,30 @@
 
     <b-input-group class="percentage-input"
                    append="%">
-        <input class="percentage form-control border-bottom-0 border-left-0 rounded-left-0"
-               type="number"
-               step="any"
-               min="0"
-               max="100"
+        <cg-number-input
+               class="percentage border-bottom-0 border-left-0 rounded-left-0"
+               :min="0"
+               :max="100"
                placeholder="Percentage"
-               :value="$utils.toMaxNDecimals(multiplier, 2)"
                :disabled="!editable || locked"
-               @input="setMultiplier(timerDelay)"
-               @keydown.ctrl.enter="submitResult"
+               :value="multiplier"
+               debounce
+               @input="setMultiplier"
+               @keydown.ctrl.enter.native="submitResult"
                ref="multiplierInput" />
     </b-input-group>
 </div>
 </template>
 
 <script>
-import Icon from 'vue-awesome/components/Icon';
 import 'vue-awesome/icons/lock';
 import 'vue-awesome/icons/check';
 
 import { AutoTestResult, RubricRow, RubricResult } from '@/models';
+import { Nothing } from '@/utils';
+
+import InnerMarkdownViewer from './InnerMarkdownViewer';
+import { numberInputValue } from './NumberInput';
 
 export default {
     name: 'rubric-viewer-continuous-row',
@@ -114,8 +118,6 @@ export default {
         return {
             id: this.$utils.getUniqueId(),
             lockPopoverVisible: false,
-            timerId: null,
-            timerDelay: 75,
         };
     },
 
@@ -131,13 +133,17 @@ export default {
         multiplier() {
             const resultMult = this.$utils.getProps(this.resultItem, null, 'multiplier');
 
+            let val;
             if (typeof this.autoTestProgress === 'number') {
-                return this.autoTestProgress;
+                val = this.autoTestProgress;
             } else if (typeof resultMult === 'number') {
-                return 100 * resultMult;
+                // Prevent rounding errors such as 58 -> 57.999...
+                val = Number(this.$utils.toMaxNDecimals(100 * resultMult, 2));
             } else {
-                return null;
+                val = null;
             }
+
+            return numberInputValue(val);
         },
 
         autoTestProgress() {
@@ -157,8 +163,22 @@ export default {
             return state === 'not_started' ? null : percentage;
         },
 
+        maybeMultiplier() {
+            return this.multiplier.orDefault(Nothing);
+        },
+
         readableMultiplier() {
-            return this.$utils.toMaxNDecimals(this.multiplier, 0);
+            return this.maybeMultiplier.mapOrDefault(
+                m => this.$utils.toMaxNDecimals(m, 0),
+                null,
+            );
+        },
+
+        readableScore() {
+            return this.maybeMultiplier.mapOrDefault(
+                m => this.$utils.toMaxNDecimals(this.onlyItem.points * m / 100, 2),
+                null,
+            );
         },
 
         locked() {
@@ -166,19 +186,11 @@ export default {
         },
 
         showProgressMeter() {
-            if (this.multiplier != null) {
-                return this.multiplier >= 0 && this.multiplier <= 100;
-            } else {
-                return false;
-            }
+            return this.maybeMultiplier.mapOrDefault(() => true, false);
         },
 
         progressWidth() {
-            if (this.multiplier == null) {
-                return null;
-            } else {
-                return Math.max(0, Math.min(this.multiplier, 100));
-            }
+            return this.maybeMultiplier.extractNullable();
         },
 
         lockPopover() {
@@ -198,37 +210,13 @@ export default {
     },
 
     methods: {
-        setMultiplier(delay = 0) {
-            if (!this.editable || this.locked) {
-                return;
-            }
-
-            clearTimeout(this.timerId);
-
-            const inputEl = this.$refs.multiplierInput;
-
-            let value = parseFloat(inputEl.value);
-            if (!Number.isNaN(value)) {
-                value /= 100;
-            } else if (inputEl.validity.valid) {
-                value = null;
-            } else {
-                return;
-            }
-
-            if (delay) {
-                this.timerId = setTimeout(() => {
-                    this.timerId = null;
-                    this.emitItem(value);
-                }, this.timerDelay);
-            } else {
-                this.emitItem(value);
-            }
+        setMultiplier(errOrMul) {
+            errOrMul.ifRight(mul => this.emitItem(
+                mul.map(m => m / 100).extractNullable(),
+            ));
         },
 
         submitResult() {
-            clearTimeout(this.timerId);
-            this.setMultiplier(this.$refs.multiplierInput);
             this.$nextTick(() => {
                 this.$emit('submit');
             });
@@ -245,13 +233,13 @@ export default {
         async focusInput() {
             const input = await this.$waitForRef('multiplierInput');
             if (input != null) {
-                input.focus();
+                input.$el.focus();
             }
         },
     },
 
     components: {
-        Icon,
+        InnerMarkdownViewer,
     },
 };
 </script>
