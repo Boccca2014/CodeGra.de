@@ -82,19 +82,50 @@ export default {
 @import '~mixins.less';
 
 .inner-markdown-viewer {
+    h1 {
+        font-size: 2.5em;
+    }
+
+    h2 {
+        font-size: 2em;
+    }
+
+    h3 {
+        font-size: 1.75em;
+    }
+
+    h4 {
+        font-size: 1.5em;
+    }
+
+    h5 {
+        font-size: 1.25em;
+    }
+
+    h6 {
+        font-size: 1em;
+    }
+
     pre {
-        margin-bottom: 1rem;
+        padding: 0.75rem 1.25rem;
+        background-color: @color-lightest-gray;
+        border-radius: 0.25rem;
         font-size: 100%;
         white-space: pre-wrap;
         word-wrap: break-word;
         word-break: break-word;
         hyphens: auto;
-        margin-left: 1.5rem;
+
+        @{dark-mode} {
+            color: @text-color-dark;
+            background-color: fade(@color-primary-darker, 50%);
+        }
     }
 
     img,
     .MathJax_SVG svg {
         max-width: 100%;
+
         @media @media-large {
             max-width: 30rem;
         }
