@@ -641,7 +641,7 @@ export default class AssignmentGeneralSettings extends Vue {
                     avail = formatDate(this.availableAt, null);
                 }
                 let maxGrade;
-                if (supportsBonusPoints) {
+                if (prov.supportsBonusPoints) {
                     maxGrade = this.maxGrade.orDefault(Nothing).extractNullable();
                 }
 
