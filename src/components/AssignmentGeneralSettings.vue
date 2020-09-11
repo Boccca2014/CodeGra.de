@@ -629,28 +629,36 @@ export default class AssignmentGeneralSettings extends Vue {
             return formatNullableDate(date, true) ?? dflt;
         }
 
-        const { name, availableAt, deadline }: {
+        const { name, availableAt, deadline, maxGrade }: {
             name: string | undefined;
             availableAt: string | undefined | null;
             deadline: string | undefined;
+            maxGrade?: number | null;
         } = this.assignment.ltiProvider.mapOrDefault(
             prov => {
                 let avail;
                 if (!prov.supportsStateManagement) {
                     avail = formatDate(this.availableAt, null);
                 }
+                let max;
+                if (prov.supportsBonusPoints) {
+                    max = this.maxGrade.orDefault(Nothing).extractNullable();
+                }
+
                 return {
                     name: undefined as string | undefined,
                     deadline: (prov.supportsDeadline ?
                         undefined :
                         formatDate(setDeadline, undefined)),
                     availableAt: avail,
+                    maxGrade: max,
                 };
             },
             {
                 name: this.name ?? undefined,
                 availableAt: formatDate(this.availableAt, null),
                 deadline: formatDate(setDeadline, undefined),
+                maxGrade: this.maxGrade.orDefault(Nothing).extractNullable(),
             },
         );
 
@@ -661,7 +669,7 @@ export default class AssignmentGeneralSettings extends Vue {
                 available_at: availableAt,
                 deadline,
                 kind: this.kind,
-                max_grade: this.maxGrade.orDefault(Nothing).extractNullable(),
+                max_grade: maxGrade,
                 send_login_links: this.isExam && this.sendLoginLinks,
             },
         });
