@@ -15,10 +15,32 @@ from mypy.types import (  # pylint: disable=no-name-in-module
     CallableType, TypedDictType
 )
 from mypy.plugin import (  # pylint: disable=no-name-in-module
-    Plugin, MethodContext, FunctionContext
+    Plugin, MethodContext, FunctionContext, AttributeContext
 )
 
 from cg_request_args import MissingType
+
+
+def dict_getter_attribute_callback(ctx: AttributeContext, attr: str) -> Type:
+    if attr == '__data':
+        return ctx.default_attr_type
+
+    assert isinstance(ctx.type, Instance)
+    typeddict = ctx.type.args[0]
+    assert isinstance(typeddict, TypedDictType)
+    items = typeddict.items
+
+    if attr not in items:
+        ctx.api.fail(
+            (
+                'The _DictGetter[{}] does not have the attribute {}, available'
+                ' attributes: {}'
+            ).format(typeddict, attr, ', '.join(items.keys())),
+            ctx.context,
+        )
+        return ctx.default_attr_type
+
+    return items[attr]
 
 
 def argument_callback(ctx: FunctionContext) -> Type:
@@ -65,9 +87,9 @@ def fixed_mapping_callback(ctx: FunctionContext) -> Type:
         except:
             typ = '????'
 
-        if typ == 'cg_request_args._RequiredArgument':
+        if typ == 'cg_request_args.RequiredArgument':
             required = True
-        elif typ != 'cg_request_args._OptionalArgument':
+        elif typ != 'cg_request_args.OptionalArgument':
             ctx.api.fail((
                 'Argument number {} provided was of wrong type, expected'
                 ' cg_request_args._RequiredArgument or'
@@ -108,7 +130,10 @@ def fixed_mapping_callback(ctx: FunctionContext) -> Type:
                     value_type,
                     LiteralType(
                         MissingType.token.name,
-                        ctx.api.named_type('cg_request_args.MissingType'),
+                        ctx.api.named_generic_type(
+                            'cg_request_args.MissingType',
+                            [],
+                        ),
                     ),
                 ]
             )
@@ -196,12 +221,21 @@ class CgRequestArgPlugin(Plugin):
     ) -> t.Optional[t.Callable[[FunctionContext], Type]]:
         """Get the function to be called by mypy.
         """
-        if fullname == 'cg_request_args._RequiredArgument':
+        if fullname == 'cg_request_args.RequiredArgument':
             return argument_callback
-        if fullname == 'cg_request_args._OptionalArgument':
+        if fullname == 'cg_request_args.OptionalArgument':
             return argument_callback
-        if fullname == 'cg_request_args._FixedMapping':
+        if fullname == 'cg_request_args.FixedMapping':
             return fixed_mapping_callback
+
+        return None
+
+    def get_attribute_hook(
+        self, fullname: str
+    ) -> t.Optional[t.Callable[[AttributeContext], Type]]:
+        path = fullname.split('.')
+        if path[:-1] == ['cg_request_args', '_DictGetter']:
+            return partial(dict_getter_attribute_callback, attr=path[-1])
 
         return None
 

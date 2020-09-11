@@ -41,7 +41,9 @@ from cg_json import (
     JSONResponse, ExtendedJSONResponse, jsonify, extended_jsonify
 )
 from cg_timers import timed_code
-from cg_helpers import flatten, handle_none, on_not_none, maybe_wrap_in_list
+from cg_helpers import (
+    flatten, handle_none, on_not_none, readable_join, maybe_wrap_in_list
+)
 from cg_dt_utils import DatetimeWithTimezone
 from cg_flask_helpers import (
     EmptyResponse, make_empty_response, callback_after_this_request
@@ -1741,24 +1743,6 @@ def format_list(lst: t.List[str], **formatting: str) -> t.List[str]:
     :returns: A new fresh formatted list.
     """
     return [part.format(**formatting) for part in lst]
-
-
-def readable_join(lst: t.Sequence[str]) -> str:
-    """Join a list using comma's and the word "and"
-
-    >>> readable_join(['a', 'b', 'c'])
-    'a, b, and c'
-    >>> readable_join(['a'])
-    'a'
-    >>> readable_join(['a', 'b'])
-    'a and b'
-
-    :param lst: The list to join.
-    :returns: The list joined as described above.
-    """
-    if len(lst) < 3:
-        return ' and '.join(lst)
-    return ', '.join(lst[:-1]) + ', and ' + lst[-1]
 
 
 def contains_duplicate(it_to_check: t.Iterable[T_Hashable]) -> bool:
