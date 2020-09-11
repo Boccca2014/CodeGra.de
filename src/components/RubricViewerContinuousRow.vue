@@ -12,7 +12,7 @@
             <inner-markdown-viewer
                 v-else-if="rubricRow.descriptionType === 'markdown'"
                 :markdown="rubricRow.description"
-                class="my-2 px-3" />
+                class="flex-grow-1 my-2 px-3" />
             <p v-else
                class="flex-grow-1 my-2 px-3 text-wrap-pre"
                >{{ rubricRow.description }}</p>

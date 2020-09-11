@@ -47,12 +47,13 @@
                    @keydown.ctrl.enter="submitRubric" />
         </b-input-group>
 
-        <textarea class="category-description form-control mb-3"
-                  placeholder="Description"
-                  :tabindex="active ? null : -1"
-                  :value="value.description"
-                  @input="updateProp($event, 'description')"
-                  @keydown.ctrl.enter.prevent="submitRubric" />
+        <previewable-markdown-editor
+            class="category-description mb-3"
+            placeholder="Description"
+            :tabindex="active ? null : -1"
+            :value="value.description"
+            @input="updateProp($event, 'description')"
+            @keydown.ctrl.enter.prevent="submitRubric" />
     </template>
 
     <div v-else>
@@ -89,6 +90,7 @@
 import 'vue-awesome/icons/lock';
 
 import InnerMarkdownViewer from './InnerMarkdownViewer';
+import PreviewableMarkdownEditor from './PreviewableMarkdownEditor';
 
 export default {
     name: 'rubric-editor-continuous-row',
@@ -181,6 +183,7 @@ export default {
 
     components: {
         InnerMarkdownViewer,
+        PreviewableMarkdownEditor,
     },
 };
 </script>

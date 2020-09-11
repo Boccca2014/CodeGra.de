@@ -34,16 +34,24 @@
             </b-input-group-append>
         </b-input-group>
 
-        <textarea class="category-description form-control mb-3"
-                  placeholder="Category description"
-                  :tabindex="active ? null : -1"
-                  :value="value.description"
-                  @input="updateProp($event, 'description')"
-                  @keydown.ctrl.enter.prevent="submitRubric" />
+        <previewable-markdown-editor
+            class="category-description mb-3"
+            placeholder="Category description"
+            :tabindex="active ? null : -1"
+            :value="value.description"
+            @input="updateProp($event, 'description')"
+            @keydown.ctrl.enter.prevent="submitRubric"/>
+
+        <small class="pr-2 text-muted font-italic"
+               style="background-color: white; position: absolute; transform: translateY(-50%)">
+            Items
+        </small>
+
+        <hr />
     </template>
 
     <div v-else
-         class="mb-3 pb-3 border-bottom">
+         class="mb-3">
         <template v-if="value.locked">
             <b-popover :show="lockPopoverVisible"
                        :target="`rubric-lock-${id}`"
@@ -64,12 +72,19 @@
             :markdown="value.description" />
         <p v-else class="mb-0 text-wrap-pre"
            >{{ value.description }}</p>
+
+        <small class="pr-2 text-muted font-italic"
+               style="background-color: white; position: absolute; transform: translateY(-0.125rem)">
+            Items
+        </small>
+
+        <hr />
     </div>
 
     <div class="item-container row d-flex flex-row flex-wrap">
         <div v-for="item, i in value.items"
              :key="item.id || -item.trackingId"
-             class="rubric-item col-6 col-lg-4 mb-3 d-flex flex-column"
+             class="rubric-item col-12 col-md-6 col-xl-4 mb-3 d-flex flex-column"
              ref="rubricItems">
             <template v-if="editable">
                 <b-input-group>
@@ -100,13 +115,14 @@
                     </b-input-group-append>
                 </b-input-group>
 
-                <textarea class="description form-control border-top-0 rounded-top-0"
-                          :rows="8"
-                          placeholder="Description"
-                          :tabindex="active ? null : -1"
-                          :value="item.description"
-                          @input="updateItem(i, 'description', $event)"
-                          @keydown.ctrl.enter.prevent="submitRubric" />
+                <previewable-markdown-editor
+                    class="description border-top-0 rounded-top-0"
+                    :rows="8"
+                    placeholder="Description"
+                    :tabindex="active ? null : -1"
+                    :value="item.description"
+                    @input="updateItem(i, 'description', $event)"
+                    @keydown.ctrl.enter.prevent="submitRubric" />
             </template>
 
             <template v-else>
@@ -128,7 +144,7 @@
         </div>
 
         <div v-if="editable && canChangeItems"
-             class="rubric-item add-button col-6 col-lg-4 mb-3"
+             class="rubric-item add-button col-12 col-md-6 col-xl-4 mb-3"
              @click="createItem">
             <b-input-group>
                 <input type="number"
@@ -162,6 +178,7 @@ import 'vue-awesome/icons/plus';
 import 'vue-awesome/icons/lock';
 
 import InnerMarkdownViewer from './InnerMarkdownViewer';
+import PreviewableMarkdownEditor from './PreviewableMarkdownEditor';
 
 export default {
     name: 'rubric-editor-normal-row',
@@ -266,6 +283,7 @@ export default {
 
     components: {
         InnerMarkdownViewer,
+        PreviewableMarkdownEditor,
     },
 };
 </script>
@@ -312,12 +330,8 @@ input.points {
     max-width: 3rem;
 }
 
-p.description {
-    background-color: rgba(0, 0, 0, 0.0325);
-
-    .rubric-editor-row.normal:not(.grow) & {
-        height: 10rem;
-    }
+.rubric-editor-row.normal:not(.grow) p.description {
+    height: 10rem;
 }
 </style>
 

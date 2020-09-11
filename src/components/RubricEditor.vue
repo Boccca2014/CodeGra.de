@@ -861,5 +861,9 @@ input.max-points {
     .assignment-selector {
         z-index: 8;
     }
+
+    .inner-markdown-viewer > :last-child {
+        margin-bottom: 0.5rem;
+    }
 }
 </style>

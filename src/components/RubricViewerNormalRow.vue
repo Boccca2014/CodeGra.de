@@ -11,7 +11,7 @@
         <inner-markdown-viewer
            v-else-if="rubricRow.descriptionType === 'markdown'"
            :markdown="rubricRow.description"
-           class="my-2 px-3" />
+           class="flex-grow-1 my-2 px-3" />
         <p v-else
            class="flex-grow-1 my-2 px-3 text-wrap-pre"
            >{{ rubricRow.description }}</p>
@@ -58,7 +58,7 @@
             <inner-markdown-viewer
                 v-if="item.descriptionType === 'markdown'"
                 :markdown="item.description"
-                class="description" />
+                class="description pr-2 text-justify" />
             <p v-else
                class="description mb-0 pb-2 pr-2 text-justify text-wrap-pre"
                >{{ item.description }}</p>
@@ -207,12 +207,12 @@ export default {
         cursor: pointer;
 
         &:hover {
-            background-color: rgba(0, 0, 0, 0.125);
+            background-color: rgba(0, 0, 0, 0.09375);
         }
     }
 
     &.selected {
-        background-color: rgba(0, 0, 0, 0.09375);
+        background-color: rgba(0, 0, 0, 0.0625);
     }
 
     .description {

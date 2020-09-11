@@ -353,3 +353,9 @@ export default {
     }
 }
 </style>
+
+<style lang="less">
+.rubric-viewer .inner-markdown-viewer > :last-child {
+    margin-bottom: 0.5rem;
+}
+</style>
