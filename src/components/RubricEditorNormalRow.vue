@@ -138,7 +138,7 @@
                     <inner-markdown-viewer
                         v-else-if="item.descriptionType === 'markdown'"
                         :markdown="item.description" />
-                    <template v-else>{{ item.description }}</template>
+                    <span v-else class="text-wrap-pre">{{ item.description }}</span>
                 </p>
             </template>
         </div>

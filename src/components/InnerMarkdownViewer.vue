@@ -82,6 +82,10 @@ export default {
 @import '~mixins.less';
 
 .inner-markdown-viewer {
+    white-space: wrap;
+    word-wrap: break-word;
+    word-break: break-word;
+
     h1 {
         font-size: 2.5em;
     }
