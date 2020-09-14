@@ -1,7 +1,6 @@
 <!-- SPDX-License-Identifier: AGPL-3.0-only -->
 <template>
 <div class="rubric-editor-row continuous"
-     :class="{ grow }"
      @mouseenter="lockPopoverVisible = true"
      @mouseleave="lockPopoverVisible = false">
     <template v-if="editable">
@@ -53,7 +52,7 @@
             :tabindex="active ? null : -1"
             :value="value.description"
             @input="updateProp($event, 'description')"
-            @keydown.ctrl.enter.prevent="submitRubric" />
+            @submit="submitRubric" />
     </template>
 
     <div v-else>
@@ -113,10 +112,6 @@ export default {
             default: false,
         },
         active: {
-            type: Boolean,
-            default: false,
-        },
-        grow: {
             type: Boolean,
             default: false,
         },

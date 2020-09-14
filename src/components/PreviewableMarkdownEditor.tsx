@@ -1,5 +1,6 @@
-/* import { VNode, CreateElement } from 'vue'; */
+import { VNode, CreateElement } from 'vue';
 import * as tsx from 'vue-tsx-support';
+import { modifiers as m } from 'vue-tsx-support';
 import p from 'vue-strict-prop';
 
 // @ts-ignore
@@ -10,6 +11,7 @@ const PreviewableMarkdownEditor = tsx.component({
         value: p(String).required,
         rows: p(Number).default(5),
         placeholder: p(String).default(''),
+        disabled: p(Boolean).default(false),
         tabindex: p.ofType<number | undefined>().default(undefined),
     },
 
@@ -17,7 +19,7 @@ const PreviewableMarkdownEditor = tsx.component({
         return { preview: false };
     },
 
-    render(h) {
+    render(h: CreateElement) {
         let innerViewer = this.$utils.ifExpr(
             this.preview,
             () =>
@@ -30,14 +32,16 @@ const PreviewableMarkdownEditor = tsx.component({
                           rows={this.rows}
                           placeholder={this.placeholder}
                           tabindex={this.tabindex}
-                          onInput={$event => this.$emit('input', $event)} />,
+                          disabled={this.disabled}
+                          onInput={$event => this.$emit('input', $event)}
+                          onKeyup={m.ctrl.enter(() => this.$emit('submit'))} />,
         );
 
         return <div class="border rounded">
             {innerViewer}
             <div class="border-top clearfix">
                 <a href="#"
-                   onClick={tsx.modifiers.prevent(() => this.preview = !this.preview)}
+                   onClick={m.prevent(() => this.preview = !this.preview)}
                    class="px-2 float-right inline-link">
                     <small>Toggle preview</small>
                 </a>
