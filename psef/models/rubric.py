@@ -227,6 +227,8 @@ class RubricItem(helpers.NotEqualMixin, Base):
         points: numbers.Real
 
     class AsJSON(JSONBaseSerialization, total=True):
+        """Serialization of rubric items for outgoing requests.
+        """
         id: int
         description_type: RubricDescriptionType
 
@@ -402,12 +404,14 @@ class RubricRowBase(helpers.NotEqualMixin, Base):
         return self.assignment.locked_rubric_rows.get(self.id, False)
 
     class AsJSON(TypedDict, total=True):
+        """JSON serialization of a rubric row.
+        """
         id: int
         header: str
-        description: str
+        description: t.Optional[str]
         description_type: RubricDescriptionType
         items: t.List[RubricItem]
-        locked: bool
+        locked: t.Union[RubricLockReason, bool]
         type: str
 
     def __to_json__(self) -> AsJSON:
