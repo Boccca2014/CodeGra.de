@@ -117,7 +117,13 @@ class CourseSnippet(Base):
 
     __table_args__ = (db.UniqueConstraint(course_id, key), )
 
-    def __to_json__(self) -> t.Mapping[str, t.Any]:
+    class AsJSON(TypedDict):
+        id: int  #: The id of this snippet.
+        key: str  #: The key of this snippet.
+        #: The value of this snippet, i.e. what this snippet should expand to.
+        value: str
+
+    def __to_json__(self) -> AsJSON:
         """Creates a JSON serializable representation of this object.
         """
         return {
@@ -237,8 +243,11 @@ class Course(NotEqualMixin, Base, mixins.TimestampMixin, mixins.IdMixin):
     class AsExtendedJSON(AsJSON, total=True):
         """The way this class will be represented in extended JSON.
         """
+        #: The assignments connected to this assignment.
         assignments: t.Sequence['psef.models.Assignment']
+        #: The groups sets of this course.
         group_sets: t.Sequence['psef.models.GroupSet']
+        #: The snippets of this course.
         snippets: t.Sequence[CourseSnippet]
 
     def __to_json__(self) -> AsJSON:

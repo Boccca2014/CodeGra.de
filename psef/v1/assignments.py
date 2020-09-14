@@ -1,7 +1,5 @@
-"""
-This module defines all API routes with the main directory "assignments". Thus
-the APIs in this module are mostly used to manipulate
-:class:`.models.Assignment` objects and their relations.
+"""All routes to used to manipulate and retrieve assignment objects and their
+relations.
 
 SPDX-License-Identifier: AGPL-3.0-only
 """
@@ -19,6 +17,7 @@ from sqlalchemy.orm import joinedload, selectinload
 
 import psef
 import psef.files
+import cg_request_args as rqa
 from psef import app as current_app
 from psef import current_user
 from cg_helpers import handle_none, on_not_none
@@ -44,6 +43,7 @@ logger = structlog.get_logger()
 
 @api.route('/assignments/', methods=['GET'])
 @auth.login_required
+@rqa.swagerize
 def get_all_assignments() -> JSONResponse[t.Sequence[models.Assignment]]:
     """Get all the :class:`.models.Assignment` objects that the current user
     can see.
@@ -113,14 +113,16 @@ def delete_assignment(assignment_id: int) -> EmptyResponse:
 
 @api.route('/assignments/<int:assignment_id>/course', methods=['GET'])
 @auth.login_required
-def get_course_of_assignment(
-    assignment_id: int
-) -> t.Union[ExtendedJSONResponse[models.Course], JSONResponse[models.Course]]:
-    """Get a course of an :class:`.models.Assignment`.
+@rqa.swagerize
+def get_course_of_assignment(assignment_id: int
+                             ) -> ExtendedJSONResponse[models.Course]:
+    """Get the course connected to an assignment.
 
     .. :quickref: Assignment; Get the course an assignment is in.
 
-    :param int assignment_id: The id of the assignment
+    :param int assignment_id: The id of the assignment from which you want to
+        get the course.
+
     :returns: A response containing the JSON serialized course.
     """
     assignment = helpers.get_or_404(
@@ -130,12 +132,9 @@ def get_course_of_assignment(
     )
     auth.AssignmentPermissions(assignment).ensure_may_see()
 
-    if helpers.extended_requested():
-        return ExtendedJSONResponse.make(
-            assignment.course, use_extended=models.Course
-        )
-    else:
-        return JSONResponse.make(assignment.course)
+    return ExtendedJSONResponse.make(
+        assignment.course, use_extended=models.Course
+    )
 
 
 @api.route("/assignments/<int:assignment_id>", methods=['GET'])
@@ -265,52 +264,102 @@ def set_reminder(
 
 @api.route('/assignments/<int:assignment_id>', methods=['PATCH'])
 @auth.login_required
+@rqa.swagerize
 def update_assignment(assignment_id: int) -> JSONResponse[models.Assignment]:
     # pylint: disable=too-many-branches,too-many-statements
-    """Update the given :class:`.models.Assignment` with new values.
+    """Update the given assignment with new values.
 
     .. :quickref: Assignment; Update assignment information.
-
-    :<json str state: The new state of the assignment, can be `hidden`, `open`
-        or `done`. (OPTIONAL)
-    :<json str name: The new name of the assignment, this string should not be
-        empty. (OPTIONAL)
-    :<json str deadline: The new deadline of the assignment. This should be a
-        ISO 8061 date without timezone information. (OPTIONAL)
-    :<json str done_type: The type to determine if a assignment is done. This
-        can be any value of :class:`.models.AssignmentDoneType` or
-        ``null``. (OPTIONAL)
-    :<json str done_email: The emails to send an email to if the assignment is
-        done. Can be ``null`` to disable these emails. (OPTIONAL)
-    :<json str reminder_time: The time on which graders which are causing the
-        grading to be not should be reminded they have to grade. Can be
-        ``null`` to disable these emails. (OPTIONAL)
-    :<json float max_grade: The maximum possible grade for this assignment. You
-        can reset this by passing ``null`` as value. This value has to be >
-        0. (OPTIONAL)
-    :<json int group_set_id: The group set id for this assignment. Set
-        to ``null`` to make this assignment not a group assignment.
-    :<json bool webhook_upload_enabled: Should users be allowed to upload work
-        through webhooks. Disabling this setting has no effect on existing
-        webhooks.
-    :<json bool files_upload_enabled: Should students be allowed to upload work
-        directly using files and/or archives. This is always possible for users
-        with the ``can_submit_others_work``.
-    :<json int max_submissions: The maximum amount of submissions a user may
-        create. This value cannot be lower than 1.
-    :<json float cool_off_period: The amount of time in seconds there should be
-        between ``amount_in_cool_off_period + 1`` submissions.
-    :<json int amount_in_cool_off_period: The maximum amount of submissions
-        that can be made within ``cool_off_period`` seconds. This should be
-        higher than or equal to 1.
 
     If any of ``done_type``, ``done_email`` or ``reminder_time`` is given all
     the other values should be given too.
 
-    :param int assignment_id: The id of the assignment
+    :param int assignment_id: The id of the assignment you want to update.
     :returns: An empty response with return code 204.
     :raises APIException: If an invalid value is submitted. (INVALID_PARAM)
     """
+    data = rqa.FixedMapping(
+        rqa.OptionalArgument(
+            'state', rqa.StringEnum('open', 'hidden', 'done'),
+            'The new state of the assignment'
+        ),
+        rqa.OptionalArgument(
+            'name', rqa.SimpleValue(str), 'The new name of the assignment'
+        ),
+        rqa.OptionalArgument(
+            'deadline', rqa.RichValue.DateTime,
+            'The new deadline of the assignment'
+        ),
+        rqa.OptionalArgument(
+            'max_grade',
+            rqa.Nullable(rqa.RichValue.NumberGte(0)),
+            """
+            The maximum possible grade for this assignment. You can reset
+            this by passing ``null`` as value
+            """,
+        ),
+        rqa.OptionalArgument(
+            'group_set_id',
+            rqa.Nullable(rqa.SimpleValue(int)),
+            """
+            The group set id for this assignment. Set to ``null`` to make
+            this assignment not a group assignment
+            """,
+        ),
+        rqa.OptionalArgument(
+            'available_at',
+            rqa.Nullable(rqa.RichValue.DateTime),
+            'The time the assignment should become available',
+        ),
+        rqa.OptionalArgument(
+            'send_login_links',
+            rqa.SimpleValue(bool),
+            """
+            Should we send login links to students before the assignment
+            opens. This is only available for assignments with 'kind' equal to
+            'exam'
+            """,
+        ),
+        rqa.OptionalArgument(
+            'kind',
+            rqa.EnumValue(models.AssignmentKind),
+            'The new kind of assignment',
+        ),
+        rqa.OptionalArgument(
+            'files_upload_enabled', rqa.SimpleValue(bool),
+            'Should students be allowed to make submissions by uploading files'
+        ),
+        rqa.OptionalArgument(
+            'webhook_upload_enabled', rqa.SimpleValue(bool),
+            'Should students be allowed to make submissions using git webhooks'
+        ),
+        rqa.OptionalArgument(
+            'max_submissions',
+            rqa.Nullable(rqa.RichValue.NumberGte(1)),
+            'The maximum amount of submissions a user may create.',
+        ),
+        rqa.OptionalArgument(
+            'cool_off_period', rqa.SimpleValue(float), """
+            The amount of time in seconds there should be between
+            ``amount_in_cool_off_period + 1`` submissions.
+            """
+        ),
+        rqa.OptionalArgument(
+            'amount_in_cool_off_period',
+            rqa.RichValue.NumberGte(1),
+            """
+            The maximum amount of submissions
+            that can be made within ``cool_off_period`` seconds. This
+            should be higher than or equal to 1.
+            """,
+        ),
+        rqa.OptionalArgument(
+            'ignore',
+            rqa.SimpleValue(str), # TODO: Also add list and dict,
+            'The ignore file to use',
+        ),
+    ).from_flask()
+
     assig = helpers.filter_single_or_404(
         models.Assignment,
         models.Assignment.id == assignment_id,
@@ -318,31 +367,6 @@ def update_assignment(assignment_id: int) -> JSONResponse[models.Assignment]:
         with_for_update=True,
         with_for_update_of=models.Assignment,
     )
-    content = ensure_json_dict(request.get_json())
-    with get_from_map_transaction(content) as [_, opt_get]:
-        new_state = opt_get('state', str)
-        new_name = opt_get('name', str)
-        new_deadline = opt_get('deadline', str)
-        new_ignore = opt_get('ignore', (dict, list, str))
-        new_max_grade = opt_get('max_grade', (float, int, type(None)))
-        new_group_set_id = opt_get('group_set_id', (int, type(None)))
-        new_available_at = opt_get(
-            'available_at',
-            (str, type(None)),
-            transform=lambda dt: on_not_none(
-                dt,
-                parsers.parse_datetime,
-            ),
-        )
-        new_send_login_links = opt_get('send_login_links', bool)
-        new_kind = opt_get('kind', models.AssignmentKind, None)
-
-        new_files_upload = opt_get('files_upload_enabled', bool, None)
-        new_webhook_upload = opt_get('webhook_upload_enabled', bool, None)
-
-        new_max_submissions = opt_get('max_submissions', (int, type(None)))
-        new_cool_off_period = opt_get('cool_off_period', (int, float))
-        new_amount_cool_off = opt_get('amount_in_cool_off_period', int)
 
     perm_checker = auth.AssignmentPermissions(assig)
     perm_checker.ensure_may_see()
@@ -350,7 +374,7 @@ def update_assignment(assignment_id: int) -> JSONResponse[models.Assignment]:
     lti_provider = assig.course.lti_provider
     lms_name = on_not_none(lti_provider, lambda prov: prov.lms_name)
 
-    if new_available_at is not MISSING:
+    if data.available_at.is_just:
         if assig.is_lti:
             can_set_state = handle_none(
                 on_not_none(
@@ -367,19 +391,19 @@ def update_assignment(assignment_id: int) -> JSONResponse[models.Assignment]:
                     APICodes.UNSUPPORTED, 400
                 )
         perm_checker.ensure_may_edit_info()
-        assig.available_at = new_available_at
+        assig.available_at = data.available_at.value
 
-    if new_state is not MISSING:
+    if data.state.is_just:
         # TODO: Check the LTI settings to make sure we can actually set the
         # state. We should also be able to set the state to 'done' and back to
         # "not done".
         perm_checker.ensure_may_edit_info()
-        assig.set_state_with_string(new_state)
+        assig.set_state_with_string(data.state.value)
 
-    if new_kind is not None:
-        assig.kind = new_kind
+    if data.kind.is_just:
+        assig.kind = data.kind.value
 
-    if new_name is not MISSING:
+    if data.name.is_just:
         if assig.is_lti:
             raise APIException(
                 (
@@ -393,17 +417,17 @@ def update_assignment(assignment_id: int) -> JSONResponse[models.Assignment]:
 
         perm_checker.ensure_may_edit_info()
 
-        if not new_name:
+        if not data.name.value:
             raise APIException(
                 'The name of an assignment should be at least 1 char',
-                f'The new_name "{new_name}" is not long enough',
+                f'The new_name "{data.name.value}" is not long enough',
                 APICodes.INVALID_PARAM,
                 400,
             )
 
-        assig.name = new_name
+        assig.name = data.name.value
 
-    if new_deadline is not MISSING:
+    if data.deadline.is_just:
         if (
             assig.is_lti and (
                 lti_provider is None or
@@ -419,16 +443,16 @@ def update_assignment(assignment_id: int) -> JSONResponse[models.Assignment]:
             )
 
         perm_checker.ensure_may_edit_info()
-        assig.deadline = parsers.parse_datetime(new_deadline)
+        assig.deadline = data.deadline.value
 
-    if new_ignore is not MISSING:
+    if data.ignore.is_just:
         perm_checker.ensure_may_edit_cgignore()
         ignore_version = helpers.get_key_from_dict(
             content, 'ignore_version', 'IgnoreFilterManager'
         )
-        assig.update_cgignore(ignore_version, new_ignore)
+        assig.update_cgignore(ignore_version, data.ignore.value)
 
-    if new_max_grade is not MISSING:
+    if data.max_grade.is_just:
         if assig.is_lti and (
             lti_provider is None or not lti_provider.supports_max_points()
         ):
@@ -438,23 +462,16 @@ def update_assignment(assignment_id: int) -> JSONResponse[models.Assignment]:
                 APICodes.UNSUPPORTED, 400
             )
 
-        if not (new_max_grade is None or new_max_grade > 0):
-            raise APIException(
-                'The maximum grade must be higher than 0',
-                f'The value "{new_max_grade}" is too low as a maximum grade',
-                APICodes.INVALID_PARAM, 400
-            )
-
         perm_checker.ensure_may_edit_info()
-        assig.set_max_grade(new_max_grade)
+        assig.set_max_grade(data.max_grade.value)
 
     if {'done_type', 'reminder_time', 'done_email'} & content.keys():
         perm_checker.ensure_may_edit_notifications()
         set_reminder(assig, content)
 
-    if new_group_set_id is not MISSING:
+    if data.group_set_id.is_just:
         perm_checker.ensure_may_edit_group_status()
-        if new_group_set_id is None:
+        if data.group_set_id.value is None:
             group_set = None
         elif assig.peer_feedback_settings is not None:
             raise APIException(
@@ -465,7 +482,9 @@ def update_assignment(assignment_id: int) -> JSONResponse[models.Assignment]:
                 APICodes.INVALID_STATE, 400
             )
         else:
-            group_set = helpers.get_or_404(models.GroupSet, new_group_set_id)
+            group_set = helpers.get_or_404(
+                models.GroupSet, data.group_set_id.value
+            )
 
         if assig.group_set != group_set and assig.has_group_submissions():
             raise APIException(
@@ -480,27 +499,33 @@ def update_assignment(assignment_id: int) -> JSONResponse[models.Assignment]:
 
         assig.group_set = group_set
 
-    if new_files_upload is not None or new_webhook_upload is not None:
+    if data.files_upload_enabled.is_just:
+        perm_checker.ensure_may_edit_info()
+        assig.update_submission_types(files=data.files_upload_enabled.value)
+
+    if data.webhook_upload_enabled.is_just:
         perm_checker.ensure_may_edit_info()
         assig.update_submission_types(
-            files=new_files_upload, webhook=new_webhook_upload
+            webhook=data.webhook_upload_enabled.value
         )
 
-    if new_max_submissions is not MISSING:
+    if data.max_submissions.is_just:
         perm_checker.ensure_may_edit_info()
-        assig.max_submissions = new_max_submissions
+        assig.max_submissions = data.max_submissions.value
 
-    if new_cool_off_period is not MISSING:
+    if data.cool_off_period.is_just:
         perm_checker.ensure_may_edit_info()
-        assig.cool_off_period = datetime.timedelta(seconds=new_cool_off_period)
+        assig.cool_off_period = datetime.timedelta(
+            seconds=data.cool_off_period.value
+        )
 
-    if new_amount_cool_off is not MISSING:
+    if data.amount_in_cool_off_period.is_just:
         perm_checker.ensure_may_edit_info()
-        assig.amount_in_cool_off_period = new_amount_cool_off
+        assig.amount_in_cool_off_period = data.amount_in_cool_off_period.value
 
-    if new_send_login_links is not MISSING:
+    if data.send_login_links.is_just:
         perm_checker.ensure_may_edit_info()
-        assig.send_login_links = new_send_login_links
+        assig.send_login_links = data.send_login_links.value
 
     for warning in assig.get_changed_ambiguous_combinations():
         helpers.add_warning(warning.message, APIWarnings.AMBIGUOUS_COMBINATION)
@@ -518,7 +543,7 @@ def get_assignment_rubric(assignment_id: int
 
     .. :quickref: Assignment; Get the rubric of an assignment.
 
-    :param int assignment_id: The id of the assignment
+    :param int assignment_id: The id of the assignment.
     :returns: A list of JSON of :class:`.models.RubricRows` items.
 
     :raises APIException: If no assignment with given id exists.

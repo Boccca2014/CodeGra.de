@@ -18,7 +18,7 @@ from mypy.plugin import (  # pylint: disable=no-name-in-module
     Plugin, MethodContext, FunctionContext, AttributeContext
 )
 
-from cg_request_args import MissingType
+import cg_request_args
 
 
 def dict_getter_attribute_callback(ctx: AttributeContext, attr: str) -> Type:
@@ -43,6 +43,27 @@ def dict_getter_attribute_callback(ctx: AttributeContext, attr: str) -> Type:
     return items[attr]
 
 
+def string_enum_callback(ctx: FunctionContext) -> Type:
+    literals = []
+    for idx, arg in enumerate(ctx.arg_types[0]):
+        assert isinstance(arg, Instance)
+        if not isinstance(arg.last_known_value, LiteralType):
+            ctx.api.fail(
+                (
+                    'The arguments to "StringEnum" should all be literals'
+                    f' (this is not the case for arg {idx + 1})'
+                ),
+                ctx.context,
+            )
+            return ctx.default_return_type
+        literals.append(arg.last_known_value)
+
+    assert isinstance(ctx.default_return_type, Instance)
+    return ctx.default_return_type.copy_modified(
+        args=[UnionType(literals)]
+    )
+
+
 def argument_callback(ctx: FunctionContext) -> Type:
     key = ctx.arg_types[0][0]
     if not isinstance(key, Instance):
@@ -55,8 +76,6 @@ def argument_callback(ctx: FunctionContext) -> Type:
         )
         return ctx.default_return_type
 
-    # if isinstance(ctx.default_return_type.args[0], AnyType):
-    #     assert False
     # For some reason mypy doesn't pick up the first argument correctly when
     # using a pattern like: `_FixedMapping(_RequiredArgument(...))` so we
     # simply add the argument back in here.
@@ -127,13 +146,13 @@ def fixed_mapping_callback(ctx: FunctionContext) -> Type:
             # Use literal here
             value_type = UnionType(
                 items=[
-                    value_type,
-                    LiteralType(
-                        MissingType.token.name,
-                        ctx.api.named_generic_type(
-                            'cg_request_args.MissingType',
-                            [],
-                        ),
+                    ctx.api.named_generic_type(
+                        'cg_request_args._Just',
+                        [value_type],
+                    ),
+                    ctx.api.named_generic_type(
+                        'cg_request_args._Nothing',
+                        [],
                     ),
                 ]
             )
@@ -148,72 +167,9 @@ def fixed_mapping_callback(ctx: FunctionContext) -> Type:
     )
 
 
-# def add_argument_callback(ctx: MethodContext) -> Type:
-#     breakpoint()
-#     typeddict = ctx.type.args[0]
-#     assert isinstance(typeddict, TypedDictType)
-#     existing_items = typeddict.items
-
-#     (key, ), (value, ), doc, *optional = ctx.arg_types
-#     assert isinstance(key, Instance)
-#     assert isinstance(key.last_known_value, LiteralType)
-#     key_value = key.last_known_value.value
-#     if key_value in existing_items:
-#         ctx.api.fail(
-#             'This Arguments already has a key named {}'.format(key_value),
-#             ctx.context
-#         )
-#         return ctx.type
-
-#     new_type = value.items()[0].ret_type
-#     if optional and optional[0] and optional[0][0].value:
-#         new_type = UnionType(
-#             items=[
-#                 new_type,
-#                 LiteralType(
-#                     value='MISSING',
-#                     fallback=ctx.api.named_generic_type(
-#                         'cg_request_args.MissingType',
-#                         [],
-#                     ),
-#                 )
-#             ]
-#         )
-
-#     return ctx.type.copy_modified(
-#         args=[
-#             TypedDictType(
-#                 items=OrderedDict(
-#                     itertools.chain(
-#                         existing_items.items(),
-#                         [(key_value, new_type)],
-#                     )
-#                 ),
-#                 required_keys=set(
-#                     itertools.chain(existing_items.keys(), [key_value])
-#                 ),
-#                 line=typeddict.line,
-#                 fallback=typeddict.fallback,
-#             )
-#         ]
-#     )
-# existing_items[key_value]
-
-
 class CgRequestArgPlugin(Plugin):
     """Mypy plugin definition.
     """
-
-    # def get_method_hook(  # pylint: disable=no-self-use
-    #     self,
-    #     fullname: str,
-    # ) -> t.Optional[t.Callable[[MethodContext], Type]]:
-    #     """Get the function to be called by mypy.
-    #     """
-    #     if fullname == 'cg_request_args.ArgumentParser.make_decorator':
-    #         return add_argument_callback
-
-    #     return None
 
     def get_function_hook(  # pylint: disable=no-self-use
         self,
@@ -227,6 +183,8 @@ class CgRequestArgPlugin(Plugin):
             return argument_callback
         if fullname == 'cg_request_args.FixedMapping':
             return fixed_mapping_callback
+        if fullname == 'cg_request_args.StringEnum':
+            return string_enum_callback
 
         return None
 

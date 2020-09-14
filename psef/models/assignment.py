@@ -74,20 +74,6 @@ Z = t.TypeVar('Z')
 logger = structlog.get_logger()
 
 
-class PeerFeedbackSettingJSON(TypedDict, total=True):
-    """The serialization of an :class:`.AssignmentPeerFeedbackSettings`.
-    """
-    #: The amount of student that a single user should peer review.
-    amount: int
-
-    #: The amount of time in seconds a user has after the deadline to do the
-    #: peer review.
-    time: t.Optional[float]
-
-    #: Should new peer feedback comments be considered approved by default or
-    #: not.
-    auto_approved: bool
-
 
 class AssignmentPeerFeedbackConnectionJSON(TypedDict, total=True):
     """The serialization of an :class:`.AssignmentPeerFeedbackConnection`.
@@ -97,99 +83,6 @@ class AssignmentPeerFeedbackConnectionJSON(TypedDict, total=True):
     #: The user that should be reviewed by ``peer``.
     subject: 'user_models.User'
 
-
-class AssignmentJSON(TypedDict, total=True):
-    """The serialization of an assignment.
-
-    See the comments in the source code for the meaning of each field.
-    """
-
-    id: int  #: The id of the assignment.
-    state: str  #: Current state of the assignment.
-    description: t.Optional[str]  #: Description of the assignment.
-    created_at: DatetimeWithTimezone  #: ISO UTC date.
-    deadline: t.Optional[DatetimeWithTimezone]  #: ISO UTC date.
-    name: str  #: The name of the assignment.
-    is_lti: bool  #: Is this an LTI assignment.
-    course_id: int  #: Course of this assignment.
-    cgignore: t.Optional['psef.helpers.JSONType']  #: The cginore.
-    cgignore_version: t.Optional[str]
-    #: Has the whitespace linter run on this assignment.
-    whitespace_linter: bool
-
-    #: The time the assignment will become available (i.e. the state will
-    #: switch from 'hidden' to 'open'). If the state is not 'hidden' this value
-    #: has no meaning. If this value is not ``None`` you cannot change to state
-    #: to 'hidden' or 'open'.
-    available_at: t.Optional[DatetimeWithTimezone]
-
-    #: Should we send login links to all users before the available_at time.
-    send_login_links: bool
-
-    #: The fixed value for the maximum that can be achieved in a rubric. This
-    #: can be higher and lower than the actual max. Will be `null` if unset.
-    fixed_max_rubric_points: t.Optional[float]
-
-    #: The maximum grade you can get for this assignment. This is based around
-    #: the idea that a 10 is a 'perfect' score. So if this value is 12 a user
-    #: can score 2 additional bonus points. If this value is `null` it is unset
-    #: and regarded as a 10.
-    max_grade: t.Optional[float]
-
-    #: The group set of this assignment. This is ``null`` if this assignment is
-    #: not a group assignment.
-    group_set: t.Optional['psef.models.GroupSet']
-
-    #: The id of the AutoTest configuration connected to this assignment. This
-    #: will always be given if there is a configuration connected to this
-    #: assignment, even if you do not have permission to see the configuration
-    #: itself.
-
-    auto_test_id: t.Optional[int]
-    files_upload_enabled: bool  #: Can you upload files to this assignment.
-    webhook_upload_enabled: bool  #: Can you connect git to this assignment.
-
-    #: The maximum amount of submission a student may create, inclusive. The
-    #: value ``null`` indicates that there is no limit.
-    max_submissions: t.Optional[int]
-
-    #: These two values determine the maximum submissions in an amount of time
-    #: by a user. A user can submit at most `amount_in_cool_off_period`
-    #: submissions in `cool_off_period` seconds. `amount_in_cool_off_period`
-    #: is always >= 1, so this check is disabled if `cool_off_period == 0`.
-    cool_off_period: datetime.timedelta
-    amount_in_cool_off_period: int
-
-    #: ISO UTC date. This will be `null` if you don't have the permission to
-    #: see this or if it is unset.
-    reminder_time: t.Optional[str]
-
-    #: The LMS providing this LTI assignment.
-    lms_name: t.Optional[str]
-
-    #: The peer feedback settings for this assignment. If ``null`` this
-    #: assignment is not a peer feedback assignment.
-    peer_feedback_settings: t.Optional['AssignmentPeerFeedbackSettings']
-
-    #: The kind of reminder that will be sent.  If you don't have the
-    #: permission to see this it will always be ``null``. If this is not set it
-    #: will also be ``null``.
-    done_type: t.Optional[str]
-    #: The email where the done email will be sent to. This will be ``null`` if
-    #: you do not have permission to see this information.
-    done_email: t.Optional[str]
-
-    #: The assignment id of the assignment that determines the grader division
-    #: of this assignment. This will be ``null`` if you do not have permissions
-    #: to see this information, or if no such parent is set.
-    division_parent_id: t.Optional[int]
-
-    #: The ids of the analytics workspaces connected to this assignment.
-    #: WARNING: This API is still in beta, and might change in the future.
-    analytics_workspace_ids: t.List[int]
-
-    #: What kind of assignment is this.
-    kind: 'AssignmentKind'
 
 
 class AssignmentAmbiguousSettingTag(enum.Enum):
@@ -670,7 +563,21 @@ class AssignmentPeerFeedbackSettings(Base, IdMixin, TimestampMixin):
             auto_approved=auto_approved,
         )
 
-    def __to_json__(self) -> PeerFeedbackSettingJSON:
+    class AsJSON(TypedDict, total=True):
+        """The serialization of an :class:`.AssignmentPeerFeedbackSettings`.
+        """
+        #: The amount of student that a single user should peer review.
+        amount: int
+
+        #: The amount of time in seconds a user has after the deadline to do
+        #: the peer review.
+        time: t.Optional[float]
+
+        #: Should new peer feedback comments be considered approved by default
+        #: or not.
+        auto_approved: bool
+
+    def __to_json__(self) -> AsJSON:
         return {
             'amount': self.amount,
             'time': on_not_none(self.time, lambda x: x.total_seconds()),
@@ -1400,6 +1307,104 @@ class Assignment(helpers.NotEqualMixin, Base):  # pylint: disable=too-many-publi
         ),
     )
 
+    class AsJSON(TypedDict, total=True):
+        """The serialization of an assignment.
+
+        See the comments in the source code for the meaning of each field.
+        """
+
+        id: int  #: The id of the assignment.
+        state: str  #: Current state of the assignment.
+        description: t.Optional[str]  #: Description of the assignment.
+        created_at: DatetimeWithTimezone  #: ISO UTC date.
+        deadline: t.Optional[DatetimeWithTimezone]  #: ISO UTC date.
+        name: str  #: The name of the assignment.
+        is_lti: bool  #: Is this an LTI assignment.
+        course_id: int  #: Course of this assignment.
+        cgignore: t.Optional[t.Any]  #: The cginore.
+        cgignore_version: t.Optional[str]  #: The version of the cignore file.
+        #: Has the whitespace linter run on this assignment.
+        whitespace_linter: bool
+
+        #: The time the assignment will become available (i.e. the state will
+        #: switch from 'hidden' to 'open'). If the state is not 'hidden' this
+        #: value has no meaning. If this value is not ``None`` you cannot
+        #: change to state to 'hidden' or 'open'.
+        available_at: t.Optional[DatetimeWithTimezone]
+
+        #: Should we send login links to all users before the available_at
+        #: time.
+        send_login_links: bool
+
+        #: The fixed value for the maximum that can be achieved in a
+        #: rubric. This can be higher and lower than the actual max. Will be
+        #: `null` if unset.
+        fixed_max_rubric_points: t.Optional[float]
+
+        #: The maximum grade you can get for this assignment. This is based
+        #: around the idea that a 10 is a 'perfect' score. So if this value is
+        #: 12 a user can score 2 additional bonus points. If this value is
+        #: `null` it is unset and regarded as a 10.
+        max_grade: t.Optional[float]
+
+        #: The group set of this assignment. This is ``null`` if this
+        #: assignment is not a group assignment.
+        group_set: t.Optional['psef.models.GroupSet']
+
+        #: The id of the AutoTest configuration connected to this
+        #: assignment. This will always be given if there is a configuration
+        #: connected to this assignment, even if you do not have permission to
+        #: see the configuration itself.
+        auto_test_id: t.Optional[int]
+
+        files_upload_enabled: bool  #: Can you upload files to this assignment.
+        webhook_upload_enabled: bool  #: Can you connect git to this assignment
+
+        #: The maximum amount of submission a student may create, inclusive.
+        #: The value ``null`` indicates that there is no limit.
+        max_submissions: t.Optional[int]
+
+        #: The time period in which a person can submit at most
+        #: ``amount_in_cool_off_period`` amount.
+        cool_off_period: datetime.timedelta
+
+        #: The maximum amount of time a user can submit within
+        #: `amount_in_cool_off_period`. This value is always >= 0, if this
+        #: value is 0 a user can submit an unlimited amount of time.
+        amount_in_cool_off_period: int
+
+        #: ISO UTC date. This will be `null` if you don't have the permission
+        #: to see this or if it is unset.
+        reminder_time: t.Optional[str]
+
+        #: The LMS providing this LTI assignment.
+        lms_name: t.Optional[str]
+
+        #: The peer feedback settings for this assignment. If ``null`` this
+        #: assignment is not a peer feedback assignment.
+        peer_feedback_settings: t.Optional[AssignmentPeerFeedbackSettings]
+
+        #: The kind of reminder that will be sent.  If you don't have the
+        #: permission to see this it will always be ``null``. If this is not
+        #: set it will also be ``null``.
+        done_type: t.Optional[str]
+        #: The email where the done email will be sent to. This will be
+        #: ``null`` if you do not have permission to see this information.
+        done_email: t.Optional[str]
+
+        #: The assignment id of the assignment that determines the grader
+        #: division of this assignment. This will be ``null`` if you do not
+        #: have permissions to see this information, or if no such parent is
+        #: set.
+        division_parent_id: t.Optional[int]
+
+        #: The ids of the analytics workspaces connected to this assignment.
+        #: WARNING: This API is still in beta, and might change in the future.
+        analytics_workspace_ids: t.List[int]
+
+        #: What kind of assignment is this.
+        kind: AssignmentKind
+
     @validator.validates(
         lambda: (
             Assignment._available_at,
@@ -2125,10 +2130,8 @@ class Assignment(helpers.NotEqualMixin, Base):  # pylint: disable=too-many-publi
         else:
             return self.whitespace_linter_exists
 
-    def __to_json__(self) -> AssignmentJSON:
+    def __to_json__(self) -> AsJSON:
         """Creates a JSON serializable representation of this assignment.
-
-        :returns: An :class:``.AssignmentJSON`` dictionary.
 
         .. todo:: Remove 'description' field from Assignment model.
         """
@@ -2136,7 +2139,7 @@ class Assignment(helpers.NotEqualMixin, Base):  # pylint: disable=too-many-publi
         # times so caching it in a local variable is a good idea.
         cgignore = self.cgignore
 
-        res: AssignmentJSON = {
+        res: 'Assignment.AsJSON' = {
             'id': self.id,
             'state': self.state_name,
             'description': self.description,
@@ -2990,7 +2993,10 @@ class Assignment(helpers.NotEqualMixin, Base):  # pylint: disable=too-many-publi
         return res
 
     def update_submission_types(
-        self, *, webhook: t.Optional[bool], files: t.Optional[bool]
+        self,
+        *,
+        webhook: t.Optional[bool] = None,
+        files:  t.Optional[bool] = None
     ) -> None:
         """Update the enabled submission types for this assignment.
 

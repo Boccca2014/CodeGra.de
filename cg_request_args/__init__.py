@@ -1,11 +1,17 @@
 from __future__ import annotations
 
 import abc
+import ast
 import copy
 import enum
 import typing as t
-import collections.abc
+import datetime
+import textwrap
+import contextlib
 
+import yaml
+import flask
+import dateutil.parser
 from typing_extensions import Final, Literal, Protocol, TypedDict
 
 from cg_helpers import readable_join
@@ -23,6 +29,25 @@ class MissingType(enum.Enum):
     token = 0
 
 
+_GENERATE_SCHEMA = False
+
+
+@contextlib.contextmanager
+def _schema_generator() -> t.Generator[None, None, None]:
+    global _GENERATE_SCHEMA
+    _GENERATE_SCHEMA = True
+    try:
+        yield
+    finally:
+        _GENERATE_SCHEMA = False
+
+
+class _Schema(BaseException):
+    def __init__(self, schema: t.Mapping[str, t.Any]) -> None:
+        super().__init__()
+        self.schema = schema
+
+
 _T = t.TypeVar('_T')
 _T_COV = t.TypeVar('_T_COV', covariant=True)
 _Y = t.TypeVar('_Y')
@@ -31,6 +56,35 @@ _X = t.TypeVar('_X')
 MISSING: Literal[MissingType.token] = MissingType.token
 
 _PARSE_ERROR = t.TypeVar('_PARSE_ERROR', bound='_ParseError')
+
+_T_CAL = t.TypeVar('_T_CAL', bound=t.Callable)
+
+_SWAGGER_FUNCS = []
+
+
+def swagerize(func: _T_CAL) -> _T_CAL:
+    _SWAGGER_FUNCS.append(func)
+    return func
+
+
+class _Just(t.Generic[_T]):
+    __slots__ = ('value')
+
+    is_just: Literal[True] = True
+    is_nothing: Literal[False] = False
+
+    def __init__(self, value: _T) -> None:
+        self.value: Final = value
+
+
+class _Nothing:
+    __slots__ = ()
+
+    is_just: Literal[False] = False
+    is_nothing: Literal[True] = True
+
+
+Nothing = _Nothing()
 
 
 class _ParseError(ValueError):
@@ -137,6 +191,10 @@ class _ParserLike(t.Generic[_T_COV]):
     def describe(self) -> str:
         ...
 
+    @abc.abstractmethod
+    def to_open_api(self) -> t.Mapping[str, t.Any]:
+        ...
+
     def __or__(self: _ParserLike[_T],
                other: _ParserLike[_Y]) -> _ParserLike[t.Union[_T, _Y]]:
         return Union(self, other)
@@ -173,11 +231,52 @@ class Union(t.Generic[_T, _Y], _ParserLike[t.Union[_T, _Y]]):
     def describe(self) -> str:
         return self.__parser.describe()
 
+    def to_open_api(self) -> t.Mapping[str, t.Any]:
+        return self.__parser.to_open_api()
+
     def try_parse(self, value: object) -> t.Union[_T, _Y]:
         return self.__parser.try_parse(value)
 
 
+class Nullable(t.Generic[_T], _ParserLike[t.Union[_T, None]]):
+    __slots__ = ('__parser', )
+
+    def __init__(self, parser: _ParserLike[_T]):
+        self.__parser = parser
+
+    def describe(self) -> str:
+        return f'Union[None, {self.__parser.describe()}]'
+
+    def to_open_api(self) -> t.Mapping[str, t.Any]:
+        return {
+            **self.__parser.to_open_api(),
+            'nullable': True,
+        }
+
+    def try_parse(self, value: object) -> t.Optional[_T]:
+        if value is None:
+            return value
+
+        try:
+            return self.__parser.try_parse(value)
+        except SimpleParseError as err:
+            raise SimpleParseError(self, value) from err
+
+
 _SIMPLE_VALUE = t.TypeVar('_SIMPLE_VALUE', str, int, float, bool, None)
+
+_TYPE_OPEN_API_LOOKUP = {
+    str: 'string',
+    float: 'number',
+    bool: 'boolean',
+    int: 'integer',
+    type(None): 'null',
+}
+
+
+def _type_to_open_api(typ: t.Type) -> str:
+    return _TYPE_OPEN_API_LOOKUP[typ]
+
 
 _TYPE_NAME_LOOKUP = {
     str: 'str',
@@ -205,9 +304,14 @@ class SimpleValue(t.Generic[_SIMPLE_VALUE], _ParserLike[_SIMPLE_VALUE]):
     def __init__(self, typ: t.Type[_SIMPLE_VALUE]) -> None:
         self.typ: Final[t.Type[_SIMPLE_VALUE]] = typ
 
+    def to_open_api(self) -> t.Mapping[str, t.Any]:
+        return {'type': _type_to_open_api(self.typ)}
+
     def try_parse(self, value: object) -> _SIMPLE_VALUE:
         if isinstance(value, self.typ):
             return value
+        if self.typ is float and isinstance(value, int):
+            return float(value)  # type: ignore
         raise SimpleParseError(self, found=value)
 
 
@@ -224,6 +328,9 @@ class _SimpleUnion(t.Generic[_SIMPLE_UNION], _ParserLike[_SIMPLE_UNION]):
 
     def describe(self) -> str:
         return 'Union[{}]'.format(', '.join(map(_type_to_name, self.typs)))
+
+    def to_open_api(self) -> t.Mapping[str, t.Any]:
+        return {'anyOf': [_type_to_open_api(typ) for typ in self.typs]}
 
     def try_parse(self, value: object) -> _SIMPLE_UNION:
         if isinstance(value, self.typs):
@@ -252,6 +359,12 @@ class EnumValue(t.Generic[_ENUM], _ParserLike[_ENUM]):
             ', '.join(repr(opt.name) for opt in self.__typ)
         )
 
+    def to_open_api(self) -> t.Mapping[str, t.Any]:
+        return {
+            'type': 'string',
+            'enum': [opt.name for opt in self.__typ],
+        }
+
     def try_parse(self, value: object) -> _ENUM:
         if not isinstance(value, str):
             raise SimpleParseError(
@@ -271,6 +384,39 @@ class EnumValue(t.Generic[_ENUM], _ParserLike[_ENUM]):
             raise SimpleParseError(self, value) from err
 
 
+class StringEnum(t.Generic[_T], _ParserLike[_T]):
+    __slots__ = ('__opts', )
+
+    def __init__(self, *opts: str) -> None:
+        self.__opts = opts
+
+    def describe(self) -> str:
+        return 'Enum[{}]'.format(', '.join(self.__opts))
+
+    def to_open_api(self) -> t.Mapping[str, t.Any]:
+        return {
+            'type': 'string',
+            'enum': list(self.__opts),
+        }
+
+    def try_parse(self, value: object) -> _T:
+        if not isinstance(value, str):
+            raise SimpleParseError(
+                self,
+                value,
+                extra={
+                    'message':
+                        'which is of type {}, not string'.format(
+                            _type_to_name(type(value))
+                        )
+                }
+            )
+
+        if value not in self.__opts:
+            raise SimpleParseError(self, value)
+        return t.cast(_T, value)
+
+
 class _RichUnion(t.Generic[_T, _Y], _ParserLike[t.Union[_T, _Y]]):
     __slots__ = ('__first', '__second')
 
@@ -282,6 +428,12 @@ class _RichUnion(t.Generic[_T, _Y], _ParserLike[t.Union[_T, _Y]]):
 
     def describe(self) -> str:
         return f'Union[{self.__first.describe()}, {self.__second.describe()}]'
+
+    def to_open_api(self) -> t.Mapping[str, t.Any]:
+        return {
+            'anyOf': [self.__first.to_open_api(),
+                      self.__second.to_open_api()]
+        }
 
     def try_parse(self, value: object) -> t.Union[_T, _Y]:
         try:
@@ -306,6 +458,12 @@ class List(t.Generic[_T], _ParserLike[t.List[_T]]):
 
     def describe(self) -> str:
         return f'List[{self.__el_type.describe()}]'
+
+    def to_open_api(self) -> t.Mapping[str, t.Any]:
+        return {
+            'type': 'array',
+            'items': self.__el_type.to_open_api(),
+        }
 
     def try_parse(self, value: object) -> t.List[_T]:
         if not isinstance(value, list):
@@ -341,20 +499,23 @@ class _Argument(t.Generic[_T, _Key]):
     ) -> None:
         self.key: Final = key
         self.value = value
-        self.doc = doc
+        self.doc = textwrap.dedent(doc).strip()
 
     @abc.abstractmethod
     def describe(self) -> str:
         ...
 
+    def to_open_api(self) -> t.Mapping[str, t.Any]:
+        return {**self.value.to_open_api(), 'description': self.doc}
+
     def try_parse(self, value: t.Mapping[str, object]
-                  ) -> t.Union[_T, Literal[MissingType.token]]:
+                  ) -> t.Union[_Just[_T], _Nothing, _T]:
         if self.key not in value:
-            return MISSING
+            return Nothing
 
         found = value[self.key]
         try:
-            return self.value.try_parse(found)
+            return _Just(self.value.try_parse(found))
         except _ParseError as err:
             raise err.add_location(self.key) from err
 
@@ -365,9 +526,9 @@ class RequiredArgument(t.Generic[_T, _Key], _Argument[_T, _Key]):
 
     def try_parse(self, value: t.Mapping[str, object]) -> _T:
         res = super().try_parse(value)
-        if res is MISSING:
-            raise SimpleParseError(self.value, MISSING).add_location(self.key)
-        return res
+        if isinstance(res, _Just):
+            return res.value
+        raise SimpleParseError(self.value, MISSING).add_location(self.key)
 
 
 class OptionalArgument(t.Generic[_T, _Key], _Argument[_T, _Key]):
@@ -401,6 +562,22 @@ class FixedMapping(
             ', '.join(arg.describe() for arg in self.__arguments)
         )
 
+    def to_open_api(self) -> t.Mapping[str, t.Any]:
+        required = [
+            arg.key for arg in self.__arguments
+            if isinstance(arg, RequiredArgument)
+        ]
+        res = {
+            'type': 'object',
+            'properties': {
+                arg.key: arg.to_open_api()
+                for arg in self.__arguments
+            },
+        }
+        if required:
+            res['required'] = required
+        return res
+
     def try_parse(self, value: object) -> _DictGetter[_BASE_DICT]:
         if not isinstance(value, dict):
             raise SimpleParseError(self, value)
@@ -418,8 +595,46 @@ class FixedMapping(
 
         return _DictGetter(t.cast(_BASE_DICT, result))
 
+    def from_flask(self) -> _DictGetter[_BASE_DICT]:
+        if _GENERATE_SCHEMA:
+            raise _Schema(self.to_open_api())
+        json = flask.request.get_json()
+        return self.try_parse(json)
 
-class Transform(t.Generic[_T, _Y], _ParserLike[_T]):
+
+class LookupMapping(t.Generic[_T], _ParserLike[t.Mapping[str, _T]]):
+    __slots__ = ('parser', )
+
+    def __init__(self, parser: _ParserLike[_T]) -> None:
+        self.__parser = parser
+
+    def describe(self) -> str:
+        return 'Mapping[str: {}]'.format(self.__parser.describe())
+
+    def to_open_api(self) -> t.Mapping[str, t.Any]:
+        return {
+            'type': 'object',
+            'additionalProperties': self.__parser.to_open_api(),
+        }
+
+    def try_parse(self, value: object) -> t.Mapping[str, _T]:
+        if not isinstance(value, dict):
+            raise SimpleParseError(self, value)
+
+        result = {}
+        errors = []
+        for key, val in value.items():
+            try:
+                result[key] = self.__parser.try_parse(val)
+            except _ParseError as exc:
+                errors.append(exc)
+        if errors:
+            raise MultipleParseErrors(self, value, errors)
+
+        return result
+
+
+class _Transform(t.Generic[_T, _Y], _ParserLike[_T]):
     __slots__ = ('__parser', '__transform', '__transform_name')
 
     def __init__(
@@ -440,7 +655,12 @@ class Transform(t.Generic[_T, _Y], _ParserLike[_T]):
         return self.__transform(res)
 
 
-class Constrainer(t.Generic[_T]):
+class Constraint(t.Generic[_T], _ParserLike[_T]):
+    __slots__ = ('_parser')
+
+    def __init__(self, parser: _ParserLike[_T]):
+        self._parser = parser
+
     @abc.abstractmethod
     def ok(self, value: _T) -> bool:
         ...
@@ -450,40 +670,55 @@ class Constrainer(t.Generic[_T]):
     def name(self) -> str:
         ...
 
-    def and_(self, other: Constrainer[_T]) -> Constrainer[_T]:
-        return Constraints.And(self, other)
+    def describe(self) -> str:
+        return f'{self._parser.describe()} {self.name}'
+
+    def to_open_api(self) -> t.Mapping[str, t.Any]:
+        return self._parser.to_open_api()
+
+    def try_parse(self, value: object) -> _T:
+        res = self._parser.try_parse(value)
+        if not self.ok(res):
+            raise SimpleParseError(self, value)
+        return res
 
 
-_SIZED = t.TypeVar('_SIZED', bound=collections.abc.Sized)
+class RichValue:
+    class _DateTime(_Transform[DatetimeWithTimezone, str]):
+        def __init__(self) -> None:
+            super().__init__(
+                SimpleValue(str), self.__transform_to_datetime, 'DateTime'
+            )
 
+        def to_open_api(self) -> t.Mapping[str, t.Any]:
+            return {
+                'type': 'string',
+                'format': 'date-time',
+            }
 
-class Constraints:
-    class And(t.Generic[_T], Constrainer[_T]):
-        def __init__(
-            self, first: Constrainer[_T], second: Constrainer[_T]
-        ) -> None:
-            self.__first = first
-            self.__second = second
+        def __transform_to_datetime(self, value: str) -> DatetimeWithTimezone:
+            try:
+                parsed = dateutil.parser.isoparse(value)
+            except (ValueError, OverflowError) as exc:
+                raise SimpleParseError(
+                    self,
+                    value,
+                    extra={
+                        'message': "which can't be parsed as a valid datetime",
+                    },
+                ) from exc
+            else:
+                return DatetimeWithTimezone.from_datetime(
+                    parsed, default_tz=datetime.timezone.utc
+                )
 
-        @property
-        def name(self) -> str:
-            return f'{self.__first.name} and {self.__second.name}'
+    DateTime = _DateTime()
 
-        def ok(self, value: _T) -> bool:
-            return self.__first.ok(value) and self.__second.ok(value)
-
-    class NotEmpty(Constrainer[_SIZED]):
-        def ok(self, value: _SIZED) -> bool:
-            return len(value) >= 0
-
-        @property
-        def name(self) -> str:
-            return 'non empty'
-
-    class NumberGt(Constrainer[int]):
+    class NumberGte(Constraint[int]):
         __slots__ = ('__minimum', )
 
         def __init__(self, minimum: int) -> None:
+            super().__init__(SimpleValue(int))
             self.__minimum: Final = minimum
 
         @property
@@ -493,28 +728,11 @@ class Constraints:
         def ok(self, value: int) -> bool:
             return value >= self.__minimum
 
-
-class Constraint(t.Generic[_T], _ParserLike[_T]):
-    __slots__ = ('__parser', '__constraint')
-
-    def __init__(
-        self, parser: _ParserLike[_T],
-        constraint: t.Union[Constrainer[_T], t.Callable[[], Constrainer[_T]]]
-    ):
-        self.__parser = parser
-        if isinstance(constraint, Constrainer):
-            self.__constraint = constraint
-        else:
-            self.__constraint = constraint()
-
-    def describe(self) -> str:
-        return f'{self.__parser.describe()} {self.__constraint.name}'
-
-    def try_parse(self, value: object) -> _T:
-        res = self.__parser.try_parse(value)
-        if not self.__constraint.ok(res):
-            raise SimpleParseError(self, value)
-        return res
+        def to_open_api(self) -> t.Mapping[str, t.Any]:
+            return {
+                **self._parser.to_open_api(),
+                'minimum': self.__minimum,
+            }
 
 
 if __name__ == '__main__':
@@ -523,16 +741,10 @@ if __name__ == '__main__':
         a = 5
         b = 10
 
-    mapping = FixedMapping(
+    open_api = FixedMapping(
         RequiredArgument(
             'a',
-            (
-                SimpleValue(str)
-                | Transform(
-                    SimpleValue(str), DatetimeWithTimezone.fromisoformat,
-                    'Datetime'
-                )
-            ),
+            SimpleValue(str),
             'hello',
         ),
         OptionalArgument(
@@ -546,7 +758,5 @@ if __name__ == '__main__':
             'de',
         ),
         OptionalArgument('enum', EnumValue(Enum), 'weo'),
-    )
-    print(mapping.describe())
-
-    res = mapping.try_parse({'a': 5, 'c': {'a': '6'}, 'enum': 'b'})
+        RequiredArgument('abd', LookupMapping(SimpleValue(bool)), 'wee'),
+    ).from_flask()

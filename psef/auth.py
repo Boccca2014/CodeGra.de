@@ -2090,7 +2090,8 @@ class _FlaskOAuthValidator(RequestValidatorMixin):
         '''
         # base_url is used because of:
         # https://github.com/instructure/canvas-lms/issues/600
-        return (req.method, req.base_url, dict(req.headers), req.form.copy())
+        base_url = 'https://dev-thomas.codegra.de/api/v1/lti/launch/1'
+        return (req.method, base_url, dict(req.headers), req.form.copy())
 
 
 def ensure_valid_oauth(

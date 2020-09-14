@@ -32,6 +32,8 @@ const moodleProvider = makeLTI1p1Provider('Moodle');
 
 const sakaiProvider = makeLTI1p1Provider('Sakai');
 
+const openEdXProvider = makeLTI1p1Provider('Open edX');
+
 const canvasProvider = makeLTI1p1Provider('Canvas', {
     addBorder: true,
     supportsDeadline: true,
@@ -84,6 +86,7 @@ const LTI1p1Lookup: Record<string, LTIProvider> = mapToObject([
     canvasProvider,
     moodleProvider,
     sakaiProvider,
+    openEdXProvider,
 ], prov => [prov.lms, prov]);
 
 export function makeProvider(provider: LTIProviderServerData): LTIProvider {

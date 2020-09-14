@@ -819,6 +819,7 @@ class LTI(AbstractLTIConnector):  # pylint: disable=too-many-public-methods
         logger.info(
             'Doing LTI grade passback',
             consumer_key=key,
+            consumer_secret=secret,
             lti_outcome_service_url=service_url,
             url=url,
             grade=grade,
@@ -1234,6 +1235,16 @@ class _BareRolesLTIProvider(BareBonesLTIProvider):
         return roles
 
 
+@lti_classes.register('Open edX')
+class OpenedXLTI(_BareRolesLTIProvider):
+    """The LTI class used for the Sakai LMS.
+    """
+
+    @property
+    def assignment_name(self) -> str:
+        return self.launch_params['custom_assignment_name']
+
+
 @lti_classes.register('Sakai')
 class SakaiLTI(_BareRolesLTIProvider):
     """The LTI class used for the Sakai LMS.
@@ -1527,7 +1538,11 @@ class OutcomeRequest:
         )
 
         if outcome.message_ref_identifier != self.message_identifier:
-            log.error('Received wrong "message_ref_identifier" in request')
+            log.error(
+                'Received wrong "message_ref_identifier" in request',
+                found=outcome.message_ref_identifier,
+                correct=self.message_identifier
+            )
 
         if outcome.is_failure:  # pragma: no cover
             log.error('Posting outcome failed')
@@ -1668,7 +1683,6 @@ class OutcomeResponse:
         self.code_major: t.Optional[str] = None
         self.severity: t.Optional[str] = None
         self.description: t.Optional[str] = None
-        self.operation: t.Optional[str] = None
         self.message_ref_identifier: t.Optional[str] = None
 
         self.__process_xml(input_xml)
@@ -1746,9 +1760,6 @@ class OutcomeResponse:
             self.description = get_text(status_node, 'xmlns:imsx_description')
             self.message_ref_identifier = get_text(
                 status_node, 'xmlns:imsx_messageRefIdentifier'
-            )
-            self.operation = get_text(
-                status_node, 'xmlns:imsx_operationRefIdentifier'
             )
         except (WrongValueException, ET.ParseError):
             logger.error(

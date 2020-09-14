@@ -20,7 +20,7 @@ import pylti1p3.names_roles
 import pylti1p3.service_connector
 from sqlalchemy.types import JSON
 from sqlalchemy_utils import UUIDType
-from typing_extensions import Final
+from typing_extensions import Final, TypedDict
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import rsa
@@ -288,12 +288,19 @@ class LTIProviderBase(Base, TimestampMixin):
 
         return newest_grade_history
 
-    def __to_json__(self) -> t.Mapping[str, object]:
+    class AsJSON(TypedDict):
+        id: str  #: The id of this LTI provider.
+        lms: str  #: The LMS that is connected as this LTI provider.
+        version: str  #: The LTI version used.
+        #: The time this LTI provider was created.
+        created_at: DatetimeWithTimezone
+
+    def __to_json__(self) -> AsJSON:
         return {
             'id': str(self.id),
             'lms': self.lms_name,
             'version': self._lti_provider_version,
-            'created_at': self.created_at.isoformat(),
+            'created_at': self.created_at,
         }
 
 

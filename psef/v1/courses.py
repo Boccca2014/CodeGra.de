@@ -1,6 +1,5 @@
-"""
-This module defines all API routes with the main directory "courses". The APIs
-are used to create courses and return information about courses.
+"""All routes to used to manipulate and retrieve course objects and their
+relations.
 
 SPDX-License-Identifier: AGPL-3.0-only
 """
@@ -16,6 +15,7 @@ import psef.auth as auth
 import cg_helpers
 import psef.models as models
 import psef.helpers as helpers
+import cg_request_args as rqa
 from psef import limiter, current_user
 from psef.models import db
 from psef.helpers import (
@@ -43,13 +43,14 @@ _UserCourse = TypedDict(  # pylint: disable=invalid-name
 
 
 @api.route('/courses/<int:course_id>/roles/<int:role_id>', methods=['DELETE'])
+@rqa.swagerize
 def delete_role(course_id: int, role_id: int) -> EmptyResponse:
-    """Remove a :class:`.models.CourseRole` from the given
-    :class:`.models.Course`.
+    """Remove a CourseRole from the given Course.
 
     .. :quickref: Course; Delete a course role from a course.
 
     :param int course_id: The id of the course
+    :param int role_id: The id of the role you want to delete
     :returns: An empty response with return code 204
 
     :raises APIException: If the role with the given ids does not exist.
@@ -497,10 +498,10 @@ def add_course() -> ExtendedJSONResponse[models.Course]:
 
 @api.route('/courses/', methods=['GET'])
 @auth.login_required
+@rqa.swagerize
 def get_courses() -> t.Union[JSONResponse[t.List[models.Course]],
                              ExtendedJSONResponse[t.List[models.Course]]]:
-    """Return all :class:`.models.Course` objects the current user is a member
-    of.
+    """Return all Course objects the current user is a member of.
 
     .. :quickref: Course; Get all courses the current user is enrolled in.
 
@@ -558,9 +559,10 @@ def get_courses() -> t.Union[JSONResponse[t.List[models.Course]],
 
 @api.route('/courses/<int:course_id>', methods=['GET'])
 @auth.login_required
+@rqa.swagerize
 def get_course_by_id(
     course_id: int
-) -> t.Union[JSONResponse[models.Course], ExtendedJSONResponse[models.Course]]:
+) -> ExtendedJSONResponse[models.Course]:
     """Return course data for a given :class:`.models.Course`.
 
     .. :quickref: Course; Get data for a given course.
@@ -588,34 +590,41 @@ def get_course_by_id(
         )
         helpers.jsonify_options.get_options().add_role_to_course = True
 
-    if helpers.extended_requested():
-        return ExtendedJSONResponse.make(course, use_extended=models.Course)
-    else:
-        return JSONResponse.make(course)
+    return ExtendedJSONResponse.make(course, use_extended=models.Course)
 
 
 @api.route('/courses/<int:course_id>', methods=['PATCH'])
 @auth.login_required
+@rqa.swagerize
 def update_course(course_id: int) -> ExtendedJSONResponse[models.Course]:
     """Update the given :class:`.models.Course` with new values.
 
     .. :quickref: Course; Update course data.
 
-    :<json string name: The new name of the course. (OPTIONAL)
-    :<json string state: The new state of the course. Currently this can be
-        "archived" and "visible". If you set the state to "archived" students
-        will no longer be able to see the course. (OPTIONAL)
+    :param int course_id: The id of the course you want to update.
 
     :returns: The updated course, in extended format.
     """
+    data = rqa.FixedMapping(
+        rqa.OptionalArgument(
+            'name',
+            rqa.SimpleValue(str),
+            'The new name of the course',
+        ),
+        rqa.OptionalArgument(
+            'state',
+            rqa.EnumValue(models.CourseState),
+            """
+            The new state of the course, currently you cannot set the state of
+            a course to 'deleted'
+            """,
+        )
+    ).from_flask()
     course = helpers.get_or_404(models.Course, course_id)
     checker = auth.CoursePermissions(course)
     checker.ensure_may_see()
-    with helpers.get_from_request_transaction() as [_, opt_get]:
-        name = opt_get('name', str, None)
-        state = opt_get('state', models.CourseState, None)
 
-    if name is not None:
+    if data.name.is_just:
         if course.is_lti:
             raise APIException(
                 'You cannot rename LTI courses', (
@@ -623,23 +632,23 @@ def update_course(course_id: int) -> ExtendedJSONResponse[models.Course]:
                     ' not possible'
                 ), APICodes.INVALID_PARAM, 400
             )
-        if not name:
+        if not data.name.value:
             raise APIException(
                 'The name of a course should contain at least one character',
                 'A course name cannot be empty', APICodes.INVALID_PARAM, 400
             )
         checker.ensure_may_edit_info()
-        course.name = name
+        course.name = data.name.value
 
-    if state is not None:
-        if state.is_deleted:
+    if data.state.is_just:
+        if data.state.state.value.is_deleted:
             raise APIException(
                 'It is not yet possible to delete a course',
                 'Deleting courses in the API is not yet possible',
                 APICodes.INVALID_PARAM, 400
             )
         checker.ensure_may_edit_state()
-        course.state = state
+        course.state = data.state.value
 
     db.session.commit()
 
