@@ -428,8 +428,6 @@ export default {
         },
 
         filter() {
-            this.currentPage = 1;
-
             const newQuery = Object.assign({}, this.$route.query);
             newQuery.filterSnippets = this.filter || undefined;
 
