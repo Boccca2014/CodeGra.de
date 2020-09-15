@@ -1242,7 +1242,7 @@ class SakaiLTI(_BareRolesLTIProvider):
 
 @lti_classes.register('Open edX')
 class OpenEdX(_BareRolesLTIProvider):
-    """The LTI class used for the Sakai LMS.
+    """The LTI class used for the Open edX LMS.
     """
 
     def __init__(
