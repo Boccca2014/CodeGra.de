@@ -4,7 +4,8 @@ import type { LTIProviderServerData } from '@/api/v1/lti';
 
 import { AssertionError, mapToObject } from '@/utils/typed';
 
-const defaultLTIProvider = Object.freeze(<const>{
+const defaultLTI1p1Provider = Object.freeze(<const>{
+    lms: 'LMS',
     addBorder: false,
     supportsDeadline: false,
     supportsBonusPoints: false,
@@ -24,7 +25,7 @@ function makeLTI1p1Provider(
     override: Partial<Omit<LTIProvider, 'lms'>> | null = null,
 ): Readonly<LTIProvider> {
     return Object.freeze(
-        Object.assign({}, defaultLTIProvider, override, { lms: name }),
+        Object.assign({}, defaultLTI1p1Provider, override, { lms: name }),
     );
 }
 
@@ -97,8 +98,10 @@ const LTI1p1Lookup: Record<string, LTIProvider> = mapToObject([
 
 export function makeProvider(provider: LTIProviderServerData): LTIProvider {
     switch (provider.version) {
-        case 'lti1.1':
-            return LTI1p1Lookup[provider.lms];
+        case 'lti1.1': {
+            const prov = LTI1p1Lookup[provider.lms];
+            return prov == null ? defaultLTI1p1Provider : prov;
+        }
         case 'lti1.3':
             return new LTI1p3ProviderCapabilties(provider.lms, provider.capabilities);
         default:
