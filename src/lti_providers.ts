@@ -1,4 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
+import * as utils from '@/utils';
+
 // eslint-disable-next-line
 import type { LTIProviderServerData } from '@/api/v1/lti';
 
@@ -101,7 +103,14 @@ export function makeProvider(provider: LTIProviderServerData): LTIProvider {
     switch (provider.version) {
         case 'lti1.1': {
             const prov = LTI1p1Lookup[provider.lms];
-            return prov == null ? defaultLTI1p1Provider : prov;
+            if (prov == null) {
+                utils.withSentry(Sentry => {
+                    Sentry.captureMessage(`Unknown LTI provider: ${provider.lms}`);
+                });
+                return defaultLTI1p1Provider;
+            } else {
+                return prov;
+            }
         }
         case 'lti1.3':
             return new LTI1p3ProviderCapabilties(provider.lms, provider.capabilities);
