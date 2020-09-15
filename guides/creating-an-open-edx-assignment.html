@@ -7,7 +7,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>Create a CodeGrade assignment in Blackboard &mdash; CodeGrade Mosaic.1 documentation</title>
+  <title>Create a CodeGrade assignment in Open edX &mdash; CodeGrade Mosaic.1 documentation</title>
   
 
   
@@ -39,8 +39,8 @@
     
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
-    <link rel="next" title="Create a CodeGrade assignment in BrightSpace" href="creating-a-brightspace-assignment.html" />
-    <link rel="prev" title="Create a CodeGrade assignment" href="creating-an-assignment.html" />
+    <link rel="next" title="Create a standalone CodeGrade assignment" href="creating-a-standalone-assignment.html" />
+    <link rel="prev" title="Create a CodeGrade assignment in Moodle" href="creating-a-moodle-assignment.html" />
     <link href="../_static/style.css" rel="stylesheet" type="text/css">
 
 </head>
@@ -100,11 +100,11 @@
 <li class="toctree-l1"><a class="reference internal" href="getting-started-with-codegrade.html">Getting started with CodeGrade</a></li>
 <li class="toctree-l1"><a class="reference internal" href="autotest-best-practices.html">Best Practices for AutoTest</a></li>
 <li class="toctree-l1 current"><a class="reference internal" href="creating-an-assignment.html">Create a CodeGrade assignment</a><ul class="current">
-<li class="toctree-l2 current"><a class="current reference internal" href="#">In Blackboard</a></li>
+<li class="toctree-l2"><a class="reference internal" href="creating-a-blackboard-assignment.html">In Blackboard</a></li>
 <li class="toctree-l2"><a class="reference internal" href="creating-a-brightspace-assignment.html">In BrightSpace</a></li>
 <li class="toctree-l2"><a class="reference internal" href="creating-a-canvas-assignment.html">In Canvas</a></li>
 <li class="toctree-l2"><a class="reference internal" href="creating-a-moodle-assignment.html">In Moodle</a></li>
-<li class="toctree-l2"><a class="reference internal" href="creating-an-open-edx-assignment.html">In Open edX</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">In Open edX</a></li>
 <li class="toctree-l2"><a class="reference internal" href="creating-a-standalone-assignment.html">Standalone</a></li>
 </ul>
 </li>
@@ -195,13 +195,13 @@
         
           <li><a href="creating-an-assignment.html">Create a CodeGrade assignment</a> &raquo;</li>
         
-      <li>Create a CodeGrade assignment in Blackboard</li>
+      <li>Create a CodeGrade assignment in Open edX</li>
     
     
       <li class="wy-breadcrumbs-aside">
         
             
-            <a href="../_sources/guides/creating-a-blackboard-assignment.rst.txt" rel="nofollow"> View page source</a>
+            <a href="../_sources/guides/creating-an-open-edx-assignment.rst.txt" rel="nofollow"> View page source</a>
           
         
       </li>
@@ -214,43 +214,49 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
             
-  <div class="section" id="create-a-codegrade-assignment-in-blackboard">
-<h1>Create a CodeGrade assignment in Blackboard<a class="headerlink" href="#create-a-codegrade-assignment-in-blackboard" title="Permalink to this headline">¶</a></h1>
+  <div class="section" id="create-a-codegrade-assignment-in-open-edx">
+<h1>Create a CodeGrade assignment in Open edX<a class="headerlink" href="#create-a-codegrade-assignment-in-open-edx" title="Permalink to this headline">¶</a></h1>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
 <p>The guide below assumes CodeGrade has been successfully integrated into
-your Blackboard environment as external LTI app.</p>
+your Open edX environment as external LTI app.</p>
 </div>
-<p>Creating a new CodeGrade assignment in Blackboard will correctly
+<p>Creating a new CodeGrade assignment from within Open edX will correctly
 add this assignment to the corresponding course in CodeGrade, a new course will
-automatically be created in CodeGrade if it doesn’t exist. Follow
-the steps below to create a new CodeGrade assignment in Blackboard:</p>
+automatically be created in CodeGrade if it does not yet exist in CodeGrade.
+Follow the steps below to create a new CodeGrade assignment in Open edX:</p>
 <ol class="arabic simple">
-<li><p>Hover over <strong>“Build Content”</strong>.</p></li>
-<li><p>Under <strong>“Create”</strong>, select <strong>“CodeGrade”</strong>.</p></li>
-<li><p>Add a name and optionally a description for your assignment.</p></li>
-<li><p>Set <strong>“Points Possible”</strong> to something greater than 0, e.g. 10.</p></li>
-<li><p>Do <strong>not</strong> set a due date.</p></li>
-<li><p>Click <strong>“Submit”</strong> to create the assignment.</p></li>
-<li><p>Click on the newly created assignment and CodeGrade will open.</p></li>
-<li><p>Click the link in the CodeGrade container to <strong>set a deadline/due date</strong> within CodeGrade.</p></li>
+<li><p>Edit the unit in which you want to add CodeGrade and select
+<strong>Advanced</strong> from the <strong>Add New Component</strong> section. Select <strong>LTI Consumer</strong>.</p></li>
+<li><p>Select <strong>Edit</strong> in the component that appears. This should open a modal in
+which you can set up the CodeGrade assignment.</p></li>
+<li><p>Set the <strong>Display Name</strong> to the name of the assignment.</p></li>
+<li><p>The value for <strong>LTI ID</strong> depends on the configuration that your
+administrator set, however this will probably be <code class="docutils literal notranslate"><span class="pre">codegrade</span></code>.</p></li>
+<li><p>The <strong>LTI URL</strong> is <code class="docutils literal notranslate"><span class="pre">https://app.codegra.de/api/v1/lti/launch/1</span></code>, however
+for instances with a custom URL this will be different. Please contact us at
+<a class="reference external" href="mailto:support&#37;&#52;&#48;codegrade&#46;com">support<span>&#64;</span>codegrade<span>&#46;</span>com</a>.</p></li>
+<li><p>Now scroll all the way to the bottom and make sure the following options are
+all set to <strong>True</strong>:</p>
+<ul class="simple">
+<li><p>Request user’s email</p></li>
+<li><p>Request user’s full name</p></li>
+<li><p>Request user’s username</p></li>
+</ul>
+</li>
+<li><p>Click the save button.</p></li>
 </ol>
-<div class="admonition warning">
-<p class="admonition-title">Warning</p>
-<p>Always set <strong>“Points Possible”</strong> to a value greater than 0. Never set a
-<strong>Due Date</strong> in Blackboard, instead manage the due date inside CodeGrade.</p>
-</div>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
-<p>Grades are automatically sent back to Blackboard after setting the
+<p>Grades are automatically sent back to Open edX after setting the
 <strong>assignment state</strong> to (<em class="fa codegrade fa-check"></em>) <strong>Done</strong> in CodeGrade. While the
 assignment is in the (<em class="fa codegrade fa-check"></em>) <strong>Done</strong> state, all grades and changes to
-grades are immediately sent back to Blackboard.</p>
+grades are immediately sent back to Open edX.</p>
 </div>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
 <p>Students can hand in and review their feedback from within the CodeGrade
-container in Blackboard.</p>
+container in Open edX.</p>
 </div>
 </div>
 
@@ -262,10 +268,10 @@ container in Blackboard.</p>
   
     <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
       
-        <a href="creating-a-brightspace-assignment.html" class="btn btn-neutral float-right" title="Create a CodeGrade assignment in BrightSpace" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
+        <a href="creating-a-standalone-assignment.html" class="btn btn-neutral float-right" title="Create a standalone CodeGrade assignment" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
       
       
-        <a href="creating-an-assignment.html" class="btn btn-neutral float-left" title="Create a CodeGrade assignment" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+        <a href="creating-a-moodle-assignment.html" class="btn btn-neutral float-left" title="Create a CodeGrade assignment in Moodle" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
       
     </div>
   

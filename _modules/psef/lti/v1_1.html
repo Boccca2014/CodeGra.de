@@ -1447,6 +1447,47 @@
 <span class="sd">    &quot;&quot;&quot;</span></div>
 
 
+<div class="viewcode-block" id="OpenEdX"><a class="viewcode-back" href="../../../psef_api/psef.html#psef.lti.v1_1.OpenEdX">[docs]</a><span class="nd">@lti_classes</span><span class="o">.</span><span class="n">register</span><span class="p">(</span><span class="s1">&#39;Open edX&#39;</span><span class="p">)</span>
+<span class="k">class</span> <span class="nc">OpenEdX</span><span class="p">(</span><span class="n">_BareRolesLTIProvider</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;The LTI class used for the Open edX LMS.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">params</span><span class="p">:</span> <span class="n">t</span><span class="o">.</span><span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">],</span>
+        <span class="n">lti_provider</span><span class="p">:</span> <span class="n">models</span><span class="o">.</span><span class="n">LTI1p1Provider</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">,</span> <span class="n">lti_provider</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="s1">&#39;custom_component_display_name&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">launch_params</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">APIException</span><span class="p">(</span>
+                <span class="p">(</span>
+                    <span class="s2">&quot;We couldn&#39;t find the assignment name. Please make sure&quot;</span>
+                    <span class="s2">&quot; you set the &#39;Display Name&#39; option.&quot;</span>
+                <span class="p">),</span> <span class="p">(</span>
+                    <span class="s1">&#39;The custom_component_display_name property was missing from&#39;</span>
+                    <span class="s1">&#39; launch_params&#39;</span>
+                <span class="p">),</span> <span class="n">APICodes</span><span class="o">.</span><span class="n">INVALID_STATE</span><span class="p">,</span> <span class="mi">400</span>
+            <span class="p">)</span>
+        <span class="k">elif</span> <span class="ow">not</span> <span class="n">urlparse</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">outcome_service_url</span><span class="p">)</span><span class="o">.</span><span class="n">netloc</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">APIException</span><span class="p">(</span>
+                <span class="p">(</span>
+                    <span class="s1">&#39;It seems like you launched CodeGrade from Studio, this&#39;</span>
+                    <span class="s1">&#39; is not supported. When you open this link outside studio&#39;</span>
+                    <span class="s1">&#39; it will work.&#39;</span>
+                <span class="p">),</span> <span class="p">(</span>
+                    <span class="s1">&#39;The outcome service url was not a complete url, so this&#39;</span>
+                    <span class="s1">&#39; launch was probably done from within Studio&#39;</span>
+                <span class="p">),</span> <span class="n">APICodes</span><span class="o">.</span><span class="n">INVALID_STATE</span><span class="p">,</span> <span class="mi">400</span>
+            <span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">assignment_name</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;The name of the current LTI assignment.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">launch_params</span><span class="p">[</span><span class="s1">&#39;custom_component_display_name&#39;</span><span class="p">]</span></div>
+
+
 <div class="viewcode-block" id="MoodleLTI"><a class="viewcode-back" href="../../../psef_api/psef.html#psef.lti.v1_1.MoodleLTI">[docs]</a><span class="nd">@lti_classes</span><span class="o">.</span><span class="n">register</span><span class="p">(</span><span class="s1">&#39;Moodle&#39;</span><span class="p">)</span>
 <span class="k">class</span> <span class="nc">MoodleLTI</span><span class="p">(</span><span class="n">_BareRolesLTIProvider</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;The LTI class used for the Moodle LMS.</span>

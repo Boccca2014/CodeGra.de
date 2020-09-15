@@ -7,7 +7,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>Getting started with CodeGrade Standalone &mdash; CodeGrade Mosaic.1 documentation</title>
+  <title>Getting started with CodeGrade in Open edX &mdash; CodeGrade Mosaic.1 documentation</title>
   
 
   
@@ -39,8 +39,8 @@
     
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
-    <link rel="next" title="Best Practices for AutoTest" href="autotest-best-practices.html" />
-    <link rel="prev" title="Getting started with CodeGrade in Open edX" href="getting-started-with-codegrade-in-open-edx.html" />
+    <link rel="next" title="Getting started with CodeGrade Standalone" href="getting-started-with-codegrade-standalone.html" />
+    <link rel="prev" title="Getting started with CodeGrade in Sakai" href="getting-started-with-codegrade-in-sakai.html" />
     <link href="../_static/style.css" rel="stylesheet" type="text/css">
 
 </head>
@@ -103,14 +103,15 @@
 <li class="toctree-l2"><a class="reference internal" href="getting-started-with-codegrade-in-canvas.html">In Canvas</a></li>
 <li class="toctree-l2"><a class="reference internal" href="getting-started-with-codegrade-in-moodle.html">In Moodle</a></li>
 <li class="toctree-l2"><a class="reference internal" href="getting-started-with-codegrade-in-sakai.html">In Sakai</a></li>
-<li class="toctree-l2"><a class="reference internal" href="getting-started-with-codegrade-in-open-edx.html">In Open edX</a></li>
-<li class="toctree-l2 current"><a class="current reference internal" href="#">Standalone</a><ul>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">In Open edX</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#introduction">Introduction</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="#what-can-codegrade-do">What can CodeGrade do?</a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="#id1">Standalone</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#create-a-standalone-codegrade-assignment">Create a standalone CodeGrade assignment</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#integration-with-open-edx">Integration with Open edX</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#open-edx-synchronisation">Open edX synchronisation</a></li>
+</ul>
+</li>
 <li class="toctree-l3"><a class="reference internal" href="#setting-up-your-course">Setting up your course</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="#members">Members</a></li>
 <li class="toctree-l4"><a class="reference internal" href="#permissions">Permissions</a></li>
@@ -139,6 +140,7 @@
 <li class="toctree-l3"><a class="reference internal" href="#contact-us-and-support">Contact us and support</a></li>
 </ul>
 </li>
+<li class="toctree-l2"><a class="reference internal" href="getting-started-with-codegrade-standalone.html">Standalone</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="autotest-best-practices.html">Best Practices for AutoTest</a></li>
@@ -230,13 +232,13 @@
         
           <li><a href="getting-started-with-codegrade.html">Getting started with CodeGrade</a> &raquo;</li>
         
-      <li>Getting started with CodeGrade Standalone</li>
+      <li>Getting started with CodeGrade in Open edX</li>
     
     
       <li class="wy-breadcrumbs-aside">
         
             
-            <a href="../_sources/guides/getting-started-with-codegrade-standalone.rst.txt" rel="nofollow"> View page source</a>
+            <a href="../_sources/guides/getting-started-with-codegrade-in-open-edx.rst.txt" rel="nofollow"> View page source</a>
           
         
       </li>
@@ -249,8 +251,8 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
             
-  <div class="section" id="getting-started-with-codegrade-standalone">
-<span id="standalone"></span><h1>Getting started with CodeGrade Standalone<a class="headerlink" href="#getting-started-with-codegrade-standalone" title="Permalink to this headline">¶</a></h1>
+  <div class="section" id="getting-started-with-codegrade-in-open-edx">
+<h1>Getting started with CodeGrade in Open edX<a class="headerlink" href="#getting-started-with-codegrade-in-open-edx" title="Permalink to this headline">¶</a></h1>
 <div class="section" id="introduction">
 <h2>Introduction<a class="headerlink" href="#introduction" title="Permalink to this headline">¶</a></h2>
 <p>CodeGrade is a blended learning application designed especially for programming
@@ -284,39 +286,73 @@ feedback and rubrics.</p></li>
 </ul>
 </div>
 </div>
-<div class="section" id="id1">
-<h2>Standalone<a class="headerlink" href="#id1" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="integration-with-open-edx">
+<h2>Integration with Open edX<a class="headerlink" href="#integration-with-open-edx" title="Permalink to this headline">¶</a></h2>
 <p>All functionalities are bundled in one complete environment for programming
-education. You will have received a standalone CodeGrade domain with a signup
-link from CodeGrade. Either an institution domain, such as
-institution.codegra.de or the essential domain: app.codegra.de.</p>
+education, that integrates with Open edX. We use the LTI protocol to securely
+communicate and synchronise CodeGrade with Open edX. Most likely, CodeGrade has
+already been correctly integrated with Open edX by your system administrator,
+please contact us if not.</p>
+<p>CodeGrade accounts are automatically created and linked to current Open edX
+accounts. CodeGrade can be accessed both from <strong>within Open edX</strong>, showing a
+more narrow version of CodeGrade in a container on Open edX, or from the
+CodeGrade <strong>standalone website</strong>: <em>&lt;your-institution&gt;.codegra.de</em>. There is no
+difference between these two, and opening the standalone website via Open edX
+using the <strong>“New tab”</strong> button allows you to be automatically logged in.</p>
+<p>CodeGrade accounts that are automatically created and linked from within Open
+edX will not have a password, and are only accessible by the shared session with
+Open edX.</p>
+<p>To use the CodeGrade Filesystem, you need to set up a password for your
+CodeGrade account.</p>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>Always use a different password than the password you use to log into
+Canvas, Blackboard, Moodle, Brightspace, Sakai or Open edX.</p>
 </div>
-<div class="section" id="create-a-standalone-codegrade-assignment">
-<h2>Create a standalone CodeGrade assignment<a class="headerlink" href="#create-a-standalone-codegrade-assignment" title="Permalink to this headline">¶</a></h2>
+<ol class="arabic simple">
+<li><p>Navigate to the profile (<em class="fa codegrade fa-user-circle-o"></em>) page.</p></li>
+<li><p>Make sure the email is correct under <strong>User info</strong>. If this is not the case, change your email address in Canvas, Blackboard, Moodle or Brightspace.</p></li>
+<li><p>Next to <strong>Current Password</strong> press the <em class="fa codegrade fa-info"></em> icon.</p></li>
+<li><p>A dialog will appear. If you changed your email press the <strong>here</strong> button. Otherwise press the <strong>reset password</strong> link.</p></li>
+<li><p>On the <strong>reset password</strong> page type in your username. If you do not know what that is, this is visible on the <strong>profile page</strong>.</p></li>
+<li><p>An email will now be sent to your email address, with a link to set up a new password.</p></li>
+</ol>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
-<p>You should have been added to the correct course by the CodeGrade Support Team,
-if not, please contact your Partner Success Manager.</p>
+<p>Check your spam filter if an email does not appear after a few minutes.</p>
 </div>
-<p>Follow the steps below to create a new CodeGrade assignment on your standalone course:</p>
-<ol class="arabic simple">
-<li><p>Go to your course and press the <strong>“+”</strong> button in the bottom left.</p></li>
-<li><p>Enter a name for the assignment and confirm.</p></li>
-<li><p>Now the Assignment Management Page for the new assignment will open.</p></li>
-<li><p>Set a deadline and all your management options accordingly.</p></li>
-<li><p>When ready to open up the assignment to student, set the state to <strong>“Open”</strong> with the toggle in the top right.</p></li>
-</ol>
+<div class="section" id="open-edx-synchronisation">
+<h3>Open edX synchronisation<a class="headerlink" href="#open-edx-synchronisation" title="Permalink to this headline">¶</a></h3>
+<p>The following data is shared between CodeGrade and Open edX:</p>
+<ul class="simple">
+<li><p>Usernames</p></li>
+<li><p>Full names</p></li>
+<li><p>Email addresses</p></li>
+<li><p>Course names</p></li>
+<li><p>Assignment names</p></li>
+<li><p>Assignment state</p></li>
+<li><p>Grades (only passed back from CodeGrade to Open edX)</p></li>
+</ul>
+</div>
 </div>
 <div class="section" id="setting-up-your-course">
 <h2>Setting up your course<a class="headerlink" href="#setting-up-your-course" title="Permalink to this headline">¶</a></h2>
-<p>You also have certain management options in your course. To <strong>manage</strong> the course options
-<strong>press “Courses”</strong> (<em class="fa codegrade fa-book"></em>) in the left sidebar, select your course and press the <em class="fa codegrade fa-cog"></em>
+<p>After creating your first CodeGrade assignment from within Open edX, a course
+will be automatically created in CodeGrade. To <strong>manage</strong> the course options
+<strong>press “Courses”</strong> (<em class="fa codegrade fa-book"></em>), select your course and press the <em class="fa codegrade fa-cog"></em>
 <strong>icon</strong>. Below is a brief overview of the tabs in course management.</p>
 <div class="section" id="members">
 <h3>Members<a class="headerlink" href="#members" title="Permalink to this headline">¶</a></h3>
-<p>Here you will see all the members in a course and change roles. You can also
-add sign up links to your course, to allow students and other members to register
-for an account.</p>
+<p>After a user (student, TA or teacher) opens a CodeGrade assignment in Open edX
+for the first time in your course, they will automatically be added as a member
+of the course, CodeGrade will use the <strong>role</strong> this user has in Open edX.  On
+this tab, you can <strong>change the role</strong> of a member if it’s not correct, for
+example, from <strong>Student</strong> to <strong>TA</strong>.</p>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>CodeGrade will automatically use the role the user has in Open edX. In
+general, it is not necessary to change roles, only do this if necessary.</p>
+</div>
 </div>
 <div class="section" id="permissions">
 <h3>Permissions<a class="headerlink" href="#permissions" title="Permalink to this headline">¶</a></h3>
@@ -331,24 +367,35 @@ by the <em class="fa codegrade fa-info"></em> icon.</p>
 <div class="section" id="groups">
 <h3>Groups<a class="headerlink" href="#groups" title="Permalink to this headline">¶</a></h3>
 <p>If you want to use groups, you can create group sets here. A group set can be
-used by multiple assignments in the same course.
-Depending on permissions you can allow
-students to join a group themselves or only allow Teachers or TAs to add students
-to a group. If you want to <strong>change</strong> these permissions, you can do so on the
-<strong>permissions</strong> page explained above.
-<a class="reference internal" href="set-up-group-assignment.html#set-up-group-assignment"><span class="std std-ref">Click here to learn more about setting up your groups</span></a>.</p>
+used by multiple assignments in the same course. <strong>CodeGrade does not
+synchronise groups with Open edX</strong>, so make sure your assignments in Open edX
+are individual assignments (no group submission) and manage your groups in
+CodeGrade. <strong>CodeGrade will automatically send back all grades and feedback to
+all individual group members to Open edX correctly.</strong></p>
+<p>Depending on permissions you can allow students to join a group themselves or
+only allow Teachers or TAs to add students to a group. If you want to
+<strong>change</strong> these permissions, you can do so on the <strong>permissions</strong> page
+explained above.  <a class="reference internal" href="set-up-group-assignment.html#set-up-group-assignment"><span class="std std-ref">Click here to learn more about setting up your groups</span></a>.</p>
 </div>
 </div>
 <div class="section" id="setting-up-your-assignment">
 <h2>Setting up your assignment<a class="headerlink" href="#setting-up-your-assignment" title="Permalink to this headline">¶</a></h2>
-<p>By clicking the <em class="fa codegrade fa-cog"></em> icon on an assignment you enter the <strong>assignment management page</strong>.
-This page allows you to set up <strong>groups</strong>, run <strong>linters</strong>, start <strong>plagiarism runs</strong>,
-and add or edit the <strong>rubric</strong>.</p>
+<p>By clicking the <em class="fa codegrade fa-cog"></em> icon on an assignment you enter the <strong>assignment
+management page</strong>.  This page allows you to set up <strong>groups</strong>, run <strong>linters</strong>,
+start <strong>plagiarism runs</strong>, and add or edit the <strong>rubric</strong>.</p>
 <div class="section" id="general">
 <h3>General<a class="headerlink" href="#general" title="Permalink to this headline">¶</a></h3>
 <p>On the <strong>“General”</strong> page you can edit several general options. You can also select
 a group set to use, if you decide to make an assignment a group assignment.
 Furthermore you can set bonus points.</p>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>Manage the <strong>deadline</strong> of the assignment in CodeGrade and <strong>NOT</strong> in Open edX.</p>
+</div>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>The name and points possible of the assignment are configured within Open edX.</p>
+</div>
 </div>
 <div class="section" id="graders">
 <h3>Graders<a class="headerlink" href="#graders" title="Permalink to this headline">¶</a></h3>
@@ -482,15 +529,31 @@ context” option in the Code Viewer settings.</p>
 </div>
 <div class="section" id="student-experience">
 <h2>Student Experience<a class="headerlink" href="#student-experience" title="Permalink to this headline">¶</a></h2>
-<p>Students hand in an assignment on the CodeGrade website or optionally via Git. After handing in, students can browse through their
-code to check if it is correctly handed in. Before handing in they can
-click on the <strong>“rubric”</strong> (<em class="fa codegrade fa-th"></em>) button to show the rubric for this assignment.
-This means students <strong>know what is expected</strong> of them.</p>
-<p>After an assignment is set to <strong>“Done”</strong> (<em class="fa codegrade fa-check"></em>), students can view their feedback  and grade in CodeGrade.</p>
+<p>Students hand in an assignment on <strong>Open edX</strong> via the CodeGrade container after
+opening the assignment or optionally via Git. After handing in, students can
+browse through their code to check if it is correctly handed in. Before handing
+in they can click on the <strong>“rubric”</strong> (<em class="fa codegrade fa-th"></em>) button to show the rubric for
+this assignment.  This means students <strong>know what is expected</strong> of them.</p>
+<p>After an assignment is set to <strong>“Done”</strong> (<em class="fa codegrade fa-check"></em>) grades are automatically
+sent back to Open edX. Students can then view their feedback inside the
+CodeGrade container in Open edX after clicking on their grade or navigating to
+the assignment.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>If an assignment is in the <strong>“Done”</strong> (<em class="fa codegrade fa-check"></em>) state, all new grades
+or edits are passed back to Open edX immediately.</p>
+</div>
 <p>After uploading, a student will find an overview of their <strong>Code</strong> (where they
 can browse through their handed in files), an overview of their <strong>Feedback</strong>
 and optionally an overview of the <strong>AutoTest</strong> results which can be filled in
 preliminarily with Continuous Feedback.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>We recommend graders to make use of the standalone CodeGrade website, but
+the CodeGrade container within Open edX is sufficient for students. It is
+not possible for students to hand in assignments in the standalone
+environment.</p>
+</div>
 </div>
 <div class="section" id="contact-us-and-support">
 <h2>Contact us and support<a class="headerlink" href="#contact-us-and-support" title="Permalink to this headline">¶</a></h2>
@@ -509,10 +572,10 @@ how we can improve CodeGrade to better fit your education.</p>
   
     <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
       
-        <a href="autotest-best-practices.html" class="btn btn-neutral float-right" title="Best Practices for AutoTest" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
+        <a href="getting-started-with-codegrade-standalone.html" class="btn btn-neutral float-right" title="Getting started with CodeGrade Standalone" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
       
       
-        <a href="getting-started-with-codegrade-in-open-edx.html" class="btn btn-neutral float-left" title="Getting started with CodeGrade in Open edX" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+        <a href="getting-started-with-codegrade-in-sakai.html" class="btn btn-neutral float-left" title="Getting started with CodeGrade in Sakai" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
       
     </div>
   
