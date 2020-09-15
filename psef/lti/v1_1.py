@@ -1258,7 +1258,7 @@ class OpenEdX(_BareRolesLTIProvider):
                     "We couldn't find the assignment name. Please make sure"
                     " you set the 'Display Name' option."
                 ), (
-                    'The custom_assignment_name property was missing from'
+                    'The custom_component_display_name property was missing from'
                     ' launch_params'
                 ), APICodes.INVALID_STATE, 400
             )
