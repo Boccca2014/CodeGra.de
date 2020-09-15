@@ -12,13 +12,17 @@ const defaultLTIProvider = Object.freeze(<const>{
 });
 export type LTIProvider = {
     readonly lms: string;
+    readonly tag?: string;
     readonly addBorder: boolean;
     readonly supportsDeadline: boolean;
     readonly supportsBonusPoints: boolean;
     readonly supportsStateManagement: boolean;
 };
 
-function makeLTI1p1Provider(name: string, override: Omit<LTIProvider, 'lms'> | null = null): Readonly<LTIProvider> {
+function makeLTI1p1Provider(
+    name: string,
+    override: Partial<Omit<LTIProvider, 'lms'>> | null = null,
+): Readonly<LTIProvider> {
     return Object.freeze(
         Object.assign({}, defaultLTIProvider, override, { lms: name }),
     );
@@ -26,7 +30,12 @@ function makeLTI1p1Provider(name: string, override: Omit<LTIProvider, 'lms'> | n
 
 const blackboardProvider = makeLTI1p1Provider('Blackboard');
 
-const brightSpaceProvider = makeLTI1p1Provider('Brightspace');
+const brightSpaceProvider = makeLTI1p1Provider('Brightspace', {
+    // In the backend we call Brightspace "BrightSpace" (with a capital S)
+    // so we need to override the tag that is used to identify the correct
+    // ltiProvider.
+    tag: 'BrightSpace',
+});
 
 const moodleProvider = makeLTI1p1Provider('Moodle');
 
@@ -84,7 +93,7 @@ const LTI1p1Lookup: Record<string, LTIProvider> = mapToObject([
     canvasProvider,
     moodleProvider,
     sakaiProvider,
-], prov => [prov.lms, prov]);
+], prov => [prov.tag || prov.lms, prov]);
 
 export function makeProvider(provider: LTIProviderServerData): LTIProvider {
     switch (provider.version) {
