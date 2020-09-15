@@ -43,7 +43,7 @@ _UserCourse = TypedDict(  # pylint: disable=invalid-name
 
 
 @api.route('/courses/<int:course_id>/roles/<int:role_id>', methods=['DELETE'])
-@rqa.swagerize
+@rqa.swagerize('delete_role')
 def delete_role(course_id: int, role_id: int) -> EmptyResponse:
     """Remove a CourseRole from the given Course.
 
@@ -498,7 +498,7 @@ def add_course() -> ExtendedJSONResponse[models.Course]:
 
 @api.route('/courses/', methods=['GET'])
 @auth.login_required
-@rqa.swagerize
+@rqa.swagerize('get_all')
 def get_courses() -> t.Union[JSONResponse[t.List[models.Course]],
                              ExtendedJSONResponse[t.List[models.Course]]]:
     """Return all Course objects the current user is a member of.
@@ -559,7 +559,7 @@ def get_courses() -> t.Union[JSONResponse[t.List[models.Course]],
 
 @api.route('/courses/<int:course_id>', methods=['GET'])
 @auth.login_required
-@rqa.swagerize
+@rqa.swagerize('get')
 def get_course_by_id(
     course_id: int
 ) -> ExtendedJSONResponse[models.Course]:
@@ -595,7 +595,7 @@ def get_course_by_id(
 
 @api.route('/courses/<int:course_id>', methods=['PATCH'])
 @auth.login_required
-@rqa.swagerize
+@rqa.swagerize('update')
 def update_course(course_id: int) -> ExtendedJSONResponse[models.Course]:
     """Update the given :class:`.models.Course` with new values.
 
@@ -681,6 +681,7 @@ def get_permissions_for_course(
 @api.route('/courses/<int:course_id>/group_sets/', methods=['GET'])
 @features.feature_required(features.Feature.GROUPS)
 @auth.login_required
+@rqa.swagerize('get_group_sets')
 def get_group_sets(course_id: int
                    ) -> JSONResponse[t.Sequence[models.GroupSet]]:
     """Get the all the :class:`.models.GroupSet` objects in the given course.
@@ -773,12 +774,16 @@ def create_group_set(course_id: int) -> JSONResponse[models.GroupSet]:
 @api.route('/courses/<int:course_id>/snippets/', methods=['GET'])
 @auth.permission_required(GPerm.can_use_snippets)
 @auth.login_required
+@rqa.swagerize('get_snippets')
 def get_course_snippets(course_id: int
                         ) -> JSONResponse[t.Sequence[models.CourseSnippet]]:
     """Get all snippets (:class:`.models.CourseSnippet`) of the given
     :class:`.models.Course`.
 
     .. :quickref: CourseSnippet; Get all snippets for the given course.
+
+    :param int course_id: The id of the course from which you want to get the
+        snippets.
 
     :returns: An array containing all snippets for the given course.
 

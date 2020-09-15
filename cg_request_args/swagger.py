@@ -1,6 +1,7 @@
 import re
 import sys
 import enum
+import json
 import typing as t
 import inspect
 import datetime
@@ -95,7 +96,11 @@ def _prepare_url(url, endpoint_func):
                     break
                 doc.append(line)
         if not doc:
-            raise AssertionError('No documentation found for {}'.format(part))
+            raise AssertionError(
+                'No documentation found for {} in {}.{}'.format(
+                    part, endpoint_func.__module__, endpoint_func.__qualname__
+                )
+            )
 
         name = _to_camelcase(part)
         parameters.append({
@@ -233,7 +238,7 @@ def _typs_to_schema(todo: t.List[t.Type]) -> t.Mapping[str, t.Any]:
 
 def collect_swagger() -> t.Any:
 
-    swagger_lookup = {f.__name__: f for f in _SWAGGER_FUNCS}
+    swagger_lookup = {f.__name__: (op, f) for op, f in _SWAGGER_FUNCS}
 
     def get_routes(app, endpoint=None, order=None):
         endpoints = []
@@ -265,8 +270,9 @@ def collect_swagger() -> t.Any:
 
     for endpoint, rules in get_routes(flask.current_app):
         endpoint_func = flask.current_app.view_functions[endpoint]
-        func = swagger_lookup.get(endpoint_func.__name__)
-        if func is None:
+        try:
+            operation_id, func = swagger_lookup[endpoint_func.__name__]
+        except KeyError:
             continue
 
         signature = inspect.signature(func)
@@ -296,6 +302,7 @@ def collect_swagger() -> t.Any:
                     'responses': responses,
                     'summary': _first_docstring_line(endpoint_func.__doc__),
                     'tags': tags,
+                    'x-nickname': operation_id,
                 }
                 for tag in tags:
                     if tag not in found_tags:
@@ -324,22 +331,23 @@ def collect_swagger() -> t.Any:
 
     schemas = _typs_to_schema(schemas_todo)
 
-    with open('swagger.rst', 'w') as f:
-        yaml.dump(
-            {
-                'openapi': '3.0.3',
-                'info': {
-                    'title': 'CodeGrade', 'version': 'v1', 'license': {
-                        'name': 'AGPL-3.0',
-                        'url': 'http://www.gnu.org/licenses/agpl-3.0.html',
-                    }, 'contact': {
-                        'url': 'https://codegrade.com',
-                        'email': 'support@codegrade.com',
-                    }
-                },
-                'paths': dict(paths),
-                'tags': list(found_tags.values()),
-                'components': {'schemas': schemas},
-            },
-            stream=f,
-        )
+    result = {
+        'openapi': '3.0.3',
+        'info': {
+            'title': 'CodeGrade', 'version': 'v1', 'license': {
+                'name': 'AGPL-3.0',
+                'url': 'http://www.gnu.org/licenses/agpl-3.0.html',
+            }, 'contact': {
+                'url': 'https://codegrade.com',
+                'email': 'support@codegrade.com',
+            }
+        },
+        'paths': dict(paths),
+        'tags': list(found_tags.values()),
+        'components': {'schemas': schemas},
+    }
+    with open('swagger.yaml', 'w') as f:
+        yaml.dump(result, stream=f)
+
+    with open('swagger.json', 'w') as f:
+        json.dump(result, f)

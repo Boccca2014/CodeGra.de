@@ -59,12 +59,15 @@ _PARSE_ERROR = t.TypeVar('_PARSE_ERROR', bound='_ParseError')
 
 _T_CAL = t.TypeVar('_T_CAL', bound=t.Callable)
 
-_SWAGGER_FUNCS = []
+_SWAGGER_FUNCS: t.List[t.Tuple[str, t.Callable]] = []
 
 
-def swagerize(func: _T_CAL) -> _T_CAL:
-    _SWAGGER_FUNCS.append(func)
-    return func
+def swagerize(operation_name: str) -> t.Callable[[_T_CAL], _T_CAL]:
+    def __wrapper(func: _T_CAL) -> _T_CAL:
+        _SWAGGER_FUNCS.append((operation_name, func))
+        return func
+
+    return __wrapper
 
 
 class _Just(t.Generic[_T]):
@@ -489,7 +492,7 @@ _Key = t.TypeVar('_Key', bound=str)
 
 
 class _Argument(t.Generic[_T, _Key]):
-    __slots__ = ('key', 'value', 'doc')
+    __slots__ = ('key', 'value', '__raw_doc')
 
     def __init__(
         self,
@@ -499,7 +502,14 @@ class _Argument(t.Generic[_T, _Key]):
     ) -> None:
         self.key: Final = key
         self.value = value
-        self.doc = textwrap.dedent(doc).strip()
+        self.__raw_doc = doc
+
+    @property
+    def doc(self) -> str:
+        return ' '.join(
+            line.strip()
+            for line in textwrap.dedent(self.__raw_doc).split('\n')
+        ).strip()
 
     @abc.abstractmethod
     def describe(self) -> str:
@@ -733,30 +743,3 @@ class RichValue:
                 **self._parser.to_open_api(),
                 'minimum': self.__minimum,
             }
-
-
-if __name__ == '__main__':
-
-    class Enum(enum.Enum):
-        a = 5
-        b = 10
-
-    open_api = FixedMapping(
-        RequiredArgument(
-            'a',
-            SimpleValue(str),
-            'hello',
-        ),
-        OptionalArgument(
-            'b',
-            List(SimpleValue(int)),
-            'hello',
-        ),
-        RequiredArgument(
-            'c',
-            FixedMapping(RequiredArgument('a', SimpleValue(str), 'sow')),
-            'de',
-        ),
-        OptionalArgument('enum', EnumValue(Enum), 'weo'),
-        RequiredArgument('abd', LookupMapping(SimpleValue(bool)), 'wee'),
-    ).from_flask()

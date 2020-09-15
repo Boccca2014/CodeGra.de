@@ -43,7 +43,7 @@ logger = structlog.get_logger()
 
 @api.route('/assignments/', methods=['GET'])
 @auth.login_required
-@rqa.swagerize
+@rqa.swagerize('get_all')
 def get_all_assignments() -> JSONResponse[t.Sequence[models.Assignment]]:
     """Get all the :class:`.models.Assignment` objects that the current user
     can see.
@@ -113,7 +113,7 @@ def delete_assignment(assignment_id: int) -> EmptyResponse:
 
 @api.route('/assignments/<int:assignment_id>/course', methods=['GET'])
 @auth.login_required
-@rqa.swagerize
+@rqa.swagerize('get_course')
 def get_course_of_assignment(assignment_id: int
                              ) -> ExtendedJSONResponse[models.Course]:
     """Get the course connected to an assignment.
@@ -264,7 +264,7 @@ def set_reminder(
 
 @api.route('/assignments/<int:assignment_id>', methods=['PATCH'])
 @auth.login_required
-@rqa.swagerize
+@rqa.swagerize('update')
 def update_assignment(assignment_id: int) -> JSONResponse[models.Assignment]:
     # pylint: disable=too-many-branches,too-many-statements
     """Update the given assignment with new values.
