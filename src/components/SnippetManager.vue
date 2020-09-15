@@ -3,10 +3,10 @@
 <loader :scale="2" class="" v-if="loading"/>
 <div class="snippet-manager" v-else>
     <b-form-group class="filter-group">
-        <input v-model="filter"
+        <input :value="filter"
+               v-debounce="newFilter => { filter = newFilter }"
                class="form-control"
-               placeholder="Type to Search"
-               v-on:keyup.enter="submit"/>
+               placeholder="Type to search snippets" />
     </b-form-group>
 
     <table class="table table-striped snippets-table">
@@ -149,7 +149,7 @@ export default {
         return {
             loading: true,
             snippets: [],
-            filter: '',
+            filter: this.$route.query.filterSnippets || '',
             editingSnippet: null,
             saveConfirmMessage: '',
         };
@@ -425,6 +425,18 @@ export default {
                     cmpNoCase(a.key, b.key),
                 );
             },
+        },
+
+        filter() {
+            this.currentPage = 1;
+
+            const newQuery = Object.assign({}, this.$route.query);
+            newQuery.filterSnippets = this.filter || undefined;
+
+            this.$router.replace({
+                query: newQuery,
+                hash: this.$route.hash,
+            });
         },
     },
 
