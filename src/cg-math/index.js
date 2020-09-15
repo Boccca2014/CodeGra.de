@@ -25,7 +25,13 @@ export class CgMarkdownIt {
                 const inner = highlightCode(str.split('\n'), lang).join('<br>');
                 return `<pre class="code-block"><code>${inner}</code></pre>`;
             },
+            linkify: true,
         });
+        this.md.linkify
+            .set({ fuzzyLink: false })
+            .add('ftp:', null)
+            .add('//', null)
+            .add('mailto:', null);
 
         // Remember old renderer, if overridden, or proxy to default renderer
         const defaultRender =
