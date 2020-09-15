@@ -271,6 +271,7 @@ action is required.${divEnd}`;
 
             this.group
                 .getMemberStates(this.assignment.id)
+                // TODO: Show error when request failed.
                 .then(({ data }) => cont(data), () => cont());
         },
 
