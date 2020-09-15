@@ -39,7 +39,7 @@
             :tabindex="active ? null : -1"
             :value="value.description"
             @input="updateProp($event, 'description')"
-            @keydown.ctrl.enter.prevent="submitRubric"/>
+            @submit="submitRubric"/>
 
         <labelled-hr label="Items" />
     </template>
@@ -112,7 +112,7 @@
                     :tabindex="active ? null : -1"
                     :value="item.description"
                     @input="updateItem(i, 'description', $event)"
-                    @keydown.ctrl.enter.prevent="submitRubric" />
+                    @submit="submitRubric" />
             </template>
 
             <template v-else>
