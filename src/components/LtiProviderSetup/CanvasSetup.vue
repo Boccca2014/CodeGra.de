@@ -95,40 +95,6 @@
                 instance is hosted, and click the "Finalize" button below.
             </p>
 
-            <advanced-collapse class="mb-3">
-                <div class="border rounded p-3">
-                    <p>
-                        These options are the same for all Canvas default production
-                        instances, however you can change them if you have a custom
-                        Canvas setup.
-                    </p>
-
-                    <b-form-group label="Key set url">
-                        <b-input-group>
-                            <input class="form-control"
-                                   v-model="keySetUrl"
-                                   :placeholder="defaultKeySetUrl" />
-                        </b-input-group>
-                    </b-form-group>
-
-                    <b-form-group label="Auth token url">
-                        <b-input-group>
-                            <input class="form-control"
-                                   v-model="authTokenUrl"
-                                   :placeholder="defaultAuthTokenUrl" />
-                        </b-input-group>
-                    </b-form-group>
-
-                    <b-form-group class="mb-0" label="Auth login url">
-                        <b-input-group>
-                            <input class="form-control"
-                                   v-model="authLoginUrl"
-                                   :placeholder="defaultAuthLoginUrl" />
-                        </b-input-group>
-                    </b-form-group>
-                </div>
-            </advanced-collapse>
-
             <b-form-group :invalid-feedback="maybeWarningCanvasBaseUrl || ''"
                           label="The base url of your Canvas instance"
                           :state="maybeWarningCanvasBaseUrl == null">
@@ -139,14 +105,13 @@
                 </b-input-group>
             </b-form-group>
 
-
             <div class="d-flex justify-content-end">
                 <cg-submit-button
                     confirm="true"
                     label="Finalize"
                     :submit="finalizeProvider"
                     @after-success="afterFinalizeProvider">
-                    <template #confirm>
+                    <template slot="confirm">
                         After finalizing your configuration you cannot edit it
                         anymore. Are you sure you want to finalize your
                         configuration?
@@ -192,12 +157,6 @@ export default class CanvasSetup extends Vue {
 
     newClientId: string | null = this.ltiProvider.client_id;
 
-    keySetUrl: string | null = null;
-
-    authTokenUrl: string | null = null;
-
-    authLoginUrl: string | null = null;
-
     canvasBaseUrl: string | null = null;
 
     get trimmedCanvasBaseUrl() {
@@ -210,7 +169,7 @@ export default class CanvasSetup extends Vue {
 
     get maybeWarningCanvasBaseUrl() {
         const base = this.trimmedCanvasBaseUrl;
-        if (base == null) {
+        if (!base) {
             return null;
         } else if (!this.$utils.isValidHttpUrl(base)) {
             return "This doesn't look like valid url.";
@@ -226,18 +185,6 @@ probably be "${url.origin}".`;
         }
 
         return null;
-    }
-
-    get defaultAuthTokenUrl() {
-        return `${this.trimmedCanvasBaseUrl ?? ''}/login/oauth2/token`;
-    }
-
-    get defaultAuthLoginUrl() {
-        return `${this.trimmedCanvasBaseUrl ?? ''}/api/lti/authorize_redirect`;
-    }
-
-    get defaultKeySetUrl() {
-        return `${this.trimmedCanvasBaseUrl ?? ''}/api/lti/security/jwks`;
     }
 
     get showLogo(): boolean {
@@ -286,18 +233,22 @@ probably be "${url.origin}".`;
     }
 
     finalizeProvider() {
-        if (this.trimmedCanvasBaseUrl == null) {
-            if (!this.keySetUrl || !this.authTokenUrl || !this.authLoginUrl) {
-                throw new Error('Please insert a base url');
-            }
-        } else if (!this.$utils.isValidHttpUrl(this.trimmedCanvasBaseUrl)) {
+        const base = this.trimmedCanvasBaseUrl;
+
+        if (base == null) {
+            throw new Error('Please insert a base url');
+        } else if (!this.$utils.isValidHttpUrl(base)) {
             throw new Error('The base url does not look like a valid url');
         }
 
+        const authTokenUrl = `${base}/login/oauth2/token`;
+        const authLoginUrl = `${base}/api/lti/authorize_redirect`;
+        const keySetUrl = `${base}/api/lti/security/jwks`;
+
         return api.lti.updateLti1p3Provider(this.ltiProvider, this.secret, {
-            auth_token_url: this.authTokenUrl ?? this.defaultAuthTokenUrl,
-            auth_login_url: this.authLoginUrl ?? this.defaultAuthLoginUrl,
-            key_set_url: this.keySetUrl ?? this.defaultKeySetUrl,
+            auth_token_url: authTokenUrl,
+            auth_login_url: authLoginUrl,
+            key_set_url: keySetUrl,
             finalize: true,
         });
     }
