@@ -146,19 +146,26 @@ def _typ_to_schema(
                     typ.__qualname__.split('.')[0]
                 ).AsJSON
                 base = _typ_to_schema(base_as_json, 1, False, todo)
+                extra_props = {
+                    k: v
+                    for k, v in properties.items()
+                    if k not in base_as_json.__annotations__
+                }
                 extra_items = {
                     'type': 'object',
-                    'properties': {
-                        k: v
-                        for k, v in properties.items()
-                        if k not in base_as_json.__annotations__
-                    },
+                    'properties': extra_props,
+                    'required': [
+                        p for p in extra_props if p in typ.__required_keys__
+                    ],
                 }
                 return {'allOf': [base, extra_items]}
 
             return {
                 'type': 'object',
                 'properties': properties,
+                'required': [
+                    p for p in properties if p in typ.__required_keys__
+                ],
             }
         else:
             todo.append(typ)
