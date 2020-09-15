@@ -2,7 +2,9 @@ To use the CodeGrade Filesystem, you need to set up a password for your
 CodeGrade account.
 
 .. warning::
-    Always use a different password than the password you use to log into Canvas, Blackboard, Moodle or Brightspace.
+
+    Always use a different password than the password you use to log into
+    Canvas, Blackboard, Moodle, Brightspace, Sakai or Open edX.
 
 1. Navigate to the profile (:fa:`user-circle-o`) page.
 
