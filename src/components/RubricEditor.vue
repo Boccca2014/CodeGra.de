@@ -135,7 +135,6 @@
                 :auto-test="autoTestConfig"
                 :editable="editable"
                 :active="currentCategory === i"
-                :grow="grow"
                 @input="rowChanged(i, $event)"
                 @submit="() => $refs.submitButton.onClick()"
                 @delete="deleteRow(i)" />
@@ -815,12 +814,10 @@ export default {
 <style lang="less" scoped>
 @import '~mixins.less';
 
-.rubric-editor {
-    &.grow {
-        min-height: 100%;
-        display: flex;
-        flex-direction: column;
-    }
+.rubric-editor.grow {
+    min-height: 100%;
+    display: flex;
+    flex-direction: column;
 }
 
 .wizard-button-container:not(:last-child) {

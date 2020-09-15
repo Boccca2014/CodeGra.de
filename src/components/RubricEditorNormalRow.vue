@@ -1,7 +1,6 @@
 <!-- SPDX-License-Identifier: AGPL-3.0-only -->
 <template>
 <div class="rubric-editor-row normal"
-     :class="{ grow }"
      @mouseenter="lockPopoverVisible = true"
      @mouseleave="lockPopoverVisible = false">
     <template v-if="editable">
@@ -42,12 +41,7 @@
             @input="updateProp($event, 'description')"
             @keydown.ctrl.enter.prevent="submitRubric"/>
 
-        <small class="pr-2 text-muted font-italic"
-               style="background-color: white; position: absolute; transform: translateY(-50%)">
-            Items
-        </small>
-
-        <hr />
+        <labelled-hr label="Items" />
     </template>
 
     <div v-else
@@ -65,20 +59,16 @@
         </template>
 
         <p v-if="!value.description"
-           class="mb-0 text-muted font-italic"
+           class="text-muted font-italic"
            >This category has no description.</p>
         <inner-markdown-viewer
             v-else-if="value.descriptionType === 'markdown'"
-            :markdown="value.description" />
-        <p v-else class="mb-0 text-wrap-pre"
+            :markdown="value.description" u
+            class="mb-3" />
+        <p v-else class="text-wrap-pre"
            >{{ value.description }}</p>
 
-        <small class="pr-2 text-muted font-italic"
-               style="background-color: white; position: absolute; transform: translateY(-0.125rem)">
-            Items
-        </small>
-
-        <hr />
+        <labelled-hr label="Items" />
     </div>
 
     <div class="item-container row d-flex flex-row flex-wrap">
@@ -146,27 +136,31 @@
         <div v-if="editable && canChangeItems"
              class="rubric-item add-button col-12 col-md-6 col-xl-4 mb-3"
              @click="createItem">
-            <b-input-group>
-                <input type="number"
-                       class="points form-control rounded-bottom-0 px-2"
-                       step="any"
-                       placeholder="Pts."
-                       disabled />
+            <span style="opacity: 0.66;">
+                <b-input-group>
+                    <input type="number"
+                           class="points form-control rounded-bottom-0 px-2"
+                           step="any"
+                           placeholder="Pts."
+                           disabled />
 
-                <input type="text"
-                       class="header form-control rounded-bottom-0"
-                       placeholder="Header"
-                       disabled />
-            </b-input-group>
+                    <input type="text"
+                           class="header form-control rounded-bottom-0"
+                           placeholder="Header"
+                           disabled />
+                </b-input-group>
 
-            <textarea class="description form-control border-top-0 rounded-top-0"
-                      :rows="8"
-                      placeholder="Description"
-                      disabled />
+                <previewable-markdown-editor
+                    class="description border-top-0 rounded-top-0"
+                    value=""
+                    :rows="8"
+                    placeholder="Description"
+                    disabled />
 
-            <div class="overlay rounded cursor-pointer">
-                <fa-icon name="plus" :scale="3" />
-            </div>
+                <div class="overlay rounded cursor-pointer">
+                    <fa-icon name="plus" :scale="3" />
+                </div>
+            </span>
         </div>
     </div>
 </div>
@@ -177,6 +171,7 @@ import 'vue-awesome/icons/times';
 import 'vue-awesome/icons/plus';
 import 'vue-awesome/icons/lock';
 
+import LabelledHr from './LabelledHr';
 import InnerMarkdownViewer from './InnerMarkdownViewer';
 import PreviewableMarkdownEditor from './PreviewableMarkdownEditor';
 
@@ -201,10 +196,6 @@ export default {
             default: false,
         },
         active: {
-            type: Boolean,
-            default: false,
-        },
-        grow: {
             type: Boolean,
             default: false,
         },
@@ -282,6 +273,7 @@ export default {
     },
 
     components: {
+        LabelledHr,
         InnerMarkdownViewer,
         PreviewableMarkdownEditor,
     },
@@ -322,7 +314,6 @@ export default {
         left: 50%;
         top: 50%;
         transform: translate(-50%, -50%);
-        opacity: 0.8;
     }
 }
 
@@ -330,8 +321,9 @@ input.points {
     max-width: 3rem;
 }
 
-.rubric-editor-row.normal:not(.grow) p.description {
-    height: 10rem;
+.rubric-editor-row.normal p.description {
+    max-height: 10rem;
+    overflow: auto;
 }
 </style>
 
@@ -340,6 +332,10 @@ input.points {
     .input-group-append.rounded-bottom-0 .input-group-text {
         border-bottom-left-radius: 0 !important;
         border-bottom-right-radius: 0 !important;
+    }
+
+    .add-button [disabled] {
+        background-color: white !important;
     }
 }
 </style>
