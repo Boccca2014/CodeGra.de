@@ -12,4 +12,5 @@ Select your Learning Management System (LMS):
     In BrightSpace <creating-a-brightspace-assignment>
     In Canvas <creating-a-canvas-assignment>
     In Moodle <creating-a-moodle-assignment>
+    In Open edX <creating-an-open-edx-assignment>
     Standalone <creating-a-standalone-assignment>
