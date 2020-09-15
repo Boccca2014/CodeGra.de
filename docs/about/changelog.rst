@@ -33,8 +33,10 @@ Version *Next*
 Updates
 ^^^^^^^^^^^^^^^^^^^^
 
-- Automatically turn http and https URLs in markdown into clickable links `(#1448)
-  <https://github.com/CodeGra-de/CodeGra.de/pull/1448>`__.
+- Expand inline links in markdown viewer `(#1448)
+  <https://github.com/CodeGra-de/CodeGra.de/pull/1448>`__. When you use http
+  or https URLs in your markdown feedback, they are automatically turned into
+  clickable links.
 
 Version Mosaic.1
 -----------------
