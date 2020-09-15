@@ -11,4 +11,5 @@ Select your Learning Management System (LMS):
     In Canvas <getting-started-with-codegrade-in-canvas>
     In Moodle <getting-started-with-codegrade-in-moodle>
     In Sakai <getting-started-with-codegrade-in-sakai>
+    In Open edX <getting-started-with-codegrade-in-open-edx>
     Standalone <getting-started-with-codegrade-standalone>
