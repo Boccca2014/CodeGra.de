@@ -658,3 +658,39 @@ def test_peer_feedback_and_group_assignments(
         )
         test_client.req('delete', url, 204)
         enable_group(assig)
+
+
+@pytest.mark.parametrize('enable_after', [False, True])
+@pytest.mark.parametrize('student_amount', [4])
+def test_peer_feedback_and_test_student(
+        test_client, logged_in, describe, admin_user, session, tomorrow, enable_after, student_amount
+):
+    with describe('setup'), logged_in(admin_user):
+        course = helpers.create_course(test_client)
+        assignment = helpers.create_assignment(
+            test_client, course, deadline=tomorrow
+        )
+        if not enable_after:
+            helpers.enable_peer_feedback(test_client, assignment)
+
+        users = [
+            helpers.get_id(
+                helpers.create_user_with_role(session, 'Student', course)
+            ) for _ in range(student_amount)
+        ]
+        helpers.create_submission(
+            test_client, assignment, is_test_submission=True
+        )
+        for user in users:
+            helpers.create_submission(test_client, assignment, for_user=user)
+
+        if enable_after:
+            helpers.enable_peer_feedback(test_client, assignment)
+
+    with describe('nobody should be connected to the test student'
+                  ), logged_in(admin_user):
+        conns = get_all_connections(assignment, 1)
+        assert len(conns) == student_amount
+        for user in users:
+            assert user in conns
+            assert all(conn in users for conn in users)
