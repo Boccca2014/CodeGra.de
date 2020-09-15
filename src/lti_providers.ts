@@ -13,17 +13,18 @@ const defaultLTI1p1Provider = Object.freeze(<const>{
 });
 export type LTIProvider = {
     readonly lms: string;
-    readonly tag?: string;
     readonly addBorder: boolean;
     readonly supportsDeadline: boolean;
     readonly supportsBonusPoints: boolean;
     readonly supportsStateManagement: boolean;
 };
 
+type LTI1p1Provider = LTIProvider & { tag?: string };
+
 function makeLTI1p1Provider(
     name: string,
-    override: Partial<Omit<LTIProvider, 'lms'>> | null = null,
-): Readonly<LTIProvider> {
+    override: Partial<Omit<LTI1p1Provider, 'lms'>> | null = null,
+): Readonly<LTI1p1Provider> {
     return Object.freeze(
         Object.assign({}, defaultLTI1p1Provider, override, { lms: name }),
     );
