@@ -780,7 +780,7 @@ def get_course_snippets(course_id: int
     """Get all snippets (:class:`.models.CourseSnippet`) of the given
     :class:`.models.Course`.
 
-    .. :quickref: CourseSnippet; Get all snippets for the given course.
+    .. :quickref: Course; Get all snippets for the given course.
 
     :param int course_id: The id of the course from which you want to get the
         snippets.
@@ -805,7 +805,7 @@ def create_course_snippet(course_id: int
                           ) -> JSONResponse[models.CourseSnippet]:
     """Add or modify a :class:`.models.CourseSnippet` by key.
 
-    .. :quickref: CourseSnippet; Add or modify a course snippet.
+    .. :quickref: Course; Add or modify a course snippet.
 
     :returns: A response containing the JSON serialized snippet and return
               code 201.

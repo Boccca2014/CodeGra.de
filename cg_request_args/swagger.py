@@ -302,7 +302,7 @@ def collect_swagger() -> t.Any:
                     'responses': responses,
                     'summary': _first_docstring_line(endpoint_func.__doc__),
                     'tags': tags,
-                    'x-nickname': operation_id,
+                    'operationId': f'{tags[0].lower()}_{operation_id}',
                 }
                 for tag in tags:
                     if tag not in found_tags:
