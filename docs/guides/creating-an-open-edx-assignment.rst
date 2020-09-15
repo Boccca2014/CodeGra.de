@@ -8,14 +8,14 @@ Create a CodeGrade assignment in Open edX
 
 Creating a new CodeGrade assignment from within Open edX will correctly
 add this assignment to the corresponding course in CodeGrade, a new course will
-automatically be created in CodeGrade if not yet created in CodeGrade. Follow
-the steps below to create a new CodeGrade assignment in Canvas:
+automatically be created in CodeGrade if it does not yet exist in CodeGrade.
+Follow the steps below to create a new CodeGrade assignment in Canvas:
 
 1. Edit the unit in which you want to add CodeGrade and select
    **Advanced** from the **Add New Component** section. Select **LTI Consumer**.
 
 2. Select **Edit** in the component that appears. This should open a modal in
-   which you can setup the CodeGrade assignment.
+   which you can set up the CodeGrade assignment.
 
 3. Set the **Display Name** to the name of the assignment.
 
