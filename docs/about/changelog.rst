@@ -33,7 +33,7 @@ Version *Next*
 Updates
 ^^^^^^^^^^^^^^^^^^^^
 
-- Automatically turn http and https URLs in markdown into clickable links
+- Automatically turn http and https URLs in markdown into clickable links `(#1448)
   <https://github.com/CodeGra-de/CodeGra.de/pull/1448>`__.
 
 Version Mosaic.1
