@@ -2518,9 +2518,7 @@ def test_open_edx_launches(test_client, app, describe, tomorrow):
             )
 
     with describe('Cannot launch without assignment name'):
-        do_launch(
-            status=400, message=re.compile("'Display Name' option")
-        )
+        do_launch(status=400, message=re.compile("'Display Name' option"))
 
     with describe('With assignment name but not absolute service url'):
         do_launch(
