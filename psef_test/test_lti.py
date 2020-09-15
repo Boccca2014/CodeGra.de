@@ -2475,3 +2475,64 @@ def test_launch_upgraded_lti1p1_provider(
             'This provider has been upgraded to LTI 1.3' ==
             res['original_exception']['message']
         )
+
+
+def test_open_edx_launches(test_client, app, describe, tomorrow):
+    email = 'thomas@example.com'
+    name = 'A the A-er'
+    lti_id = 'USER_ID'
+
+    def do_launch(**extra_data):
+        status = extra_data.pop('status')
+        message = extra_data.pop('message', None)
+
+        with app.app_context():
+            data = {
+                'roles': 'urn:lti:role:ims/lis/Instructor',
+                'user_id': lti_id,
+                'lis_person_sourcedid': lti_id,
+                'lis_person_contact_email_primary': email,
+                'lis_person_name_full': name,
+                'context_id': 'NO_CONTEXT',
+                'context_title': 'WRONG_TITLE',
+                'resource_link_id': 'My link id',
+                'oauth_consumer_key': 'open_edx_lti',
+                'lis_outcome_service_url': '',
+                **extra_data,
+            }
+
+            res = test_client.post('/api/v1/lti/launch/1', data=data)
+            assert res.status_code in {302, 303}
+            url = urllib.parse.urlparse(res.headers['Location'])
+            blob_id = urllib.parse.parse_qs(url.query)['blob_id'][0]
+
+            test_client.req(
+                'post',
+                '/api/v1/lti/launch/2',
+                status,
+                data={'blob_id': blob_id},
+                result={
+                    '__allow_extra__': True,
+                    'message': message,
+                } if status != 200 else dict,
+            )
+
+    with describe('Cannot launch without assignment name'):
+        do_launch(
+            status=400, message=re.compile("'Display Name' option")
+        )
+
+    with describe('With assignment name but not absolute service url'):
+        do_launch(
+            custom_component_display_name='My name',
+            lis_outcome_service_url='/studiohahaha',
+            status=400,
+            message=re.compile('launched CodeGrade from Studio'),
+        )
+
+    with describe('With assignment name and absolute service url'):
+        do_launch(
+            custom_component_display_name='My name',
+            lis_outcome_service_url='https://example.com/wow/url',
+            status=200,
+        )
