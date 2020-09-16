@@ -30,6 +30,14 @@ Version *Next*
 
 **Released**: TBD
 
+Updates
+^^^^^^^^^^^^^^^^^^^^
+
+- Expand inline links in markdown viewer `(#1448)
+  <https://github.com/CodeGra-de/CodeGra.de/pull/1448>`__. When you use http
+  or https URLs in your markdown feedback, they are automatically turned into
+  clickable links.
+
 Version Mosaic.1
 -----------------
 
