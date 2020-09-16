@@ -663,7 +663,8 @@ def test_peer_feedback_and_group_assignments(
 @pytest.mark.parametrize('enable_after', [False, True])
 @pytest.mark.parametrize('student_amount', [4])
 def test_peer_feedback_and_test_student(
-        test_client, logged_in, describe, admin_user, session, tomorrow, enable_after, student_amount
+    test_client, logged_in, describe, admin_user, session, tomorrow,
+    enable_after, student_amount
 ):
     with describe('setup'), logged_in(admin_user):
         course = helpers.create_course(test_client)
