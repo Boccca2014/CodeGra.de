@@ -530,7 +530,6 @@ def test_get_and_add_rubric_row(
             'items': [{
                 'id': int,
                 'description': item['description'],
-                'description_type': 'markdown',
                 'header': item['header'],
                 'points': item['points'],
             }],
@@ -619,12 +618,13 @@ def test_update_add_rubric_wrong_permissions(
 ):
     marker = request.node.get_closest_marker('http_err')
     rubric = {
-        'header': f'My header', 'description': f'My description', 'items': [{
+        'header': f'My header',
+        'description': f'My description',
+        'items': [{
             'header': 'The header',
             'description': f'item description',
-            'description_type': 'markdown',
             'points': 2,
-        }, ]
+        }],
     }
     with logged_in(named_user):
         res = test_client.req(
