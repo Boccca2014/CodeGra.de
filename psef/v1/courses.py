@@ -633,7 +633,7 @@ def update_course(course_id: int) -> ExtendedJSONResponse[models.Course]:
         course.name = data.name.value
 
     if data.state.is_just:
-        if data.state.state.value.is_deleted:
+        if data.state.value.is_deleted:
             raise APIException(
                 'It is not yet possible to delete a course',
                 'Deleting courses in the API is not yet possible',

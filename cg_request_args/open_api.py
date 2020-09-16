@@ -1,10 +1,10 @@
 import re
 import sys
-import enum
 import typing as t
 import inspect
 import datetime
 import collections
+from enum import Enum, EnumMeta
 from collections import defaultdict
 
 import flask
@@ -38,8 +38,8 @@ def _clean_comment(comment: str) -> str:
     )
 
 
-def _first_docstring_line(doc: str) -> str:
-    first = doc.split('\n\n')[0]
+def _first_docstring_line(doc: t.Optional[str]) -> str:
+    first = (doc or '').split('\n\n')[0]
     return _clean_comment(first)
 
 
@@ -49,8 +49,8 @@ class _Tag(TypedDict):
 
 
 class OpenAPISchema:
-    def __init__(self, type_globals: t.Mapping[str, t.Any]) -> None:
-        self._paths: t.Dict[t.Dict[str, t.Mapping]] = defaultdict(dict)
+    def __init__(self, type_globals: t.Dict[str, t.Any]) -> None:
+        self._paths: t.Dict[str, t.Dict[str, t.Mapping]] = defaultdict(dict)
         self._schemas: t.Dict[str, t.Mapping] = {}
         self._type_globals = type_globals
         self._parsed_modules: t.Dict[str, sphinx.pycode.parser.Parser] = {}
@@ -89,13 +89,13 @@ class OpenAPISchema:
         if tag in self._tags:
             return
         description = _first_docstring_line(
-            sys.modules[func.__module__].__doc__
+            sys.modules[func.__module__ or ''].__doc__
         )
         if description:
             self._tags[tag] = {'name': tag, 'description': description}
 
     def _find_and_add_tags(self, endpoint: t.Callable) -> t.List[str]:
-        for line in endpoint.__doc__.splitlines():
+        for line in (endpoint.__doc__ or '').splitlines():
             if '.. :quickref: ' in line:
                 tags = [line.split('.. :quickref: ', 1)[-1].split(';', 1)[0]]
                 for tag in tags:
@@ -103,10 +103,12 @@ class OpenAPISchema:
                 return tags
         raise AssertionError('Could not find quickref in docstring')
 
-    def _maybe_resolve_forward(self, typ: t.Type) -> t.Type:
+    def _maybe_resolve_forward(
+        self, typ: t.Union[t.Type, t.ForwardRef]
+    ) -> t.Type:
         if isinstance(typ, t.ForwardRef):
             return self._maybe_resolve_forward(
-                typ._evaluate(self._type_globals, {})
+                t.cast(t.Type, typ._evaluate(self._type_globals, {}))
             )
         return typ
 
@@ -126,20 +128,33 @@ class OpenAPISchema:
                     typ.__qualname__.replace('.AsExtendedJSON', '.AsJSON'),
                     field,
                 )]
-        return parsed.comments[(typ.__qualname__, field)]
+        try:
+            return parsed.comments[(typ.__qualname__, field)]
+        except KeyError:
+            if hasattr(typ, '__cg_extends__'):
+                return parsed.comments[
+                    (typ.__cg_extends__.__qualname__, field)]
+            raise
 
     @staticmethod
     def simple_type_to_open_api_type(
-        typ: t.Union[str, bool, float, None, int]
+        typ: t.Type[t.Union[str, int, float, bool, None]]
     ) -> str:
         return _SIMPLE_TYPE_NAME_LOOKUP[typ]
 
-    def add_schema(self, typ: t.Type) -> t.Mapping[str, str]:
-        typ = self._maybe_resolve_forward(typ)
-        schema_name = self._get_schema_name(typ)
+    def add_schema(self, _typ: t.Type) -> t.Mapping[str, str]:
+        _typ = self._maybe_resolve_forward(_typ)
+        schema_name = self._get_schema_name(_typ)
 
-        if isinstance(typ, type(TypedDict)):
+        if schema_name in self._schemas:
+            pass
+        elif isinstance(_typ, type(TypedDict)):
+            typ: t.Any = _typ
             properties = {}
+            self._schemas[schema_name] = {
+                'infinite_recursion_preventer': '<PLACEHOLDER>'
+            }
+
             for prop, prop_type in typ.__annotations__.items():
                 prop_dct = self._typ_to_schema(prop_type, next_extended=False)
                 if '$ref' in prop_dct:
@@ -156,11 +171,17 @@ class OpenAPISchema:
             # ``AsJSON``, however this is not save in the object for some
             # reason, so we simply retrieve the ``AsJSON`` class and remove all
             # properties that one has from our found properties.
+            base_as_json = None
             if typ.__name__ == 'AsExtendedJSON':
                 base_as_json = getattr(
                     sys.modules[typ.__module__],
                     typ.__qualname__.split('.')[0]
                 ).AsJSON
+            elif hasattr(typ, '__cg_extends__'):
+                base_as_json = typ.__cg_extends__
+
+            if base_as_json is not None:
+
                 base = self.add_schema(base_as_json)
                 extra_props = {
                     k: v
@@ -184,13 +205,14 @@ class OpenAPISchema:
                         if p in typ.__required_keys__
                     ],
                 }
-        elif isinstance(typ, enum.EnumMeta):
+        elif isinstance(_typ, EnumMeta):
+            enum: t.Type[Enum] = _typ
             self._schemas[schema_name] = {
                 'type': 'string',
-                'enum': [e.name for e in typ],
+                'enum': [e.name for e in enum],
             }
         else:
-            raise AssertionError('Cannot make scheme for {}'.format(typ))
+            raise AssertionError('Cannot make scheme for {}'.format(_typ))
 
         return {'$ref': f'#/components/schemas/{schema_name}'}
 
@@ -248,7 +270,7 @@ class OpenAPISchema:
             return self._typ_to_schema(typ.__args__[0], next_extended=True)
         elif typ == t.Any:
             return {}
-        elif isinstance(typ, enum.EnumMeta):
+        elif isinstance(typ, EnumMeta):
             return self.add_schema(typ)
         elif next_extended and hasattr(typ, '__extended_to_json__'):
             return self._typ_to_schema(
@@ -264,8 +286,8 @@ class OpenAPISchema:
             raise AssertionError('Unknown type found: {}'.format(typ))
 
     @staticmethod
-    def _get_routes_from_app(app: flask.Flask
-                             ) -> t.Iterable[t.Tuple[str, t.Sequence[str]]]:
+    def _get_routes_from_app(app: flask.Flask) -> t.Iterable[
+        t.Tuple[t.Tuple[str, str], t.Sequence[t.Tuple[str, t.Sequence[str]]]]]:
         endpoints = []
         for rule in app.url_map.iter_rules():
             url_with_endpoint = (
@@ -275,7 +297,7 @@ class OpenAPISchema:
                 endpoints.append(url_with_endpoint)
         endpoints = [e for _, e in endpoints]
         for endpoint in endpoints:
-            methodrules = {}
+            methodrules: t.Dict[str, t.List[str]] = {}
             for rule in app.url_map.iter_rules(endpoint):
                 methods = rule.methods.difference(['OPTIONS', 'HEAD'])
                 path = rule.rule
@@ -288,7 +310,7 @@ class OpenAPISchema:
 
     @staticmethod
     def _prepare_url(url: str, endpoint_func: t.Callable
-                     ) -> t.Tuple[str, t.List[t.Mapping]]:
+                     ) -> t.Tuple[str, t.Sequence[t.Mapping]]:
         parameters = []
         url_parts = []
         for part in re.split(r'(<[^>]+>)', url):
@@ -313,7 +335,7 @@ class OpenAPISchema:
             found = False
             doc = []
             regex = re.compile('^:param[^:]* {}:'.format(part))
-            for line in endpoint_func.__doc__.splitlines():
+            for line in (endpoint_func.__doc__ or '').splitlines():
                 line = line.strip()
                 if regex.search(line):
                     found = True
@@ -353,7 +375,7 @@ class OpenAPISchema:
 
         signature = inspect.signature(func)
         ret = signature.return_annotation
-        responses = {
+        responses: t.Dict[t.Union[str, int], t.Mapping] = {
             401: {'$ref': '#/components/responses/UnauthorizedError'},
             403: {'$ref': '#/components/responses/IncorrectPermissionsError'},
             '5XX': {'$ref': '#/components/responses/UnknownError'},
@@ -368,7 +390,7 @@ class OpenAPISchema:
             }
 
         tags = self._find_and_add_tags(endpoint_func)
-        result = {
+        result: t.Dict[str, t.Any] = {
             'responses': responses,
             'summary': _first_docstring_line(endpoint_func.__doc__),
             'tags': tags,

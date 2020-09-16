@@ -20,12 +20,13 @@ import pylti1p3.names_roles
 import pylti1p3.service_connector
 from sqlalchemy.types import JSON
 from sqlalchemy_utils import UUIDType
-from typing_extensions import Final, TypedDict
+from typing_extensions import Final, Literal, TypedDict
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import rsa
 
 import psef
+import cg_typing_extensions
 from cg_helpers import handle_none
 from cg_dt_utils import DatetimeWithTimezone
 from cg_sqlalchemy_helpers import hybrid_property
@@ -1398,34 +1399,67 @@ class LTI1p3Provider(LTIProviderBase):
             'custom_fields': self._custom_fields,
         }
 
-    def __to_json__(self) -> t.Mapping[str, object]:
+    class BaseAsJSON(LTIProviderBase.AsJSON, TypedDict):
+        intended_use: str
+        capabilities: LMSCapabilities
+        iss: str
+
+    class FinalizedAsJSON(BaseAsJSON, TypedDict):
+        finalized: Literal[True]
+        edit_secret: None
+
+    class NonFinalizedAsJSON(BaseAsJSON, TypedDict):
+        finalized: Literal[False]
+        auth_login_url: t.Optional[str]
+        auth_token_url: t.Optional[str]
+        client_id: t.Optional[str]
+        key_set_url: t.Optional[str]
+        auth_audience: t.Optional[str]
+        custom_fields: t.Mapping[str, str]
+        public_jwk: t.Mapping[str, str]
+        public_key: str
+        edit_secret: t.Optional[uuid.UUID]
+
+    AsJSON = t.Union[FinalizedAsJSON, NonFinalizedAsJSON]
+
+    def __to_json__(self) -> AsJSON:
         base = super().__to_json__()
 
-        res = {
-            **base,
-            'finalized': self._finalized,
-            'intended_use': self._intended_use,
-            'capabilities': self.lms_capabilities,
-            'edit_secret': None,
-            'iss': self.iss,
-        }
-
-        if not self._finalized:
+        if self._finalized:
+            return cg_typing_extensions.make_typed_dict_extender(
+                base,
+                LTI1p3Provider.FinalizedAsJSON,
+            )(
+                finalized=True,
+                intended_use=self._intended_use,
+                capabilities=self.lms_capabilities,
+                edit_secret=None,
+                iss=self.iss,
+            )
+        else:
             if auth.LTI1p3ProviderPermissions(self).ensure_may_edit.as_bool():
-                res['edit_secret'] = self.edit_secret
-            res = {
-                **res,
-                'auth_login_url': self._auth_login_url,
-                'auth_token_url': self._auth_token_url,
-                'client_id': self.client_id,
-                'key_set_url': self._key_set_url,
-                'auth_audience': self._auth_audience,
-                'custom_fields': self._custom_fields,
-                'public_jwk': self.get_public_jwk(),
-                'public_key': self.get_public_key(),
-            }
+                edit_secret: t.Optional[uuid.UUID] = self.edit_secret
+            else:
+                edit_secret = None
 
-        return res
+            return cg_typing_extensions.make_typed_dict_extender(
+                base,
+                LTI1p3Provider.NonFinalizedAsJSON,
+            )(
+                finalized=False,
+                intended_use=self._intended_use,
+                capabilities=self.lms_capabilities,
+                edit_secret=edit_secret,
+                iss=self.iss,
+                auth_login_url=self._auth_login_url,
+                auth_token_url=self._auth_token_url,
+                client_id=self.client_id,
+                key_set_url=self._key_set_url,
+                auth_audience=self._auth_audience,
+                custom_fields=self._custom_fields,
+                public_jwk=self.get_public_jwk(),
+                public_key=self.get_public_key(),
+            )
 
     @classmethod
     def setup_signals(cls) -> None:

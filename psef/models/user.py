@@ -20,6 +20,7 @@ from sqlalchemy.orm.collections import attribute_mapped_collection
 
 import psef
 from cg_dt_utils import DatetimeWithTimezone
+from cg_typing_extensions import make_typed_dict_extender
 from cg_sqlalchemy_helpers import CIText, hybrid_property
 
 from . import UUID_LENGTH, Base, DbColumn, db
@@ -77,7 +78,7 @@ class User(NotEqualMixin, Base):
         """When logging in this object will be given.
         """
         #: The user that was logged in.
-        user: 'User'
+        user: 'psef.models.User'
         #: A JWT token that can be used to do authenticated requests.
         access_token: str
 
@@ -586,28 +587,38 @@ class User(NotEqualMixin, Base):
             CoursePermission.can_see_hidden_assignments
         )
 
-    def __to_json__(self) -> t.Dict[str, t.Any]:
+    class AsJSONWithoutGroup(TypedDict):
+        #: The is the id of this user
+        id: int
+        #: The fullname of the user. This might contain a first and last name,
+        #: however this is not guaranteed.
+        name: str
+        #: The username of this user.
+        username: str
+        #: Is this user a test student.
+        is_test_student: bool
+
+    class AsJSON(AsJSONWithoutGroup, TypedDict):
+        #: If this user is a wrapper user for a group this will contain this
+        #: group, otherwise it will be ``null``.
+        group: t.Optional['psef.models.Group']
+
+    AsJSON.__cg_extends__ = AsJSONWithoutGroup  # type: ignore[attr-defined]
+
+    def __to_json__(self) -> AsJSON:
         """Creates a JSON serializable representation of this object.
+        """
+        return make_typed_dict_extender(
+            self.__to_json_without_group__(), User.AsJSON
+        )(group=self.group)
 
-        This object will look like this:
-
-        .. code:: python
-
-            {
-                'id':    int, # The id of this user.
-                'name':  str, # The full name of this user.
-                'username': str, # The username of this user.
-                'group': t.Optional[Group], # The group that this user
-                                            # represents.
-            }
-
-        :returns: An object as described above.
+    def __to_json_without_group__(self) -> AsJSONWithoutGroup:
+        """Creates a JSON serializable representation of this object.
         """
         return {
             'id': self.id,
             'name': self.name,
             'username': self.username,
-            'group': self.group,
             'is_test_student': self.is_test_student,
         }
 

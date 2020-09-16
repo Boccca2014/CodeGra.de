@@ -25,22 +25,34 @@ def dict_getter_attribute_callback(ctx: AttributeContext, attr: str) -> Type:
     if attr == '__data':
         return ctx.default_attr_type
 
-    assert isinstance(ctx.type, Instance)
-    typeddict = ctx.type.args[0]
-    assert isinstance(typeddict, TypedDictType)
-    items = typeddict.items
+    def get_for_typeddict(typeddict: Type) -> Type:
+        assert isinstance(
+            typeddict, TypedDictType
+        ), 'Variable has strange value: {}'.format(typeddict)
+        items = typeddict.items
 
-    if attr not in items:
-        ctx.api.fail(
-            (
-                'The _DictGetter[{}] does not have the attribute {}, available'
-                ' attributes: {}'
-            ).format(typeddict, attr, ', '.join(items.keys())),
-            ctx.context,
-        )
-        return ctx.default_attr_type
+        if attr not in items:
+            ctx.api.fail(
+                (
+                    'The _DictGetter[{}] does not have the attribute {},'
+                    ' available attributes: {}'
+                ).format(typeddict, attr, ', '.join(items.keys())),
+                ctx.context,
+            )
+            return ctx.default_attr_type
 
-    return items[attr]
+        return items[attr]
+
+    if isinstance(ctx.type, Instance):
+        return get_for_typeddict(ctx.type.args[0])
+    elif isinstance(ctx.type, UnionType):
+        items = []
+        for item in ctx.type.items:
+            assert isinstance(item, Instance)
+            items.append(get_for_typeddict(item.args[0]))
+        return UnionType(items)
+    else:
+        raise AssertionError('Got strange type: {}'.format(ctx.type))
 
 
 def string_enum_callback(ctx: FunctionContext) -> Type:
@@ -59,9 +71,54 @@ def string_enum_callback(ctx: FunctionContext) -> Type:
         literals.append(arg.last_known_value)
 
     assert isinstance(ctx.default_return_type, Instance)
-    return ctx.default_return_type.copy_modified(
-        args=[UnionType(literals)]
-    )
+    return ctx.default_return_type.copy_modified(args=[UnionType(literals)])
+
+
+def add_tag_callback(ctx: MethodContext) -> Type:
+    (key, ), (value, ) = ctx.arg_types
+    if not isinstance(key, Instance
+                      ) or not isinstance(key.last_known_value, LiteralType):
+        ctx.api.fail(
+            'The key to the FixedMapping.add_tag should be a literal',
+            ctx.context,
+        )
+        return ctx.default_return_type
+    if not isinstance(value, Instance) or not isinstance(
+        value.last_known_value, LiteralType
+    ):
+        ctx.api.fail(
+            'The value to the FixedMapping.add_tag should be a literal',
+            ctx.context,
+        )
+        return ctx.default_return_type
+
+    key_value = key.last_known_value.value
+    if not isinstance(key_value, str):
+        ctx.api.fail(
+            'The key to the FixedMapping.add_tag should be a string',
+            ctx.context,
+        )
+        return ctx.default_return_type
+
+    assert isinstance(ctx.default_return_type, Instance)
+    typeddict = ctx.default_return_type.args[0]
+    assert isinstance(typeddict, TypedDictType)
+
+    items = OrderedDict(typeddict.items.items())
+    items[key_value] = value.last_known_value
+    required = set([*typeddict.required_keys, key_value])
+
+    args = [
+        TypedDictType(
+            items=items,
+            required_keys=required,
+            fallback=typeddict.fallback,
+            line=typeddict.line,
+            column=typeddict.column
+        )
+    ]
+
+    return ctx.default_return_type.copy_modified(args=args)
 
 
 def argument_callback(ctx: FunctionContext) -> Type:
@@ -147,11 +204,11 @@ def fixed_mapping_callback(ctx: FunctionContext) -> Type:
             value_type = UnionType(
                 items=[
                     ctx.api.named_generic_type(
-                        'cg_request_args._Just',
+                        'cg_maybe.Just',
                         [value_type],
                     ),
                     ctx.api.named_generic_type(
-                        'cg_request_args._Nothing',
+                        'cg_maybe._Nothing',
                         [],
                     ),
                 ]
@@ -170,6 +227,16 @@ def fixed_mapping_callback(ctx: FunctionContext) -> Type:
 class CgRequestArgPlugin(Plugin):
     """Mypy plugin definition.
     """
+
+    def get_method_hook(  # pylint: disable=no-self-use
+        self,
+        fullname: str,
+    ) -> t.Optional[t.Callable[[MethodContext], Type]]:
+        """Get the function to be called by mypy.
+        """
+        if fullname == 'cg_request_args.FixedMapping.add_tag':
+            return add_tag_callback
+        return None
 
     def get_function_hook(  # pylint: disable=no-self-use
         self,
