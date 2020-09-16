@@ -734,7 +734,7 @@ class AssignmentPeerFeedbackSettings(Base, IdMixin, TimestampMixin):
         :returns: A boolean indicating if the initial submission was done.
         """
         assig = self.assignment
-        existing_submissions = assig.get_amount_not_deleted_submissions()
+        existing_submissions = assig.get_amount_users_with_submission()
         if existing_submissions > self.amount:
             self.connections = []
             self._do_initial_division()
@@ -757,12 +757,13 @@ class AssignmentPeerFeedbackSettings(Base, IdMixin, TimestampMixin):
         larger than the amount of submissions that each user should review.
         """
         assig = self.assignment
-        all_users = user_models.User.query.filter(
-            user_models.User.id.in_(
-                assig.get_from_latest_submissions(work_models.Work.user_id)
-            )
+        all_users = assig.get_not_deleted_submissions().join(
+            work_models.Work.user
+        ).filter(
+            ~user_models.User.is_test_student,
+        ).with_entities(user_models.User).order_by(
+            sql_expression.func.random()
         ).all()
-        shuffle(all_users)
 
         self.connections = []
         can_do_better_division = len(all_users) > self.amount ** 2
@@ -944,7 +945,7 @@ class AssignmentPeerFeedbackSettings(Base, IdMixin, TimestampMixin):
             )
             return
 
-        existing_submissions = assig.get_amount_not_deleted_submissions()
+        existing_submissions = assig.get_amount_users_with_submission()
         if existing_submissions <= self.amount:
             # Not enough submissions to create a division
             logger.info(
@@ -2224,9 +2225,25 @@ class Assignment(helpers.NotEqualMixin, Base):  # pylint: disable=too-many-publi
 
         self.state = new_state
 
-    def get_amount_not_deleted_submissions(self) -> int:
+    def get_amount_users_with_submission(self) -> int:
+        """Get the amount of students that did at least one submission (which
+        is not deleted) in this assignment.
+
+        .. note::
+
+            This methods counts students that did a group submission and a
+            personal submission twice. So if Tom and Jane both did a personal
+            submission, and later joined a group together and did a submission
+            as this group we would count 3 submissions. If you do not want this
+            behavior use the :meth:`~Assignment.get_from_latest_submissions`
+            method and use a count on that.
+        """
+        base = self.get_not_deleted_submissions().join(
+            work_models.Work.user
+        ).filter(~user_models.User.is_test_student)
+
         return handle_none(
-            self.get_not_deleted_submissions().with_entities(
+            base.with_entities(
                 sql_expression.func.count(
                     cg_sqlalchemy_helpers.distinct(work_models.Work.user_id)
                 )
