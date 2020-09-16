@@ -64,7 +64,7 @@
                :value="multiplier"
                debounce
                @input="setMultiplier"
-               @keydown.ctrl.enter="submitResult"
+               @keydown.ctrl.enter.native="submitResult"
                ref="multiplierInput" />
     </b-input-group>
 </div>
