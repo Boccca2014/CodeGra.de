@@ -21,17 +21,18 @@ import { AutoTestRun, AutoTestResult } from '@/models';
 import { RubricResultValidationError, RubricRowValidationError } from './errors';
 import { Submission } from './submission';
 
-type RubricDescriptionType = 'plain_text' | 'markdown';
+enum RubricDescriptionType {
+    'plain_text',
+    'markdown',
+}
 
-const defaultDescriptionType: RubricDescriptionType = 'markdown';
+const defaultDescriptionType: RubricDescriptionType = RubricDescriptionType.markdown;
 
 interface RubricItemServerData {
     id: number;
     points: number;
     header: string;
     description: string;
-    // eslint-disable-next-line camelcase
-    description_type: RubricDescriptionType;
 }
 
 interface IRubricItem<T> {
@@ -42,8 +43,6 @@ interface IRubricItem<T> {
     header: string;
 
     description: string;
-
-    descriptionType: RubricDescriptionType;
 
     trackingId?: number;
 }
@@ -56,7 +55,6 @@ export class RubricItem<T = number | undefined> {
             points: data.points,
             header: data.header,
             description: data.description,
-            descriptionType: data.description_type,
             trackingId: undefined,
         });
     }
@@ -67,7 +65,6 @@ export class RubricItem<T = number | undefined> {
             points: '',
             header: '',
             description: '',
-            descriptionType: defaultDescriptionType,
             trackingId: getUniqueId(),
         });
     }
@@ -95,7 +92,7 @@ interface BaseRubricRowServerData {
     header: string;
     description: string;
     // eslint-disable-next-line camelcase
-    description_type: RubricDescriptionType;
+    description_type: keyof typeof RubricDescriptionType;
     locked: false | 'auto_test';
     items: RubricItemServerData[];
 }
@@ -160,6 +157,10 @@ export class RubricRow<T extends number | undefined | null> {
         Object.freeze(this.items);
 
         Object.freeze(this);
+    }
+
+    get isMarkdown(): boolean {
+        return this.descriptionType === RubricDescriptionType.markdown;
     }
 
     get minPoints(): number {
@@ -392,7 +393,7 @@ export class NormalRubricRow<T extends number | undefined | null> extends Rubric
             type: data.type,
             header: data.header,
             description: data.description,
-            descriptionType: data.description_type,
+            descriptionType: RubricDescriptionType[data.description_type],
             locked: data.locked,
             items: data.items.map(item => RubricItem.fromServerData(item)),
         });
@@ -449,7 +450,7 @@ export class ContinuousRubricRow<T extends number | undefined | null> extends Ru
             type: data.type,
             header: data.header,
             description: data.description,
-            descriptionType: data.description_type,
+            descriptionType: RubricDescriptionType[data.description_type],
             locked: data.locked,
             items: data.items.map(item => RubricItem.fromServerData(item)),
         });
@@ -667,8 +668,6 @@ export class RubricResult {
         } else {
             selected[rowId] = Object.assign({}, item, {
                 multiplier: 1,
-                // Needed for TypeScript.
-                description_type: item.descriptionType,
             });
         }
 
@@ -692,8 +691,6 @@ export class RubricResult {
         } else {
             selected[rowId] = Object.assign({}, item, {
                 multiplier: Number(multiplier),
-                // Needed for TypeScript.
-                description_type: item.descriptionType,
             });
         }
 

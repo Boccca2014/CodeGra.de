@@ -47,12 +47,21 @@
         </b-input-group>
 
         <previewable-markdown-editor
+            v-if="value.isMarkdown"
             class="category-description mb-3"
             placeholder="Description"
             :tabindex="active ? null : -1"
             :value="value.description"
             @input="updateProp($event, 'description')"
             @submit="submitRubric" />
+        <textarea
+            v-else
+            class="category-description mb-3"
+            placeholder="Description"
+            :tabindex="active ? null : -1"
+            :value="value.description"
+            @input="updateProp($event, 'description')"
+            @keyup.ctrl.enter="submitRubric" />
     </template>
 
     <div v-else>
@@ -72,7 +81,7 @@
            class="mb-3 pb-3 border-bottom text-muted font-italic"
            >This category has no description.</p>
         <inner-markdown-viewer
-            v-else-if="value.descriptionType === 'markdown'"
+            v-else-if="value.isMarkdown"
             :markdown="value.description" />
         <p v-else class="mb-3 pb-3 border-bottom text-wrap-pre"
            >{{ value.description }}</p>

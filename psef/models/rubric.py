@@ -205,12 +205,6 @@ class RubricItem(helpers.NotEqualMixin, Base):
         nullable=False,
     )
     header = db.Column('header', db.Unicode, default='', nullable=False)
-    description_type = db.Column(
-        'description_type',
-        db.Enum(RubricDescriptionType),
-        nullable=False,
-        server_default=RubricDescriptionType.plain_text.name,
-    )
     description = db.Column(
         'description', db.Unicode, default='', nullable=False
     )
@@ -230,7 +224,6 @@ class RubricItem(helpers.NotEqualMixin, Base):
         """Serialization of rubric items for outgoing requests.
         """
         id: int
-        description_type: RubricDescriptionType
 
     def __to_json__(self) -> AsJSON:
         """Creates a JSON serializable representation of this object.
@@ -238,7 +231,6 @@ class RubricItem(helpers.NotEqualMixin, Base):
         return {
             'id': self.id,
             'description': self.description,
-            'description_type': self.description_type,
             'header': self.header,
             # A float is a ``Real``, mypy issue:
             # https://github.com/python/mypy/issues/2636
@@ -249,7 +241,6 @@ class RubricItem(helpers.NotEqualMixin, Base):
         return RubricItem(
             header=self.header,
             description=self.description,
-            description_type=self.description_type,
             points=self.points,
         )
 
@@ -482,7 +473,6 @@ class RubricRowBase(helpers.NotEqualMixin, Base):
                 rubric_item = RubricItem(
                     rubricrow=self,
                     description=item_description,
-                    description_type=RubricDescriptionType.markdown,
                     header=item_header,
                     points=points
                 )

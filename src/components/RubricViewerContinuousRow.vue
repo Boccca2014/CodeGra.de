@@ -10,7 +10,7 @@
                class="flex-grow-1 my-2 px-3 text-muted font-italic"
                >This category has no description.</p>
             <inner-markdown-viewer
-                v-else-if="rubricRow.descriptionType === 'markdown'"
+                v-else-if="rubricRow.isMarkdown"
                 :markdown="rubricRow.description"
                 class="flex-grow-1 my-2 px-3" />
             <p v-else

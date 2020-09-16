@@ -34,12 +34,22 @@
         </b-input-group>
 
         <previewable-markdown-editor
+            v-if="value.isMarkdown"
             class="category-description mb-3"
             placeholder="Category description"
             :tabindex="active ? null : -1"
             :value="value.description"
             @input="updateProp($event, 'description')"
             @submit="submitRubric"/>
+        <textarea
+            v-else
+            class="category-description mb-3 form-control"
+            placeholder="Category description"
+            :tabindex="active ? null : -1"
+            :value="value.description"
+            @input="updateProp($event, 'description')"
+            @keyup.ctrl.enter="submitRubric"/>
+
 
         <labelled-hr label="Items" />
     </template>
@@ -62,8 +72,8 @@
            class="text-muted font-italic"
            >This category has no description.</p>
         <inner-markdown-viewer
-            v-else-if="value.descriptionType === 'markdown'"
-            :markdown="value.description" u
+            v-else-if="value.isMarkdown"
+            :markdown="value.description"
             class="mb-3" />
         <p v-else class="text-wrap-pre"
            >{{ value.description }}</p>
@@ -106,6 +116,7 @@
                 </b-input-group>
 
                 <previewable-markdown-editor
+                    v-if="value.isMarkdown"
                     class="description border-top-0 rounded-top-0"
                     :rows="8"
                     placeholder="Description"
@@ -113,6 +124,15 @@
                     :value="item.description"
                     @input="updateItem(i, 'description', $event)"
                     @submit="submitRubric" />
+                <textarea
+                    v-else
+                    class="description form-control border-top-0 rounded-top-0"
+                    :rows="8"
+                    placeholder="Description"
+                    :tabindex="active ? null : -1"
+                    :value="item.description"
+                    @input="updateItem(i, 'description', $event)"
+                    @keyup.ctrl.enter="submitRubric" />
             </template>
 
             <template v-else>
@@ -126,7 +146,7 @@
                     <span v-if="!item.description"
                           class="text-muted font-italic">No description</span>
                     <inner-markdown-viewer
-                        v-else-if="item.descriptionType === 'markdown'"
+                        v-else-if="item.isMarkdown"
                         :markdown="item.description" />
                     <span v-else class="text-wrap-pre">{{ item.description }}</span>
                 </p>
@@ -134,9 +154,9 @@
         </div>
 
         <div v-if="editable && canChangeItems"
-             class="rubric-item add-button col-12 col-md-6 col-xl-4 mb-3"
+             class="rubric-item col-12 col-md-6 col-xl-4 mb-3"
              @click="createItem">
-            <span style="opacity: 0.66;">
+            <div class="add-button">
                 <b-input-group>
                     <input type="number"
                            class="points form-control rounded-bottom-0 px-2"
@@ -151,7 +171,15 @@
                 </b-input-group>
 
                 <previewable-markdown-editor
+                    v-if="value.isMarkdown"
                     class="description border-top-0 rounded-top-0"
+                    value=""
+                    :rows="8"
+                    placeholder="Description"
+                    disabled />
+                <textarea
+                    v-else
+                    class="description form-control border-top-0 rounded-top-0"
                     value=""
                     :rows="8"
                     placeholder="Description"
@@ -160,7 +188,7 @@
                 <div class="overlay rounded cursor-pointer">
                     <fa-icon name="plus" :scale="3" />
                 </div>
-            </span>
+            </div>
         </div>
     </div>
 </div>
@@ -292,15 +320,16 @@ export default {
     padding: 0 0.5rem 0 0.5rem;
 }
 
-.add-buton {
+.add-button {
     position: relative;
+    opacity: 0.66;
 }
 
 .add-button .overlay {
     height: 100%;
+    width: 100%;
     top: 0;
-    left: 0.5rem;
-    right: 0.5rem;
+    left: 0;
     position: absolute;
     background-color: rgba(0, 0, 0, 0.0625);
     transition: background-color @transition-duration;
