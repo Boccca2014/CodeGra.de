@@ -939,7 +939,7 @@
 <span class="sd">        :returns: A boolean indicating if the initial submission was done.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">assig</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">assignment</span>
-        <span class="n">existing_submissions</span> <span class="o">=</span> <span class="n">assig</span><span class="o">.</span><span class="n">get_amount_not_deleted_submissions</span><span class="p">()</span>
+        <span class="n">existing_submissions</span> <span class="o">=</span> <span class="n">assig</span><span class="o">.</span><span class="n">get_amount_users_with_submission</span><span class="p">()</span>
         <span class="k">if</span> <span class="n">existing_submissions</span> <span class="o">&gt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">amount</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">connections</span> <span class="o">=</span> <span class="p">[]</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_do_initial_division</span><span class="p">()</span>
@@ -962,12 +962,13 @@
 <span class="sd">        larger than the amount of submissions that each user should review.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">assig</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">assignment</span>
-        <span class="n">all_users</span> <span class="o">=</span> <span class="n">user_models</span><span class="o">.</span><span class="n">User</span><span class="o">.</span><span class="n">query</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span>
-            <span class="n">user_models</span><span class="o">.</span><span class="n">User</span><span class="o">.</span><span class="n">id</span><span class="o">.</span><span class="n">in_</span><span class="p">(</span>
-                <span class="n">assig</span><span class="o">.</span><span class="n">get_from_latest_submissions</span><span class="p">(</span><span class="n">work_models</span><span class="o">.</span><span class="n">Work</span><span class="o">.</span><span class="n">user_id</span><span class="p">)</span>
-            <span class="p">)</span>
+        <span class="n">all_users</span> <span class="o">=</span> <span class="n">assig</span><span class="o">.</span><span class="n">get_not_deleted_submissions</span><span class="p">()</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
+            <span class="n">work_models</span><span class="o">.</span><span class="n">Work</span><span class="o">.</span><span class="n">user</span>
+        <span class="p">)</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span>
+            <span class="o">~</span><span class="n">user_models</span><span class="o">.</span><span class="n">User</span><span class="o">.</span><span class="n">is_test_student</span><span class="p">,</span>
+        <span class="p">)</span><span class="o">.</span><span class="n">with_entities</span><span class="p">(</span><span class="n">user_models</span><span class="o">.</span><span class="n">User</span><span class="p">)</span><span class="o">.</span><span class="n">order_by</span><span class="p">(</span>
+            <span class="n">sql_expression</span><span class="o">.</span><span class="n">func</span><span class="o">.</span><span class="n">random</span><span class="p">()</span>
         <span class="p">)</span><span class="o">.</span><span class="n">all</span><span class="p">()</span>
-        <span class="n">shuffle</span><span class="p">(</span><span class="n">all_users</span><span class="p">)</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">connections</span> <span class="o">=</span> <span class="p">[]</span>
         <span class="n">can_do_better_division</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">all_users</span><span class="p">)</span> <span class="o">&gt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">amount</span> <span class="o">**</span> <span class="mi">2</span>
@@ -1149,7 +1150,7 @@
             <span class="p">)</span>
             <span class="k">return</span>
 
-        <span class="n">existing_submissions</span> <span class="o">=</span> <span class="n">assig</span><span class="o">.</span><span class="n">get_amount_not_deleted_submissions</span><span class="p">()</span>
+        <span class="n">existing_submissions</span> <span class="o">=</span> <span class="n">assig</span><span class="o">.</span><span class="n">get_amount_users_with_submission</span><span class="p">()</span>
         <span class="k">if</span> <span class="n">existing_submissions</span> <span class="o">&lt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">amount</span><span class="p">:</span>
             <span class="c1"># Not enough submissions to create a division</span>
             <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
@@ -2429,15 +2430,31 @@
 
         <span class="bp">self</span><span class="o">.</span><span class="n">state</span> <span class="o">=</span> <span class="n">new_state</span></div>
 
-    <span class="k">def</span> <span class="nf">get_amount_not_deleted_submissions</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+<div class="viewcode-block" id="Assignment.get_amount_users_with_submission"><a class="viewcode-back" href="../../../psef_api/psef.html#psef.models.assignment.Assignment.get_amount_users_with_submission">[docs]</a>    <span class="k">def</span> <span class="nf">get_amount_users_with_submission</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Get the amount of students that did at least one submission (which</span>
+<span class="sd">        is not deleted) in this assignment.</span>
+
+<span class="sd">        .. note::</span>
+
+<span class="sd">            This methods counts students that did a group submission and a</span>
+<span class="sd">            personal submission twice. So if Tom and Jane both did a personal</span>
+<span class="sd">            submission, and later joined a group together and did a submission</span>
+<span class="sd">            as this group we would count 3 submissions. If you do not want this</span>
+<span class="sd">            behavior use the :meth:`~Assignment.get_from_latest_submissions`</span>
+<span class="sd">            method and use a count on that.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">base</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_not_deleted_submissions</span><span class="p">()</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
+            <span class="n">work_models</span><span class="o">.</span><span class="n">Work</span><span class="o">.</span><span class="n">user</span>
+        <span class="p">)</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="o">~</span><span class="n">user_models</span><span class="o">.</span><span class="n">User</span><span class="o">.</span><span class="n">is_test_student</span><span class="p">)</span>
+
         <span class="k">return</span> <span class="n">handle_none</span><span class="p">(</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">get_not_deleted_submissions</span><span class="p">()</span><span class="o">.</span><span class="n">with_entities</span><span class="p">(</span>
+            <span class="n">base</span><span class="o">.</span><span class="n">with_entities</span><span class="p">(</span>
                 <span class="n">sql_expression</span><span class="o">.</span><span class="n">func</span><span class="o">.</span><span class="n">count</span><span class="p">(</span>
                     <span class="n">cg_sqlalchemy_helpers</span><span class="o">.</span><span class="n">distinct</span><span class="p">(</span><span class="n">work_models</span><span class="o">.</span><span class="n">Work</span><span class="o">.</span><span class="n">user_id</span><span class="p">)</span>
                 <span class="p">)</span>
             <span class="p">)</span><span class="o">.</span><span class="n">scalar</span><span class="p">(),</span>
             <span class="mi">0</span><span class="p">,</span>
-        <span class="p">)</span>
+        <span class="p">)</span></div>
 
 <div class="viewcode-block" id="Assignment.get_not_deleted_submissions"><a class="viewcode-back" href="../../../psef_api/psef.html#psef.models.assignment.Assignment.get_not_deleted_submissions">[docs]</a>    <span class="k">def</span> <span class="nf">get_not_deleted_submissions</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">MyQuery</span><span class="p">[</span><span class="s1">&#39;work_models.Work&#39;</span><span class="p">]:</span>
         <span class="sd">&quot;&quot;&quot;Get a query returning all not deleted submissions to this</span>
