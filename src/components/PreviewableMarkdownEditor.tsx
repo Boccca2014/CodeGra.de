@@ -9,7 +9,7 @@ import InnerMarkdownViewer from './InnerMarkdownViewer';
 const PreviewableMarkdownEditor = tsx.component({
     props: {
         value: p(String).required,
-        rows: p(Number).default(5),
+        rows: p(Number).default(0),
         placeholder: p(String).default(''),
         disabled: p(Boolean).default(false),
         tabindex: p.ofType<number | undefined>().default(undefined),
