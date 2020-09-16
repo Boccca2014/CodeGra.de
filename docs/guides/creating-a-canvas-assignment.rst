@@ -8,8 +8,8 @@ Create a CodeGrade assignment in Canvas
 
 Creating a new CodeGrade assignment from within Canvas will correctly
 add this assignment to the corresponding course in CodeGrade, a new course will
-automatically be created in CodeGrade if not yet created in CodeGrade. Follow
-the steps below to create a new CodeGrade assignment in Canvas:
+automatically be created in CodeGrade if it does not yet exist in CodeGrade.
+Follow the steps below to create a new CodeGrade assignment in Canvas:
 
 1. Click the **"+ Assignment"** button in Canvas.
 

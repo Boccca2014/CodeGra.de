@@ -106,6 +106,7 @@ def make_app_settings(request):
                 'moodle_lti': ('Moodle', ['12345678']),
                 'sakai_lti': ('Sakai', ['12345678']),
                 'brightspace_lti': ('BrightSpace', ['12345678']),
+                'open_edx_lti': ('Open edX', ['12345678']),
             },
             'LTI_SECRET_KEY': 'hunter123',
             'SECRET_KEY': 'hunter321',
