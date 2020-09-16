@@ -280,7 +280,10 @@ class Checkstyle(Linter):
         if name is not None:
             if '.' in name:
                 raise ValidationException(
-                    'The given config is not valid', (
+                    (
+                        'The given config is not valid: invalid module used,'
+                        ' only default checkstyle modules are supported'
+                    ), (
                         'Invalid module used, only default checkstyle '
                         'modules are supported'
                     )
@@ -297,13 +300,19 @@ class Checkstyle(Linter):
             'basedir', 'cacheFile', 'haltOnException', 'file'
         }:
             raise ValidationException(
-                'The given config is not valid',
-                f'Invalid property "{attrib["name"]}" found'
+                (
+                    'The given config is not valid: invalid property'
+                    f' "{attrib["name"]}" found'
+                ),
+                f'Invalid property "{attrib["name"]}" found',
             )
         if list(prop):
             raise ValidationException(
-                'The given config is not valid',
-                'A property cannot have children'
+                (
+                    'The given config is not valid: a property cannot have'
+                    ' children'
+                ),
+                'A property cannot have children',
             )
 
     @classmethod
@@ -336,14 +345,20 @@ class Checkstyle(Linter):
             'name'
         ) != 'Checker':
             raise ValidationException(
-                'The given config is not valid.',
+                (
+                    'The given config is not valid: the given top module of the'
+                    ' config should be Checker.'
+                ),
                 'The given top module of the config should be Checker.'
             )
         for sub_el in xml_config:
             validate_func = cls._get_validate_func(sub_el.tag)
             if validate_func is None:
                 raise ValidationException(
-                    'The given config is not valid',
+                    (
+                        'The given config is not valid: unknown tag'
+                        f' "{sub_el.tag}" encountered'
+                    ),
                     f'Unknown tag "{sub_el.tag}" encountered'
                 )
             validate_func(sub_el)
