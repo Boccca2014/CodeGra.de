@@ -154,9 +154,9 @@
         </div>
 
         <div v-if="editable && canChangeItems"
-             class="rubric-item col-12 col-md-6 col-xl-4 mb-3"
+             class="rubric-item add-button col-12 col-md-6 col-xl-4 mb-3"
              @click="createItem">
-            <div class="add-button">
+            <div class="wrapper">
                 <b-input-group>
                     <input type="number"
                            class="points form-control rounded-bottom-0 px-2"
@@ -320,7 +320,7 @@ export default {
     padding: 0 0.5rem 0 0.5rem;
 }
 
-.add-button {
+.add-button .wrapper {
     position: relative;
     opacity: 0.66;
 }
