@@ -5,7 +5,7 @@ import inspect
 import datetime
 import collections
 from enum import Enum, EnumMeta
-from collections import defaultdict
+from collections import OrderedDict, defaultdict
 
 import flask
 import sphinx.pycode
@@ -25,6 +25,10 @@ _SIMPLE_TYPE_NAME_LOOKUP = {
     int: 'integer',
     type(None): 'null',
 }
+
+
+def _to_pascalcase(string: str) -> str:
+    return ''.join(map(str.title, string.split('_')))
 
 
 def _to_camelcase(string: str) -> str:
@@ -375,23 +379,28 @@ class OpenAPISchema:
 
         signature = inspect.signature(func)
         ret = signature.return_annotation
-        responses: t.Dict[t.Union[str, int], t.Mapping] = {
-            401: {'$ref': '#/components/responses/UnauthorizedError'},
-            403: {'$ref': '#/components/responses/IncorrectPermissionsError'},
-            '5XX': {'$ref': '#/components/responses/UnknownError'},
-        }
+        responses = OrderedDict([
+            (401, {'$ref': '#/components/responses/UnauthorizedError'}),
+            (
+                403,
+                {'$ref': '#/components/responses/IncorrectPermissionsError'}
+            ),
+            ('5XX', {'$ref': '#/components/responses/UnknownError'}),
+        ])
         if ret == cg_flask_helpers.EmptyResponse:
             responses[204] = {'description': 'An empty response'}
+            responses.move_to_end(204, last=False)
         else:
             schema = self._typ_to_schema(ret, next_extended=False)
             responses[200] = {
                 'description': 'The response if no errors occured',
                 'content': {'application/json': {'schema': schema}}
             }
+            responses.move_to_end(200, last=False)
 
         tags = self._find_and_add_tags(endpoint_func)
         result: t.Dict[str, t.Any] = {
-            'responses': responses,
+            'responses': dict(responses),
             'summary': _first_docstring_line(endpoint_func.__doc__),
             'tags': tags,
             'operationId': f'{tags[0].lower()}_{operation_id}',
@@ -409,6 +418,10 @@ class OpenAPISchema:
                     in_schema = exc.schema
                 else:
                     assert False
+                if 'anyOf' in in_schema:
+                    schema_name = f'InputData{method.capitalize()}{_to_pascalcase(operation_id)}'
+                    self._schemas[schema_name] = in_schema
+                    in_schema = {'$ref': f'#/components/schemas/{schema_name}'}
             result['requestBody'] = {
                 'content': {'application/json': {'schema': in_schema}},
             }

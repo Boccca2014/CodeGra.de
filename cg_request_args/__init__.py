@@ -209,7 +209,14 @@ class _ParserLike(t.Generic[_T_COV]):
     def to_open_api(self, schema: 'OpenAPISchema') -> t.Mapping[str, t.Any]:
         res = self._to_open_api(schema)
         if self.__description is not None:
-            return {**res, 'description': self.__description}
+            desc = ' '.join(
+                line.strip()
+                for line in textwrap.dedent(self.__description).split('\n')
+                if line.strip()
+            ).strip()
+            if '$ref' in res:
+                return {'description': desc, 'allOf': [res]}
+            return {**res, 'description': desc}
         return res
 
     def __or__(self: _ParserLike[_T],
@@ -548,7 +555,7 @@ _Key = t.TypeVar('_Key', bound=str)
 
 
 class _Argument(t.Generic[_T, _Key]):
-    __slots__ = ('key', 'value', '__raw_doc')
+    __slots__ = ('key', 'value')
 
     def __init__(
         self,
@@ -558,21 +565,14 @@ class _Argument(t.Generic[_T, _Key]):
     ) -> None:
         self.key: Final = key
         self.value = value
-        self.__raw_doc = doc
-
-    @property
-    def doc(self) -> str:
-        return ' '.join(
-            line.strip()
-            for line in textwrap.dedent(self.__raw_doc).split('\n')
-        ).strip()
+        self.value.add_description(doc)
 
     @abc.abstractmethod
     def describe(self) -> str:
         ...
 
-    def _to_open_api(self, schema: 'OpenAPISchema') -> t.Mapping[str, t.Any]:
-        return {**self.value.to_open_api(schema), 'description': self.doc}
+    def to_open_api(self, schema: 'OpenAPISchema') -> t.Mapping[str, t.Any]:
+        return self.value.to_open_api(schema)
 
     def try_parse(self, value: t.Mapping[str, object]
                   ) -> t.Union[cg_maybe.Maybe[_T], _T]:
@@ -641,7 +641,7 @@ class FixedMapping(
         res = {
             'type': 'object',
             'properties': {
-                arg.key: arg._to_open_api(schema)
+                arg.key: arg.to_open_api(schema)
                 for arg in self.__arguments
             },
         }
