@@ -17,6 +17,9 @@ from typing_extensions import Final, Literal, Protocol, TypedDict
 from cg_helpers import readable_join
 from cg_dt_utils import DatetimeWithTimezone
 
+if t.TYPE_CHECKING:
+    from .open_api import OpenAPISchema
+
 
 class _BaseDict(TypedDict):
     pass
@@ -29,17 +32,18 @@ class MissingType(enum.Enum):
     token = 0
 
 
-_GENERATE_SCHEMA = False
+_GENERATE_SCHEMA: t.Optional['OpenAPISchema'] = None
 
 
 @contextlib.contextmanager
-def _schema_generator() -> t.Generator[None, None, None]:
+def _schema_generator(schema: 'OpenAPISchema'
+                      ) -> t.Generator[None, None, None]:
     global _GENERATE_SCHEMA
-    _GENERATE_SCHEMA = True
+    _GENERATE_SCHEMA = schema
     try:
         yield
     finally:
-        _GENERATE_SCHEMA = False
+        _GENERATE_SCHEMA = None
 
 
 class _Schema(BaseException):
@@ -59,12 +63,18 @@ _PARSE_ERROR = t.TypeVar('_PARSE_ERROR', bound='_ParseError')
 
 _T_CAL = t.TypeVar('_T_CAL', bound=t.Callable)
 
-_SWAGGER_FUNCS: t.List[t.Tuple[str, t.Callable]] = []
+_SWAGGER_FUNCS: t.Mapping[str, t.Tuple[str, t.Callable]] = {}
 
 
 def swagerize(operation_name: str) -> t.Callable[[_T_CAL], _T_CAL]:
     def __wrapper(func: _T_CAL) -> _T_CAL:
-        _SWAGGER_FUNCS.append((operation_name, func))
+        if func.__name__ in _SWAGGER_FUNCS:
+            raise AssertionError(
+                'The function {} was already registered.'.format(
+                    func.__name__
+                )
+            )
+        _SWAGGER_FUNCS[func.__name__] = (operation_name, func)
         return func
 
     return __wrapper
@@ -195,7 +205,7 @@ class _ParserLike(t.Generic[_T_COV]):
         ...
 
     @abc.abstractmethod
-    def to_open_api(self) -> t.Mapping[str, t.Any]:
+    def to_open_api(self, schema: 'OpenAPISchema') -> t.Mapping[str, t.Any]:
         ...
 
     def __or__(self: _ParserLike[_T],
@@ -234,8 +244,8 @@ class Union(t.Generic[_T, _Y], _ParserLike[t.Union[_T, _Y]]):
     def describe(self) -> str:
         return self.__parser.describe()
 
-    def to_open_api(self) -> t.Mapping[str, t.Any]:
-        return self.__parser.to_open_api()
+    def to_open_api(self, schema: 'OpenAPISchema') -> t.Mapping[str, t.Any]:
+        return self.__parser.to_open_api(schema)
 
     def try_parse(self, value: object) -> t.Union[_T, _Y]:
         return self.__parser.try_parse(value)
@@ -250,9 +260,9 @@ class Nullable(t.Generic[_T], _ParserLike[t.Union[_T, None]]):
     def describe(self) -> str:
         return f'Union[None, {self.__parser.describe()}]'
 
-    def to_open_api(self) -> t.Mapping[str, t.Any]:
+    def to_open_api(self, schema: 'OpenAPISchema') -> t.Mapping[str, t.Any]:
         return {
-            **self.__parser.to_open_api(),
+            **self.__parser.to_open_api(schema),
             'nullable': True,
         }
 
@@ -267,18 +277,6 @@ class Nullable(t.Generic[_T], _ParserLike[t.Union[_T, None]]):
 
 
 _SIMPLE_VALUE = t.TypeVar('_SIMPLE_VALUE', str, int, float, bool, None)
-
-_TYPE_OPEN_API_LOOKUP = {
-    str: 'string',
-    float: 'number',
-    bool: 'boolean',
-    int: 'integer',
-    type(None): 'null',
-}
-
-
-def _type_to_open_api(typ: t.Type) -> str:
-    return _TYPE_OPEN_API_LOOKUP[typ]
 
 
 _TYPE_NAME_LOOKUP = {
@@ -307,8 +305,8 @@ class SimpleValue(t.Generic[_SIMPLE_VALUE], _ParserLike[_SIMPLE_VALUE]):
     def __init__(self, typ: t.Type[_SIMPLE_VALUE]) -> None:
         self.typ: Final[t.Type[_SIMPLE_VALUE]] = typ
 
-    def to_open_api(self) -> t.Mapping[str, t.Any]:
-        return {'type': _type_to_open_api(self.typ)}
+    def to_open_api(self, schema: 'OpenAPISchema') -> t.Mapping[str, t.Any]:
+        return {'type': schema.simple_type_to_open_api_type(self.typ)}
 
     def try_parse(self, value: object) -> _SIMPLE_VALUE:
         if isinstance(value, self.typ):
@@ -332,8 +330,12 @@ class _SimpleUnion(t.Generic[_SIMPLE_UNION], _ParserLike[_SIMPLE_UNION]):
     def describe(self) -> str:
         return 'Union[{}]'.format(', '.join(map(_type_to_name, self.typs)))
 
-    def to_open_api(self) -> t.Mapping[str, t.Any]:
-        return {'anyOf': [_type_to_open_api(typ) for typ in self.typs]}
+    def to_open_api(self, schema: 'OpenAPISchema') -> t.Mapping[str, t.Any]:
+        return {
+            'anyOf': [
+                schema.simple_type_to_open_api_type(typ) for typ in self.typs
+            ]
+        }
 
     def try_parse(self, value: object) -> _SIMPLE_UNION:
         if isinstance(value, self.typs):
@@ -362,11 +364,8 @@ class EnumValue(t.Generic[_ENUM], _ParserLike[_ENUM]):
             ', '.join(repr(opt.name) for opt in self.__typ)
         )
 
-    def to_open_api(self) -> t.Mapping[str, t.Any]:
-        return {
-            'type': 'string',
-            'enum': [opt.name for opt in self.__typ],
-        }
+    def to_open_api(self, schema: 'OpenAPISchema') -> t.Mapping[str, t.Any]:
+        return schema.add_schema(self.__typ)
 
     def try_parse(self, value: object) -> _ENUM:
         if not isinstance(value, str):
@@ -396,7 +395,7 @@ class StringEnum(t.Generic[_T], _ParserLike[_T]):
     def describe(self) -> str:
         return 'Enum[{}]'.format(', '.join(self.__opts))
 
-    def to_open_api(self) -> t.Mapping[str, t.Any]:
+    def to_open_api(self, schema: 'OpenAPISchema') -> t.Mapping[str, t.Any]:
         return {
             'type': 'string',
             'enum': list(self.__opts),
@@ -432,10 +431,12 @@ class _RichUnion(t.Generic[_T, _Y], _ParserLike[t.Union[_T, _Y]]):
     def describe(self) -> str:
         return f'Union[{self.__first.describe()}, {self.__second.describe()}]'
 
-    def to_open_api(self) -> t.Mapping[str, t.Any]:
+    def to_open_api(self, schema: 'OpenAPISchema') -> t.Mapping[str, t.Any]:
         return {
-            'anyOf': [self.__first.to_open_api(),
-                      self.__second.to_open_api()]
+            'anyOf': [
+                self.__first.to_open_api(schema),
+                self.__second.to_open_api(schema)
+            ]
         }
 
     def try_parse(self, value: object) -> t.Union[_T, _Y]:
@@ -462,10 +463,10 @@ class List(t.Generic[_T], _ParserLike[t.List[_T]]):
     def describe(self) -> str:
         return f'List[{self.__el_type.describe()}]'
 
-    def to_open_api(self) -> t.Mapping[str, t.Any]:
+    def to_open_api(self, schema: 'OpenAPISchema') -> t.Mapping[str, t.Any]:
         return {
             'type': 'array',
-            'items': self.__el_type.to_open_api(),
+            'items': self.__el_type.to_open_api(schema),
         }
 
     def try_parse(self, value: object) -> t.List[_T]:
@@ -515,8 +516,8 @@ class _Argument(t.Generic[_T, _Key]):
     def describe(self) -> str:
         ...
 
-    def to_open_api(self) -> t.Mapping[str, t.Any]:
-        return {**self.value.to_open_api(), 'description': self.doc}
+    def to_open_api(self, schema: 'OpenAPISchema') -> t.Mapping[str, t.Any]:
+        return {**self.value.to_open_api(schema), 'description': self.doc}
 
     def try_parse(self, value: t.Mapping[str, object]
                   ) -> t.Union[_Just[_T], _Nothing, _T]:
@@ -572,7 +573,7 @@ class FixedMapping(
             ', '.join(arg.describe() for arg in self.__arguments)
         )
 
-    def to_open_api(self) -> t.Mapping[str, t.Any]:
+    def to_open_api(self, schema: 'OpenAPISchema') -> t.Mapping[str, t.Any]:
         required = [
             arg.key for arg in self.__arguments
             if isinstance(arg, RequiredArgument)
@@ -580,7 +581,7 @@ class FixedMapping(
         res = {
             'type': 'object',
             'properties': {
-                arg.key: arg.to_open_api()
+                arg.key: arg.to_open_api(schema)
                 for arg in self.__arguments
             },
         }
@@ -606,8 +607,8 @@ class FixedMapping(
         return _DictGetter(t.cast(_BASE_DICT, result))
 
     def from_flask(self) -> _DictGetter[_BASE_DICT]:
-        if _GENERATE_SCHEMA:
-            raise _Schema(self.to_open_api())
+        if _GENERATE_SCHEMA is not None:
+            raise _Schema(self.to_open_api(_GENERATE_SCHEMA))
         json = flask.request.get_json()
         return self.try_parse(json)
 
@@ -621,10 +622,10 @@ class LookupMapping(t.Generic[_T], _ParserLike[t.Mapping[str, _T]]):
     def describe(self) -> str:
         return 'Mapping[str: {}]'.format(self.__parser.describe())
 
-    def to_open_api(self) -> t.Mapping[str, t.Any]:
+    def to_open_api(self, schema: 'OpenAPISchema') -> t.Mapping[str, t.Any]:
         return {
             'type': 'object',
-            'additionalProperties': self.__parser.to_open_api(),
+            'additionalProperties': self.__parser.to_open_api(schema),
         }
 
     def try_parse(self, value: object) -> t.Mapping[str, _T]:
@@ -683,8 +684,8 @@ class Constraint(t.Generic[_T], _ParserLike[_T]):
     def describe(self) -> str:
         return f'{self._parser.describe()} {self.name}'
 
-    def to_open_api(self) -> t.Mapping[str, t.Any]:
-        return self._parser.to_open_api()
+    def to_open_api(self, schema: 'OpenAPISchema') -> t.Mapping[str, t.Any]:
+        return self._parser.to_open_api(schema)
 
     def try_parse(self, value: object) -> _T:
         res = self._parser.try_parse(value)
@@ -700,7 +701,8 @@ class RichValue:
                 SimpleValue(str), self.__transform_to_datetime, 'DateTime'
             )
 
-        def to_open_api(self) -> t.Mapping[str, t.Any]:
+        def to_open_api(self,
+                        schema: 'OpenAPISchema') -> t.Mapping[str, t.Any]:
             return {
                 'type': 'string',
                 'format': 'date-time',
@@ -738,8 +740,9 @@ class RichValue:
         def ok(self, value: int) -> bool:
             return value >= self.__minimum
 
-        def to_open_api(self) -> t.Mapping[str, t.Any]:
+        def to_open_api(self,
+                        schema: 'OpenAPISchema') -> t.Mapping[str, t.Any]:
             return {
-                **self._parser.to_open_api(),
+                **self._parser.to_open_api(schema),
                 'minimum': self.__minimum,
             }

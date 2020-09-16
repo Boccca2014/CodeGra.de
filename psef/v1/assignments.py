@@ -264,7 +264,7 @@ def set_reminder(
 
 @api.route('/assignments/<int:assignment_id>', methods=['PATCH'])
 @auth.login_required
-@rqa.swagerize('update')
+@rqa.swagerize('patch')
 def update_assignment(assignment_id: int) -> JSONResponse[models.Assignment]:
     # pylint: disable=too-many-branches,too-many-statements
     """Update the given assignment with new values.
@@ -280,7 +280,7 @@ def update_assignment(assignment_id: int) -> JSONResponse[models.Assignment]:
     """
     data = rqa.FixedMapping(
         rqa.OptionalArgument(
-            'state', rqa.StringEnum('open', 'hidden', 'done'),
+            'state', rqa.EnumValue(models.AssignmentStateEnum),
             'The new state of the assignment'
         ),
         rqa.OptionalArgument(
@@ -398,7 +398,7 @@ def update_assignment(assignment_id: int) -> JSONResponse[models.Assignment]:
         # state. We should also be able to set the state to 'done' and back to
         # "not done".
         perm_checker.ensure_may_edit_info()
-        assig.set_state_with_string(data.state.value)
+        assig.state = data.state.value
 
     if data.kind.is_just:
         assig.kind = data.kind.value

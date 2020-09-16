@@ -499,17 +499,12 @@ def add_course() -> ExtendedJSONResponse[models.Course]:
 @api.route('/courses/', methods=['GET'])
 @auth.login_required
 @rqa.swagerize('get_all')
-def get_courses() -> t.Union[JSONResponse[t.List[models.Course]],
-                             ExtendedJSONResponse[t.List[models.Course]]]:
+def get_courses() -> ExtendedJSONResponse[t.List[models.Course]]:
     """Return all Course objects the current user is a member of.
 
     .. :quickref: Course; Get all courses the current user is enrolled in.
 
     :returns: A response containing the JSON serialized courses
-
-    :param str extended: If set to ``true``, ``1`` or the empty string all the
-        assignments and group sets for each course are also included under the
-        key ``assignments`` and ``group_sets`` respectively.
 
     :raises PermissionException: If there is no logged in user. (NOT_LOGGED_IN)
     """
@@ -551,10 +546,7 @@ def get_courses() -> t.Union[JSONResponse[t.List[models.Course]],
         )
         helpers.jsonify_options.get_options().add_role_to_course = True
 
-    if helpers.extended_requested():
-        return ExtendedJSONResponse.make(courses, use_extended=models.Course)
-    else:
-        return JSONResponse.make(courses)
+    return ExtendedJSONResponse.make(courses, use_extended=models.Course)
 
 
 @api.route('/courses/<int:course_id>', methods=['GET'])
@@ -595,7 +587,7 @@ def get_course_by_id(
 
 @api.route('/courses/<int:course_id>', methods=['PATCH'])
 @auth.login_required
-@rqa.swagerize('update')
+@rqa.swagerize('patch')
 def update_course(course_id: int) -> ExtendedJSONResponse[models.Course]:
     """Update the given :class:`.models.Course` with new values.
 

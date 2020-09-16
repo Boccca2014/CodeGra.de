@@ -383,7 +383,7 @@ class GroupSet(NotEqualMixin, Base):
         #: The ids of the assignments connected to this group set.
         assignment_ids: t.Sequence[int]
 
-    def __to_json__(self) -> t.Mapping[str, t.Union[int, t.List[int]]]:
+    def __to_json__(self) -> AsJSON:
         own_assignments = set(a.id for a in self.assignments)
         visible_assigs = [
             a.id for a in self.course.get_all_visible_assignments()
