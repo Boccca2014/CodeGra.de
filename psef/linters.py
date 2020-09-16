@@ -349,7 +349,7 @@ class Checkstyle(Linter):
                     'The given config is not valid: the given top module of the'
                     ' config should be Checker.'
                 ),
-                'The given top module of the config should be Checker.'
+                'The given top module of the config should be Checker.',
             )
         for sub_el in xml_config:
             validate_func = cls._get_validate_func(sub_el.tag)
@@ -359,7 +359,7 @@ class Checkstyle(Linter):
                         'The given config is not valid: unknown tag'
                         f' "{sub_el.tag}" encountered'
                     ),
-                    f'Unknown tag "{sub_el.tag}" encountered'
+                    f'Unknown tag "{sub_el.tag}" encountered',
                 )
             validate_func(sub_el)
 
