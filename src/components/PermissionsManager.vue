@@ -229,8 +229,7 @@ export default {
         getAllPermissions() {
             return this.$http.get(this.getRetrieveUrl(this.courseId)).then(({ data }) => {
                 const fields = [];
-
-                this.items = [];
+                const items = [];
 
                 data.forEach(item => {
                     fields.push({
@@ -240,19 +239,18 @@ export default {
                         own: item.own,
                     });
 
-                    let i = 0;
-                    Object.entries(item.perms).forEach(([name, value]) => {
-                        if (!this.items[i]) {
-                            this.items[i] = Object.assign(
+                    Object.entries(item.perms).forEach(([name, value], i) => {
+                        if (!items[i]) {
+                            items[i] = Object.assign(
                                 { name },
                                 this.permissionLookup[name]);
                         }
-                        this.items[i][item.name] = value;
-                        i += 1;
+                        items[i][item.name] = value;
                     });
                 });
 
                 this.fields = fields;
+                this.items = items.sort((a, b) => (a.name < b.name ? -1 : 1));
             });
         },
 
