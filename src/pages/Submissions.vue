@@ -10,7 +10,12 @@
         <template slot="title" v-if="assignment && Object.keys(assignment).length">
             {{ assignment.name }}
 
-            <small v-if="assignment.hasDeadline">- due {{ assignment.getFormattedDeadline() }}</small>
+            <small v-if="assignment.isNotStartedExam">
+                - starts {{ assignment.getFormattedAvailableAt() }}
+            </small>
+            <small v-else-if="assignment.hasDeadline">
+                - due {{ assignment.getFormattedDeadline() }}
+            </small>
             <small v-else class="text-muted"><i>- No deadline</i></small>
         </template>
         <small slot="title"

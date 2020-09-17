@@ -273,6 +273,14 @@ export class Assignment extends AssignmentData {
         return null;
     }
 
+    getFormattedAvailableAt(): string | null {
+        const availableAt = this.availableAt;
+        if (availableAt && availableAt.isValid()) {
+            return utils.readableFormatDate(availableAt);
+        }
+        return null;
+    }
+
     getFormattedCreatedAt(): string {
         return utils.readableFormatDate(this.createdAt);
     }
@@ -282,6 +290,20 @@ export class Assignment extends AssignmentData {
             return dflt;
         }
         return now.isAfter(this.deadline);
+    }
+
+    @utils.nonenumerable
+    get isExam(): boolean {
+        return this.kind === AssignmentKind.exam;
+    }
+
+    @utils.nonenumerable
+    get isNotStartedExam(): boolean {
+        const availableAt = this.availableAt;
+        if (availableAt) {
+            return this.isExam && availableAt.isAfter(moment());
+        }
+        return false;
     }
 
     @utils.nonenumerable

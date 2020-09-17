@@ -1,29 +1,31 @@
 <!-- SPDX-License-Identifier: AGPL-3.0-only -->
 <template>
-<div class="manage-assignment loading" v-if="loading">
-    <local-header>
-        <template slot="title" v-if="assignment && Object.keys(assignment).length">
-            <span>{{ assignment.name }}</span>
-            <small v-if="formattedDeadline">- {{ formattedDeadline }}</small>
-            <small v-else class="text-muted"><i>- No deadline</i></small>
-        </template>
-        <loader :scale="1"/>
-    </local-header>
-    <loader page-loader/>
-</div>
-<div class="manage-assignment" v-else>
+<div class="manage-assignment" :class="{ loading }">
     <local-header always-show-extra-slot
                   class="header">
         <template slot="title">
             <span>{{ assignment.name }}</span>
-            <small v-if="formattedDeadline">- {{ formattedDeadline  }}</small>
-            <small v-else class="text-muted"><i>- No deadline</i></small>
+
+            <small v-if="assignment.isNotStartedExam">
+                - starts {{ formattedAvailableAt }}
+            </small>
+            <small v-else-if="formattedDeadline">
+                - due {{ formattedDeadline }}
+            </small>
+            <small v-else class="text-muted">
+                <i>- No deadline</i>
+            </small>
         </template>
-        <assignment-state :assignment="assignment"
+
+        <cg-loader v-if="loading"
+                   :scale="1" />
+        <assignment-state v-else
+                          :assignment="assignment"
                           :key="assignmentId"
                           class="assignment-state"
                           :editable="canEditState"
                           size="sm"/>
+
         <template slot="extra">
             <category-selector default="general"
                                v-model="selectedCat"
@@ -31,13 +33,15 @@
         </template>
     </local-header>
 
-    <div class="page-content" v-if="loadingInner">
+    <loader page-loader v-if="loading" />
+
+    <div class="page-content" v-else-if="loadingInner">
         <loader page-loader />
     </div>
 
-    <div class="page-content"
-         :key="assignmentId"
-         v-show="!loadingInner">
+    <div v-else
+         class="page-content"
+         :key="assignmentId">
         <div :class="{hidden: selectedCat !== 'general'}"
              v-if="visibleCats.general"
              class="row cat-wrapper">
@@ -272,6 +276,10 @@ export default {
 
     computed: {
         ...mapGetters('assignments', ['getAssignment']),
+
+        formattedAvailableAt() {
+            return (this.assignment && this.assignment.getFormattedAvailableAt()) || '';
+        },
 
         formattedDeadline() {
             return (this.assignment && this.assignment.getFormattedDeadline()) || '';

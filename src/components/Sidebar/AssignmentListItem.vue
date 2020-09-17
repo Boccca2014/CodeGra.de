@@ -62,8 +62,6 @@ import 'vue-awesome/icons/gear';
 
 import { mapGetters } from 'vuex';
 
-import { AssignmentKind } from '@/models';
-
 import CourseName from '@/components/CourseName';
 import AssignmentState from '@/components/AssignmentState';
 
@@ -125,16 +123,7 @@ export default {
         },
 
         isNotStartedExam() {
-            const { assignment } = this;
-
-            if (assignment == null) {
-                return false;
-            }
-
-            return (
-                assignment.kind === AssignmentKind.exam &&
-                assignment.availableAt.isAfter(this.$root.$epoch)
-            );
+            return this.$utils.getProps(this.assignment, false, 'isNotStartedExam');
         },
     },
 
