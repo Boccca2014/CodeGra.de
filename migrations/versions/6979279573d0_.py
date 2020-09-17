@@ -1,4 +1,4 @@
-"""Add description_type column to RubricItem and RubricRow tables
+"""Add description_type column to RubricRow table
 
 Revision ID: 6979279573d0
 Revises: 3a74e01ebcbf9099d761
