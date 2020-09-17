@@ -163,9 +163,10 @@ def fixed_mapping_callback(ctx: FunctionContext) -> Type:
         except:
             typ = '????'
 
-        if typ == 'cg_request_args.RequiredArgument':
-            required = True
-        elif typ != 'cg_request_args.OptionalArgument':
+        if typ not in (
+            'cg_request_args.RequiredArgument',
+            'cg_request_args.OptionalArgument'
+        ):
             ctx.api.fail((
                 'Argument number {} provided was of wrong type, expected'
                 ' cg_request_args._RequiredArgument or'
@@ -199,8 +200,7 @@ def fixed_mapping_callback(ctx: FunctionContext) -> Type:
         required_keys.add(key)
 
         value_type = arg.args[0]
-        if not required:
-            # Use literal here
+        if typ == 'cg_request_args.OptionalArgument':
             value_type = UnionType(
                 items=[
                     ctx.api.named_generic_type(
@@ -209,7 +209,7 @@ def fixed_mapping_callback(ctx: FunctionContext) -> Type:
                     ),
                     ctx.api.named_generic_type(
                         'cg_maybe._Nothing',
-                        [],
+                        [value_type],
                     ),
                 ]
             )
@@ -244,9 +244,10 @@ class CgRequestArgPlugin(Plugin):
     ) -> t.Optional[t.Callable[[FunctionContext], Type]]:
         """Get the function to be called by mypy.
         """
-        if fullname == 'cg_request_args.RequiredArgument':
-            return argument_callback
-        if fullname == 'cg_request_args.OptionalArgument':
+        if fullname in (
+            'cg_request_args.RequiredArgument',
+            'cg_request_args.OptionalArgument',
+        ):
             return argument_callback
         if fullname == 'cg_request_args.FixedMapping':
             return fixed_mapping_callback

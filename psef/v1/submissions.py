@@ -88,9 +88,10 @@ class FeedbackWithoutReplies(FeedbackBase, total=True):
 
 @api.route("/submissions/<int:submission_id>", methods=['GET'])
 @auth.login_required
-def get_submission(
-    submission_id: int
-) -> ExtendedJSONResponse[t.Union[models.Work, t.Mapping[str, str]]]:
+def get_submission(submission_id: int
+                   ) -> t.Union[ExtendedJSONResponse[models.Work],
+                                JSONResponse[t.Mapping[str, str]],
+                                ]:
     """Get the given submission (:class:`.models.Work`).
 
     .. :quickref: Submission; Get a single submission.
@@ -127,11 +128,9 @@ def get_submission(
             request.args.get('owner'),
             work.assignment.course_id,
         )
-        return extended_jsonify(
-            get_zip(work, exclude_owner), use_extended=dict
-        )
+        return jsonify(get_zip(work, exclude_owner))
     elif request.args.get('type') == 'feedback':
-        return extended_jsonify(get_feedback(work), use_extended=dict)
+        return jsonify(get_feedback(work))
     return extended_jsonify(work, use_extended=models.Work)
 
 

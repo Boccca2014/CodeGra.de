@@ -8,6 +8,7 @@ import json
 import shutil
 import typing as t
 import datetime
+import email.utils
 from collections import defaultdict
 
 import werkzeug
@@ -16,6 +17,7 @@ from flask import request
 from sqlalchemy.orm import joinedload, selectinload
 
 import psef
+import cg_maybe
 import psef.files
 import cg_request_args as rqa
 from psef import app as current_app
@@ -42,8 +44,8 @@ logger = structlog.get_logger()
 
 
 @api.route('/assignments/', methods=['GET'])
+@rqa.swaggerize('get_all')
 @auth.login_required
-@rqa.swagerize('get_all')
 def get_all_assignments() -> JSONResponse[t.Sequence[models.Assignment]]:
     """Get all the :class:`.models.Assignment` objects that the current user
     can see.
@@ -112,8 +114,8 @@ def delete_assignment(assignment_id: int) -> EmptyResponse:
 
 
 @api.route('/assignments/<int:assignment_id>/course', methods=['GET'])
+@rqa.swaggerize('get_course')
 @auth.login_required
-@rqa.swagerize('get_course')
 def get_course_of_assignment(assignment_id: int
                              ) -> ExtendedJSONResponse[models.Course]:
     """Get the course connected to an assignment.
@@ -215,7 +217,9 @@ def get_assignments_feedback(assignment_id: int) -> JSONResponse[
 
 def set_reminder(
     assig: models.Assignment,
-    content: t.Dict[str, helpers.JSONType],
+    done_type: cg_maybe.Maybe[t.Optional[models.AssignmentDoneType]],
+    done_email: cg_maybe.Maybe[t.Optional[str]],
+    reminder_time: cg_maybe.Maybe[t.Optional[DatetimeWithTimezone]],
 ) -> None:
     """Set the reminder of an assignment from a JSON dict.
 
@@ -223,60 +227,44 @@ def set_reminder(
     :param content: The json input.
     :returns: A warning if it should be returned to the user.
     """
-    ensure_keys_in_dict(content, [
-        ('done_type', (type(None), str)),
-        ('done_email', (type(None), str)),
-        ('reminder_time', (type(None), str)),
-    ])  # yapf: disable
-
-    done_type = parsers.parse_enum(
-        content.get('done_type', None),
-        models.AssignmentDoneType,
-        allow_none=True,
-        option_name='done type'
-    )
-    reminder_time = parsers.parse_datetime(
-        content.get('reminder_time', None),
-        allow_none=True,
-    )
-    done_email = parsers.try_parse_email_list(
-        content.get('done_email', None),
-        allow_none=True,
-    )
-
-    if reminder_time and (reminder_time -
-                          DatetimeWithTimezone.utcnow()).total_seconds() < 60:
+    if reminder_time.is_just and reminder_time.value and (
+        reminder_time.value - DatetimeWithTimezone.utcnow()
+    ).total_seconds() < 60:
         raise APIException(
             (
                 'The given date is not far enough from the current time, '
                 'it should be at least 60 seconds in the future.'
-            ), f'{reminder_time} is not atleast 60 seconds in the future',
+            ),
+            f'{reminder_time.value} is not atleast 60 seconds in the future',
             APICodes.INVALID_PARAM, 400
         )
 
     assig.change_notifications(done_type, reminder_time, done_email)
-    if done_email is not None and assig.graders_are_done():
+    if (
+        done_email.is_just and done_email.value is not None and
+        assig.graders_are_done()
+    ):
         add_warning(
             'Grading is already done, no email will be sent!',
             APIWarnings.CONDITION_ALREADY_MET
         )
 
 
+_IgnoreInputType = rqa.SimpleValue(str) | rqa.from_python_type(
+    ignore.SubmissionValidator.InputData
+)
+
+
 @api.route('/assignments/<int:assignment_id>', methods=['PATCH'])
+@rqa.swaggerize('patch')
 @auth.login_required
-@rqa.swagerize('patch')
 def update_assignment(assignment_id: int) -> JSONResponse[models.Assignment]:
     # pylint: disable=too-many-branches,too-many-statements
     """Update the given assignment with new values.
 
     .. :quickref: Assignment; Update assignment information.
 
-    If any of ``done_type``, ``done_email`` or ``reminder_time`` is given all
-    the other values should be given too.
-
     :param int assignment_id: The id of the assignment you want to update.
-    :returns: An empty response with return code 204.
-    :raises APIException: If an invalid value is submitted. (INVALID_PARAM)
     """
     data = rqa.FixedMapping(
         rqa.OptionalArgument(
@@ -355,9 +343,41 @@ def update_assignment(assignment_id: int) -> JSONResponse[models.Assignment]:
         ),
         rqa.OptionalArgument(
             'ignore',
-            rqa.SimpleValue(str), # TODO: Also add list and dict,
+            _IgnoreInputType,
             'The ignore file to use',
         ),
+        rqa.OptionalArgument(
+            'ignore_version',
+            rqa.StringEnum(
+                'EmptySubmissionFilter', 'IgnoreFilterManager',
+                'SubmissionValidator'
+            ),
+            'The ignore version to use, defaults to "IgnoreFilterManager".',
+        ),
+        rqa.OptionalArgument(
+            'done_type',
+            rqa.Nullable(rqa.EnumValue(models.AssignmentDoneType)), """
+            How to determine grading is done for this assignment, this value is
+            not used when ``reminder_time`` is ``null``.
+            """
+        ),
+        rqa.OptionalArgument(
+            'reminder_time',
+            rqa.Nullable(rqa.RichValue.DateTime),
+            """
+            At what time should we send the reminder emails to the
+            graders. This value is not used wehn ``done_type`` is ``null``.
+            """,
+        ),
+        rqa.OptionalArgument(
+            'done_email',
+            rqa.Nullable(rqa.RichValue.EmailList),
+            """
+            A list of emails that should receive an email when grading is
+            done. This value has no effect when ``done_type`` is set to
+            ``null``.
+            """,
+        )
     ).from_flask()
 
     assig = helpers.filter_single_or_404(
@@ -447,10 +467,10 @@ def update_assignment(assignment_id: int) -> JSONResponse[models.Assignment]:
 
     if data.ignore.is_just:
         perm_checker.ensure_may_edit_cgignore()
-        ignore_version = helpers.get_key_from_dict(
-            content, 'ignore_version', 'IgnoreFilterManager'
+        assig.update_cgignore(
+            data.ignore_version.or_default('IgnoreFilterManager'),
+            data.ignore.value
         )
-        assig.update_cgignore(ignore_version, data.ignore.value)
 
     if data.max_grade.is_just:
         if assig.is_lti and (
@@ -465,9 +485,14 @@ def update_assignment(assignment_id: int) -> JSONResponse[models.Assignment]:
         perm_checker.ensure_may_edit_info()
         assig.set_max_grade(data.max_grade.value)
 
-    if {'done_type', 'reminder_time', 'done_email'} & content.keys():
+    if (
+        data.done_type.is_just or data.reminder_time.is_just or
+        data.done_email.is_just
+    ):
         perm_checker.ensure_may_edit_notifications()
-        set_reminder(assig, content)
+        set_reminder(
+            assig, data.done_type, data.done_email, data.reminder_time
+        )
 
     if data.group_set_id.is_just:
         perm_checker.ensure_may_edit_group_status()
@@ -1309,7 +1334,7 @@ def get_all_works_by_user_for_assignment(
     user = helpers.get_or_404(models.User, user_id)
     auth.WorksByUserPermissions(assignment, user).ensure_may_see()
 
-    return extended_jsonify(
+    return ExtendedJSONResponse.make_list(
         models.Work.update_query_for_extended_jsonify(
             models.Work.query.filter_by(
                 assignment_id=assignment_id, user_id=user.id, deleted=False
@@ -1382,7 +1407,7 @@ def get_all_works_for_assignment(
         )
 
     if helpers.extended_requested():
-        return extended_jsonify(
+        return ExtendedJSONResponse.make_list(
             obj.all(),
             use_extended=models.Work,
         )

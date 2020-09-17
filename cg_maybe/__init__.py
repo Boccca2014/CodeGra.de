@@ -1,19 +1,9 @@
-from __future__ import annotations
-
 import typing as t
 
 from typing_extensions import Final, Literal
 
 _T = t.TypeVar('_T')
 _Y = t.TypeVar('_Y')
-
-
-# This class is just used for type annotations, but the just classes are not
-# subclasses of this type. In the plugin we expand ``Maybe[T]`` to
-# ``t.Union[Just[T], _Nothing]`` so we can take advantage of the literal values
-# for ``is_just`` and ``is_nothing``.
-class Maybe(t.Generic[_T]):
-    pass
 
 
 class Just(t.Generic[_T]):
@@ -25,8 +15,11 @@ class Just(t.Generic[_T]):
     def __init__(self, value: _T) -> None:
         self.value: Final = value
 
-    def map(self, mapper: t.Callable[[_T], _Y]) -> Just[_Y]:
+    def map(self, mapper: t.Callable[[_T], _Y]) -> 'Just[_Y]':
         return Just(mapper(self.value))
+
+    def or_default(self, _value: _T) -> _T:
+        return self.value
 
 
 class _Nothing(t.Generic[_T]):
@@ -35,8 +28,13 @@ class _Nothing(t.Generic[_T]):
     is_just: Literal[False] = False
     is_nothing: Literal[True] = True
 
-    def map(self, mapper: t.Callable[[_T], _Y]) -> _Nothing[_Y]:
+    def map(self, _mapper: t.Callable[[_T], _Y]) -> '_Nothing[_Y]':
         return Nothing
+
+    def or_default(self, value: _T) -> _T:
+        return value
 
 
 Nothing: _Nothing[t.Any] = _Nothing()
+
+Maybe = t.Union[Just[_T], _Nothing[_T]]

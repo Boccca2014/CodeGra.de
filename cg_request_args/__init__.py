@@ -8,10 +8,13 @@ import typing as t
 import datetime
 import textwrap
 import contextlib
+import collections
+import email.utils
 
 import yaml
 import flask
 import structlog
+import validate_email
 import dateutil.parser
 from typing_extensions import Final, Literal, Protocol, TypedDict
 
@@ -70,7 +73,7 @@ _T_CAL = t.TypeVar('_T_CAL', bound=t.Callable)
 _SWAGGER_FUNCS: t.Dict[str, t.Tuple[str, t.Callable]] = {}
 
 
-def swagerize(operation_name: str) -> t.Callable[[_T_CAL], _T_CAL]:
+def swaggerize(operation_name: str) -> t.Callable[[_T_CAL], _T_CAL]:
     def __wrapper(func: _T_CAL) -> _T_CAL:
         if func.__name__ in _SWAGGER_FUNCS:
             raise AssertionError(
@@ -574,8 +577,7 @@ class _Argument(t.Generic[_T, _Key]):
     def to_open_api(self, schema: 'OpenAPISchema') -> t.Mapping[str, t.Any]:
         return self.value.to_open_api(schema)
 
-    def try_parse(self, value: t.Mapping[str, object]
-                  ) -> t.Union[cg_maybe.Maybe[_T], _T]:
+    def _try_parse(self, value: t.Mapping[str, object]) -> cg_maybe.Maybe[_T]:
         if self.key not in value:
             return cg_maybe.Nothing
 
@@ -591,7 +593,7 @@ class RequiredArgument(t.Generic[_T, _Key], _Argument[_T, _Key]):
         return f'{self.key}: {self.value.describe()}'
 
     def try_parse(self, value: t.Mapping[str, object]) -> _T:
-        res = super().try_parse(value)
+        res = self._try_parse(value)
         if isinstance(res, cg_maybe.Just):
             return res.value
         raise SimpleParseError(self.value, MISSING).add_location(self.key)
@@ -601,6 +603,9 @@ class OptionalArgument(t.Generic[_T, _Key], _Argument[_T, _Key]):
     def describe(self) -> str:
         return f'{self.key}?: {self.value.describe()}'
 
+    def try_parse(self, value: t.Mapping[str, object]) -> cg_maybe.Maybe[_T]:
+        return self._try_parse(value)
+
 
 class _DictGetter(t.Generic[_BASE_DICT]):
     __slots__ = ('__data', )
@@ -609,6 +614,12 @@ class _DictGetter(t.Generic[_BASE_DICT]):
         self.__data = data
 
     def __getattr__(self, key: str) -> object:
+        return self.__data[key]
+
+    def get(self, key: str) -> object:
+        return self.__data.get(key)
+
+    def __getitem__(self, key: str) -> object:
         return self.__data[key]
 
     def as_dict(self) -> _BASE_DICT:
@@ -621,12 +632,20 @@ _T_FIXED_MAPPING = t.TypeVar('_T_FIXED_MAPPING', bound='FixedMapping')
 class FixedMapping(
     t.Generic[_BASE_DICT], _ParserLike[_DictGetter[_BASE_DICT]]
 ):
-    __slots__ = ('__arguments', '__tag')
+    __slots__ = ('__arguments', '__tag', '__schema')
 
     def __init__(self, *arguments: object) -> None:
         super().__init__()
         self.__tag: t.Optional[t.Tuple[str, str]] = None
-        self.__arguments = t.cast(t.Sequence[_Argument], arguments)
+        self.__arguments = t.cast(
+            t.Sequence[t.Union[RequiredArgument, OptionalArgument]], arguments
+        )
+        self.__schema: t.Optional[t.Type[_BASE_DICT]] = None
+
+    def set_schema(self, schema: t.Type[_BASE_DICT]) -> None:
+        """
+        """
+        self.__schema = schema
 
     def describe(self) -> str:
         return 'Mapping[{}]'.format(
@@ -634,6 +653,9 @@ class FixedMapping(
         )
 
     def _to_open_api(self, schema: 'OpenAPISchema') -> t.Mapping[str, t.Any]:
+        if self.__schema is not None:
+            return schema.add_schema(self.__schema)
+
         required = [
             arg.key for arg in self.__arguments
             if isinstance(arg, RequiredArgument)
@@ -793,6 +815,22 @@ class RichValue:
 
     DateTime = _DateTime()
 
+    class _EmailList(Constraint[str]):
+        def __init__(self) -> None:
+            super().__init__(SimpleValue(str))
+
+        def ok(self, to_parse: str) -> bool:
+            addresses = email.utils.getaddresses([to_parse.strip()])
+            return (
+                validate_email.validate_email(email) for _, email in addresses
+            )
+
+        @property
+        def name(self) -> str:
+            return ' as email list'
+
+    EmailList = _EmailList()
+
     class NumberGte(Constraint[int]):
         __slots__ = ('__minimum', )
 
@@ -833,3 +871,48 @@ class RichValue:
                 raise SimpleParseError(self, found='REDACTED')  # pylint: disable=raise-missing-from
 
     Password = _Password()
+
+
+def __from_python_type(typ):  # type: ignore
+    # This function doesn't play nice at all with our plugins, so simply skip
+    # checking it.
+
+    origin = getattr(typ, '__origin__', None)
+
+    if isinstance(typ, type(TypedDict)):
+        args = []
+        for key, subtyp in typ.__annotations__.items():
+            if key in typ.__required_keys__:
+                args.append(
+                    RequiredArgument(key, from_python_type(subtyp), '')
+                )
+            else:
+                args.append(
+                    OptionalArgument(key, from_python_type(subtyp), '')
+                )
+        res = FixedMapping(*args)
+        res.set_schema(typ)
+        return res
+    elif typ in (str, int, bool):
+        return SimpleValue(typ)
+    elif origin in (list, collections.abc.Sequence):
+        return List(from_python_type(typ.__args__[0]))
+    elif origin == t.Union:
+        res = from_python_type(typ.__args__[0])
+        for item in typ.__args__[1:]:
+            res = res | from_python_type(item)
+        return res
+    elif origin == Literal:
+        return StringEnum(*typ.__args__)
+    else:
+        raise AssertionError(f'Could not convert: {typ}')
+
+
+def from_python_type(typ: t.Type[_T]) -> _ParserLike[_T]:
+    """Wrapper function to convert a python type to a ``cg_request_args``
+    validator.
+
+    Doing this is quite slow, so it is wise to do this only when loading the
+    application (i.e. on top level).
+    """
+    return __from_python_type(typ)

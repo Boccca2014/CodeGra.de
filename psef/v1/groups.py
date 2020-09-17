@@ -23,8 +23,8 @@ from ..exceptions import (
 
 @api.route('/groups/<int:group_id>', methods=['GET'])
 @features.feature_required(features.Feature.GROUPS)
+@rqa.swaggerize('get')
 @auth.login_required
-@rqa.swagerize('get')
 def get_group(group_id: int) -> ExtendedJSONResponse[models.Group]:
     """Get a group by id.
 

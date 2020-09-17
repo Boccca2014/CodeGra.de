@@ -1,15 +1,17 @@
+import os
 import re
 import sys
 import typing as t
 import inspect
 import datetime
+import contextlib
 import collections
 from enum import Enum, EnumMeta
 from collections import OrderedDict, defaultdict
 
 import flask
 import sphinx.pycode
-from typing_extensions import TypedDict
+from typing_extensions import Literal, TypedDict
 
 import psef
 import cg_json
@@ -25,6 +27,16 @@ _SIMPLE_TYPE_NAME_LOOKUP = {
     int: 'integer',
     type(None): 'null',
 }
+
+
+@contextlib.contextmanager
+def _disabled_auth() -> t.Generator[None, None, None]:
+    try:
+        orig = psef.auth.ensure_logged_in
+        psef.auth.ensure_logged_in = lambda: None  # type: ignore
+        yield
+    finally:
+        psef.auth.ensure_logged_in = orig
 
 
 def _to_pascalcase(string: str) -> str:
@@ -118,26 +130,30 @@ class OpenAPISchema:
 
     def _comments_of(self, typ: t.Type, field: str) -> str:
         if typ.__module__ not in self._parsed_modules:
-            with open(typ.__module__.replace('.', '/') + '.py', 'r') as code:
+            base = os.path.join(os.path.dirname(__file__), '..')
+            rel_path = f'{typ.__module__.replace(".", "/")}.py'
+            with open(os.path.join(base, rel_path), 'r') as code:
                 parser = sphinx.pycode.parser.Parser(code.read())
                 parser.parse()
                 self._parsed_modules[typ.__module__] = parser
 
         parsed = self._parsed_modules[typ.__module__]
         if typ.__name__ == 'AsExtendedJSON':
-            try:
-                return parsed.comments[(typ.__qualname__, field)]
-            except KeyError:
-                return parsed.comments[(
-                    typ.__qualname__.replace('.AsExtendedJSON', '.AsJSON'),
-                    field,
-                )]
+            extends = base_as_json = getattr(
+                sys.modules[typ.__module__],
+                typ.__qualname__.split('.')[0]
+            ).AsJSON
+        else:
+            extends = getattr(typ, '__cg_extends__', None)
+
         try:
             return parsed.comments[(typ.__qualname__, field)]
         except KeyError:
-            if hasattr(typ, '__cg_extends__'):
-                return parsed.comments[
-                    (typ.__cg_extends__.__qualname__, field)]
+            while extends:
+                try:
+                    return parsed.comments[(extends.__qualname__, field)]
+                except KeyError:
+                    extends = getattr(extends, '__cg_extends__', None)
             raise
 
     @staticmethod
@@ -146,23 +162,34 @@ class OpenAPISchema:
     ) -> str:
         return _SIMPLE_TYPE_NAME_LOOKUP[typ]
 
-    def add_schema(self, _typ: t.Type) -> t.Mapping[str, str]:
+    def add_schema(
+        self,
+        _typ: t.Type,
+        force_inline: bool = False,
+        done: 'OrderedDict[t.Type, bool]' = None,
+        do_extended: t.Collection[t.Type] = tuple()
+    ) -> t.Mapping[str, str]:
         _typ = self._maybe_resolve_forward(_typ)
         schema_name = self._get_schema_name(_typ)
 
+        if done is None:
+            done = collections.OrderedDict([(_typ, True)])
+
         if schema_name in self._schemas:
-            pass
+            result = self._schemas[schema_name]
         elif isinstance(_typ, type(TypedDict)):
             typ: t.Any = _typ
             properties = {}
-            self._schemas[schema_name] = {
-                'infinite_recursion_preventer': '<PLACEHOLDER>'
-            }
 
             for prop, prop_type in typ.__annotations__.items():
-                prop_dct = self._typ_to_schema(prop_type, next_extended=False)
+                prop_dct = self._typ_to_schema(
+                    prop_type,
+                    do_extended=do_extended,
+                    inline=force_inline,
+                    done=done
+                )
                 if '$ref' in prop_dct:
-                    prop_dct = {'allOf': [prop_dct]}
+                    prop_dct = {'oneOf': [prop_dct]}
                 properties[prop] = {
                     **prop_dct,
                     'description':
@@ -186,7 +213,9 @@ class OpenAPISchema:
 
             if base_as_json is not None:
 
-                base = self.add_schema(base_as_json)
+                base = self.add_schema(
+                    base_as_json, done=done, do_extended=do_extended
+                )
                 extra_props = {
                     k: v
                     for k, v in properties.items()
@@ -199,9 +228,9 @@ class OpenAPISchema:
                         p for p in extra_props if p in typ.__required_keys__
                     ],
                 }
-                self._schemas[schema_name] = {'allOf': [base, extra_items]}
+                result = {'allOf': [base, extra_items]}
             else:
-                self._schemas[schema_name] = {
+                result = {
                     'type': 'object',
                     'properties': properties,
                     'required': [
@@ -211,83 +240,163 @@ class OpenAPISchema:
                 }
         elif isinstance(_typ, EnumMeta):
             enum: t.Type[Enum] = _typ
-            self._schemas[schema_name] = {
+            result = {
                 'type': 'string',
                 'enum': [e.name for e in enum],
             }
         else:
             raise AssertionError('Cannot make scheme for {}'.format(_typ))
 
+        if force_inline:
+            return result
+        self._schemas[schema_name] = result
         return {'$ref': f'#/components/schemas/{schema_name}'}
 
-    def _typ_to_schema(self, typ: t.Type,
-                       next_extended: bool) -> t.Mapping[str, t.Any]:
+    def _typ_to_schema(
+        self, typ: t.Type, do_extended: t.Collection[t.Type], inline: bool,
+        done: 'OrderedDict[t.Type, bool]'
+    ) -> t.Mapping[str, t.Any]:
         typ = self._maybe_resolve_forward(typ)
+        if typ in done:
+            raise AssertionError(
+                'Recursion detected: {}'.format(
+                    ' -> '.join(map(str, done.keys()))
+                )
+            )
+
+        done[typ] = True
 
         origin = getattr(typ, '__origin__', None)
 
-        if isinstance(typ, type(TypedDict)):
-            return self.add_schema(typ)
-        elif typ in (int, str, bool, float):
-            return {'type': self.simple_type_to_open_api_type(typ)}
-        elif typ == DatetimeWithTimezone:
-            return {
-                'type': 'string',
-                'format': 'date-time',
-            }
-        elif typ == datetime.timedelta:
-            return {
-                'type': 'number',
-                'format': 'time-delta',
-            }
-        elif origin in (list, collections.abc.Sequence):
-            return {
-                'type': 'array',
-                'items':
-                    self._typ_to_schema(
-                        typ.__args__[0], next_extended=next_extended
-                    ),
-            }
-        elif origin == t.Union:
-            nullable = False
-            if type(None) in typ.__args__:
-                nullable = True
-            any_of = [
-                self._typ_to_schema(arg, next_extended=next_extended)
-                for arg in typ.__args__ if arg != type(None)
-            ]
-            if len(any_of) > 1:
+        try:
+            if isinstance(typ, type(TypedDict)):
+                return self.add_schema(
+                    typ,
+                    force_inline=inline,
+                    done=done,
+                    do_extended=do_extended
+                )
+            elif typ in (int, str, bool, float):
+                return {'type': self.simple_type_to_open_api_type(typ)}
+            elif typ == DatetimeWithTimezone:
                 return {
-                    'anyOf': any_of,
-                    'nullable': nullable,
+                    'type': 'string',
+                    'format': 'date-time',
                 }
-            elif '$ref' in any_of[0]:
+            elif typ == datetime.timedelta:
                 return {
-                    'allOf': any_of,
-                    'nullable': True,
+                    'type': 'number',
+                    'format': 'time-delta',
+                }
+            elif origin in (list, collections.abc.Sequence):
+                return {
+                    'type': 'array',
+                    'items':
+                        self._typ_to_schema(
+                            typ.__args__[0],
+                            do_extended=do_extended,
+                            inline=inline,
+                            done=done,
+                        ),
+                }
+            elif origin == t.Union:
+                nullable = False
+                if type(None) in typ.__args__:
+                    nullable = True
+                any_of = [
+                    self._typ_to_schema(
+                        arg, do_extended=do_extended, inline=inline, done=done
+                    ) for arg in typ.__args__ if arg != type(None)
+                ]
+                if len(any_of) > 1:
+                    return {
+                        'anyOf': any_of,
+                        'nullable': nullable,
+                    }
+                elif '$ref' in any_of[0]:
+                    return {
+                        'oneOf': any_of,
+                        'nullable': True,
+                    }
+                else:
+                    return {**any_of[0], 'nullable': nullable}
+            elif origin == cg_json.JSONResponse:
+                return self._typ_to_schema(
+                    typ.__args__[0],
+                    do_extended=tuple(),
+                    inline=inline,
+                    done=done,
+                )
+            elif origin == cg_json.ExtendedJSONResponse:
+                next_extended = typ.__args__[0]
+
+                if getattr(next_extended, '__origin__',
+                           None) in (list, collections.abc.Sequence):
+                    next_extended = next_extended.__args__[0]
+
+                assert hasattr(next_extended, '__extended_to_json__')
+
+                return self._typ_to_schema(
+                    typ.__args__[0],
+                    do_extended=(next_extended, ),
+                    inline=inline,
+                    done=done,
+                )
+            elif origin == cg_json.MultipleExtendedJSONResponse:
+                if getattr(typ.__args__[1], '__origin__', None) == t.Union:
+                    do_extended = typ.__args__[1].__args__
+                else:
+                    do_extended = (typ.__args__[1], )
+
+                return self._typ_to_schema(
+                    typ.__args__[0],
+                    do_extended=do_extended,
+                    inline=True,
+                    done=done,
+                )
+            elif typ == t.Any:
+                return {}
+            elif isinstance(typ, EnumMeta):
+                return self.add_schema(typ, force_inline=inline)
+            elif typ in do_extended and hasattr(typ, '__extended_to_json__'):
+                # We don't support recursion anyway so we never need to do
+                # this extended.
+                next_do_extended = [ext for ext in do_extended if ext != typ]
+                return self._typ_to_schema(
+                    inspect.signature(typ.__extended_to_json__
+                                      ).return_annotation,
+                    do_extended=next_do_extended,
+                    inline=bool(inline and next_do_extended),
+                    done=done,
+                )
+            elif hasattr(typ, '__to_json__'):
+                return self._typ_to_schema(
+                    inspect.signature(typ.__to_json__).return_annotation,
+                    do_extended=do_extended,
+                    inline=inline,
+                    done=done,
+                )
+            elif origin in (dict, collections.abc.Mapping):
+                _, value_type = typ.__args__
+                return {
+                    'type': 'object',
+                    'additionalProperties':
+                        self._typ_to_schema(
+                            value_type,
+                            do_extended=do_extended,
+                            inline=inline,
+                            done=done,
+                        ),
+                }
+            elif origin == Literal:
+                return {
+                    'type': 'string',
+                    'enum': list(typ.__args__),
                 }
             else:
-                return {**any_of[0], 'nullable': nullable}
-        elif origin == cg_json.JSONResponse:
-            return self._typ_to_schema(typ.__args__[0], next_extended=False)
-        elif origin == cg_json.ExtendedJSONResponse:
-            return self._typ_to_schema(typ.__args__[0], next_extended=True)
-        elif typ == t.Any:
-            return {}
-        elif isinstance(typ, EnumMeta):
-            return self.add_schema(typ)
-        elif next_extended and hasattr(typ, '__extended_to_json__'):
-            return self._typ_to_schema(
-                inspect.signature(typ.__extended_to_json__).return_annotation,
-                next_extended=False,
-            )
-        elif hasattr(typ, '__to_json__'):
-            return self._typ_to_schema(
-                inspect.signature(typ.__to_json__).return_annotation,
-                next_extended=False
-            )
-        else:
-            raise AssertionError('Unknown type found: {}'.format(typ))
+                raise AssertionError('Unknown type found: {}'.format(typ))
+        finally:
+            done.pop(typ)
 
     @staticmethod
     def _get_routes_from_app(app: flask.Flask) -> t.Iterable[
@@ -379,7 +488,7 @@ class OpenAPISchema:
 
         signature = inspect.signature(func)
         ret = signature.return_annotation
-        responses = OrderedDict([
+        responses: OrderedDict = OrderedDict([
             (401, {'$ref': '#/components/responses/UnauthorizedError'}),
             (
                 403,
@@ -391,7 +500,13 @@ class OpenAPISchema:
             responses[204] = {'description': 'An empty response'}
             responses.move_to_end(204, last=False)
         else:
-            schema = self._typ_to_schema(ret, next_extended=False)
+            schema = self._typ_to_schema(
+                ret, do_extended=tuple(), inline=False, done=OrderedDict()
+            )
+            if schema.get('type') == 'object':
+                out_schema_name = f'Result{method.capitalize()}{_to_pascalcase(operation_id)}'
+                self._schemas[out_schema_name] = schema
+                schema = {'$ref': f'#/components/schemas/{out_schema_name}'}
             responses[200] = {
                 'description': 'The response if no errors occured',
                 'content': {'application/json': {'schema': schema}}
@@ -411,7 +526,7 @@ class OpenAPISchema:
             result['parameters'] = parameters
 
         if method.lower() not in ('get', 'delete'):
-            with _schema_generator(self):
+            with _schema_generator(self), _disabled_auth():
                 try:
                     func(**signature.parameters)
                 except _Schema as exc:
@@ -424,7 +539,11 @@ class OpenAPISchema:
                     in_schema = {'$ref': f'#/components/schemas/{schema_name}'}
             result['requestBody'] = {
                 'content': {'application/json': {'schema': in_schema}},
+                'required': True,
             }
+
+        if getattr(func, 'login_required_route', False):
+            result['security'] = [{'bearerAuth': []}]
 
         self._paths[url][method.lower()] = result
 
@@ -446,7 +565,15 @@ class OpenAPISchema:
                     'email': 'support@codegrade.com',
                 }
             },
-            'security': [{'bearerAuth': []}],
+            'servers': [{
+                'url': 'https://{instance}.codegra.de',
+                'variables': {
+                    'instance': {
+                        'description': 'The instance you are on',
+                        'default': 'app',
+                    },
+                },
+            }],
             'paths': dict(self._paths),
             'tags': list(self._tags.values()),
             'components': {

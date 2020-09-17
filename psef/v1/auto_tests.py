@@ -11,12 +11,16 @@ import werkzeug
 import structlog
 from flask import Response, request, make_response
 
+from cg_json import (
+    JSONResponse, ExtendedJSONResponse, MultipleExtendedJSONResponse, jsonify,
+    extended_jsonify
+)
+
 from . import api
 from .. import app, auth, files, tasks, models, helpers, registry, exceptions
 from ..models import db
 from ..helpers import (
-    JSONResponse, EmptyResponse, ExtendedJSONResponse, jsonify, get_or_404,
-    add_warning, jsonify_options, ensure_json_dict, extended_jsonify,
+    EmptyResponse, get_or_404, add_warning, jsonify_options, ensure_json_dict,
     make_empty_response, filter_single_or_404, get_files_from_request,
     get_from_map_transaction, get_json_dict_from_request,
     callback_after_this_request
@@ -557,7 +561,12 @@ def delete_suite(test_id: int, set_id: int, suite_id: int) -> EmptyResponse:
 
 @api.route('/auto_tests/<int:auto_test_id>', methods=['GET'])
 @feature_required(Feature.AUTO_TEST)
-def get_auto_test(auto_test_id: int) -> ExtendedJSONResponse[models.AutoTest]:
+def get_auto_test(
+    auto_test_id: int
+) -> MultipleExtendedJSONResponse[models.AutoTest,
+                                  t.Union[models.AutoTest, models.AutoTestRun],
+
+                                  ]:
     """Get the extended version of an :class:`.models.AutoTest` and its runs.
 
     .. :quickref: AutoTest; Get the extended version of an AutTest.
@@ -571,7 +580,7 @@ def get_auto_test(auto_test_id: int) -> ExtendedJSONResponse[models.AutoTest]:
 
     jsonify_options.get_options(
     ).latest_only = helpers.request_arg_true('latest_only')
-    return extended_jsonify(
+    return MultipleExtendedJSONResponse.make(
         test, use_extended=(models.AutoTest, models.AutoTestRun)
     )
 

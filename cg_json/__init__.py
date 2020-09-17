@@ -16,6 +16,8 @@ from flask import current_app
 from werkzeug.local import LocalProxy
 
 T = t.TypeVar('T')
+Y = t.TypeVar('Y')
+U = t.TypeVar('U')
 logger = structlog.get_logger()
 
 
@@ -116,11 +118,9 @@ def get_extended_encoder_class(
 
 
 T_JSONResponse = t.TypeVar('T_JSONResponse', bound='JSONResponse')  # pylint: disable=invalid-name
-
-_UseExtendedType = t.Union[t.Callable[[object], bool],
-                           type,
-                           t.Tuple[type, ...],
-                           ]
+T_ExtJSONResponse = t.TypeVar(
+    'T_ExtJSONResponse', bound='MultipleExtendedJSONResponse'
+)  # pylint: disable=invalid-name
 
 
 class JSONResponse(t.Generic[T], flask.Response):  # pylint: disable=too-many-ancestors
@@ -134,10 +134,7 @@ class JSONResponse(t.Generic[T], flask.Response):  # pylint: disable=too-many-an
 
     @classmethod
     @contextlib.contextmanager
-    def _setup_env(
-        cls,
-        use_extended: _UseExtendedType,  # pylint: disable=unused-argument
-    ) -> t.Generator[None, None, None]:
+    def _setup_env(cls) -> t.Generator[None, None, None]:
         try:
             old_encoder = current_app.json_encoder
             current_app.json_encoder = CustomJSONEncoder
@@ -146,8 +143,8 @@ class JSONResponse(t.Generic[T], flask.Response):  # pylint: disable=too-many-an
             current_app.json_encoder = old_encoder
 
     @classmethod
-    def _dump_to_string(cls, obj: T, use_extended: _UseExtendedType) -> str:
-        with cls._setup_env(use_extended):
+    def _dump_to_string(cls, obj: T) -> str:
+        with cls._setup_env():
             return flask.json.dumps(
                 obj,
                 indent=None,
@@ -162,18 +159,16 @@ class JSONResponse(t.Generic[T], flask.Response):  # pylint: disable=too-many-an
         class Unused:
             pass
 
-        return system_json.loads(cls._dump_to_string(obj, use_extended=Unused))
+        return system_json.loads(cls._dump_to_string(obj))
 
     @classmethod
     def _make(
         cls: t.Type[T_JSONResponse],
         obj: T,
         status_code: int,
-        *,
-        use_extended: _UseExtendedType,
     ) -> T_JSONResponse:
         return cls(
-            cls._dump_to_string(obj, use_extended=use_extended),
+            cls._dump_to_string(obj),
             mimetype=flask.current_app.config['JSONIFY_MIMETYPE'],
             status=status_code,
         )
@@ -187,41 +182,52 @@ class JSONResponse(t.Generic[T], flask.Response):  # pylint: disable=too-many-an
         :param status_code: The status code of the response
         :returns: The response with the jsonified object as payload
         """
-        self = cls._make(obj, status_code, use_extended=object)
+        self = cls._make(obj, status_code)
 
         _maybe_log_response(obj, self, False)
 
         return self
 
 
-class ExtendedJSONResponse(t.Generic[T], JSONResponse[T]):  # pylint: disable=too-many-ancestors
+class MultipleExtendedJSONResponse(t.Generic[T, Y], flask.Response):  # pylint: disable=too-many-ancestors
     """A datatype for a JSON response created by using the
     ``__extended_to_json__`` if available.
 
     This is a subtype of :py:class:`werkzeug.wrappers.Response` where the body
     is a valid JSON object and ``content-type`` is ``application/json``.
     """
+    _SEPERATORS = (',', ':')
 
     @classmethod
     @contextlib.contextmanager
-    def _setup_env(cls, use_extended: _UseExtendedType
+    def _setup_env(cls, use_extended: t.Union[t.Type, t.Tuple[t.Type, ...]]
                    ) -> t.Generator[None, None, None]:
-        if isinstance(use_extended, (tuple, type)):
-            class_only = use_extended
-            use_extended = lambda o: isinstance(o, class_only)
+        print(use_extended)
+        test = lambda o: isinstance(o, use_extended)
 
         try:
             old_encoder = current_app.json_encoder
-            current_app.json_encoder = get_extended_encoder_class(use_extended)
+            current_app.json_encoder = get_extended_encoder_class(test)
             yield
         finally:
             current_app.json_encoder = old_encoder
 
     @classmethod
+    def _dump_to_string(
+        cls, obj: T, use_extended: t.Union[t.Type, t.Tuple[t.Type, ...]]
+    ) -> str:
+        with cls._setup_env(use_extended=use_extended):
+            return flask.json.dumps(
+                obj,
+                indent=None,
+                separators=cls._SEPERATORS,
+            ) + '\n'
+
+    @classmethod
     def dump_to_object(
         cls,
         obj: T,
-        use_extended: _UseExtendedType = object,
+        use_extended: t.Union[t.Type, t.Tuple[t.Type, ...]] = object,
     ) -> t.Mapping:
         """Serialize the given object and parse its serialization.
 
@@ -233,13 +239,46 @@ class ExtendedJSONResponse(t.Generic[T], JSONResponse[T]):  # pylint: disable=to
         )
 
     @classmethod
+    def _make(
+        cls: t.Type[T_ExtJSONResponse], obj: t.Any, status_code: int,
+        use_extended: t.Any
+    ) -> T_ExtJSONResponse:
+        return cls(
+            cls._dump_to_string(obj, use_extended=use_extended),
+            mimetype=flask.current_app.config['JSONIFY_MIMETYPE'],
+            status=status_code,
+        )
+
+    @t.overload
+    @classmethod
     def make(
         cls,
         obj: T,
         *,
         status_code: int = 200,
-        use_extended: _UseExtendedType = object,
-    ) -> 'ExtendedJSONResponse[T]':
+        use_extended: t.Type[Y],
+    ) -> 'MultipleExtendedJSONResponse[T, Y]':
+        ...
+
+    @t.overload
+    @classmethod
+    def make(
+        cls,
+        obj: T,
+        *,
+        status_code: int = 200,
+        use_extended: t.Tuple[t.Type[Y], ...],
+    ) -> 'MultipleExtendedJSONResponse[T, Y]':
+        ...
+
+    @classmethod
+    def make(
+        cls,
+        obj: T,
+        *,
+        status_code: int = 200,
+        use_extended: t.Any,
+    ) -> 'MultipleExtendedJSONResponse[T, t.Any]':
         """Create a response with the given object ``obj`` as json payload.
 
         This function differs from :py:func:`jsonify` by that it used the
@@ -259,6 +298,40 @@ class ExtendedJSONResponse(t.Generic[T], JSONResponse[T]):  # pylint: disable=to
 
         _maybe_log_response(obj, self, True)
 
+        return self
+
+
+class ExtendedJSONResponse(t.Generic[T], MultipleExtendedJSONResponse[T, T]):
+    @classmethod
+    def make_list(
+        cls,
+        obj: t.Sequence[T],
+        *,
+        status_code: int = 200,
+        use_extended: t.Type[T]
+    ) -> 'ExtendedJSONResponse[t.Sequence[T]]':
+        """Create a response with the given object ``obj`` as json payload.
+
+        :returns: The response with the jsonified object as payload
+        """
+        self = cls._make(obj, status_code, use_extended=use_extended)
+        _maybe_log_response(obj, self, True)
+        return self
+
+    @classmethod
+    def make(
+        cls,
+        obj: T,
+        *,
+        status_code: int = 200,
+        use_extended: t.Type[T],
+    ) -> 'ExtendedJSONResponse[T]':
+        """Create a response with the given object ``obj`` as json payload.
+
+        :returns: The response with the jsonified object as payload
+        """
+        self = cls._make(obj, status_code, use_extended=use_extended)
+        _maybe_log_response(obj, self, True)
         return self
 
 

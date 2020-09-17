@@ -111,7 +111,7 @@ def init_app(app: 'psef.Flask') -> None:
 
     @app.before_request
     def __set_warnings() -> None:
-        g.request_warnings = []
+        g.request_warnings = set()
 
     @app.after_request
     def __maybe_add_warning(res: flask.Response) -> flask.Response:
@@ -138,8 +138,8 @@ def add_warning(warning: str, code: psef.exceptions.APIWarnings) -> None:
     1
     """
     if not hasattr(g, 'request_warnings'):
-        g.request_warnings = []
-    g.request_warnings.append(psef.errors.make_warning(warning, code))
+        g.request_warnings = set()
+    g.request_warnings.add(psef.errors.make_warning(warning, code))
 
 
 def add_deprecate_warning(warning: str) -> None:
@@ -153,11 +153,9 @@ def add_deprecate_warning(warning: str) -> None:
         deprecation_warning=True,
         warning_msg=warning,
     )
-    g.request_warnings.append(
-        psef.errors.make_warning(
-            f'This API is deprecated: {warning}',
-            psef.exceptions.APIWarnings.DEPRECATED,
-        )
+    add_warning(
+        f'This API is deprecated: {warning}',
+        psef.exceptions.APIWarnings.DEPRECATED,
     )
 
 

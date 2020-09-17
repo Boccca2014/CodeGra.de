@@ -362,6 +362,8 @@ def login_required(fun: T) -> T:
         ensure_logged_in()
         return fun(*args, **kwargs)
 
+    __wrapper.login_required_route = True  # type: ignore
+
     return t.cast(T, __wrapper)
 
 

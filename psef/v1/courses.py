@@ -17,6 +17,7 @@ import psef.models as models
 import psef.helpers as helpers
 import cg_request_args as rqa
 from psef import limiter, current_user
+from cg_json import MultipleExtendedJSONResponse
 from psef.models import db
 from psef.helpers import (
     JSONResponse, EmptyResponse, ExtendedJSONResponse, jsonify,
@@ -43,7 +44,8 @@ _UserCourse = TypedDict(  # pylint: disable=invalid-name
 
 
 @api.route('/courses/<int:course_id>/roles/<int:role_id>', methods=['DELETE'])
-@rqa.swagerize('delete_role')
+@rqa.swaggerize('delete_role')
+@auth.login_required
 def delete_role(course_id: int, role_id: int) -> EmptyResponse:
     """Remove a CourseRole from the given Course.
 
@@ -497,9 +499,9 @@ def add_course() -> ExtendedJSONResponse[models.Course]:
 
 
 @api.route('/courses/', methods=['GET'])
+@rqa.swaggerize('get_all')
 @auth.login_required
-@rqa.swagerize('get_all')
-def get_courses() -> ExtendedJSONResponse[t.List[models.Course]]:
+def get_courses() -> ExtendedJSONResponse[t.Sequence[models.Course]]:
     """Return all Course objects the current user is a member of.
 
     .. :quickref: Course; Get all courses the current user is enrolled in.
@@ -546,15 +548,13 @@ def get_courses() -> ExtendedJSONResponse[t.List[models.Course]]:
         )
         helpers.jsonify_options.get_options().add_role_to_course = True
 
-    return ExtendedJSONResponse.make(courses, use_extended=models.Course)
+    return ExtendedJSONResponse.make_list(courses, use_extended=models.Course)
 
 
 @api.route('/courses/<int:course_id>', methods=['GET'])
+@rqa.swaggerize('get')
 @auth.login_required
-@rqa.swagerize('get')
-def get_course_by_id(
-    course_id: int
-) -> ExtendedJSONResponse[models.Course]:
+def get_course_by_id(course_id: int) -> ExtendedJSONResponse[models.Course]:
     """Return course data for a given :class:`.models.Course`.
 
     .. :quickref: Course; Get data for a given course.
@@ -586,8 +586,8 @@ def get_course_by_id(
 
 
 @api.route('/courses/<int:course_id>', methods=['PATCH'])
+@rqa.swaggerize('patch')
 @auth.login_required
-@rqa.swagerize('patch')
 def update_course(course_id: int) -> ExtendedJSONResponse[models.Course]:
     """Update the given :class:`.models.Course` with new values.
 
@@ -672,11 +672,11 @@ def get_permissions_for_course(
 
 @api.route('/courses/<int:course_id>/group_sets/', methods=['GET'])
 @features.feature_required(features.Feature.GROUPS)
+@rqa.swaggerize('get_group_sets')
 @auth.login_required
-@rqa.swagerize('get_group_sets')
 def get_group_sets(course_id: int
                    ) -> JSONResponse[t.Sequence[models.GroupSet]]:
-    """Get the all the :class:`.models.GroupSet` objects in the given course.
+    """Get the all the group sets of a given course.
 
     .. :quickref: Course; Get all group sets in the course.
 
@@ -765,8 +765,8 @@ def create_group_set(course_id: int) -> JSONResponse[models.GroupSet]:
 
 @api.route('/courses/<int:course_id>/snippets/', methods=['GET'])
 @auth.permission_required(GPerm.can_use_snippets)
+@rqa.swaggerize('get_snippets')
 @auth.login_required
-@rqa.swagerize('get_snippets')
 def get_course_snippets(course_id: int
                         ) -> JSONResponse[t.Sequence[models.CourseSnippet]]:
     """Get all snippets (:class:`.models.CourseSnippet`) of the given
@@ -1300,7 +1300,8 @@ def send_students_an_email(course_id: int) -> JSONResponse[models.TaskResult]:
 @auth.login_required
 def get_user_submissions(
     course_id: int, user_id: int
-) -> ExtendedJSONResponse[t.Mapping[int, t.Sequence[models.Work]]]:
+) -> MultipleExtendedJSONResponse[t.Mapping[int, t.Sequence[models.Work]],
+                                  models.Work]:
     """Get all :class:`.models.Work`s by the given :class:`.models.User` in the
     given :class:`.models.Course`.
 
@@ -1365,7 +1366,7 @@ def get_user_submissions(
         for sub in get_subs(query):
             subs[sub.assignment_id].append(sub)
 
-    return ExtendedJSONResponse.make(
+    return MultipleExtendedJSONResponse.make(
         subs,
         use_extended=models.Work,
     )

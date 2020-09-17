@@ -33,3 +33,6 @@ PRIVACY_STATEMENT.md
 .#*
 /src/userConfig.ts
 /static/commitHash
+/api_libs/python/codegrade/
+/swagger.json
+/swagger.yaml

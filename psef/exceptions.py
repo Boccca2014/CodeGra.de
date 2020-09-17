@@ -124,7 +124,7 @@ class APIException(Exception):
         ret['message'] = self.message
         ret['description'] = self.description
         ret['code'] = self.api_code.name
-        ret['request_id'] = str(getattr(flask.g, 'request_id'), '')
+        ret['request_id'] = str(getattr(flask.g, 'request_id', ''))
         return ret
 
     def __str__(self) -> str:

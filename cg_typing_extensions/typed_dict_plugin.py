@@ -45,7 +45,7 @@ def callback(ctx: FunctionContext) -> Type:
         if name not in extends_items:
             ctx.api.fail(
                 '{} does not extend {}, item {} misses'.format(
-                    extends_to.type.name, base_dict[0].name, name
+                    extends_to.ret_type, base_dict[0], name
                 ), ctx.context
             )
             return ret

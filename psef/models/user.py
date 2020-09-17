@@ -605,12 +605,12 @@ class User(NotEqualMixin, Base):
 
     AsJSON.__cg_extends__ = AsJSONWithoutGroup  # type: ignore[attr-defined]
 
-    def __to_json__(self) -> AsJSON:
-        """Creates a JSON serializable representation of this object.
-        """
-        return make_typed_dict_extender(
-            self.__to_json_without_group__(), User.AsJSON
-        )(group=self.group)
+    class AsExtendedJSON(AsJSON, TypedDict):
+        #: The email of the user. This will only be provided for the currently
+        #: logged in user.
+        email: str
+        #: Can this user see hidden assignments at least in one course.
+        hidden: bool
 
     def __to_json_without_group__(self) -> AsJSONWithoutGroup:
         """Creates a JSON serializable representation of this object.
@@ -622,7 +622,14 @@ class User(NotEqualMixin, Base):
             'is_test_student': self.is_test_student,
         }
 
-    def __extended_to_json__(self) -> t.MutableMapping[str, t.Any]:
+    def __to_json__(self) -> AsJSON:
+        """Creates a JSON serializable representation of this object.
+        """
+        return make_typed_dict_extender(
+            self.__to_json_without_group__(), User.AsJSON
+        )(group=self.group)
+
+    def __extended_to_json__(self) -> AsExtendedJSON:
         """Create a extended JSON serializable representation of this object.
 
         This object will look like this:
@@ -639,13 +646,14 @@ class User(NotEqualMixin, Base):
         :returns: A object as described above.
         """
         is_self = psef.current_user and psef.current_user.id == self.id
-        res = {
-            'email': self.email if is_self else '<REDACTED>',
-            "hidden": self.can_see_hidden,
-            **self.__to_json__(),
-        }
+        res = make_typed_dict_extender(
+            self.__to_json__(), User.AsExtendedJSON
+        )(
+            email=self.email if is_self else '<REDACTED>',
+            hidden=self.can_see_hidden,
+        )
         if jsonify_options.get_options().add_permissions_to_user == self:
-            res['permissions'] = GlobalPermission.create_map(
+            res['permissions'] = GlobalPermission.create_map(  # type: ignore
                 self.get_all_permissions()
             )
         return res

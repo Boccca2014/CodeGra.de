@@ -26,6 +26,7 @@ from sqlalchemy.orm.collections import attribute_mapped_collection
 import psef
 import cg_enum
 import cg_cache
+import cg_maybe
 import cg_sqlalchemy_helpers
 from cg_helpers import (
     humanize, handle_none, on_not_none, zip_times_with_offset
@@ -74,7 +75,6 @@ Z = t.TypeVar('Z')
 logger = structlog.get_logger()
 
 
-
 class AssignmentPeerFeedbackConnectionJSON(TypedDict, total=True):
     """The serialization of an :class:`.AssignmentPeerFeedbackConnection`.
     """
@@ -82,7 +82,6 @@ class AssignmentPeerFeedbackConnectionJSON(TypedDict, total=True):
     peer: 'user_models.User'
     #: The user that should be reviewed by ``peer``.
     subject: 'user_models.User'
-
 
 
 class AssignmentAmbiguousSettingTag(enum.Enum):
@@ -1321,7 +1320,7 @@ class Assignment(helpers.NotEqualMixin, Base):  # pylint: disable=too-many-publi
         name: str  #: The name of the assignment.
         is_lti: bool  #: Is this an LTI assignment.
         course_id: int  #: Course of this assignment.
-        cgignore: t.Optional[t.Any]  #: The cginore.
+        cgignore: t.Optional[ignore.CGIgnoreInputData]  #: The cginore.
         cgignore_version: t.Optional[str]  #: The version of the cignore file.
         #: Has the whitespace linter run on this assignment.
         whitespace_linter: bool
@@ -1629,7 +1628,10 @@ class Assignment(helpers.NotEqualMixin, Base):  # pylint: disable=too-many-publi
         self._cgignore_version = ignore.filter_handlers.find(type(val), None)
         self._cgignore = json.dumps(val.export())
 
-    def update_cgignore(self, version: str, data: 'helpers.JSONType') -> None:
+    def update_cgignore(
+        self, version: str,
+        data: t.Union[str, ignore.SubmissionValidator.InputData]
+    ) -> None:
         """Update the cgignore file of this assignment.
 
         :param version: The type of cgignore file to use. This should be
@@ -1854,9 +1856,9 @@ class Assignment(helpers.NotEqualMixin, Base):  # pylint: disable=too-many-publi
 
     def change_notifications(
         self,
-        done_type: t.Optional[AssignmentDoneType],
-        grader_date: t.Optional[DatetimeWithTimezone],
-        done_email: t.Optional[str],
+        done_type: cg_maybe.Maybe[t.Optional[AssignmentDoneType]],
+        grader_date: cg_maybe.Maybe[t.Optional[DatetimeWithTimezone]],
+        done_email: cg_maybe.Maybe[t.Optional[str]],
     ) -> None:
         """Change the notifications for the current assignment.
 
@@ -1870,18 +1872,27 @@ class Assignment(helpers.NotEqualMixin, Base):  # pylint: disable=too-many-publi
         if self._mail_task_id is not None:
             psef.tasks.celery.control.revoke(self._mail_task_id)
 
-        self.done_type = done_type
+        if done_type.is_just:
+            self.done_type = done_type.value
 
         # Make sure _reminder_email_time is ``None`` if ``done_type`` is
         # ``none``
-        self.reminder_email_time = None if done_type is None else grader_date
-        self.done_email = None if done_type is None else done_email
+        if self.done_type is None:
+            self.reminder_email_time = None
+            self.done_email = None
+        else:
+            if grader_date.is_just:
+                self.reminder_email_time = grader_date.value
+            if done_email.is_just:
+                self.done_email = done_email.value
 
         if self.reminder_email_time is None:
             # Make sure id is reset so we don't revoke it multiple times
             self._mail_task_id = None
         else:
-            res = psef.tasks.send_reminder_mails((self.id, ), eta=grader_date)
+            res = psef.tasks.send_reminder_mails(
+                (self.id, ), eta=self.reminder_email_time
+            )
             self._mail_task_id = res.id
 
     def graders_are_done(self) -> bool:
@@ -2996,7 +3007,7 @@ class Assignment(helpers.NotEqualMixin, Base):  # pylint: disable=too-many-publi
         self,
         *,
         webhook: t.Optional[bool] = None,
-        files:  t.Optional[bool] = None
+        files: t.Optional[bool] = None
     ) -> None:
         """Update the enabled submission types for this assignment.
 

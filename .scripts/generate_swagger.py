@@ -1,3 +1,4 @@
+import os
 import json
 
 import yaml
@@ -10,8 +11,10 @@ app.config['SERVER_NAME'] = '$inst.codegra.de'
 with app.app_context():
     res = OpenAPISchema({'psef': psef}).collect_for_current_app()
 
-    with open('swagger.yaml', 'w') as f:
+    base = os.path.join(os.path.dirname(__file__), '..')
+
+    with open(os.path.join(base, 'swagger.yaml'), 'w') as f:
         yaml.dump(res, f)
 
-    with open('swagger.json', 'w') as f:
+    with open(os.path.join(base, 'swagger.json'), 'w') as f:
         json.dump(res, f)

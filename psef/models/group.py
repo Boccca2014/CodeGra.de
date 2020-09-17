@@ -298,7 +298,7 @@ class Group(Base):
         #: The id of this gropu
         id: int
         #: The members of this group.
-        members: t.Sequence['psef.models.User']
+        members: t.Sequence['psef.models.User.AsJSONWithoutGroup']
         #: The name of this group.
         name: str
         #: The id of the group set that this group is connected to.
@@ -314,7 +314,7 @@ class Group(Base):
     def __to_json__(self) -> AsJSON:
         return {
             'id': self.id,
-            'members': self.members,
+            'members': [u.__to_json_without_group__() for u in self.members],
             'name': self.name,
             'group_set_id': self.group_set_id,
             'created_at': self.created_at,

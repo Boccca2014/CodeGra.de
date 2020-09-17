@@ -9,7 +9,9 @@ import itertools
 from sqlalchemy.orm import defaultload, contains_eager
 from typing_extensions import TypedDict
 
-from cg_json import JSONResponse, ExtendedJSONResponse
+from cg_json import (
+    JSONResponse, ExtendedJSONResponse, MultipleExtendedJSONResponse
+)
 
 from . import api
 from .. import auth, models, helpers, current_user
@@ -31,10 +33,19 @@ class HasUnreadNotifcationJSON(TypedDict):
 
 _MAX_NOTIFICATION_AMOUNT = 100
 
+_ExtendedResponse = MultipleExtendedJSONResponse[
+    NotificationsJSON, t.Union[models.CommentReply, Notification]]
+
+
+def _make_response(json: NotificationsJSON) -> _ExtendedResponse:
+    return MultipleExtendedJSONResponse.make(
+        json, use_extended=(models.CommentReply, Notification)
+    )
+
 
 @api.route('/notifications/')
 @auth.login_required
-def get_all_notifications() -> t.Union[ExtendedJSONResponse[NotificationsJSON],
+def get_all_notifications() -> t.Union[_ExtendedResponse,
                                        JSONResponse[HasUnreadNotifcationJSON],
                                        ]:
     """Get all notifications for the current user.
@@ -81,7 +92,7 @@ def get_all_notifications() -> t.Union[ExtendedJSONResponse[NotificationsJSON],
         )
         return JSONResponse.make({'has_unread': has_unread})
 
-    return ExtendedJSONResponse.make(
+    return _make_response(
         NotificationsJSON(
             notifications=[
                 n for n in
@@ -89,13 +100,14 @@ def get_all_notifications() -> t.Union[ExtendedJSONResponse[NotificationsJSON],
                 if can_see(n)
             ]
         ),
-        use_extended=(models.CommentReply, Notification)
     )
 
 
 @api.route('/notifications/<int:notification_id>', methods=['PATCH'])
-def update_notification(notification_id: int
-                        ) -> ExtendedJSONResponse[Notification]:
+def update_notification(
+    notification_id: int
+) -> MultipleExtendedJSONResponse[Notification, t.
+                                  Union[models.CommentReply, Notification]]:
     """Update the read status for the given notification.
 
     .. :quickref: Notification; Update a single notification.
@@ -121,13 +133,13 @@ def update_notification(notification_id: int
     notification.read = read
     db.session.commit()
 
-    return ExtendedJSONResponse.make(
+    return MultipleExtendedJSONResponse.make(
         notification, use_extended=(models.CommentReply, Notification)
     )
 
 
 @api.route('/notifications/', methods=['PATCH'])
-def update_notifications() -> ExtendedJSONResponse[NotificationsJSON]:
+def update_notifications() -> _ExtendedResponse:
     """Update the read status for the given notifications.
 
     .. :quickref: Notification; Update multiple notifications in bulk.
@@ -166,7 +178,4 @@ def update_notifications() -> ExtendedJSONResponse[NotificationsJSON]:
 
     db.session.commit()
 
-    return ExtendedJSONResponse.make(
-        {'notifications': result},
-        use_extended=(models.CommentReply, Notification)
-    )
+    return _make_response({'notifications': result})

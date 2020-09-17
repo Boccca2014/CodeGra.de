@@ -135,24 +135,3 @@ def parse_email_list(
         f'The string "{to_parse}" contains invalid items.',
         APICodes.INVALID_PARAM, 400
     )
-
-
-def try_parse_email_list(
-    to_parse: object,
-    allow_none: bool = False,
-) -> t.Optional[str]:
-    """Try parsing an email list.
-
-    This function is basically the same as :func:`.parse_email_list` but
-    this function returns ``to_parse`` stripped of unnecessary whitespaces if
-    the parsing succeeded.
-
-    :param to_parse: See :func:`.parse_email_list` for what it does.
-    :param allow_none: See :func:`.parse_email_list` for what it does.
-    :returns: Its input stripped of spaces if parsing succeeded.
-    """
-    # parse_email will always throw when to_parse is not `(type(None), str)`
-    if parse_email_list(to_parse, allow_none) is None:
-        return None
-    else:
-        return t.cast(str, to_parse).strip()
