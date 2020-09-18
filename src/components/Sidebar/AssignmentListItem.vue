@@ -1,32 +1,25 @@
 <!-- SPDX-License-Identifier: AGPL-3.0-only -->
 <template>
-<li :class="{ 'light-selected': selected }"
+<li :class="{ 'light-selected': selected, 'small-item': small }"
     class="sidebar-list-item assignment-list-item">
-    <router-link class="sidebar-item name"
+    <router-link class="sidebar-item overflow-hidden flex-grow-1"
                  :class="{ selected: submissionsSelected || (small && selected) }"
                  :to="submissionsRoute(assignment)">
         <div class="d-flex flex-row align-items-center" v-if="small">
             <assignment-name
                 :assignment="assignment"
-                :badge-variant="examBadgeVariant"
-                style="min-width: 0; flex: 1 1 auto; display: flex"
-                />
-
+                :badge-variant="examBadgeVariant" />
             <assignment-date
                 :assignment="assignment"
                 :now="$root.$now"
-                relative
-                class="flex-grow-0"/>
+                relative />
         </div>
 
         <template v-else>
             <div class="d-flex flex-row">
                 <assignment-name
                     :assignment="assignment"
-                    :badge-variant="examBadgeVariant"
-                    class="flex-grow-1"
-                    style="min-width: 0; flex: 1 1 auto; display: flex" />
-
+                    :badge-variant="examBadgeVariant" />
                 <assignment-state
                     :assignment="assignment"
                     :editable="false"
@@ -169,13 +162,6 @@ export default {
 <style lang="less" scoped>
 @import '~mixins.less';
 
-.name {
-    flex: 1 1 auto;
-    white-space: nowrap;
-    text-overflow: ellipsis;
-    overflow: hidden;
-}
-
 .manage-link {
     flex: 0 0 auto;
     padding-top: 4px;
@@ -194,24 +180,28 @@ a {
     color: inherit;
 }
 
-.assignment-wrapper {
+.assignment-name {
     display: flex;
-    max-width: 100%;
-    text-overflow: ellipsis;
-    align-items: baseline;
-    margin-bottom: 2px;
+    flex: 1 1 auto;
+    min-width: 0;
+}
 
-    .deadline {
-        padding-left: 2px;
+.assignment-state.fa-icon {
+    transform: translateY(0) !important;
+}
+
+.assignment-list-item.small-item {
+    .assignment-name {
+        line-height: 1.1;
     }
 
-    .assignment {
-        line-height: 1.1;
+    .assignment-date {
+        flex: 0 0 auto;
     }
 }
 
 @{dark-mode} {
-    .light-selected .exam-badge {
+    .light-selected .badge {
         color: white;
         background-color: @color-primary;
     }

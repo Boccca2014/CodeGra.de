@@ -53,7 +53,7 @@ const AssignmentDate = tsx.component({
             content = <i class="text-muted">No deadline</i>;
         }
 
-        return <Tag class={['assignment-deadline', data.staticClass, data.class]}>
+        return <Tag class={['assignment-date', data.staticClass, data.class]}>
             {content}
         </Tag>;
     }
