@@ -29,6 +29,7 @@ Follow the steps below to create a new CodeGrade assignment in Open edX:
 6. Now scroll all the way to the bottom and make sure the following options are
    all set to **True**:
 
+   - Receive *score / points / grade* from the external LTI tool
    - Request user’s email
    - Request user's full name
    - Request user’s username
