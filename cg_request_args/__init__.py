@@ -9,6 +9,7 @@ import datetime
 import textwrap
 import contextlib
 import collections
+import dataclasses
 import email.utils
 
 import yaml
@@ -70,10 +71,20 @@ _PARSE_ERROR = t.TypeVar('_PARSE_ERROR', bound='_ParseError')
 
 _T_CAL = t.TypeVar('_T_CAL', bound=t.Callable)
 
-_SWAGGER_FUNCS: t.Dict[str, t.Tuple[str, t.Callable]] = {}
+
+@dataclasses.dataclass(frozen=True)
+class _SwaggerFunc:
+    __slots__ = ('operation_name', 'no_data', 'func')
+    operation_name: str
+    no_data: bool
+    func: t.Callable
 
 
-def swaggerize(operation_name: str) -> t.Callable[[_T_CAL], _T_CAL]:
+_SWAGGER_FUNCS: t.Dict[str, _SwaggerFunc] = {}
+
+
+def swaggerize(operation_name: str,
+               no_data: bool = False) -> t.Callable[[_T_CAL], _T_CAL]:
     def __wrapper(func: _T_CAL) -> _T_CAL:
         if func.__name__ in _SWAGGER_FUNCS:
             raise AssertionError(
@@ -81,7 +92,8 @@ def swaggerize(operation_name: str) -> t.Callable[[_T_CAL], _T_CAL]:
                     func.__name__
                 )
             )
-        _SWAGGER_FUNCS[func.__name__] = (operation_name, func)
+        _SWAGGER_FUNCS[func.__name__
+                       ] = _SwaggerFunc(operation_name, no_data, func)
         return func
 
     return __wrapper

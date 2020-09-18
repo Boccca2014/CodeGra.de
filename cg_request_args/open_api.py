@@ -260,7 +260,7 @@ class OpenAPISchema:
         if typ in done:
             raise AssertionError(
                 'Recursion detected: {}'.format(
-                    ' -> '.join(map(str, done.keys()))
+                    '.'.join(map(str, done.keys()))
                 )
             )
 
@@ -394,7 +394,11 @@ class OpenAPISchema:
                     'enum': list(typ.__args__),
                 }
             else:
-                raise AssertionError('Unknown type found: {}'.format(typ))
+                raise AssertionError(
+                    'Unknown type found: {} (path: {})'.format(
+                        typ, '.'.join(map(str, done.keys()))
+                    )
+                )
         finally:
             done.pop(typ)
 
@@ -482,12 +486,17 @@ class OpenAPISchema:
         self, endpoint_func: t.Callable, url: str, method: str
     ) -> None:
         try:
-            operation_id, func = _SWAGGER_FUNCS[endpoint_func.__name__]
+            swagger_func = _SWAGGER_FUNCS[endpoint_func.__name__]
         except KeyError:
             return
 
+        operation_id = swagger_func.operation_name
+        func = swagger_func.func
+
         signature = inspect.signature(func)
         ret = signature.return_annotation
+        tags = self._find_and_add_tags(endpoint_func)
+
         responses: OrderedDict = OrderedDict([
             (401, {'$ref': '#/components/responses/UnauthorizedError'}),
             (
@@ -504,7 +513,7 @@ class OpenAPISchema:
                 ret, do_extended=tuple(), inline=False, done=OrderedDict()
             )
             if schema.get('type') == 'object':
-                out_schema_name = f'Result{method.capitalize()}{_to_pascalcase(operation_id)}'
+                out_schema_name = f'ResultData{method.capitalize()}{tags[0]}{_to_pascalcase(operation_id)}'
                 self._schemas[out_schema_name] = schema
                 schema = {'$ref': f'#/components/schemas/{out_schema_name}'}
             responses[200] = {
@@ -513,7 +522,6 @@ class OpenAPISchema:
             }
             responses.move_to_end(200, last=False)
 
-        tags = self._find_and_add_tags(endpoint_func)
         result: t.Dict[str, t.Any] = {
             'responses': dict(responses),
             'summary': _first_docstring_line(endpoint_func.__doc__),
@@ -525,7 +533,10 @@ class OpenAPISchema:
         if parameters:
             result['parameters'] = parameters
 
-        if method.lower() not in ('get', 'delete'):
+        if (
+            method.lower() not in ('get', 'delete') and
+            not swagger_func.no_data
+        ):
             with _schema_generator(self), _disabled_auth():
                 try:
                     func(**signature.parameters)
@@ -534,9 +545,10 @@ class OpenAPISchema:
                 else:
                     assert False
                 if 'anyOf' in in_schema:
-                    schema_name = f'InputData{method.capitalize()}{_to_pascalcase(operation_id)}'
+                    schema_name = f'InputData{method.capitalize()}{tags[0]}{_to_pascalcase(operation_id)}'
                     self._schemas[schema_name] = in_schema
                     in_schema = {'$ref': f'#/components/schemas/{schema_name}'}
+
             result['requestBody'] = {
                 'content': {'application/json': {'schema': in_schema}},
                 'required': True,

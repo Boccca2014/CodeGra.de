@@ -205,14 +205,20 @@ class RubricItem(helpers.NotEqualMixin, Base):
     class JSONBaseSerialization(TypedDict, total=True):
         """The base serialization of a rubric item.
         """
+        #: The description of this item
         description: str
+        #: The header of the item.
         header: str
-        points: numbers.Real
+        #: The amount of points a user gets when this item is selected.
+        points: float
 
     class JSONSerialization(JSONBaseSerialization, total=True):
+        #: The id of this rubric item.
         id: int
 
-    def __to_json__(self) -> 'RubricItem.JSONSerialization':
+    JSONSerialization.__cg_extends__ = JSONBaseSerialization  # type: ignore
+
+    def __to_json__(self) -> JSONSerialization:
         """Creates a JSON serializable representation of this object.
         """
         return {
@@ -221,7 +227,7 @@ class RubricItem(helpers.NotEqualMixin, Base):
             'header': self.header,
             # A float is a ``Real``, mypy issue:
             # https://github.com/python/mypy/issues/2636
-            'points': t.cast(numbers.Real, self.points),
+            'points': self.points,
         }
 
     def copy(self) -> 'RubricItem':
@@ -374,6 +380,24 @@ class RubricRowBase(helpers.NotEqualMixin, Base):
             return False
         return self.assignment.locked_rubric_rows.get(self.id, False)
 
+
+    class AsJSON(TypedDict):
+        #: The id of this row, used for updating
+        id: int
+        #: The header of this row.
+        header: str
+        #: The description of this row.
+        description: str
+        #: The item in this row. The length will always be 1 for continuous
+        #: rubric rows.
+        items: t.Sequence[RubricItem]
+        #: Is this row locked. If it is locked you cannot update it, nor can
+        #: you manually select items in it.
+        locked: bool
+        #: The type of rubric row.
+        type: str
+        
+
     def __to_json__(self) -> t.Mapping[str, t.Any]:
         """Creates a JSON serializable representation of this object.
         """
@@ -428,7 +452,7 @@ class RubricRowBase(helpers.NotEqualMixin, Base):
         for item in items:
             item_description: str = item['description']
             item_header: str = item['header']
-            points: numbers.Real = item['points']
+            points: float = item['points']
 
             if 'id' in item:
                 helpers.ensure_keys_in_dict(item, [('id', int)])

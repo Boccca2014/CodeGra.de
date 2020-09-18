@@ -11,12 +11,14 @@ import itertools
 
 import structlog
 from sqlalchemy import orm, distinct
+from typing_extensions import Literal, TypedDict
 from sqlalchemy.sql.expression import or_, and_, case, nullsfirst
 
 import psef
 import cg_helpers
 from cg_dt_utils import DatetimeWithTimezone
 from cg_flask_helpers import callback_after_this_request
+from cg_typing_extensions import make_typed_dict_extender
 from cg_sqlalchemy_helpers import UUIDType
 from cg_sqlalchemy_helpers import func as sql_func
 from cg_sqlalchemy_helpers import deferred, hybrid_property
@@ -113,7 +115,22 @@ class AutoTestSuite(Base, TimestampMixin, IdMixin):
             'submission_info': self.submission_info,
         }
 
-    def __to_json__(self) -> t.Mapping[str, object]:
+    class AsJSON(TypedDict):
+        #: The id of this suite (or "category")
+        id: int
+        #: The steps that will be executed in this suite.
+        steps: t.Sequence['psef.models.AutoTestStepBase']
+        #: The rubric row this category is connected to.
+        rubric_row: 'psef.models.RubricRow'
+        #: Is the network disabled while running this category.
+        network_disabled: bool
+        #: Will submission info be available while running this step.
+        submission_info: bool
+        #: The maximum amount of time in seconds a step (or substep) may
+        #: take. If ``null`` the instance default will be used.
+        command_time_limit: t.Optional[float]
+
+    def __to_json__(self) -> AsJSON:
         return {
             'id': self.id,
             'steps': self.steps,
@@ -224,7 +241,18 @@ class AutoTestSet(Base, TimestampMixin, IdMixin):
             'stop_points': self.stop_points,
         }
 
-    def __to_json__(self) -> t.Mapping[str, object]:
+    class AsJSON(TypedDict):
+        #: The id of this set.
+        id: int
+        #: The suites connected to this set. In the UI these are called
+        #: "categories"
+        suites: t.Sequence[AutoTestSuite]
+        #: A floating indicating the minimum percentage of points a student
+        #: should achieve after this set (or "level"). If this percentage is
+        #: not achieved the AutoTest will stop running.
+        stop_points: float
+
+    def __to_json__(self) -> AsJSON:
         return {
             'id': self.id,
             'suites': self.suites,
@@ -1039,7 +1067,27 @@ class AutoTestRun(Base, TimestampMixin, IdMixin):
             'created_at': result.work.created_at.isoformat(),
         }
 
-    def __to_json__(self) -> t.Mapping[str, object]:
+    class AsJSON(TypedDict):
+        #: The id of this run.
+        id: int
+        #: The moment the run was created.
+        created_at: DatetimeWithTimezone
+        #: The state it is in. This is only kept for backwards compatibility
+        #: reasons, it will always be "running".
+        state: Literal['running']
+        #: Also not used anymore, will always be ``false``.
+        is_continuous: Literal[False]
+
+    class AsExtendedJSON(AsJSON, TypedDict):
+        #: The results in this run. This will only contain the result for the
+        #: latest submissions.
+        results: t.List[str]
+        #: The stdout output of the ``run_setup_script``
+        setup_stdout: str
+        #: The stderr output of the ``run_setup_script``
+        setup_stderr: str
+
+    def __to_json__(self) -> AsJSON:
         return {
             'id': self.id,
             'created_at': self.created_at.isoformat(),
@@ -1047,7 +1095,7 @@ class AutoTestRun(Base, TimestampMixin, IdMixin):
             'is_continuous': False,
         }
 
-    def __extended_to_json__(self) -> t.Mapping[str, object]:
+    def __extended_to_json__(self) -> AsExtendedJSON:
         all_results: t.Iterable[AutoTestResult]
         if psef.helpers.jsonify_options.get_options().latest_only:
             all_results = self.get_results_latest_submissions()
@@ -1060,12 +1108,13 @@ class AutoTestRun(Base, TimestampMixin, IdMixin):
         ]
 
         # TODO: Check permissions for setup_stdout/setup_stderr
-        return {
-            **self.__to_json__(),
-            'results': results,
-            'setup_stdout': self.setup_stdout or '',
-            'setup_stderr': self.setup_stderr or '',
-        }
+        return make_typed_dict_extender(
+            self.__to_json__(), self.AsExtendedJSON
+        )(
+            results=results,
+            setup_stdout=self.setup_stdout or '',
+            setup_stderr=self.setup_stderr or '',
+        )
 
     def delete_and_clear_rubric(self) -> None:
         """Delete this AutoTestRun and clear all the results and rubrics.
@@ -1517,7 +1566,38 @@ class AutoTest(Base, TimestampMixin, IdMixin):
                 lambda: psef.tasks.adjust_amount_runners(run_id)
             )
 
-    def __to_json__(self) -> t.Mapping[str, object]:
+    class AsJSON(TypedDict):
+        #: This id of this AutoTest
+        id: int
+        #: The fixtures connected to this AutoTest
+        fixtures: t.Sequence['psef.models.AutoTestFixture']
+        #: The setup script that will be executed before any test starts.
+        run_setup_script: str
+        #: The setup script that will be executed for each student. In this
+        #: script the submission of the student is available.
+        setup_script: str
+        #: Unused
+        finalize_script: str
+        #: The way the grade is calculated in this AutoTest. This is ``null``
+        #: if the options is still unset. This can be 'full' or 'partial'.
+        grade_calculation: t.Optional[str]
+        #: The sets in this AutoTest. In the UI these are called levels.
+        sets: t.List[AutoTestSet]
+        #: The id of the assignment to which this AutoTest belongs.
+        assignment_id: int
+        #: The runs done with this AutoTest. This is list is always of length 0
+        #: or 1
+        runs: t.List[AutoTestRun]
+        #: If ``true`` the results are visible for students before the
+        #: deadline. This is also called "continuous feedback mode". This is
+        #: ``null`` if the options is still unset.
+        results_always_visible: t.Optional[bool]
+        #: If ``true`` the teacher revision will be used for testing if it is
+        #: available for a student. This is ``null`` if the options is still
+        #: unset.
+        prefer_teacher_revision: t.Optional[bool]
+
+    def __to_json__(self) -> AsJSON:
         """Covert this AutoTest to json.
         """
         fixtures = [

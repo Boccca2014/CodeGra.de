@@ -17,6 +17,7 @@ import regex as re
 import structlog
 from sqlalchemy import event
 from sqlalchemy.types import JSON
+from typing_extensions import TypedDict
 from werkzeug.datastructures import FileStorage
 
 import psef
@@ -219,23 +220,39 @@ class AutoTestStepBase(Base, TimestampMixin, IdMixin):
             'command_time_limit': self.command_time_limit,
         }
 
-    def __to_json__(self) -> t.Mapping[str, object]:
-        res = {
+    class AsJSON(TypedDict):
+        #: The id of this step
+        id: int
+        #: The name of this step.
+        name: str
+        #: The type of AutoTest step. We constantly add new step types, so
+        #: don't try to store this as an enum.
+        type: str
+        #: The amount of weight this step should have.
+        weight: float
+        #: Is this step hidden? If ``true`` in most cases students will not be
+        #: able to see this step and its details.
+        hidden: bool
+        #: The data used to run this step. The data shape is dependent on your
+        #: permissions and the step type.
+        data: t.Any
+
+    def __to_json__(self) -> AsJSON:
+        try:
+            auth.ensure_can_view_autotest_step_details(self)
+        except exceptions.PermissionException:
+            data = self.remove_data_details()
+        else:
+            data = self.data
+
+        return {
             'id': self.id,
             'name': self.name,
             'type': self._test_type,
             'weight': self.weight,
             'hidden': self.hidden,
-            'data': {},
+            'data': data,
         }
-        try:
-            auth.ensure_can_view_autotest_step_details(self)
-        except exceptions.PermissionException:
-            res['data'] = self.remove_data_details()
-        else:
-            res['data'] = self.data
-
-        return res
 
     @abc.abstractmethod
     def validate_data(self, data: JSONType) -> None:

@@ -10,7 +10,9 @@ import flask
 import werkzeug
 import structlog
 from flask import Response, request, make_response
+from typing_extensions import Literal
 
+import cg_request_args as rqa
 from cg_json import (
     JSONResponse, ExtendedJSONResponse, MultipleExtendedJSONResponse, jsonify,
     extended_jsonify
@@ -146,8 +148,10 @@ def _update_auto_test(
 
 @api.route('/auto_tests/', methods=['POST'])
 @feature_required(Feature.AUTO_TEST)
+@rqa.swaggerize('create')
+@auth.login_required
 def create_auto_test() -> JSONResponse[models.AutoTest]:
-    """Create a new auto test configuration.
+    """Create a new AutoTest configuration.
 
     .. :quickref: AutoTest; Create a new AutoTest configuration.
 
@@ -157,13 +161,20 @@ def create_auto_test() -> JSONResponse[models.AutoTest]:
     :>json run_setup_script: The setup for the entire run (OPTIONAL).
     :returns: The newly created AutoTest.
     """
-    json_dict = get_json_dict_from_request()
-    with get_from_map_transaction(json_dict) as [get, _]:
-        assignment_id = get('assignment_id', int)
+    data = rqa.FixedMapping(
+        rqa.RequiredArgument(
+            'assignment_id',
+            rqa.SimpleValue(int),
+            """
+            The id of the assignment in which you want to create this
+            AutoTest. This assignment should have a rubric.
+            """,
+        ),
+    ).from_flask()
 
     assignment = filter_single_or_404(
         models.Assignment,
-        models.Assignment.id == assignment_id,
+        models.Assignment.id == data.assignment_id,
         models.Assignment.is_visible,
         with_for_update=True
     )
@@ -330,6 +341,8 @@ def update_auto_test(auto_test_id: int) -> JSONResponse[models.AutoTest]:
 
 @api.route('/auto_tests/<int:auto_test_id>/sets/', methods=['POST'])
 @feature_required(Feature.AUTO_TEST)
+@rqa.swaggerize('add_set', no_data=True)
+@auth.login_required
 def create_auto_test_set(auto_test_id: int
                          ) -> JSONResponse[models.AutoTestSet]:
     """Create a new set within an AutoTest
@@ -409,6 +422,8 @@ def update_auto_test_set(auto_test_id: int, auto_test_set_id: int
     methods=['DELETE']
 )
 @feature_required(Feature.AUTO_TEST)
+@rqa.swaggerize('delete_set')
+@auth.login_required
 def delete_auto_test_set(
     auto_test_id: int, auto_test_set_id: int
 ) -> EmptyResponse:
@@ -533,6 +548,8 @@ def update_or_create_auto_test_suite(auto_test_id: int, auto_test_set_id: int
     methods=['DELETE']
 )
 @feature_required(Feature.AUTO_TEST)
+@rqa.swaggerize('delete_suite')
+@auth.login_required
 def delete_suite(test_id: int, set_id: int, suite_id: int) -> EmptyResponse:
     """Delete a :class:`.models.AutoTestSuite`.
 
@@ -561,11 +578,12 @@ def delete_suite(test_id: int, set_id: int, suite_id: int) -> EmptyResponse:
 
 @api.route('/auto_tests/<int:auto_test_id>', methods=['GET'])
 @feature_required(Feature.AUTO_TEST)
+@rqa.swaggerize('get')
+@auth.login_required
 def get_auto_test(
     auto_test_id: int
 ) -> MultipleExtendedJSONResponse[models.AutoTest,
                                   t.Union[models.AutoTest, models.AutoTestRun],
-
                                   ]:
     """Get the extended version of an :class:`.models.AutoTest` and its runs.
 
@@ -613,8 +631,10 @@ def get_auto_test_run(auto_test_id: int,
 
 @api.route('/auto_tests/<int:auto_test_id>/runs/', methods=['POST'])
 @feature_required(Feature.AUTO_TEST)
+@rqa.swaggerize('start_run', no_data=True)
+@auth.login_required
 def start_auto_test_run(auto_test_id: int) -> t.Union[JSONResponse[
-    t.Mapping[None, None]], ExtendedJSONResponse[models.AutoTestRun]]:
+    t.Mapping[str, Literal['']]], ExtendedJSONResponse[models.AutoTestRun]]:
     """Start a run for the given :class:`AutoTest`.
 
     .. :quickref: AutoTest; Start a run for a given AutoTest.
@@ -658,8 +678,10 @@ def start_auto_test_run(auto_test_id: int) -> t.Union[JSONResponse[
     '/auto_tests/<int:auto_test_id>/runs/<int:run_id>', methods=['DELETE']
 )
 @feature_required(Feature.AUTO_TEST)
+@rqa.swaggerize('stop_run')
+@auth.login_required
 def delete_auto_test_runs(auto_test_id: int, run_id: int) -> EmptyResponse:
-    """Delete the given :class:`.models.AutoTestRun`.
+    """Delete an AutoTest run, this makes it possible to edit the AutoTest.
 
     .. :quickref: AutoTest; Delete the the given AutoTest run.
 
@@ -806,16 +828,25 @@ def restart_auto_test_result(auto_test_id: int, run_id: int, result_id: int
 
 @api.route('/auto_tests/<int:auto_test_id>/copy', methods=['POST'])
 @feature_required(Feature.AUTO_TEST)
+@rqa.swaggerize('copy')
+@auth.login_required
 def copy_auto_test(auto_test_id: int) -> JSONResponse[models.AutoTest]:
     """Copy the given AutoTest configuration.
 
     .. :quickref: AutoTest; Copy an AutoTest config to another assignment.
 
-    :>json assignment_id: The id of the assignment which should own the copied
-        AutoTest config.
     :param auto_test_id: The id of the AutoTest config which should be copied.
     :returns: The copied AutoTest configuration.
     """
+    data = rqa.FixedMapping(
+        rqa.RequiredArgument(
+            'assignment_id',
+            rqa.SimpleValue(int),
+            """
+            The id of the assignment into which you want to copy this AutoTest.
+            """,
+        )
+    ).from_flask()
     test = get_or_404(
         models.AutoTest,
         auto_test_id,
@@ -829,12 +860,9 @@ def copy_auto_test(auto_test_id: int) -> JSONResponse[models.AutoTest]:
         for step in suite.steps:
             auth.ensure_can_view_autotest_step_details(step)
 
-    with get_from_map_transaction(get_json_dict_from_request()) as [get, _]:
-        assignment_id = get('assignment_id', int)
-
     assignment = filter_single_or_404(
         models.Assignment,
-        models.Assignment.id == assignment_id,
+        models.Assignment.id == data.assignment_id,
         with_for_update=True
     )
     auth.ensure_permission(CPerm.can_edit_autotest, assignment.course_id)
@@ -922,6 +950,7 @@ def get_auto_test_result_proxy(
     methods=['GET']
 )
 @feature_required(Feature.AUTO_TEST)
+@auth.login_required
 def get_auto_test_step_result_attachment(
     auto_test_id: int, run_id: int, step_result_id: int
 ) -> Response:

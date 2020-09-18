@@ -14,10 +14,12 @@ import structlog
 from flask import current_app
 from sqlalchemy import event
 from sqlalchemy_utils import UUIDType
+from typing_extensions import TypedDict
 
 import psef
 from cg_enum import CGEnum
 from cg_dt_utils import DatetimeWithTimezone
+from cg_typing_extensions import make_typed_dict_extender
 from cg_sqlalchemy_helpers import hybrid_property
 from cg_sqlalchemy_helpers.types import (
     MyQuery, ColumnProxy, ImmutableColumnProxy
@@ -138,7 +140,14 @@ class FileMixin(t.Generic[T]):
             current_app.config['UPLOAD_DIR'], self.filename
         )
 
-    def __to_json__(self) -> t.Mapping[str, object]:
+    class AsJSON(TypedDict):
+        #: The id of this file
+        id: str
+        #: The local name of this file, this does **not** include any parent
+        #: directory names, nor does it include trailing slashes for directories.
+        name: str
+
+    def __to_json__(self) -> AsJSON:
         return {
             'id': str(self.get_id()),
             'name': self.name,
@@ -427,26 +436,19 @@ class File(NestedFileMixin[int], Base):
 
         self.name = new_name
 
-    def __to_json__(self) -> t.Mapping[str, object]:
+    class AsJSON(FileMixin.AsJSON, TypedDict):
+        #: Is this file a directory or a normal file.
+        is_directory: bool
+
+    AsJSON.__cg_extends__ = FileMixin.AsJSON  # type: ignore
+
+    def __to_json__(self) -> AsJSON:
         """Creates a JSON serializable representation of this object.
-
-
-        This object will look like this:
-
-        .. code:: python
-
-            {
-                'name': str, # The name of the file or directory.
-                'id': str, # The id of this file.
-                'is_directory': bool, # Is this file a directory.
-            }
-
         :returns: A object as described above.
         """
-        return {
-            **super().__to_json__(),
-            'is_directory': self.is_directory,
-        }
+        return make_typed_dict_extender(super().__to_json__(), File.AsJSON)(
+            is_directory=self.is_directory,
+        )
 
 
 class AutoTestFixture(Base, FileMixin[int], TimestampMixin):
@@ -492,11 +494,16 @@ class AutoTestFixture(Base, FileMixin[int], TimestampMixin):
         innerjoin=True,
     )
 
-    def __to_json__(self) -> t.Mapping[str, object]:
-        return {
-            **super().__to_json__(),
-            'hidden': self.hidden,
-        }
+    class AsJSON(FileMixin.AsJSON, TypedDict):
+        #: Is this fixture hidden.
+        hidden: bool
+
+    AsJSON.__cg_extends__ = FileMixin.AsJSON  # type: ignore
+
+    def __to_json__(self) -> AsJSON:
+        return make_typed_dict_extender(
+            super().__to_json__(), AutoTestFixture.AsJSON
+        )(hidden=self.hidden)
 
     def copy(self) -> 'AutoTestFixture':
         """Copy this AutoTest fixture.
