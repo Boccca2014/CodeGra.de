@@ -101,13 +101,14 @@ describe('assignment model', () => {
                 assig,
                 { can_submit_own_work: false, can_submit_others_work: false },
             )
-            expect(assig.canSubmitWork()).toBe(false);
+            expect(assig.canSubmitWork(moment())).toBe(false);
         });
 
         it.each([
             [false],
             [true],
         ])('should return true when the assignment is hidden', (submitOwn) => {
+            const now = moment();
             let assig = makeAssig({
                 state: assignmentState.HIDDEN,
                 deadline: formatDate(moment().add(1, 'days')),
@@ -116,7 +117,7 @@ describe('assignment model', () => {
                 assig,
                 { can_submit_own_work: true, can_submit_others_work: false },
             );
-            expect(assig.canSubmitWork()).toBe(true);
+            expect(assig.canSubmitWork(now)).toBe(true);
 
             updatePerms(
                 assig,
@@ -125,14 +126,14 @@ describe('assignment model', () => {
                     can_submit_others_work: true,
                 },
             );
-            expect(assig.canSubmitWork()).toBe(true);
+            expect(assig.canSubmitWork(now)).toBe(true);
 
             CoursesStore.commitPermission({
                 courseId: assig.courseId,
                 perm: 'can_submit_own_work',
                 value: true,
             });
-            expect(assig.canSubmitWork()).toBe(true);
+            expect(assig.canSubmitWork(now)).toBe(true);
         });
 
         it('should return false when the deadline has passed and you do not have permission to submit after the deadline', () => {
@@ -219,8 +220,6 @@ describe('assignment model', () => {
             });
 
             expect(assig.deadlinePassed(now)).toBe(delta < 0 ? true : false);
-            // It should default to 'now'.
-            expect(assig.deadlinePassed()).toBe(delta < 0 ? true : false);
         });
     });
 

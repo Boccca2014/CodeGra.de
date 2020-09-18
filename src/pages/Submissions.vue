@@ -530,7 +530,7 @@ export default {
         },
 
         uploadDisabledMessage() {
-            const reasons = this.assignment.getSubmitDisabledReasons();
+            const reasons = this.assignment.getSubmitDisabledReasons(this.$root.$now);
 
             if (!this.assignment.files_upload_enabled) {
                 reasons.unshift('file uploads are disabled for this assignment.');
@@ -544,7 +544,7 @@ export default {
         },
 
         webhookDisabledMessage() {
-            const reasons = this.assignment.getSubmitDisabledReasons();
+            const reasons = this.assignment.getSubmitDisabledReasons(this.$root.$now);
 
             if (reasons.length === 0) {
                 return '';
@@ -574,7 +574,7 @@ export default {
 
             if (assig.deadline == null) {
                 return 'Peer feedback is disabled because the deadline has not been set yet.';
-            } else if (assig.deadlinePassed()) {
+            } else if (assig.deadlinePassed(this.$root.$now)) {
                 return '';
             } else {
                 const pfSettings = assig.peer_feedback_settings;

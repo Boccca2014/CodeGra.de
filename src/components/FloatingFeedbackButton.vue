@@ -134,7 +134,10 @@ export default {
         },
 
         canEditFeedback() {
-            return !this.disabled && FeedbackLine.canAddReply(this.submission);
+            return (
+                !this.disabled &&
+                FeedbackLine.canAddReply(this.submission, this.$root.$now)
+            );
         },
 
         buttonClasses() {
