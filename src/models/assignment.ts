@@ -297,11 +297,10 @@ export class Assignment extends AssignmentData {
         return this.kind === AssignmentKind.exam;
     }
 
-    @utils.nonenumerable
-    get isNotStartedExam(): boolean {
+    isNotStartedExam(now: moment.Moment): boolean {
         const availableAt = this.availableAt;
         if (availableAt) {
-            return this.isExam && availableAt.isAfter(moment());
+            return this.isExam && availableAt.isAfter(now);
         }
         return false;
     }

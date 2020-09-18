@@ -5,47 +5,46 @@
     <router-link class="sidebar-item name"
                  :class="{ selected: submissionsSelected || (small && selected) }"
                  :to="submissionsRoute(assignment)">
-        <div class="assignment-wrapper">
-            <span :title="assignment.name" class="assignment text-truncate">{{ assignment.name }}</span>
-            <div class="flex-grow-1 text-small-uppercase d-flex align-self-center">
-                <b-badge class="exam-badge mx-2"
-                         v-if="assignment.kind === 'exam'"
-                         :variant="examBadgeVariant">
-                    exam
-                </b-badge>
-            </div>
+        <div class="d-flex flex-row align-items-center" v-if="small">
+            <assignment-name
+                :assignment="assignment"
+                :badge-variant="examBadgeVariant"
+                style="min-width: 0; flex: 1 1 auto; display: flex"
+                />
 
-            <assignment-state :assignment="assignment"
-                              :editable="false"
-                              v-if="!small"
-                              size="sm"/>
-            <small v-else-if="isNotStartedExam" class="deadline">
-                Starts <cg-relative-time :date="assignment.availableAt" />
-            </small>
-            <small v-else-if="assignment.hasDeadline" class="deadline">
-                Due <cg-relative-time :date="assignment.deadline" />
-            </small>
-
-            <small v-else class="deadline text-muted">
-                <i>No deadline</i>
-            </small>
+            <assignment-date
+                :assignment="assignment"
+                :now="$root.$now"
+                relative
+                class="flex-grow-0"/>
         </div>
 
-        <template v-if="!small">
-            <small v-if="showCourseName"
-                   class="course text-truncate"><course-name :course="assignment.course" /></small>
+        <template v-else>
+            <div class="d-flex flex-row">
+                <assignment-name
+                    :assignment="assignment"
+                    :badge-variant="examBadgeVariant"
+                    class="flex-grow-1"
+                    style="min-width: 0; flex: 1 1 auto; display: flex" />
 
-            <small v-if="isNotStartedExam" class="deadline">
-                Starts <cg-relative-time :date="assignment.availableAt" />
+                <assignment-state
+                    :assignment="assignment"
+                    :editable="false"
+                    size="sm" />
+            </div>
+
+            <small v-if="showCourseName"
+                   class="course text-truncate">
+                <course-name :course="assignment.course" />
             </small>
-            <small v-else-if="assignment.hasDeadline" class="deadline">
-                Due <cg-relative-time :date="assignment.deadline" />
-            </small>
-            <small v-else class="deadline text-muted">
-                <i>No deadline</i>
-            </small>
+
+            <assignment-date
+                :assignment="assignment"
+                :now="$root.$now"
+                relative />
         </template>
     </router-link>
+
     <router-link class="sidebar-item manage-link"
                  v-if="assignment.canManage && !small"
                  v-b-popover.topleft.hover.window="noPopover ? '' : 'Manage assignment'"
@@ -63,6 +62,8 @@ import 'vue-awesome/icons/gear';
 import { mapGetters } from 'vuex';
 
 import CourseName from '@/components/CourseName';
+import AssignmentDate from '@/components/AssignmentDate';
+import AssignmentName from '@/components/AssignmentName';
 import AssignmentState from '@/components/AssignmentState';
 
 export default {
@@ -157,6 +158,8 @@ export default {
 
     components: {
         Icon,
+        AssignmentDate,
+        AssignmentName,
         AssignmentState,
         CourseName,
     },

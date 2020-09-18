@@ -3,33 +3,33 @@
 <div class="manage-assignment" :class="{ loading }">
     <local-header always-show-extra-slot
                   class="header">
-        <template slot="title">
-            <span>{{ assignment.name }}</span>
-
-            <small v-if="assignment.isNotStartedExam">
-                - starts {{ formattedAvailableAt }}
-            </small>
-            <small v-else-if="formattedDeadline">
-                - due {{ formattedDeadline }}
-            </small>
-            <small v-else class="text-muted">
-                <i>- No deadline</i>
-            </small>
-        </template>
-
         <cg-loader v-if="loading"
                    :scale="1" />
-        <assignment-state v-else
-                          :assignment="assignment"
-                          :key="assignmentId"
-                          class="assignment-state"
-                          :editable="canEditState"
-                          size="sm"/>
 
-        <template slot="extra">
-            <category-selector default="general"
-                               v-model="selectedCat"
-                               :categories="categories"/>
+        <template #title
+                  v-if="assignment">
+            <assignment-name
+                :assignment="assignment"
+                :now="$root.$now" />
+
+            <assignment-date
+                :assignment="assignment"
+                :now="$root.$now"
+                class="text-muted" />
+        </template>
+
+        <assignment-state
+            v-if="assignment"
+            :key="assignmentId"
+            :assignment="assignment"
+            :editable="canEditState"
+            size="sm"/>
+
+        <template #extra>
+            <category-selector
+                default="general"
+                v-model="selectedCat"
+                :categories="categories"/>
         </template>
     </local-header>
 
@@ -39,7 +39,8 @@
         <loader page-loader />
     </div>
 
-    <div v-else
+    <div v-if="!loading"
+         v-show="!loadingInner"
          class="page-content"
          :key="assignmentId">
         <div :class="{hidden: selectedCat !== 'general'}"
@@ -239,6 +240,8 @@ import { mapActions, mapGetters } from 'vuex';
 import 'vue-awesome/icons/reply';
 
 import {
+    AssignmentDate,
+    AssignmentName,
     AssignmentState,
     AssignmentGeneralSettings,
     AssignmentGraderSettings,
@@ -487,6 +490,8 @@ export default {
     },
 
     components: {
+        AssignmentDate,
+        AssignmentName,
         AssignmentState,
         AssignmentGeneralSettings,
         AssignmentGraderSettings,
@@ -531,6 +536,8 @@ export default {
 </style>
 
 <style lang="less">
+@import '~mixins.less';
+
 .manage-assignment .card {
     margin-bottom: 1rem;
 }

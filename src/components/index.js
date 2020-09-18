@@ -1,4 +1,6 @@
 /* SPDX-License-Identifier: AGPL-3.0-only */
+export { default as AssignmentDate } from './AssignmentDate';
+export { default as AssignmentName } from './AssignmentName';
 export { default as AssignmentState } from './AssignmentState';
 export { default as AssignmentGeneralSettings } from './AssignmentGeneralSettings';
 export { default as AssignmentGraderSettings } from './AssignmentGraderSettings';
