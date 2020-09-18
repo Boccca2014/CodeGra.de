@@ -250,7 +250,7 @@ export default {
                 });
 
                 this.fields = fields;
-                this.items = items.sort((a, b) => (a.name < b.name ? -1 : 1));
+                this.items = this.$utils.sortBy(items, item => [item.name]);
             });
         },
 
