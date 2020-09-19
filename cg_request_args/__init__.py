@@ -349,14 +349,13 @@ class Nullable(t.Generic[_T], _Parser[t.Union[_T, None]]):
             raise SimpleParseError(self, value) from err
 
 
-_SIMPLE_VALUE = t.TypeVar('_SIMPLE_VALUE', str, int, float, bool, None)
+_SIMPLE_VALUE = t.TypeVar('_SIMPLE_VALUE', str, int, float, bool)
 
 _TYPE_NAME_LOOKUP = {
     str: 'str',
     float: 'float',
     bool: 'bool',
     int: 'int',
-    type(None): 'None',
     dict: 'mapping',
     list: 'list',
 }
@@ -390,7 +389,7 @@ class SimpleValue(t.Generic[_SIMPLE_VALUE], _Parser[_SIMPLE_VALUE]):
 
 
 _SIMPLE_UNION = t.TypeVar(
-    '_SIMPLE_UNION', bound=t.Union[str, int, float, bool, None]
+    '_SIMPLE_UNION', bound=t.Union[str, int, float, bool]
 )
 
 
@@ -635,26 +634,26 @@ _T_FIXED_MAPPING = t.TypeVar('_T_FIXED_MAPPING', bound='BaseFixedMapping')
 class _BaseFixedMapping(t.Generic[_BASE_DICT]):
     def __init__(self, *arguments: object) -> None:
         super().__init__()
-        self.__arguments = t.cast(
+        self._arguments = t.cast(
             t.Sequence[t.Union[RequiredArgument, OptionalArgument]], arguments
         )
         self.__schema: t.Optional[t.Type[_BASE_DICT]] = None
 
     def describe(self) -> str:
         return 'Mapping[{}]'.format(
-            ', '.join(arg.describe() for arg in self.__arguments)
+            ', '.join(arg.describe() for arg in self._arguments)
         )
 
     def _to_open_api(self, schema: 'OpenAPISchema') -> t.Mapping[str, t.Any]:
         required = [
-            arg.key for arg in self.__arguments
+            arg.key for arg in self._arguments
             if isinstance(arg, RequiredArgument)
         ]
         res = {
             'type': 'object',
             'properties': {
                 arg.key: arg.to_open_api(schema)
-                for arg in self.__arguments
+                for arg in self._arguments
             },
         }
         if required:
@@ -670,7 +669,7 @@ class _BaseFixedMapping(t.Generic[_BASE_DICT]):
 
         result = {}
         errors = []
-        for arg in self.__arguments:
+        for arg in self._arguments:
             try:
                 result[arg.key] = arg.try_parse(value)
             except _ParseError as exc:
@@ -687,7 +686,7 @@ class BaseFixedMapping(
 ):
     def __init__(self, *arguments: object) -> None:
         super().__init__()
-        self.__arguments = t.cast(
+        self._arguments = t.cast(
             t.Sequence[t.Union[RequiredArgument, OptionalArgument]], arguments
         )
         self.__schema: t.Optional[t.Type[_BASE_DICT]] = None
@@ -736,6 +735,7 @@ class BaseFixedMapping(
         elif origin in (list, collections.abc.Sequence):
             return List(cls.__from_python_type(typ.__args__[0]))
         elif origin == t.Union:
+            args = typ.__args__
             res = cls.__from_python_type(typ.__args__[0])
             for item in typ.__args__[1:]:
                 res = res | cls.__from_python_type(item)
@@ -755,10 +755,7 @@ class FixedMapping(
     _Parser[_DictGetter[_BASE_DICT]]
 ):
     def __init__(self, *arguments: object) -> None:
-        super().__init__()
-        self.__arguments = t.cast(
-            t.Sequence[t.Union[RequiredArgument, OptionalArgument]], arguments
-        )
+        super().__init__(*arguments)
         self.__tag: t.Optional[t.Tuple[str, str]] = None
 
     def add_tag(self, key: str, value: str) -> FixedMapping[_BASE_DICT]:
@@ -776,7 +773,7 @@ class FixedMapping(
         return _DictGetter(result)
 
     def combine(self, other: FixedMapping[t.Any]) -> FixedMapping[_BaseDict]:
-        args = [*self.__arguments, *other.__arguments]
+        args = [*self._arguments, *other._arguments]
         return FixedMapping(*args)  # type: ignore
 
 

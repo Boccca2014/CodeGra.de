@@ -105,7 +105,7 @@ _ATUpdateMap = rqa.FixedMapping(
     ),
     rqa.OptionalArgument(
         'results_always_visible',
-        rqa.SimpleValue(bool) | rqa.SimpleValue(type(None)),
+        rqa.Nullable( rqa.SimpleValue(bool)),
         """
         Should results be visible for students before the assignment is set to
         "done"?
@@ -113,7 +113,7 @@ _ATUpdateMap = rqa.FixedMapping(
     ),
     rqa.OptionalArgument(
         'prefer_teacher_revision',
-        rqa.SimpleValue(bool) | rqa.SimpleValue(type(None)),
+        rqa.Nullable(rqa.SimpleValue(bool)),
         """
         If ``true`` we will use the teacher revision if available when running
         tests.
@@ -274,6 +274,8 @@ def create_auto_test() -> JSONResponse[models.AutoTest]:
 
 @api.route('/auto_tests/<int:auto_test_id>', methods=['DELETE'])
 @feature_required(Feature.AUTO_TEST)
+@rqa.swaggerize('delete')
+@auth.login_required
 def delete_auto_test(auto_test_id: int) -> EmptyResponse:
     """Delete the given AutoTest.
 
@@ -374,6 +376,8 @@ def hide_or_open_fixture(at_id: int, fixture_id: int) -> EmptyResponse:
 
 @api.route('/auto_tests/<int:auto_test_id>', methods=['PATCH'])
 @feature_required(Feature.AUTO_TEST)
+@rqa.swaggerize('patch')
+@auth.login_required
 def update_auto_test(auto_test_id: int) -> JSONResponse[models.AutoTest]:
     """Update the settings of an AutoTest configuration.
 
@@ -395,6 +399,7 @@ def update_auto_test(auto_test_id: int) -> JSONResponse[models.AutoTest]:
         file_key='fixture',
         multiple=True,
     ).from_flask()
+
     auto_test = get_or_404(
         models.AutoTest,
         auto_test_id,
@@ -661,10 +666,8 @@ def delete_suite(test_id: int, set_id: int, suite_id: int) -> EmptyResponse:
 @rqa.swaggerize('get')
 @auth.login_required
 def get_auto_test(
-    auto_test_id: int
-) -> MultipleExtendedJSONResponse[models.AutoTest,
-                                  t.Union[models.AutoTest, models.AutoTestRun],
-                                  ]:
+    auto_test_id: int,
+) -> MultipleExtendedJSONResponse[models.AutoTest, models.AutoTestRun]:
     """Get the extended version of an :class:`.models.AutoTest` and its runs.
 
     .. :quickref: AutoTest; Get the extended version of an AutTest.
@@ -679,7 +682,7 @@ def get_auto_test(
     jsonify_options.get_options(
     ).latest_only = helpers.request_arg_true('latest_only')
     return MultipleExtendedJSONResponse.make(
-        test, use_extended=(models.AutoTest, models.AutoTestRun)
+        test, use_extended=models.AutoTestRun
     )
 
 

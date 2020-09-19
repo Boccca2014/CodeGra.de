@@ -1,6 +1,7 @@
 import os
 import re
 import sys
+import copy
 import typing as t
 import inspect
 import datetime
@@ -27,7 +28,6 @@ _SIMPLE_TYPE_NAME_LOOKUP = {
     float: 'number',
     bool: 'boolean',
     int: 'integer',
-    type(None): 'null',
 }
 
 
@@ -79,18 +79,20 @@ class OpenAPISchema:
     @staticmethod
     def make_comment(comment: str) -> str:
         comment = _clean_comment(comment)
-        res = pypandoc.convert_text(
-            comment,
-            'markdown_strict',
-            format='rst',
-            extra_args=['--wrap=none']
-        ).strip()
+        # res = pypandoc.convert_text(
+        #     comment,
+        #     'markdown_strict',
+        #     format='rst',
+        #     extra_args=['--wrap=none']
+        # ).strip()
+        res = comment
         return re.sub(r'`[^`]*\.([^.]+)`', r'`\1`', res)
 
     def _set_initial_schemas(self) -> None:
         initial = {
             'BaseError': {
-                'type': 'object', 'properties': {
+                'type': 'object',
+                'properties': {
                     'message': {'type': 'string'},
                     'description': {'type': 'string'},
                     'code': self.add_schema(psef.errors.APICodes),
@@ -106,7 +108,7 @@ class OpenAPISchema:
                                             """
                             ),
                     },
-                }
+                },
             },
         }
         self._schemas.update(initial)
@@ -181,6 +183,60 @@ class OpenAPISchema:
     ) -> str:
         return _SIMPLE_TYPE_NAME_LOOKUP[typ]
 
+    def _will_use(self, _typ: t.Type, maybe_uses: t.Iterable[t.Type]) -> bool:
+        typ = self._maybe_resolve_forward(_typ)
+        if not maybe_uses:
+            return False
+
+        origin = getattr(typ, '__origin__', None)
+
+        if typ in maybe_uses:
+            return True
+        if isinstance(typ, type(TypedDict)):
+            return any(
+                self._will_use(val, maybe_uses)
+                for val in t.cast(t.Any, typ).__annotations__.values()
+            )
+        elif typ in (int, str, bool, float):
+            return False
+        elif typ == DatetimeWithTimezone:
+            return False
+        elif typ == datetime.timedelta:
+            return False
+        elif origin in (list, collections.abc.Sequence):
+            return self._will_use(typ.__args__[0], maybe_uses)
+        elif origin == t.Union:
+            return any(self._will_use(val, maybe_uses) for val in typ.__args__)
+        elif origin == cg_json.JSONResponse:
+            return self._will_use(typ.__args__[0], maybe_uses)
+        elif origin == cg_json.ExtendedJSONResponse:
+            return self._will_use(typ.__args__[0], maybe_uses)
+        elif origin == cg_json.MultipleExtendedJSONResponse:
+            return self._will_use(typ.__args__[0], maybe_uses)
+        elif typ == t.Any:
+            return False
+        elif isinstance(typ, EnumMeta):
+            return False
+        elif hasattr(typ, '__extended_to_json__'):
+            return self._will_use(
+                inspect.signature(typ.__extended_to_json__).return_annotation,
+                maybe_uses,
+            )
+        elif hasattr(typ, '__to_json__'):
+            return self._will_use(
+                inspect.signature(typ.__to_json__).return_annotation,
+                maybe_uses,
+            )
+        elif origin in (dict, collections.abc.Mapping):
+            _, value_type = typ.__args__
+            return self._will_use(value_type, maybe_uses)
+        elif origin == Literal:
+            return False
+        elif typ == type(None):
+            return False
+        else:
+            raise AssertionError("Unknown type encountered")
+
     def add_schema(
         self,
         _typ: t.Type,
@@ -191,11 +247,15 @@ class OpenAPISchema:
         _typ = self._maybe_resolve_forward(_typ)
         schema_name = self._get_schema_name(_typ)
 
+        if force_inline:
+            force_inline = self._will_use(_typ, do_extended)
+
         if done is None:
             done = collections.OrderedDict([(_typ, True)])
 
-        if schema_name in self._schemas:
+        if schema_name in self._schemas and not (force_inline and do_extended):
             result = self._schemas[schema_name]
+            force_inline = False
         elif isinstance(_typ, type(TypedDict)):
             typ: t.Any = _typ
             properties = {}
@@ -533,8 +593,6 @@ class OpenAPISchema:
                 ret, do_extended=tuple(), inline=False, done=OrderedDict()
             )
             if schema.get('type') == 'object':
-                if operation_id == 'get':
-                    breakpoint()
                 out_schema_name = f'ResultData{method.capitalize()}{tags[0]}{_to_pascalcase(operation_id)}'
                 self._schemas[out_schema_name] = schema
                 schema = {'$ref': f'#/components/schemas/{out_schema_name}'}
@@ -569,10 +627,20 @@ class OpenAPISchema:
                 else:
                     assert False
 
-                if 'anyOf' in in_schema:
+                if 'anyOf' in in_schema.get('application/json',
+                                            {}).get('schema', {}):
                     schema_name = f'InputData{method.capitalize()}{tags[0]}{_to_pascalcase(operation_id)}'
-                    self._schemas[schema_name] = in_schema
-                    in_schema = {'$ref': f'#/components/schemas/{schema_name}'}
+                    self._schemas[schema_name] = in_schema['application/json'
+                                                           ]['schema']
+                    in_schema['application/json']['schema'] = {
+                        '$ref': f'#/components/schemas/{schema_name}'
+                    }
+                elif 'multipart/form-data' in in_schema:
+                    schema_name = f'InputData{method.capitalize()}{tags[0]}{_to_pascalcase(operation_id)}'
+                    self._schemas[schema_name] = in_schema['multipart/form-data']['schema']
+                    in_schema['multipart/form-data']['schema'] = {
+                        '$ref': f'#/components/schemas/{schema_name}'
+                    }
 
             body = {
                 'content': in_schema,
