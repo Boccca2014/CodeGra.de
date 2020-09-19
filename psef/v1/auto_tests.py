@@ -154,6 +154,7 @@ def _update_auto_test(
     if has_new_fixtures.or_default(False):
         for new_fixture in new_fixtures:
             assert new_fixture.filename is not None
+            # TODO: Check file size!
             new_file_name, filename = files.random_file_path()
             new_fixture.save(new_file_name)
             auto_test.fixtures.append(
