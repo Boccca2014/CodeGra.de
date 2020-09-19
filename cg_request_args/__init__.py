@@ -196,18 +196,21 @@ class MultipleParseErrors(_ParseError):
         return f'{res}, which is incorrect because {reasons}'
 
 
-_T_PARSER_LIKE = t.TypeVar('_T_PARSER_LIKE', bound='_ParserLike')
+_T_PARSER = t.TypeVar('_T_PARSER', bound='_Parser')
 
 
-class _ParserLike(t.Generic[_T_COV]):
+class _ParserLike(Protocol):
+    def describe(self) -> str:
+        ...
+
+
+class _Parser(t.Generic[_T_COV]):
     __slots__ = ('__description', )
 
     def __init__(self) -> None:
         self.__description: t.Optional[str] = None
 
-    def add_description(
-        self: _T_PARSER_LIKE, description: str
-    ) -> _T_PARSER_LIKE:
+    def add_description(self: _T_PARSER, description: str) -> _T_PARSER:
         self.__description = description
         return self
 
@@ -232,8 +235,8 @@ class _ParserLike(t.Generic[_T_COV]):
             return {**res, 'description': desc}
         return res
 
-    def __or__(self: _ParserLike[_T],
-               other: _ParserLike[_Y]) -> _ParserLike[t.Union[_T, _Y]]:
+    def __or__(self: _Parser[_T],
+               other: _Parser[_Y]) -> _Parser[t.Union[_T, _Y]]:
         return Union(self, other)
 
     def from_flask(
@@ -283,14 +286,12 @@ class _ParserLike(t.Generic[_T_COV]):
             )
 
 
-class Union(t.Generic[_T, _Y], _ParserLike[t.Union[_T, _Y]]):
+class Union(t.Generic[_T, _Y], _Parser[t.Union[_T, _Y]]):
     __slots__ = ('__parser', )
 
-    def __init__(
-        self, first: _ParserLike[_T], second: _ParserLike[_Y]
-    ) -> None:
+    def __init__(self, first: _Parser[_T], second: _Parser[_Y]) -> None:
         super().__init__()
-        self.__parser: _ParserLike[t.Union[_T, _Y]]
+        self.__parser: _Parser[t.Union[_T, _Y]]
 
         if isinstance(first, SimpleValue) and isinstance(second, SimpleValue):
             self.__parser = _SimpleUnion(first.typ, second.typ)
@@ -322,10 +323,10 @@ class Union(t.Generic[_T, _Y], _ParserLike[t.Union[_T, _Y]]):
         return self.__parser.try_parse(value)
 
 
-class Nullable(t.Generic[_T], _ParserLike[t.Union[_T, None]]):
+class Nullable(t.Generic[_T], _Parser[t.Union[_T, None]]):
     __slots__ = ('__parser', )
 
-    def __init__(self, parser: _ParserLike[_T]):
+    def __init__(self, parser: _Parser[_T]):
         super().__init__()
         self.__parser = parser
 
@@ -367,7 +368,7 @@ def _type_to_name(typ: t.Type) -> str:
     return str(typ)
 
 
-class SimpleValue(t.Generic[_SIMPLE_VALUE], _ParserLike[_SIMPLE_VALUE]):
+class SimpleValue(t.Generic[_SIMPLE_VALUE], _Parser[_SIMPLE_VALUE]):
     __slots__ = ('typ', )
 
     def describe(self) -> str:
@@ -393,7 +394,7 @@ _SIMPLE_UNION = t.TypeVar(
 )
 
 
-class _SimpleUnion(t.Generic[_SIMPLE_UNION], _ParserLike[_SIMPLE_UNION]):
+class _SimpleUnion(t.Generic[_SIMPLE_UNION], _Parser[_SIMPLE_UNION]):
     __slots__ = ('typs', )
 
     def __init__(self, *typs: t.Type[_SIMPLE_UNION]) -> None:
@@ -427,7 +428,7 @@ class _SimpleUnion(t.Generic[_SIMPLE_UNION], _ParserLike[_SIMPLE_UNION]):
 _ENUM = t.TypeVar('_ENUM', bound=enum.Enum)
 
 
-class EnumValue(t.Generic[_ENUM], _ParserLike[_ENUM]):
+class EnumValue(t.Generic[_ENUM], _Parser[_ENUM]):
     ___slots__ = ('__typ', )
 
     def __init__(self, typ: t.Type[_ENUM]) -> None:
@@ -461,7 +462,7 @@ class EnumValue(t.Generic[_ENUM], _ParserLike[_ENUM]):
             raise SimpleParseError(self, value) from err
 
 
-class StringEnum(t.Generic[_T], _ParserLike[_T]):
+class StringEnum(t.Generic[_T], _Parser[_T]):
     __slots__ = ('__opts', )
 
     def __init__(self, *opts: str) -> None:
@@ -495,12 +496,10 @@ class StringEnum(t.Generic[_T], _ParserLike[_T]):
         return t.cast(_T, value)
 
 
-class _RichUnion(t.Generic[_T, _Y], _ParserLike[t.Union[_T, _Y]]):
+class _RichUnion(t.Generic[_T, _Y], _Parser[t.Union[_T, _Y]]):
     __slots__ = ('__first', '__second')
 
-    def __init__(
-        self, first: _ParserLike[_T], second: _ParserLike[_Y]
-    ) -> None:
+    def __init__(self, first: _Parser[_T], second: _Parser[_Y]) -> None:
         super().__init__()
         self.__first = first
         self.__second = second
@@ -531,10 +530,10 @@ class _RichUnion(t.Generic[_T, _Y], _ParserLike[t.Union[_T, _Y]]):
                 )
 
 
-class List(t.Generic[_T], _ParserLike[t.List[_T]]):
+class List(t.Generic[_T], _Parser[t.List[_T]]):
     __slots__ = ('__el_type', )
 
-    def __init__(self, el_type: _ParserLike[_T]):
+    def __init__(self, el_type: _Parser[_T]):
         super().__init__()
         self.__el_type: Final = el_type
 
@@ -576,7 +575,7 @@ class _Argument(t.Generic[_T, _Key]):
     def __init__(
         self,
         key: _Key,
-        value: _ParserLike[_T],
+        value: _Parser[_T],
         doc: str,
     ) -> None:
         self.key: Final = key
@@ -629,36 +628,17 @@ class _DictGetter(t.Generic[_BASE_DICT]):
     def __getattr__(self, key: str) -> object:
         return self.__data[key]
 
-    def get(self, key: str) -> object:
-        return self.__data.get(key)
 
-    def __getitem__(self, key: str) -> object:
-        return self.__data[key]
-
-    def as_dict(self) -> _BASE_DICT:
-        return self.__data
+_T_FIXED_MAPPING = t.TypeVar('_T_FIXED_MAPPING', bound='BaseFixedMapping')
 
 
-_T_FIXED_MAPPING = t.TypeVar('_T_FIXED_MAPPING', bound='FixedMapping')
-
-
-class FixedMapping(
-    t.Generic[_BASE_DICT], _ParserLike[_DictGetter[_BASE_DICT]]
-):
-    __slots__ = ('__arguments', '__tag', '__schema')
-
+class _BaseFixedMapping(t.Generic[_BASE_DICT]):
     def __init__(self, *arguments: object) -> None:
         super().__init__()
-        self.__tag: t.Optional[t.Tuple[str, str]] = None
         self.__arguments = t.cast(
             t.Sequence[t.Union[RequiredArgument, OptionalArgument]], arguments
         )
         self.__schema: t.Optional[t.Type[_BASE_DICT]] = None
-
-    def set_schema(self, schema: t.Type[_BASE_DICT]) -> None:
-        """
-        """
-        self.__schema = schema
 
     def describe(self) -> str:
         return 'Mapping[{}]'.format(
@@ -666,9 +646,6 @@ class FixedMapping(
         )
 
     def _to_open_api(self, schema: 'OpenAPISchema') -> t.Mapping[str, t.Any]:
-        if self.__schema is not None:
-            return schema.add_schema(self.__schema)
-
         required = [
             arg.key for arg in self.__arguments
             if isinstance(arg, RequiredArgument)
@@ -684,14 +661,10 @@ class FixedMapping(
             res['required'] = required
         return res
 
-    def add_tag(self, key: str, value: str) -> FixedMapping[_BASE_DICT]:
-        self.__tag = (key, value)
-        return self
-
-    def try_parse(
+    def _try_parse(
         self,
         value: object,
-    ) -> _DictGetter[_BASE_DICT]:
+    ) -> _BASE_DICT:
         if not isinstance(value, dict):
             raise SimpleParseError(self, value)
 
@@ -706,20 +679,111 @@ class FixedMapping(
         if errors:
             raise MultipleParseErrors(self, value, errors)
 
-        if self.__tag is not None:
-            result[self.__tag[0]] = self.__tag[1]
+        return t.cast(_BASE_DICT, result)
 
-        return _DictGetter(t.cast(_BASE_DICT, result))
+
+class BaseFixedMapping(
+    t.Generic[_BASE_DICT], _BaseFixedMapping[_BASE_DICT], _Parser[_BASE_DICT]
+):
+    def __init__(self, *arguments: object) -> None:
+        super().__init__()
+        self.__arguments = t.cast(
+            t.Sequence[t.Union[RequiredArgument, OptionalArgument]], arguments
+        )
+        self.__schema: t.Optional[t.Type[_BASE_DICT]] = None
+
+    def set_schema(self, schema: t.Type[_BASE_DICT]) -> None:
+        """
+        """
+        self.__schema = schema
+
+    def _to_open_api(self, schema: 'OpenAPISchema') -> t.Mapping[str, t.Any]:
+        if self.__schema is not None:
+            return schema.add_schema(self.__schema)
+
+        return super()._to_open_api(schema)
+
+    def try_parse(self, value: object) -> _BASE_DICT:
+        return self._try_parse(value)
+
+    @classmethod
+    def __from_python_type(cls, typ):  # type: ignore
+        # This function doesn't play nice at all with our plugins, so simply skip
+        # checking it.
+
+        origin = getattr(typ, '__origin__', None)
+
+        if isinstance(typ, type(TypedDict)):
+            args = []
+            for key, subtyp in typ.__annotations__.items():
+                if key in typ.__required_keys__:
+                    args.append(
+                        RequiredArgument(
+                            key, cls.__from_python_type(subtyp), ''
+                        )
+                    )
+                else:
+                    args.append(
+                        OptionalArgument(
+                            key, cls.__from_python_type(subtyp), ''
+                        )
+                    )
+            res = BaseFixedMapping(*args)
+            res.set_schema(typ)
+            return res
+        elif typ in (str, int, bool):
+            return SimpleValue(typ)
+        elif origin in (list, collections.abc.Sequence):
+            return List(cls.__from_python_type(typ.__args__[0]))
+        elif origin == t.Union:
+            res = cls.__from_python_type(typ.__args__[0])
+            for item in typ.__args__[1:]:
+                res = res | cls.__from_python_type(item)
+            return res
+        elif origin == Literal:
+            return StringEnum(*typ.__args__)
+        else:
+            raise AssertionError(f'Could not convert: {typ}')
+
+    @classmethod
+    def from_typeddict(cls, typeddict: t.Type) -> BaseFixedMapping[t.Any]:
+        return cls.__from_python_type(typeddict)
+
+
+class FixedMapping(
+    t.Generic[_BASE_DICT], _BaseFixedMapping[_BASE_DICT],
+    _Parser[_DictGetter[_BASE_DICT]]
+):
+    def __init__(self, *arguments: object) -> None:
+        super().__init__()
+        self.__arguments = t.cast(
+            t.Sequence[t.Union[RequiredArgument, OptionalArgument]], arguments
+        )
+        self.__tag: t.Optional[t.Tuple[str, str]] = None
+
+    def add_tag(self, key: str, value: str) -> FixedMapping[_BASE_DICT]:
+        self.__tag = (key, value)
+        return self
+
+    def try_parse(
+        self,
+        value: object,
+    ) -> _DictGetter[_BASE_DICT]:
+        result = self._try_parse(value)
+
+        if self.__tag is not None:
+            result[self.__tag[0]] = self.__tag[1]  # type: ignore[misc]
+        return _DictGetter(result)
 
     def combine(self, other: FixedMapping[t.Any]) -> FixedMapping[_BaseDict]:
         args = [*self.__arguments, *other.__arguments]
         return FixedMapping(*args)  # type: ignore
 
 
-class LookupMapping(t.Generic[_T], _ParserLike[t.Mapping[str, _T]]):
+class LookupMapping(t.Generic[_T], _Parser[t.Mapping[str, _T]]):
     __slots__ = ('parser', )
 
-    def __init__(self, parser: _ParserLike[_T]) -> None:
+    def __init__(self, parser: _Parser[_T]) -> None:
         super().__init__()
         self.__parser = parser
 
@@ -749,12 +813,12 @@ class LookupMapping(t.Generic[_T], _ParserLike[t.Mapping[str, _T]]):
         return result
 
 
-class _Transform(t.Generic[_T, _Y], _ParserLike[_T]):
+class _Transform(t.Generic[_T, _Y], _Parser[_T]):
     __slots__ = ('__parser', '__transform', '__transform_name')
 
     def __init__(
         self,
-        parser: _ParserLike[_Y],
+        parser: _Parser[_Y],
         transform: t.Callable[[_Y], _T],
         transform_name: str,
     ):
@@ -771,10 +835,10 @@ class _Transform(t.Generic[_T, _Y], _ParserLike[_T]):
         return self.__transform(res)
 
 
-class Constraint(t.Generic[_T], _ParserLike[_T]):
+class Constraint(t.Generic[_T], _Parser[_T]):
     __slots__ = ('_parser')
 
-    def __init__(self, parser: _ParserLike[_T]):
+    def __init__(self, parser: _Parser[_T]):
         super().__init__()
         self._parser = parser
 
@@ -838,7 +902,7 @@ class RichValue:
 
         def ok(self, to_parse: str) -> bool:
             addresses = email.utils.getaddresses([to_parse.strip()])
-            return (
+            return all(
                 validate_email.validate_email(email) for _, email in addresses
             )
 
@@ -890,57 +954,12 @@ class RichValue:
     Password = _Password()
 
 
-def __from_python_type(typ):  # type: ignore
-    # This function doesn't play nice at all with our plugins, so simply skip
-    # checking it.
-
-    origin = getattr(typ, '__origin__', None)
-
-    if isinstance(typ, type(TypedDict)):
-        args = []
-        for key, subtyp in typ.__annotations__.items():
-            if key in typ.__required_keys__:
-                args.append(
-                    RequiredArgument(key, from_python_type(subtyp), '')
-                )
-            else:
-                args.append(
-                    OptionalArgument(key, from_python_type(subtyp), '')
-                )
-        res = FixedMapping(*args)
-        res.set_schema(typ)
-        return res
-    elif typ in (str, int, bool):
-        return SimpleValue(typ)
-    elif origin in (list, collections.abc.Sequence):
-        return List(from_python_type(typ.__args__[0]))
-    elif origin == t.Union:
-        res = from_python_type(typ.__args__[0])
-        for item in typ.__args__[1:]:
-            res = res | from_python_type(item)
-        return res
-    elif origin == Literal:
-        return StringEnum(*typ.__args__)
-    else:
-        raise AssertionError(f'Could not convert: {typ}')
-
-
-def from_python_type(typ: t.Type[_T]) -> _ParserLike[_T]:
-    """Wrapper function to convert a python type to a ``cg_request_args``
-    validator.
-
-    Doing this is quite slow, so it is wise to do this only when loading the
-    application (i.e. on top level).
-    """
-    return __from_python_type(typ)
-
-
 class MultipartUpload(t.Generic[_T]):
     __slots__ = ('__parser', '__file_key', '__multiple')
 
     def __init__(
         self,
-        parser: _ParserLike[_T],
+        parser: _Parser[_T],
         file_key: str,
         multiple: bool,
     ) -> None:

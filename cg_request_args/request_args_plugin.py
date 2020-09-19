@@ -22,6 +22,29 @@ from mypy.typeops import make_simplified_union
 import cg_request_args
 
 
+def from_typeddict_callback(ctx: MethodContext) -> Type:
+    assert isinstance(ctx.default_return_type, Instance)
+    producer = ctx.arg_types[0][0]
+
+    def err() -> Type:
+        ctx.api.fail(
+            'The argument to `from_typeddict` should be a typeddict type',
+            ctx.context
+        )
+        return ctx.default_return_type
+
+    if not isinstance(producer, CallableType):
+        return err()
+    elif not isinstance(producer.ret_type, Instance):
+        return err()
+    elif not isinstance(producer.ret_type.type.typeddict_type, TypedDictType):
+        return err()
+
+    return ctx.default_return_type.copy_modified(
+        args=[producer.ret_type.type.typeddict_type]
+    )
+
+
 def dict_getter_attribute_callback(ctx: AttributeContext, attr: str) -> Type:
     if attr == '__data':
         return ctx.default_attr_type
@@ -273,6 +296,8 @@ class CgRequestArgPlugin(Plugin):
             return add_tag_callback
         if fullname == 'cg_request_args.FixedMapping.combine':
             return combine_callback
+        if fullname == 'cg_request_args.BaseFixedMapping.from_typeddict':
+            return from_typeddict_callback
         return None
 
     def get_function_hook(  # pylint: disable=no-self-use
@@ -286,7 +311,10 @@ class CgRequestArgPlugin(Plugin):
             'cg_request_args.OptionalArgument',
         ):
             return argument_callback
-        if fullname == 'cg_request_args.FixedMapping':
+        if fullname in (
+            'cg_request_args.BaseFixedMapping', 'cg_request_args.FixedMapping',
+            'cg_request_args._BaseFixedMapping'
+        ):
             return fixed_mapping_callback
         if fullname == 'cg_request_args.StringEnum':
             return string_enum_callback

@@ -119,6 +119,18 @@ _ATUpdateMap = rqa.FixedMapping(
         tests.
         """,
     ),
+    rqa.OptionalArgument(
+        'fixtures',
+        rqa.List(
+            # rqa.FixedMapping(
+            #     rqa.RequiredArgument(
+            #         'id', rqa.SimpleValue(str), 'The id of the fixture'
+            #     )
+            # )
+            rqa.BaseFixedMapping.from_typeddict(_FixtureLike),
+        ),
+        'A list of old fixtures you want to keep',
+    ),
 )
 
 
@@ -214,11 +226,6 @@ def create_auto_test() -> JSONResponse[models.AutoTest]:
             AutoTest. This assignment should have a rubric.
             """,
                 ),
-                rqa.OptionalArgument(
-                    'fixtures',
-                    rqa.List(rqa.from_python_type(_FixtureLike)),
-                    'A list of old fixtures you want to keep',
-                ),
             ),
         ),
         file_key='fixture',
@@ -252,7 +259,7 @@ def create_auto_test() -> JSONResponse[models.AutoTest]:
     _update_auto_test(
         auto_test,
         request_files,
-        Just(rqa.List(rqa.from_python_type(_FixtureLike)).try_parse('NOO')),
+        data.fixtures,
         data.setup_script,
         data.run_setup_script,
         data.has_new_fixtures,
@@ -383,6 +390,11 @@ def update_auto_test(auto_test_id: int) -> JSONResponse[models.AutoTest]:
     :param auto_test_id: The id of the AutoTest you want to update.
     :returns: The updated AutoTest.
     """
+    data, request_files = rqa.MultipartUpload(
+        _ATUpdateMap,
+        file_key='fixture',
+        multiple=True,
+    ).from_flask()
     auto_test = get_or_404(
         models.AutoTest,
         auto_test_id,
@@ -391,12 +403,17 @@ def update_auto_test(auto_test_id: int) -> JSONResponse[models.AutoTest]:
     auth.AutoTestPermissions(auto_test).ensure_may_edit()
     auto_test.ensure_no_runs()
 
-    content = ensure_json_dict(
-        ('json' in request.files and json.load(request.files['json'])) or
-        request.get_json()
+    _update_auto_test(
+        auto_test,
+        request_files,
+        data.fixtures,
+        data.setup_script,
+        data.run_setup_script,
+        data.has_new_fixtures,
+        data.grade_calculation,
+        data.results_always_visible,
+        data.prefer_teacher_revision,
     )
-
-    _update_auto_test(auto_test, content)
     db.session.commit()
 
     return jsonify(auto_test)

@@ -250,6 +250,12 @@ def set_reminder(
         )
 
 
+_IgnoreParser = (
+    rqa.SimpleValue(str)
+    | rqa.BaseFixedMapping.from_typeddict(ignore.SubmissionValidator.InputData)
+)
+
+
 @api.route('/assignments/<int:assignment_id>', methods=['PATCH'])
 @rqa.swaggerize('patch')
 @auth.login_required
@@ -338,10 +344,7 @@ def update_assignment(assignment_id: int) -> JSONResponse[models.Assignment]:
         ),
         rqa.OptionalArgument(
             'ignore',
-            (
-                rqa.SimpleValue(str)
-                | rqa.from_python_type(ignore.SubmissionValidator.InputData)
-            ),
+            _IgnoreParser,
             'The ignore file to use',
         ),
         rqa.OptionalArgument(
@@ -467,7 +470,7 @@ def update_assignment(assignment_id: int) -> JSONResponse[models.Assignment]:
         perm_checker.ensure_may_edit_cgignore()
         assig.update_cgignore(
             data.ignore_version.or_default('IgnoreFilterManager'),
-            data.ignore.value
+            data.ignore.value,
         )
 
     if data.max_grade.is_just:

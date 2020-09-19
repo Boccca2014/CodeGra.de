@@ -533,6 +533,8 @@ class OpenAPISchema:
                 ret, do_extended=tuple(), inline=False, done=OrderedDict()
             )
             if schema.get('type') == 'object':
+                if operation_id == 'get':
+                    breakpoint()
                 out_schema_name = f'ResultData{method.capitalize()}{tags[0]}{_to_pascalcase(operation_id)}'
                 self._schemas[out_schema_name] = schema
                 schema = {'$ref': f'#/components/schemas/{out_schema_name}'}
