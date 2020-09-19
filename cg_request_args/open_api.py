@@ -4,12 +4,14 @@ import sys
 import typing as t
 import inspect
 import datetime
+import textwrap
 import contextlib
 import collections
 from enum import Enum, EnumMeta
 from collections import OrderedDict, defaultdict
 
 import flask
+import pypandoc
 import sphinx.pycode
 from typing_extensions import Literal, TypedDict
 
@@ -50,7 +52,8 @@ def _to_camelcase(string: str) -> str:
 
 def _clean_comment(comment: str) -> str:
     return ' '.join(
-        line.strip() for line in comment.splitlines() if line.strip()
+        line.strip() for line in textwrap.dedent(comment).splitlines()
+        if line.strip()
     )
 
 
@@ -73,6 +76,17 @@ class OpenAPISchema:
         self._tags: t.Dict[str, _Tag] = {}
         self._set_initial_schemas()
 
+    @staticmethod
+    def make_comment(comment: str) -> str:
+        comment = _clean_comment(comment)
+        res = pypandoc.convert_text(
+            comment,
+            'markdown_strict',
+            format='rst',
+            extra_args=['--wrap=none']
+        ).strip()
+        return re.sub(r'`[^`]*\.([^.]+)`', r'`\1`', res)
+
     def _set_initial_schemas(self) -> None:
         initial = {
             'BaseError': {
@@ -84,7 +98,7 @@ class OpenAPISchema:
                         'type': 'string',
                         'format': 'uuid',
                         'description':
-                            _clean_comment(
+                            self.make_comment(
                                 """
                                             The id of the request that went
                                             wrong. Please include this id when
@@ -104,8 +118,8 @@ class OpenAPISchema:
     def _maybe_add_tag(self, tag: str, func: t.Callable) -> None:
         if tag in self._tags:
             return
-        description = _first_docstring_line(
-            sys.modules[func.__module__ or ''].__doc__
+        description = self.make_comment(
+            _first_docstring_line(sys.modules[func.__module__ or ''].__doc__)
         )
         if description:
             self._tags[tag] = {'name': tag, 'description': description}
@@ -147,14 +161,19 @@ class OpenAPISchema:
             extends = getattr(typ, '__cg_extends__', None)
 
         try:
-            return parsed.comments[(typ.__qualname__, field)]
+            res = parsed.comments[(typ.__qualname__, field)]
         except KeyError:
             while extends:
                 try:
-                    return parsed.comments[(extends.__qualname__, field)]
+                    res = parsed.comments[(extends.__qualname__, field)]
                 except KeyError:
                     extends = getattr(extends, '__cg_extends__', None)
-            raise
+                else:
+                    break
+            else:
+                raise
+
+        return self.make_comment(res)
 
     @staticmethod
     def simple_type_to_open_api_type(
@@ -193,7 +212,7 @@ class OpenAPISchema:
                 properties[prop] = {
                     **prop_dct,
                     'description':
-                        _clean_comment(
+                        self.make_comment(
                             self._comments_of(typ, prop),
                         ),
                 }
@@ -355,7 +374,7 @@ class OpenAPISchema:
                     done=done,
                 )
             elif typ == t.Any:
-                return {}
+                return {'type': 'object'}
             elif isinstance(typ, EnumMeta):
                 return self.add_schema(typ, force_inline=inline)
             elif typ in do_extended and hasattr(typ, '__extended_to_json__'):
@@ -394,6 +413,7 @@ class OpenAPISchema:
                     'enum': list(typ.__args__),
                 }
             else:
+                breakpoint()
                 raise AssertionError(
                     'Unknown type found: {} (path: {})'.format(
                         typ, '.'.join(map(str, done.keys()))
@@ -522,9 +542,11 @@ class OpenAPISchema:
             }
             responses.move_to_end(200, last=False)
 
+        docstring_line = _first_docstring_line(endpoint_func.__doc__)
+        summary = self.make_comment(docstring_line)
         result: t.Dict[str, t.Any] = {
             'responses': dict(responses),
-            'summary': _first_docstring_line(endpoint_func.__doc__),
+            'summary': summary,
             'tags': tags,
             'operationId': f'{tags[0].lower()}_{operation_id}',
         }
@@ -544,15 +566,17 @@ class OpenAPISchema:
                     in_schema = exc.schema
                 else:
                     assert False
+
                 if 'anyOf' in in_schema:
                     schema_name = f'InputData{method.capitalize()}{tags[0]}{_to_pascalcase(operation_id)}'
                     self._schemas[schema_name] = in_schema
                     in_schema = {'$ref': f'#/components/schemas/{schema_name}'}
 
-            result['requestBody'] = {
-                'content': {'application/json': {'schema': in_schema}},
+            body = {
+                'content': in_schema,
                 'required': True,
             }
+            result['requestBody'] = body
 
         if getattr(func, 'login_required_route', False):
             result['security'] = [{'bearerAuth': []}]

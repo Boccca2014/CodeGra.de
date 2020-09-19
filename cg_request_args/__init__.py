@@ -4,6 +4,7 @@ import abc
 import ast
 import copy
 import enum
+import json as _json
 import typing as t
 import datetime
 import textwrap
@@ -18,6 +19,7 @@ import structlog
 import validate_email
 import dateutil.parser
 from typing_extensions import Final, Literal, Protocol, TypedDict
+from werkzeug.datastructures import FileStorage
 
 import cg_maybe
 from cg_helpers import readable_join
@@ -224,11 +226,7 @@ class _ParserLike(t.Generic[_T_COV]):
     def to_open_api(self, schema: 'OpenAPISchema') -> t.Mapping[str, t.Any]:
         res = self._to_open_api(schema)
         if self.__description is not None:
-            desc = ' '.join(
-                line.strip()
-                for line in textwrap.dedent(self.__description).split('\n')
-                if line.strip()
-            ).strip()
+            desc = schema.make_comment(self.__description)
             if '$ref' in res:
                 return {'description': desc, 'allOf': [res]}
             return {**res, 'description': desc}
@@ -239,12 +237,15 @@ class _ParserLike(t.Generic[_T_COV]):
         return Union(self, other)
 
     def from_flask(
-        self, *, log_replacer: t.Callable[[str, object], object] = None
+        self,
+        *,
+        log_replacer: t.Callable[[str, object], object] = None,
     ) -> _T_COV:
         if _GENERATE_SCHEMA is not None:
-            raise _Schema(self.to_open_api(_GENERATE_SCHEMA))
+            json_schema = self.to_open_api(_GENERATE_SCHEMA)
+            raise _Schema({'application/json': {'schema': json_schema}})
 
-        json = flask.request.get_json()
+        json = flask.request.json()
 
         if isinstance(json, dict):
             to_log = json
@@ -710,6 +711,10 @@ class FixedMapping(
 
         return _DictGetter(t.cast(_BASE_DICT, result))
 
+    def combine(self, other: FixedMapping[t.Any]) -> FixedMapping[_BaseDict]:
+        args = [*self.__arguments, *other.__arguments]
+        return FixedMapping(*args)  # type: ignore
+
 
 class LookupMapping(t.Generic[_T], _ParserLike[t.Mapping[str, _T]]):
     __slots__ = ('parser', )
@@ -928,3 +933,68 @@ def from_python_type(typ: t.Type[_T]) -> _ParserLike[_T]:
     application (i.e. on top level).
     """
     return __from_python_type(typ)
+
+
+class MultipartUpload(t.Generic[_T]):
+    __slots__ = ('__parser', '__file_key', '__multiple')
+
+    def __init__(
+        self,
+        parser: _ParserLike[_T],
+        file_key: str,
+        multiple: bool,
+    ) -> None:
+        self.__parser = parser
+        self.__file_key = file_key
+        self.__multiple = multiple
+
+    def from_flask(self, ) -> t.Tuple[_T, t.Sequence[FileStorage]]:
+        if _GENERATE_SCHEMA is not None:
+            json_schema = self.__parser.to_open_api(_GENERATE_SCHEMA)
+            file_type: t.Mapping[str, t.Any] = {
+                'type': 'string',
+                'format': 'binary',
+            }
+            if self.__multiple:
+                file_type = {
+                    'type': 'array',
+                    'items': {**file_type},
+                }
+            raise _Schema({
+                'multipart/form-data': {
+                    'schema': {
+                        'type': 'object',
+                        'properties': {
+                            'json': json_schema,
+                            self.__file_key: file_type,
+                        },
+                    },
+                },
+            })
+
+        body = None
+        if 'json' in flask.request.files:
+            body = _json.load(flask.request.files['json'])
+        if not body:
+            body = flask.request.json()
+
+        if isinstance(body, dict):
+            to_log = body
+            logger.info('JSON request processed', request_data=body)
+        else:
+            logger.info('JSON request processed', request_data=to_log)
+
+        result = self.__parser.try_parse(body)
+
+        if not flask.request.files:
+            files = []
+        elif self.__multiple:
+            files = flask.request.files.getlist(self.__file_key)
+            for key, f in flask.request.files.items():
+                if key != self.__file_key and key.startswith(self.__file_key):
+                    files.append(f)
+        else:
+            files = flask.request.files.get(self.__file_key, default=[])
+
+        files = [f for f in files if f.filename]
+        return result, files

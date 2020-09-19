@@ -250,11 +250,6 @@ def set_reminder(
         )
 
 
-_IgnoreInputType = rqa.SimpleValue(str) | rqa.from_python_type(
-    ignore.SubmissionValidator.InputData
-)
-
-
 @api.route('/assignments/<int:assignment_id>', methods=['PATCH'])
 @rqa.swaggerize('patch')
 @auth.login_required
@@ -343,7 +338,10 @@ def update_assignment(assignment_id: int) -> JSONResponse[models.Assignment]:
         ),
         rqa.OptionalArgument(
             'ignore',
-            _IgnoreInputType,
+            (
+                rqa.SimpleValue(str)
+                | rqa.from_python_type(ignore.SubmissionValidator.InputData)
+            ),
             'The ignore file to use',
         ),
         rqa.OptionalArgument(

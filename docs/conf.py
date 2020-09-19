@@ -83,8 +83,9 @@ author = 'CodeGrade Team'
 # built documents.
 #
 # The short X.Y version.
-version = subprocess.check_output(['git', 'describe', '--abbrev=0',
-                                   '--tags', 'origin/stable']).decode('utf-8').strip()
+version = subprocess.check_output([
+    'git', 'describe', '--abbrev=0', '--tags', 'origin/stable'
+]).decode('utf-8').strip()
 # The full version, including alpha/beta/rc tags.
 release = version
 
@@ -98,7 +99,10 @@ language = 'en'
 # List of patterns, relative to source directory, that match files and
 # directories to ignore when looking for source files.
 # This patterns also effect to html_static_path and html_extra_path
-exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store', '']
+exclude_patterns = [
+    '_build', 'Thumbs.db', '.DS_Store', '', 'running.rst', 'building.rst',
+    'code.rst', 'psef_api/psef.rst'
+]
 
 # The name of the Pygments (syntax highlighting) style to use.
 pygments_style = 'sphinx'

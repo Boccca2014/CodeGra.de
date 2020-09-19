@@ -4,10 +4,9 @@ SPDX-License-Identifier: AGPL-3.0-only
 """
 import enum
 import typing as t
-import numbers
 
 from sqlalchemy import select
-from mypy_extensions import TypedDict
+from typing_extensions import TypedDict
 
 import psef
 import cg_json
@@ -380,25 +379,23 @@ class RubricRowBase(helpers.NotEqualMixin, Base):
             return False
         return self.assignment.locked_rubric_rows.get(self.id, False)
 
-
     class AsJSON(TypedDict):
         #: The id of this row, used for updating
         id: int
         #: The header of this row.
         header: str
         #: The description of this row.
-        description: str
+        description: t.Optional[str]
         #: The item in this row. The length will always be 1 for continuous
         #: rubric rows.
         items: t.Sequence[RubricItem]
         #: Is this row locked. If it is locked you cannot update it, nor can
         #: you manually select items in it.
-        locked: bool
+        locked: t.Union[bool, RubricLockReason]
         #: The type of rubric row.
         type: str
-        
 
-    def __to_json__(self) -> t.Mapping[str, t.Any]:
+    def __to_json__(self) -> AsJSON:
         """Creates a JSON serializable representation of this object.
         """
         return {

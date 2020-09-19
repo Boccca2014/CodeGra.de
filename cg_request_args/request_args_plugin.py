@@ -17,6 +17,7 @@ from mypy.types import (  # pylint: disable=no-name-in-module
 from mypy.plugin import (  # pylint: disable=no-name-in-module
     Plugin, MethodContext, FunctionContext, AttributeContext
 )
+from mypy.typeops import make_simplified_union
 
 import cg_request_args
 
@@ -44,13 +45,13 @@ def dict_getter_attribute_callback(ctx: AttributeContext, attr: str) -> Type:
         return items[attr]
 
     if isinstance(ctx.type, Instance):
-        return get_for_typeddict(ctx.type.args[0])
+        return make_simplified_union([get_for_typeddict(ctx.type.args[0])])
     elif isinstance(ctx.type, UnionType):
         items = []
         for item in ctx.type.items:
             assert isinstance(item, Instance)
             items.append(get_for_typeddict(item.args[0]))
-        return UnionType(items)
+        return make_simplified_union(items)
     else:
         raise AssertionError('Got strange type: {}'.format(ctx.type))
 
@@ -72,6 +73,42 @@ def string_enum_callback(ctx: FunctionContext) -> Type:
 
     assert isinstance(ctx.default_return_type, Instance)
     return ctx.default_return_type.copy_modified(args=[UnionType(literals)])
+
+
+def combine_callback(ctx: MethodContext) -> Type:
+    assert isinstance(ctx.type, Instance)
+    own_typeddict, = ctx.type.args
+    (other, ), = ctx.arg_types
+
+    assert isinstance(other, Instance)
+    other_typeddict, = other.args
+    assert isinstance(other_typeddict, TypedDictType)
+    assert isinstance(own_typeddict, TypedDictType)
+
+    for new_key in other_typeddict.items.keys():
+        if new_key in own_typeddict.items:
+            ctx.api.fail(
+                'Cannot combine typeddict, got overlapping keys {}'.
+                format(new_key), ctx.context
+            )
+            return ctx.default_return_type
+    items = list(
+        itertools.chain(
+            own_typeddict.items.items(),
+            other_typeddict.items.items(),
+        )
+    )
+    new_typeddict = TypedDictType(
+        items=OrderedDict(items),
+        required_keys={
+            *own_typeddict.required_keys, *other_typeddict.required_keys
+        },
+        fallback=own_typeddict.fallback,
+        line=own_typeddict.line,
+        column=own_typeddict.column
+    )
+    assert isinstance(ctx.default_return_type, Instance)
+    return ctx.default_return_type.copy_modified(args=[new_typeddict])
 
 
 def add_tag_callback(ctx: MethodContext) -> Type:
@@ -201,18 +238,16 @@ def fixed_mapping_callback(ctx: FunctionContext) -> Type:
 
         value_type = arg.args[0]
         if typ == 'cg_request_args.OptionalArgument':
-            value_type = UnionType(
-                items=[
-                    ctx.api.named_generic_type(
-                        'cg_maybe.Just',
-                        [value_type],
-                    ),
-                    ctx.api.named_generic_type(
-                        'cg_maybe._Nothing',
-                        [value_type],
-                    ),
-                ]
-            )
+            value_type = make_simplified_union([
+                ctx.api.named_generic_type(
+                    'cg_maybe.Just',
+                    [value_type],
+                ),
+                ctx.api.named_generic_type(
+                    'cg_maybe._Nothing',
+                    [value_type],
+                ),
+            ])
 
         items[key] = value_type
 
@@ -236,6 +271,8 @@ class CgRequestArgPlugin(Plugin):
         """
         if fullname == 'cg_request_args.FixedMapping.add_tag':
             return add_tag_callback
+        if fullname == 'cg_request_args.FixedMapping.combine':
+            return combine_callback
         return None
 
     def get_function_hook(  # pylint: disable=no-self-use

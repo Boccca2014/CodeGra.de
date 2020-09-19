@@ -10,13 +10,15 @@ import flask
 import werkzeug
 import structlog
 from flask import Response, request, make_response
-from typing_extensions import Literal
+from typing_extensions import Literal, TypedDict
+from werkzeug.datastructures import FileStorage
 
 import cg_request_args as rqa
 from cg_json import (
     JSONResponse, ExtendedJSONResponse, MultipleExtendedJSONResponse, jsonify,
     extended_jsonify
 )
+from cg_maybe import Just, Maybe
 
 from . import api
 from .. import app, auth, files, tasks, models, helpers, registry, exceptions
@@ -77,38 +79,70 @@ def _get_result_by_ids(
     return get_or_404(models.AutoTestResult, result_id, also_error=also_error)
 
 
-def _update_auto_test(
-    auto_test: models.AutoTest, json_dict: t.Mapping[str, helpers.JSONType]
-) -> None:
-    with get_from_map_transaction(json_dict) as [_, optional_get]:
-        old_fixtures = optional_get('fixtures', list, None)
-        setup_script = optional_get('setup_script', str, None)
-        run_setup_script = optional_get('run_setup_script', str, None)
-        has_new_fixtures = optional_get('has_new_fixtures', bool, False)
-        grade_calculation = optional_get('grade_calculation', str, None)
-        results_always_visible = optional_get(
-            'results_always_visible', (bool, type(None)), None
-        )
-        prefer_teacher_revision = optional_get(
-            'prefer_teacher_revision', (bool, type(None)), None
-        )
+class _FixtureLike(TypedDict):
+    #: The id of the fixture
+    id: str
 
-    if old_fixtures is not None:
-        old_fixture_set = set(int(f['id']) for f in old_fixtures)
+
+_ATUpdateMap = rqa.FixedMapping(
+    rqa.OptionalArgument(
+        'setup_script', rqa.SimpleValue(str),
+        'The new setup script (per student) of the auto test.'
+    ),
+    rqa.OptionalArgument(
+        'run_setup_script', rqa.SimpleValue(str),
+        'The new run setup script (global) of the auto test.'
+    ),
+    rqa.OptionalArgument(
+        'has_new_fixtures',
+        rqa.SimpleValue(bool),
+        'If true all other files in the request will be used as new fixtures',
+    ),
+    rqa.OptionalArgument(
+        'grade_calculation',
+        rqa.SimpleValue(str),
+        'The way to do grade calculation for this AutoTest.',
+    ),
+    rqa.OptionalArgument(
+        'results_always_visible',
+        rqa.SimpleValue(bool) | rqa.SimpleValue(type(None)),
+        """
+        Should results be visible for students before the assignment is set to
+        "done"?
+        """,
+    ),
+    rqa.OptionalArgument(
+        'prefer_teacher_revision',
+        rqa.SimpleValue(bool) | rqa.SimpleValue(type(None)),
+        """
+        If ``true`` we will use the teacher revision if available when running
+        tests.
+        """,
+    ),
+)
+
+
+def _update_auto_test(
+    auto_test: models.AutoTest,
+    new_fixtures: t.Sequence[FileStorage],
+    old_fixtures: Maybe[t.List[_FixtureLike]],
+    setup_script: Maybe[str],
+    run_setup_script: Maybe[str],
+    has_new_fixtures: Maybe[bool],
+    grade_calculation: Maybe[str],
+    results_always_visible: Maybe[t.Optional[bool]],
+    prefer_teacher_revision: Maybe[t.Optional[bool]],
+) -> None:
+    if old_fixtures.is_just:
+        old_fixture_set = set(int(f['id']) for f in old_fixtures.value)
         for f in auto_test.fixtures:
             if f.id not in old_fixture_set:
                 f.delete_fixture()
 
-    if has_new_fixtures:
-        new_fixtures = get_files_from_request(
-            max_size=app.max_large_file_size,
-            keys=['fixture'],
-            only_start=True,
-        )
-
+    if has_new_fixtures.or_default(False):
         for new_fixture in new_fixtures:
-            new_file_name, filename = files.random_file_path()
             assert new_fixture.filename is not None
+            new_file_name, filename = files.random_file_path()
             new_fixture.save(new_file_name)
             auto_test.fixtures.append(
                 models.AutoTestFixture(
@@ -126,12 +160,14 @@ def _update_auto_test(
                 ), APIWarnings.RENAMED_FIXTURE
             )
 
-    if setup_script is not None:
-        auto_test.setup_script = setup_script
-    if run_setup_script is not None:
-        auto_test.run_setup_script = run_setup_script
-    if grade_calculation is not None:
-        calc = registry.auto_test_grade_calculators.get(grade_calculation)
+    if setup_script.is_just:
+        auto_test.setup_script = setup_script.value
+    if run_setup_script.is_just:
+        auto_test.run_setup_script = run_setup_script.value
+    if grade_calculation.is_just:
+        calc = registry.auto_test_grade_calculators.get(
+            grade_calculation.value
+        )
         if calc is None:
             raise APIException(
                 'The given grade_calculation strategy is not found', (
@@ -140,10 +176,16 @@ def _update_auto_test(
                 ), APICodes.OBJECT_NOT_FOUND, 404
             )
         auto_test.grade_calculator = calc
-    if prefer_teacher_revision is not None:
-        auto_test.prefer_teacher_revision = prefer_teacher_revision
-    if results_always_visible is not None:
-        auto_test.results_always_visible = results_always_visible
+    if (
+        prefer_teacher_revision.is_just and
+        prefer_teacher_revision.value is not None
+    ):
+        auto_test.prefer_teacher_revision = prefer_teacher_revision.value
+    if (
+        results_always_visible.is_just and
+        results_always_visible.value is not None
+    ):
+        auto_test.results_always_visible = results_always_visible.value
 
 
 @api.route('/auto_tests/', methods=['POST'])
@@ -161,15 +203,26 @@ def create_auto_test() -> JSONResponse[models.AutoTest]:
     :>json run_setup_script: The setup for the entire run (OPTIONAL).
     :returns: The newly created AutoTest.
     """
-    data = rqa.FixedMapping(
-        rqa.RequiredArgument(
-            'assignment_id',
-            rqa.SimpleValue(int),
-            """
+    data, request_files = rqa.MultipartUpload(
+        _ATUpdateMap.combine(
+            rqa.FixedMapping(
+                rqa.RequiredArgument(
+                    'assignment_id',
+                    rqa.SimpleValue(int),
+                    """
             The id of the assignment in which you want to create this
             AutoTest. This assignment should have a rubric.
             """,
+                ),
+                rqa.OptionalArgument(
+                    'fixtures',
+                    rqa.List(rqa.from_python_type(_FixtureLike)),
+                    'A list of old fixtures you want to keep',
+                ),
+            ),
         ),
+        file_key='fixture',
+        multiple=True,
     ).from_flask()
 
     assignment = filter_single_or_404(
@@ -196,7 +249,17 @@ def create_auto_test() -> JSONResponse[models.AutoTest]:
             APICodes.INVALID_STATE, 409
         )
 
-    _update_auto_test(auto_test, json_dict)
+    _update_auto_test(
+        auto_test,
+        request_files,
+        Just(rqa.List(rqa.from_python_type(_FixtureLike)).try_parse('NOO')),
+        data.setup_script,
+        data.run_setup_script,
+        data.has_new_fixtures,
+        data.grade_calculation,
+        data.results_always_visible,
+        data.prefer_teacher_revision,
+    )
 
     db.session.commit()
     return jsonify(auto_test)

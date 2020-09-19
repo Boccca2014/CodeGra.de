@@ -516,7 +516,22 @@ class AutoTestResult(Base, TimestampMixin, IdMixin, NotEqualMixin):
 
         return achieved, possible
 
-    def __to_json__(self) -> t.Mapping[str, object]:
+    class AsJSON(TypedDict):
+        #: The id of this result
+        id: int
+        #: The time this result was created
+        created_at: DatetimeWithTimezone
+        #: The moment this result was started. If this is ``null`` the result
+        #: has not yet started.
+        started_at: t.Optional[DatetimeWithTimezone]
+        #: The id of the submission (work) that was tested in this result.
+        work_id: int
+        #: The state the result is in.
+        state: 'psef.models.AutoTestStepResultState'
+        #: The amount of points achieved in this step by the student.
+        points_achieved: float
+
+    def __to_json__(self) -> AsJSON:
         """Convert this result to a json object.
         """
         points_achieved, _ = self.get_amount_points_in_suites(
@@ -525,10 +540,10 @@ class AutoTestResult(Base, TimestampMixin, IdMixin, NotEqualMixin):
 
         return {
             'id': self.id,
-            'created_at': self.created_at.isoformat(),
-            'started_at': self.started_at and self.started_at.isoformat(),
+            'created_at': self.created_at,
+            'started_at': self.started_at,
             'work_id': self.work_id,
-            'state': self.state.name,
+            'state': self.state,
             'points_achieved': points_achieved,
         }
 
@@ -1076,12 +1091,12 @@ class AutoTestRun(Base, TimestampMixin, IdMixin):
         #: reasons, it will always be "running".
         state: Literal['running']
         #: Also not used anymore, will always be ``false``.
-        is_continuous: Literal[False]
+        is_continuous: bool
 
     class AsExtendedJSON(AsJSON, TypedDict):
         #: The results in this run. This will only contain the result for the
         #: latest submissions.
-        results: t.List[str]
+        results: t.List[AutoTestResult]
         #: The stdout output of the ``run_setup_script``
         setup_stdout: str
         #: The stderr output of the ``run_setup_script``
@@ -1090,7 +1105,7 @@ class AutoTestRun(Base, TimestampMixin, IdMixin):
     def __to_json__(self) -> AsJSON:
         return {
             'id': self.id,
-            'created_at': self.created_at.isoformat(),
+            'created_at': self.created_at,
             'state': 'running',
             'is_continuous': False,
         }

@@ -75,6 +75,6 @@ details on `the CodeGrade website <https://codegrade.com>`_.
 
     .. toctree::
         :maxdepth: 1
-        :caption: Developer Documentation
+        :caption: API Documentation
 
-        developerdocs
+        api

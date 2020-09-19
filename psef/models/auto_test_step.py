@@ -21,6 +21,7 @@ from typing_extensions import TypedDict
 from werkzeug.datastructures import FileStorage
 
 import psef
+import cg_enum
 import cg_junit
 import cg_logger
 from cg_dt_utils import DatetimeWithTimezone
@@ -74,17 +75,24 @@ def _ensure_program(program: str) -> None:
         )
 
 
-class AutoTestStepResultState(enum.Enum):
+class AutoTestStepResultState(cg_enum.CGEnum):
     """This enum represents the states the result of a step can be in.
 
     A single step result will probably be in multiple states during its
     existence.
     """
+    #: The step has not yet started running.
     not_started = enum.auto()
+    #: The step is currently running
     running = enum.auto()
+    #: The step has passed, this does not mean necessarily that the student has
+    #: achieved any points.
     passed = enum.auto()
+    #: The step has failed, the student will not receive any points.
     failed = enum.auto()
+    #: The step has exceeded the time limit.
     timed_out = enum.auto()
+    #: The step has been skipped for whatever reason.
     skipped = enum.auto()
 
     @classmethod
