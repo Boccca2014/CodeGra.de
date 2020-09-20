@@ -85,7 +85,7 @@ class _SwaggerFunc:
 _SWAGGER_FUNCS: t.Dict[str, _SwaggerFunc] = {}
 
 
-def swaggerize(operation_name: str,
+def swaggerize(operation_name: str, *,
                no_data: bool = False) -> t.Callable[[_T_CAL], _T_CAL]:
     def __wrapper(func: _T_CAL) -> _T_CAL:
         if func.__name__ in _SWAGGER_FUNCS:
@@ -383,6 +383,7 @@ class SimpleValue(t.Generic[_SIMPLE_VALUE], _Parser[_SIMPLE_VALUE]):
     def try_parse(self, value: object) -> _SIMPLE_VALUE:
         if isinstance(value, self.typ):
             return value
+        # Also allow integers as floats
         if self.typ is float and isinstance(value, int):
             return float(value)  # type: ignore
         raise SimpleParseError(self, found=value)

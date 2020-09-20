@@ -1,5 +1,6 @@
 import os
 import json
+import uuid
 
 import yaml
 
@@ -9,7 +10,7 @@ from cg_request_args.open_api import OpenAPISchema
 app = psef.create_app()
 app.config['SERVER_NAME'] = '$inst.codegra.de'
 with app.app_context():
-    res = OpenAPISchema({'psef': psef}).collect_for_current_app()
+    res = OpenAPISchema({'psef': psef, 'uuid': uuid}).collect_for_current_app()
 
     base = os.path.join(os.path.dirname(__file__), '..')
 

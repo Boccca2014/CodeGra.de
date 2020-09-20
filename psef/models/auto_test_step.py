@@ -1103,22 +1103,42 @@ class AutoTestStepResult(Base, TimestampMixin, IdMixin):
         self.schedule_attachment_deletion()
         self.attachment_filename = psef.files.save_stream(stream)
 
-    def __to_json__(self) -> t.Mapping[str, object]:
-        res = {
-            'id': self.id,
-            'auto_test_step': self.step,
-            'state': self.state.name,
-            'achieved_points': self.achieved_points,
-            'log': self.log,
-            'started_at': self.started_at and self.started_at.isoformat(),
-            'attachment_id': self.attachment_filename,
-        }
+    class AsJSON(TypedDict):
+        #: The id of the result of a step
+        id: int
+        #: The step this is the result of.
+        auto_test_step: AutoTestStepBase
+        #: The state this result is in.
+        state: AutoTestStepResultState
+        #: The amount of points achieved by the student in this step.
+        achieved_points: float
+        #: The log produced by this result. The format of this log depends on
+        #: the step result.
+        log: t.Optional[t.Any]
+        #: The time this result was started, if ``null`` the result hasn't
+        #: started yet.
+        started_at: t.Optional[DatetimeWithTimezone]
+        #: The id of the attachment produced by this result. If ``null`` no
+        #: attachment was produced.
+        attachment_id: t.Optional[str]
+
+    def __to_json__(self) -> AsJSON:
         try:
             auth.ensure_can_view_autotest_step_details(self.step)
         except exceptions.PermissionException:
-            res['log'] = self.step.remove_step_details(self.log)
+            log = self.step.remove_step_details(self.log)
+        else:
+            log = self.log
 
-        return res
+        return {
+            'id': self.id,
+            'auto_test_step': self.step,
+            'state': self.state,
+            'achieved_points': self.achieved_points,
+            'log': log,
+            'started_at': self.started_at,
+            'attachment_id': self.attachment_filename,
+        }
 
 
 @event.listens_for(AutoTestStepResult, 'after_delete')

@@ -531,6 +531,33 @@ class AutoTestResult(Base, TimestampMixin, IdMixin, NotEqualMixin):
         #: The amount of points achieved in this step by the student.
         points_achieved: float
 
+    class AsExtendedJSON(AsJSON):
+        #: The stdout produced in the student setup script.
+        setup_stdout: t.Optional[str]
+        #: The stderr produced in the student setup script.
+        setup_stderr: t.Optional[str]
+        #: The results for each step in this AutoTest. The ordering of this
+        #: list is arbitrary, and the results for entire suites and or sets
+        #: might be missing.
+        step_results: t.List['psef.models.AutoTestStepResult']
+        #: If the result has not started this will contain the amount of
+        #: students we expect we still need to run before this result is
+        #: next. This might be incorrect and should only be used as a rough
+        #: estimate.
+        approx_waiting_before: t.Optional[int]
+        #: If ``true`` this is the final result for the student, meaning that
+        #: without teacher interaction (e.g. restarting the AutoTest) this
+        #: result will not change and will be used as is to calculate the grade
+        #: of the student. Reasons why this may not be the case include but are
+        #: not limited to the test containing hidden steps that will only be
+        #: run after the deadline.
+        final_result: bool
+        #: A mapping between suite id and the files written to the AutoTest
+        #: output folder in that suite.
+        suite_files: t.Mapping[int,
+                               t.Sequence['psef.files.FileTree[uuid.UUID]'],
+                               ]
+
     def __to_json__(self) -> AsJSON:
         """Convert this result to a json object.
         """
@@ -547,7 +574,7 @@ class AutoTestResult(Base, TimestampMixin, IdMixin, NotEqualMixin):
             'points_achieved': points_achieved,
         }
 
-    def __extended_to_json__(self) -> t.Mapping[str, object]:
+    def __extended_to_json__(self) -> AsExtendedJSON:
         approx_before: t.Optional[int] = None
         if (
             self.state ==
@@ -574,15 +601,16 @@ class AutoTestResult(Base, TimestampMixin, IdMixin, NotEqualMixin):
                 if entries:
                     suite_files[f.auto_test_suite_id] = entries
 
-        return {
-            **self.__to_json__(),
-            'setup_stdout': self.setup_stdout,
-            'setup_stderr': self.setup_stderr,
-            'step_results': step_results,
-            'approx_waiting_before': approx_before,
-            'final_result': final_result,
-            'suite_files': suite_files,
-        }
+        return make_typed_dict_extender(
+            self.__to_json__(), self.AsExtendedJSON
+        )(
+            setup_stdout=self.setup_stdout,
+            setup_stderr=self.setup_stderr,
+            step_results=step_results,
+            approx_waiting_before=approx_before,
+            final_result=final_result,
+            suite_files=suite_files,
+        )
 
     @classmethod
     def get_results_by_user(cls, student_id: int) -> 'MyQuery[AutoTestResult]':

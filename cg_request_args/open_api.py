@@ -79,13 +79,12 @@ class OpenAPISchema:
     @staticmethod
     def make_comment(comment: str) -> str:
         comment = _clean_comment(comment)
-        # res = pypandoc.convert_text(
-        #     comment,
-        #     'markdown_strict',
-        #     format='rst',
-        #     extra_args=['--wrap=none']
-        # ).strip()
-        res = comment
+        res = pypandoc.convert_text(
+            comment,
+            'markdown_strict',
+            format='rst',
+            extra_args=['--wrap=none']
+        ).strip()
         return re.sub(r'`[^`]*\.([^.]+)`', r'`\1`', res)
 
     def _set_initial_schemas(self) -> None:
@@ -241,7 +240,7 @@ class OpenAPISchema:
         self,
         _typ: t.Type,
         force_inline: bool = False,
-        done: 'OrderedDict[t.Type, bool]' = None,
+        done: 'OrderedDict[t.Type, int]' = None,
         do_extended: t.Collection[t.Type] = tuple()
     ) -> t.Mapping[str, str]:
         _typ = self._maybe_resolve_forward(_typ)
@@ -257,6 +256,10 @@ class OpenAPISchema:
             result = self._schemas[schema_name]
             force_inline = False
         elif isinstance(_typ, type(TypedDict)):
+            if not force_inline:
+                # Just so that recursion will refer to this schema.
+                self._schemas[schema_name] = {'invalid': 'PLACEHOLDER'}
+
             typ: t.Any = _typ
             properties = {}
 
@@ -332,18 +335,23 @@ class OpenAPISchema:
         return {'$ref': f'#/components/schemas/{schema_name}'}
 
     def _typ_to_schema(
-        self, typ: t.Type, do_extended: t.Collection[t.Type], inline: bool,
-        done: 'OrderedDict[t.Type, bool]'
+        self,
+        typ: t.Type,
+        do_extended: t.Collection[t.Type],
+        inline: bool,
+        done: 'OrderedDict[t.Type, int]',
     ) -> t.Mapping[str, t.Any]:
         typ = self._maybe_resolve_forward(typ)
-        if typ in done:
+        if inline and done.get(typ, 0) > 0:
+            print(inline)
             raise AssertionError(
                 'Recursion detected: {}'.format(
                     '.'.join(map(str, done.keys()))
                 )
             )
 
-        done[typ] = True
+        done.setdefault(typ, 0)
+        done[typ] += 1
 
         origin = getattr(typ, '__origin__', None)
 
@@ -438,8 +446,8 @@ class OpenAPISchema:
             elif isinstance(typ, EnumMeta):
                 return self.add_schema(typ, force_inline=inline)
             elif typ in do_extended and hasattr(typ, '__extended_to_json__'):
-                # We don't support recursion anyway so we never need to do
-                # this extended.
+                # We don't support recursion anyway for extended_to_json so we
+                # never need to do this extended.
                 next_do_extended = [ext for ext in do_extended if ext != typ]
                 return self._typ_to_schema(
                     inspect.signature(typ.__extended_to_json__
@@ -451,6 +459,13 @@ class OpenAPISchema:
             elif hasattr(typ, '__to_json__'):
                 return self._typ_to_schema(
                     inspect.signature(typ.__to_json__).return_annotation,
+                    do_extended=do_extended,
+                    inline=inline,
+                    done=done,
+                )
+            elif hasattr(origin, '__to_json__'):
+                return self._typ_to_schema(
+                    inspect.signature(origin.__to_json__).return_annotation,
                     do_extended=do_extended,
                     inline=inline,
                     done=done,
@@ -480,7 +495,10 @@ class OpenAPISchema:
                     )
                 )
         finally:
-            done.pop(typ)
+            if done[typ] == 1:
+                done.pop(typ)
+            else:
+                done[typ] -= 1
 
     @staticmethod
     def _get_routes_from_app(app: flask.Flask) -> t.Iterable[
@@ -505,8 +523,8 @@ class OpenAPISchema:
                         methodrules[method] = [path]
             yield endpoint, list(methodrules.items())
 
-    @staticmethod
-    def _prepare_url(url: str, endpoint_func: t.Callable
+    @classmethod
+    def _prepare_url(cls, url: str, endpoint_func: t.Callable
                      ) -> t.Tuple[str, t.Sequence[t.Mapping]]:
         parameters = []
         url_parts = []
@@ -555,7 +573,7 @@ class OpenAPISchema:
                 'required': True,
                 'in': 'path',
                 'style': 'simple',
-                'description': ' '.join(doc),
+                'description': cls.make_comment('\n'.join(doc)),
                 'schema': schema,
             })
             url_parts.append('{' + name + '}')
@@ -637,7 +655,8 @@ class OpenAPISchema:
                     }
                 elif 'multipart/form-data' in in_schema:
                     schema_name = f'InputData{method.capitalize()}{tags[0]}{_to_pascalcase(operation_id)}'
-                    self._schemas[schema_name] = in_schema['multipart/form-data']['schema']
+                    self._schemas[schema_name] = in_schema[
+                        'multipart/form-data']['schema']
                     in_schema['multipart/form-data']['schema'] = {
                         '$ref': f'#/components/schemas/{schema_name}'
                     }

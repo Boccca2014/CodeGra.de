@@ -459,6 +459,8 @@ def create_auto_test_set(auto_test_id: int
     methods=['PATCH']
 )
 @feature_required(Feature.AUTO_TEST)
+@rqa.swaggerize('update_set')
+@auth.login_required
 def update_auto_test_set(auto_test_id: int, auto_test_set_id: int
                          ) -> JSONResponse[models.AutoTestSet]:
     """Update the given :class:`.models.AutoTestSet`.
@@ -474,16 +476,24 @@ def update_auto_test_set(auto_test_id: int, auto_test_set_id: int
         should be updated.
     :returns: The updated set.
     """
+    data = rqa.FixedMapping(
+        rqa.OptionalArgument(
+            'stop_points',
+            rqa.SimpleValue(float),
+            """
+            The minimum percentage a student should have achieved before the
+            next tests will be run.
+            """
+        )
+    ).from_flask()
 
     auto_test_set = _get_at_set_by_ids(auto_test_id, auto_test_set_id)
     auth.AutoTestPermissions(auto_test_set.auto_test).ensure_may_edit()
 
     auto_test_set.auto_test.ensure_no_runs()
 
-    with get_from_map_transaction(get_json_dict_from_request()) as [_, opt]:
-        stop_points = opt('stop_points', (int, float), None)
-
-    if stop_points is not None:
+    if data.stop_points.is_just:
+        stop_points = data.stop_points.value
         if stop_points < 0:
             raise APIException(
                 'You cannot set stop points to lower than 0',
@@ -538,6 +548,7 @@ def delete_auto_test_set(
     methods=['PATCH']
 )
 @feature_required(Feature.AUTO_TEST)
+@auth.login_required
 def update_or_create_auto_test_suite(auto_test_id: int, auto_test_set_id: int
                                      ) -> JSONResponse[models.AutoTestSuite]:
     """Update or create a :class:`.models.AutoTestSuite` (also known as
@@ -805,6 +816,8 @@ def delete_auto_test_runs(auto_test_id: int, run_id: int) -> EmptyResponse:
     methods=['GET']
 )
 @feature_required(Feature.AUTO_TEST)
+@rqa.swaggerize('get_results_by_user')
+@auth.login_required
 def get_auto_test_results_for_user(
     auto_test_id: int, run_id: int, user_id: int
 ) -> JSONResponse[t.List[models.AutoTestResult]]:
@@ -853,6 +866,8 @@ def get_auto_test_results_for_user(
     methods=['GET']
 )
 @feature_required(Feature.AUTO_TEST)
+@rqa.swaggerize('get_result')
+@auth.login_required
 def get_auto_test_result(auto_test_id: int, run_id: int, result_id: int
                          ) -> ExtendedJSONResponse[models.AutoTestResult]:
     """Get the extended version of an AutoTest result.
@@ -877,6 +892,8 @@ def get_auto_test_result(auto_test_id: int, run_id: int, result_id: int
     methods=['POST']
 )
 @feature_required(Feature.AUTO_TEST)
+@rqa.swaggerize('restart_result', no_data=True)
+@auth.login_required
 def restart_auto_test_result(auto_test_id: int, run_id: int, result_id: int
                              ) -> ExtendedJSONResponse[models.AutoTestResult]:
     """Restart an AutoTest result.

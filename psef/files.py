@@ -20,7 +20,7 @@ from collections import defaultdict
 
 import structlog
 from werkzeug.utils import secure_filename
-from typing_extensions import Protocol
+from typing_extensions import Protocol, TypedDict
 from werkzeug.datastructures import FileStorage
 
 import psef.models as models
@@ -36,6 +36,9 @@ from .extract_tree import (
     ExtractFileTree, ExtractFileTreeBase, ExtractFileTreeFile,
     ExtractFileTreeDirectory, ExtractFileTreeSpecialFile
 )
+
+if t.TYPE_CHECKING:
+    import psef
 
 logger = structlog.get_logger()
 
@@ -222,16 +225,31 @@ class FileTree(t.Generic[T]):
     id: T
     entries: t.Optional[t.Sequence['FileTree[T]']]
 
-    def __to_json__(
-        self
-    ) -> t.Mapping[str, t.Union[str, t.Sequence['FileTree[T]']]]:
-        res: t.Dict[str, t.Union[str, t.Sequence['FileTree[T]']]] = {
+    class _AsJSONFile(TypedDict):
+        #: The id of the file, this can be used to retrieve it later on.
+        id: str
+        #: The name of the file, this does not include the name of any parents.
+        name: str
+
+    class AsJSON(_AsJSONFile, total=False):
+        #: The entries in this directory. This is a list that will contain all
+        #: children of the directory. This key might not be present, in which
+        #: case the file is not a directory.
+        entries: t.Sequence['psef.files.FileTree']
+
+    AsJSON.__cg_extends__ = _AsJSONFile  # type: ignore
+
+    def __to_json__(self) -> AsJSON:
+        if self.entries:
+            return {
+                'id': str(self.id),
+                'name': self.name,
+                'entries': self.entries,
+            }
+        return {
+            'id': str(self.id),
             'name': self.name,
-            'id': str(self.id)
         }
-        if self.entries is not None:
-            res['entries'] = self.entries
-        return res
 
 
 class IgnoredFilesException(APIException):
