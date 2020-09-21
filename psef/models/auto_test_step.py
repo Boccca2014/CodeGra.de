@@ -228,9 +228,7 @@ class AutoTestStepBase(Base, TimestampMixin, IdMixin):
             'command_time_limit': self.command_time_limit,
         }
 
-    class AsJSON(TypedDict):
-        #: The id of this step
-        id: int
+    class AsJSONBase(TypedDict):
         #: The name of this step.
         name: str
         #: The type of AutoTest step. We constantly add new step types, so
@@ -244,6 +242,19 @@ class AutoTestStepBase(Base, TimestampMixin, IdMixin):
         #: The data used to run this step. The data shape is dependent on your
         #: permissions and the step type.
         data: t.Any
+
+    class AsJSON(AsJSONBase):
+        #: The id of this step
+        id: int
+
+    AsJSON.__cg_extends__ = AsJSONBase  # type: ignore
+
+    class InputAsJSON(AsJSONBase, total=False):
+        #: The id of the step. Provide this if you want to edit an existing
+        #: step. If not provided a new step will be created.
+        id: int
+
+    InputAsJSON.__cg_extends__ = AsJSONBase  # type: ignore
 
     def __to_json__(self) -> AsJSON:
         try:

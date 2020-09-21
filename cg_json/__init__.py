@@ -237,7 +237,6 @@ class _BaseExtendedJSONResponse(flask.Response):  # pylint: disable=too-many-anc
         cls: t.Type[T_ExtJSONResponse], obj: t.Any, status_code: int,
         use_extended: t.Any
     ) -> T_ExtJSONResponse:
-        self = cls._make(obj, status_code, use_extended=use_extended)
         self = cls(
             cls._dump_to_string(obj, use_extended=use_extended),
             mimetype=flask.current_app.config['JSONIFY_MIMETYPE'],

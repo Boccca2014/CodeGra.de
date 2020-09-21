@@ -57,9 +57,10 @@ def _schema_generator(schema: 'OpenAPISchema'
 
 
 class _Schema(BaseException):
-    def __init__(self, schema: t.Mapping[str, t.Any]) -> None:
+    def __init__(self, typ: str, schema: t.Mapping[str, t.Any]) -> None:
         super().__init__()
         self.schema = schema
+        self.typ = typ
 
 
 _T = t.TypeVar('_T')
@@ -246,9 +247,9 @@ class _Parser(t.Generic[_T_COV]):
     ) -> _T_COV:
         if _GENERATE_SCHEMA is not None:
             json_schema = self.to_open_api(_GENERATE_SCHEMA)
-            raise _Schema({'application/json': {'schema': json_schema}})
+            raise _Schema(typ='application/json', schema=json_schema)
 
-        json = flask.request.json()
+        json = flask.request.get_json()
 
         if isinstance(json, dict):
             to_log = json
@@ -365,6 +366,18 @@ def _type_to_name(typ: t.Type) -> str:
     if typ in _TYPE_NAME_LOOKUP:
         return _TYPE_NAME_LOOKUP[typ]
     return str(typ)
+
+
+class AnyValue(_Parser[t.Any]):
+    @staticmethod
+    def describe() -> str:
+        return 'Any'
+
+    def _to_open_api(self, schema: 'OpenAPISchema') -> t.Mapping[str, t.Any]:
+        return {'type': 'object'}
+
+    def try_parse(self, value: object) -> t.Any:
+        return value
 
 
 class SimpleValue(t.Generic[_SIMPLE_VALUE], _Parser[_SIMPLE_VALUE]):
@@ -731,7 +744,7 @@ class BaseFixedMapping(
             res = BaseFixedMapping(*args)
             res.set_schema(typ)
             return res
-        elif typ in (str, int, bool):
+        elif typ in (str, int, bool, float):
             return SimpleValue(typ)
         elif origin in (list, collections.abc.Sequence):
             return List(cls.__from_python_type(typ.__args__[0]))
@@ -743,6 +756,8 @@ class BaseFixedMapping(
             return res
         elif origin == Literal:
             return StringEnum(*typ.__args__)
+        elif typ == t.Any:
+            return AnyValue()
         else:
             raise AssertionError(f'Could not convert: {typ}')
 
@@ -977,17 +992,17 @@ class MultipartUpload(t.Generic[_T]):
                     'type': 'array',
                     'items': {**file_type},
                 }
-            raise _Schema({
-                'multipart/form-data': {
-                    'schema': {
-                        'type': 'object',
-                        'properties': {
-                            'json': json_schema,
-                            self.__file_key: file_type,
-                        },
+            raise _Schema(
+                typ='multipart/form-data',
+                schema={
+                    'type': 'object',
+                    'properties': {
+                        'json': json_schema,
+                        self.__file_key: file_type,
                     },
+                    'required': ['json'],
                 },
-            })
+            )
 
         body = None
         if 'json' in flask.request.files:

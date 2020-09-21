@@ -252,7 +252,8 @@ def set_reminder(
 
 _IgnoreParser = (
     rqa.SimpleValue(str)
-    | rqa.BaseFixedMapping.from_typeddict(ignore.SubmissionValidator.InputData)
+    |
+    rqa.BaseFixedMapping.from_typeddict(ignore.SubmissionValidator.InputData)
 )
 
 
@@ -563,6 +564,8 @@ def update_assignment(assignment_id: int) -> JSONResponse[models.Assignment]:
 
 @api.route('/assignments/<int:assignment_id>/rubrics/', methods=['GET'])
 @features.feature_required(features.Feature.RUBRICS)
+@rqa.swaggerize('get_rubric')
+@auth.login_required
 def get_assignment_rubric(assignment_id: int
                           ) -> JSONResponse[t.Sequence[models.RubricRow]]:
     """Return the rubric corresponding to the given ``assignment_id``.
@@ -608,6 +611,8 @@ def get_assignment_rubric(assignment_id: int
 
 @api.route('/assignments/<int:assignment_id>/rubrics/', methods=['DELETE'])
 @features.feature_required(features.Feature.RUBRICS)
+@rqa.swaggerize('delete_rubric')
+@auth.login_required
 def delete_rubric(assignment_id: int) -> EmptyResponse:
     """Delete the rubric for the given assignment.
 
@@ -655,6 +660,8 @@ def delete_rubric(assignment_id: int) -> EmptyResponse:
 
 @api.route('/assignments/<int:assignment_id>/rubric', methods=['POST'])
 @features.feature_required(features.Feature.RUBRICS)
+@rqa.swaggerize('copy_rubric')
+@auth.login_required
 def import_assignment_rubric(assignment_id: int
                              ) -> JSONResponse[t.Sequence[models.RubricRow]]:
     """Import a rubric from a different assignment.
@@ -670,18 +677,19 @@ def import_assignment_rubric(assignment_id: int
         imported, so the assignment with id ``assignment_id`` and not
         ``old_assignment_id``.
     """
+    data = rqa.FixedMapping(
+        rqa.RequiredArgument(
+            'old_assignment_id', rqa.SimpleValue(int),
+            'The id of the assignment from which you want to copy the rubric.'
+        ),
+    ).from_flask()
     assig = helpers.get_or_404(
         models.Assignment,
         assignment_id,
         also_error=lambda a: not a.is_visible
     )
     auth.ensure_permission(CPerm.manage_rubrics, assig.course_id)
-
-    content = ensure_json_dict(request.get_json())
-    ensure_keys_in_dict(content, [('old_assignment_id', int)])
-    old_assig = helpers.get_or_404(
-        models.Assignment, content['old_assignment_id']
-    )
+    old_assig = helpers.get_or_404(models.Assignment, data.old_assignment_id)
 
     auth.ensure_permission(CPerm.can_see_assignments, old_assig.course_id)
     if old_assig.is_hidden:
@@ -710,6 +718,8 @@ def import_assignment_rubric(assignment_id: int
 
 @api.route('/assignments/<int:assignment_id>/rubrics/', methods=['PUT'])
 @features.feature_required(features.Feature.RUBRICS)
+@rqa.swaggerize('put_rubric')
+@auth.login_required
 def add_assignment_rubric(assignment_id: int
                           ) -> JSONResponse[t.Sequence[models.RubricRow]]:
     """Add or update rubric of an assignment.
@@ -724,13 +734,31 @@ def add_assignment_rubric(assignment_id: int
         array should contain objects with a ``description`` (string),
         ``header`` (string), ``points`` (number) and optionally an ``id`` if
         you are modifying an existing item in an existing row.
-    :>json number max_points: Optionally override the maximum amount of points
-        you can get for this rubric. By passing ``null`` you reset this value,
-        by not passing it you keep its current value. (OPTIONAL)
+    :>json number max_points:  (OPTIONAL)
 
     :param int assignment_id: The id of the assignment
     :returns: The updated or created rubric.
     """
+    data = rqa.FixedMapping(
+        rqa.OptionalArgument(
+            'max_points', rqa.Nullable(rqa.SimpleValue(float)), """
+            The maximum amount of points you need to get for this rubric for
+            full mark (i.e. a 10). By passing ``null`` you reset this value, by
+            not passing it you keep its current value.'
+            """
+        ),
+        rqa.OptionalArgument(
+            'rows',
+            rqa.List(
+                rqa.BaseFixedMapping.from_typeddict(
+                    models.RubricRow.InputAsJSON
+                )
+            ), """
+            The rubric rows of this assignment. This will be the entire rubric,
+            so to delete a row simply don't pass it in this list.
+            """
+        )
+    ).from_flask()
     assig = helpers.get_or_404(
         models.Assignment,
         assignment_id,
@@ -738,13 +766,9 @@ def add_assignment_rubric(assignment_id: int
     )
 
     auth.ensure_permission(CPerm.manage_rubrics, assig.course_id)
-    content = ensure_json_dict(request.get_json())
 
-    if 'max_points' in content:
-        helpers.ensure_keys_in_dict(
-            content, [('max_points', (type(None), int, float))]
-        )
-        max_points = t.cast(t.Optional[float], content['max_points'])
+    if data.max_points.is_just:
+        max_points = data.max_points.value
         if max_points is not None and max_points <= 0:
             raise APIException(
                 'The max amount of points you can '
@@ -754,11 +778,9 @@ def add_assignment_rubric(assignment_id: int
             )
         assig.fixed_max_rubric_points = max_points
 
-    if 'rows' in content:
+    if data.rows.is_just:
         with db.session.begin_nested():
-            helpers.ensure_keys_in_dict(content, [('rows', list)])
-            rows = t.cast(t.List[JSONType], content['rows'])
-            new_rubric_rows = [process_rubric_row(r) for r in rows]
+            new_rubric_rows = [process_rubric_row(r) for r in data.rows.value]
             new_row_ids = set(
                 row.id for row in new_rubric_rows
                 # Primary keys can be `None`, but only while they are not yet
@@ -811,7 +833,7 @@ def add_assignment_rubric(assignment_id: int
     return jsonify(assig.rubric_rows)
 
 
-def process_rubric_row(row: JSONType) -> models.RubricRow:
+def process_rubric_row(row: models.RubricRow.InputAsJSON) -> models.RubricRow:
     """Process a single rubric row updating or creating it.
 
     This function works on the input json data. It makes sure that the input
@@ -820,27 +842,6 @@ def process_rubric_row(row: JSONType) -> models.RubricRow:
     :param row: The row to process.
     :returns: The updated or created row.
     """
-    row = ensure_json_dict(row)
-    ensure_keys_in_dict(
-        row, [
-            ('description', str),
-            ('header', str),
-            ('items', list),
-        ]
-    )
-    header = t.cast(str, row['header'])
-    desc = t.cast(str, row['description'])
-    items: t.Sequence[models.RubricItem.JSONBaseSerialization]
-    items = [
-        # This is a mypy bug that is why we need this cast:
-        # https://github.com/python/mypy/issues/5723
-        t.cast(
-            models.RubricItem.JSONBaseSerialization,
-            helpers.coerce_json_value_to_typeddict(
-                it, models.RubricItem.JSONBaseSerialization
-            )
-        ) for it in t.cast(list, row['items'])
-    ]
     row_type = registry.rubric_row_types.get(
         t.cast(str, row.get('type', 'normal'))
     )
@@ -852,21 +853,19 @@ def process_rubric_row(row: JSONType) -> models.RubricRow:
             APICodes.OBJECT_NOT_FOUND, 404
         )
 
-    if not header:
+    if not row['header']:
         raise APIException(
             "A row can't have an empty header",
             f'The row "{row}" has an empty header', APICodes.INVALID_PARAM, 400
         )
 
     if 'id' in row:
-        ensure_keys_in_dict(row, [('id', int)])
-        row_id = t.cast(int, row['id'])
         # This ensures the type is never changed.
-        rubric_row = helpers.get_or_404(row_type, row_id)
-        rubric_row.update_from_json(header, desc, items)
+        rubric_row = helpers.get_or_404(row_type, row['id'])
+        rubric_row.update_from_json(row)
         return rubric_row
     else:
-        return row_type.create_from_json(header, desc, items)
+        return row_type.create_from_json(row)
 
 
 @api.route('/assignments/<int:assignment_id>/submission', methods=['POST'])

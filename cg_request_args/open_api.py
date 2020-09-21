@@ -68,29 +68,35 @@ class _Tag(TypedDict):
 
 
 class OpenAPISchema:
-    def __init__(self, type_globals: t.Dict[str, t.Any]) -> None:
+    def __init__(
+        self, type_globals: t.Dict[str, t.Any], no_pandoc: bool = False
+    ) -> None:
         self._paths: t.Dict[str, t.Dict[str, t.Mapping]] = defaultdict(dict)
         self._schemas: t.Dict[str, t.Mapping] = {}
         self._type_globals = type_globals
         self._parsed_modules: t.Dict[str, sphinx.pycode.parser.Parser] = {}
         self._tags: t.Dict[str, _Tag] = {}
+        self._no_pandoc = no_pandoc
         self._set_initial_schemas()
 
-    @staticmethod
-    def make_comment(comment: str) -> str:
+    def make_comment(self, comment: str) -> str:
         comment = _clean_comment(comment)
-        res = pypandoc.convert_text(
-            comment,
-            'markdown_strict',
-            format='rst',
-            extra_args=['--wrap=none']
-        ).strip()
-        return re.sub(r'`[^`]*\.([^.]+)`', r'`\1`', res)
+        if self._no_pandoc:
+            return comment.strip()
+        else:
+            res = pypandoc.convert_text(
+                comment,
+                'markdown_strict',
+                format='rst',
+                extra_args=['--wrap=none']
+            ).strip()
+            return re.sub(r'`[^`]*\.([^.]+)`', r'`\1`', res)
 
     def _set_initial_schemas(self) -> None:
         initial = {
             'BaseError': {
                 'type': 'object',
+                'x-is-error': True,
                 'properties': {
                     'message': {'type': 'string'},
                     'description': {'type': 'string'},
@@ -310,6 +316,8 @@ class OpenAPISchema:
                         p for p in extra_props if p in typ.__required_keys__
                     ],
                 }
+                if not extra_items['required']:
+                    extra_items.pop('required')
                 result = {'allOf': [base, extra_items]}
             else:
                 result = {
@@ -320,6 +328,8 @@ class OpenAPISchema:
                         if p in typ.__required_keys__
                     ],
                 }
+                if not result['required']:
+                    result.pop('required')
         elif isinstance(_typ, EnumMeta):
             enum: t.Type[Enum] = _typ
             result = {
@@ -488,7 +498,6 @@ class OpenAPISchema:
                     'enum': list(typ.__args__),
                 }
             else:
-                breakpoint()
                 raise AssertionError(
                     'Unknown type found: {} (path: {})'.format(
                         typ, '.'.join(map(str, done.keys()))
@@ -523,8 +532,7 @@ class OpenAPISchema:
                         methodrules[method] = [path]
             yield endpoint, list(methodrules.items())
 
-    @classmethod
-    def _prepare_url(cls, url: str, endpoint_func: t.Callable
+    def _prepare_url(self, url: str, endpoint_func: t.Callable
                      ) -> t.Tuple[str, t.Sequence[t.Mapping]]:
         parameters = []
         url_parts = []
@@ -573,7 +581,7 @@ class OpenAPISchema:
                 'required': True,
                 'in': 'path',
                 'style': 'simple',
-                'description': cls.make_comment('\n'.join(doc)),
+                'description': self.make_comment('\n'.join(doc)),
                 'schema': schema,
             })
             url_parts.append('{' + name + '}')
@@ -596,6 +604,8 @@ class OpenAPISchema:
         tags = self._find_and_add_tags(endpoint_func)
 
         responses: OrderedDict = OrderedDict([
+            (400, {'$ref': '#/components/responses/IncorrectParametersError'}),
+            (409, {'$ref': '#/components/responses/IncorrectParametersError'}),
             (401, {'$ref': '#/components/responses/UnauthorizedError'}),
             (
                 403,
@@ -642,27 +652,22 @@ class OpenAPISchema:
                     func(**signature.parameters)
                 except _Schema as exc:
                     in_schema = exc.schema
+                    in_type = exc.typ
                 else:
                     assert False
 
-                if 'anyOf' in in_schema.get('application/json',
-                                            {}).get('schema', {}):
-                    schema_name = f'InputData{method.capitalize()}{tags[0]}{_to_pascalcase(operation_id)}'
-                    self._schemas[schema_name] = in_schema['application/json'
-                                                           ]['schema']
-                    in_schema['application/json']['schema'] = {
-                        '$ref': f'#/components/schemas/{schema_name}'
-                    }
-                elif 'multipart/form-data' in in_schema:
-                    schema_name = f'InputData{method.capitalize()}{tags[0]}{_to_pascalcase(operation_id)}'
-                    self._schemas[schema_name] = in_schema[
-                        'multipart/form-data']['schema']
-                    in_schema['multipart/form-data']['schema'] = {
-                        '$ref': f'#/components/schemas/{schema_name}'
-                    }
+                if in_type == 'multipart/form-data' and '$ref' not in in_schema['properties']['json']:
+                    inner_schema_name = f'Json{_to_pascalcase(operation_id)}{tags[0]}'
+                    self._schemas[inner_schema_name] = in_schema['properties']['json']
+                    in_schema['properties']['json'] = {'$ref': f'#/components/schemas/{inner_schema_name}'}
+                    
+                if '$ref' not in in_schema:
+                    schema_name = f'{_to_pascalcase(operation_id)}{tags[0]}Data'
+                    self._schemas[schema_name] = in_schema
+                    in_schema = {'$ref': f'#/components/schemas/{schema_name}'}
 
             body = {
-                'content': in_schema,
+                'content': {in_type: {'schema': in_schema}},
                 'required': True,
             }
             result['requestBody'] = body
@@ -711,6 +716,17 @@ class OpenAPISchema:
                     },
                 },
                 'responses': {
+                    'IncorrectParametersError': {
+                        'description':
+                            'Some parameters were wrong',
+                        'content': {
+                            'application/json': {
+                                'schema': {
+                                    '$ref': '#/components/schemas/BaseError'
+                                },
+                            },
+                        },
+                    },
                     'IncorrectPermissionsError': {
                         'description':
                             'You do not have the necessary permission to this',

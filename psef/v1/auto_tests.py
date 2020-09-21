@@ -105,7 +105,7 @@ _ATUpdateMap = rqa.FixedMapping(
     ),
     rqa.OptionalArgument(
         'results_always_visible',
-        rqa.Nullable( rqa.SimpleValue(bool)),
+        rqa.Nullable(rqa.SimpleValue(bool)),
         """
         Should results be visible for students before the assignment is set to
         "done"?
@@ -150,6 +150,7 @@ def _update_auto_test(
         for f in auto_test.fixtures:
             if f.id not in old_fixture_set:
                 f.delete_fixture()
+        auto_test.fixtures = [f for f in old_fixtures if f in old_fixture_set]
 
     if has_new_fixtures.or_default(False):
         for new_fixture in new_fixtures:
@@ -478,9 +479,7 @@ def update_auto_test_set(auto_test_id: int, auto_test_set_id: int
     """
     data = rqa.FixedMapping(
         rqa.OptionalArgument(
-            'stop_points',
-            rqa.SimpleValue(float),
-            """
+            'stop_points', rqa.SimpleValue(float), """
             The minimum percentage a student should have achieved before the
             next tests will be run.
             """
@@ -544,59 +543,87 @@ def delete_auto_test_set(
 
 
 @api.route(
-    '/auto_tests/<int:auto_test_id>/sets/<int:auto_test_set_id>/suites/',
+    '/auto_tests/<int:auto_test_id>/sets/<int:set_id>/suites/',
     methods=['PATCH']
 )
 @feature_required(Feature.AUTO_TEST)
+@rqa.swaggerize('update_suite')
 @auth.login_required
-def update_or_create_auto_test_suite(auto_test_id: int, auto_test_set_id: int
+def update_or_create_auto_test_suite(auto_test_id: int, set_id: int
                                      ) -> JSONResponse[models.AutoTestSuite]:
     """Update or create a :class:`.models.AutoTestSuite` (also known as
         category)
 
     .. :quickref: AutoTest; Update an AutoTest suite/category.
 
-    :>json steps: The steps of this AutoTest. See the documentation of
-        :class:`.models.AutoTestStepBase` and its subclasses to see the exact
-        format this list should be in.
-    :>json rubric_row_id: The id of the rubric row this suite is should be
-        connected to.
-    :>json network_disabled: Should the network be disabled during the
-        execution of this suite.
-    :>json submission_info: (Optional) Should submission information be
-        included in the environment.
-    :>json id: The id of the suite, if not given a new suite will be created
-        (OPTIONAL).
-    :>json command_time_limit: The maximum amount of time a single command may
-        take in this suite. If not given the site default will be used
-        (OPTIONAL).
-
     :param auto_test_id: The id of the :class:`.models.AutoTest` in which this
         suite should be created.
-    :param auto_test_set_id: The id the :class:`.models.AutoTestSet` in which
+    :param set_id: The id the :class:`.models.AutoTestSet` in which
         this suite should be created.
     :returns: The just updated or created :class:`.models.AutoTestSuite`.
     """
-    auto_test_set = _get_at_set_by_ids(auto_test_id, auto_test_set_id)
+    data = rqa.FixedMapping(
+        rqa.OptionalArgument(
+            'id',
+            rqa.SimpleValue(int),
+            """
+            The id of the suite you want to edit. If not provided we will
+            create a new suite.
+            """,
+        ),
+        rqa.RequiredArgument(
+            'steps',
+            rqa.List(
+                rqa.BaseFixedMapping.from_typeddict(
+                    models.AutoTestStepBase.InputAsJSON
+                )
+            ),
+            """
+            The steps that should be in this suite. They will be run as the
+            order they are provided in.
+            """,
+        ),
+        rqa.RequiredArgument(
+            'rubric_row_id', rqa.SimpleValue(int),
+            'The id of the rubric row that should be connected to this suite.'
+        ),
+        rqa.RequiredArgument(
+            'network_disabled', rqa.SimpleValue(bool),
+            'Should the network be disabled when running steps in this suite'
+        ),
+        rqa.OptionalArgument(
+            'submission_info',
+            rqa.SimpleValue(bool),
+            """
+            If passed as ``true`` we will provide information about the current
+            submission while running steps. Defaults to ``false`` when creating
+            new suites.
+            """,
+        ),
+        rqa.OptionalArgument(
+            'command_time_limit',
+            rqa.SimpleValue(float),
+            """
+            The maximum amount of time a single step (or substeps) can take
+            when running tests. If not provided the default value is depended
+            on configuration of the instance.
+            """,
+        ),
+    ).from_flask()
+    auto_test_set = _get_at_set_by_ids(auto_test_id, set_id)
     auth.AutoTestPermissions(auto_test_set.auto_test).ensure_may_edit()
 
     auto_test_set.auto_test.ensure_no_runs()
 
-    with get_from_map_transaction(get_json_dict_from_request()) as [get, opt]:
-        steps = get('steps', list)
-        rubric_row_id = get('rubric_row_id', int)
-        network_disabled = get('network_disabled', bool)
-        submission_info = opt('submission_info', bool, False)
-        suite_id = opt('id', int, None)
-        time_limit = opt('command_time_limit', (float, int), None)
-
-    if suite_id is None:
-        # Make sure the time_limit is always set when creating a new suite
-        if time_limit is None:
-            time_limit = app.config['AUTO_TEST_MAX_TIME_COMMAND']
-        suite = models.AutoTestSuite(auto_test_set=auto_test_set)
+    if data.id.is_just:
+        time_limit = data.command_time_limit.or_default(None)
+        suite = get_or_404(models.AutoTestSuite, data.id.value)
     else:
-        suite = get_or_404(models.AutoTestSuite, suite_id)
+        # Make sure the time_limit is always set when creating a new suite
+        time_limit = data.command_time_limit.or_default(
+            app.config['AUTO_TEST_MAX_TIME_COMMAND']
+        )
+        suite = models.AutoTestSuite(auto_test_set=auto_test_set)
 
     if time_limit is not None:
         if time_limit < 1:
@@ -608,22 +635,23 @@ def update_or_create_auto_test_suite(auto_test_id: int, auto_test_set_id: int
             )
         suite.command_time_limit = time_limit
 
-    suite.network_disabled = network_disabled
+    suite.network_disabled = data.network_disabled
 
-    suite.submission_info = submission_info
+    if data.submission_info.is_just:
+        suite.submission_info = data.submission_info.value
 
-    if suite.rubric_row_id != rubric_row_id:
+    if suite.rubric_row_id != data.rubric_row_id:
         assig = suite.auto_test_set.auto_test.assignment
         rubric_row = get_or_404(
             models.RubricRow,
-            rubric_row_id,
+            data.rubric_row_id,
             also_error=lambda row: row.assignment != assig,
         )
 
-        if rubric_row_id in assig.locked_rubric_rows:
+        if rubric_row.id in assig.locked_rubric_rows:
             raise APIException(
                 'This rubric is already in use by another suite',
-                f'The rubric row "{rubric_row_id}" is already in use',
+                f'The rubric row "{rubric_row.id}" is already in use',
                 APICodes.INVALID_STATE, 409
             )
 
@@ -634,7 +662,7 @@ def update_or_create_auto_test_suite(auto_test_id: int, auto_test_set_id: int
             )
         suite.rubric_row = rubric_row
 
-    suite.set_steps(steps)
+    suite.set_steps(data.steps)
 
     db.session.commit()
     return jsonify(suite)

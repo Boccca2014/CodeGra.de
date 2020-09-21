@@ -140,52 +140,39 @@ class AutoTestSuite(Base, TimestampMixin, IdMixin):
             'command_time_limit': self.command_time_limit,
         }
 
-    def set_steps(self, steps: t.List['psef.helpers.JSONType']) -> None:
+    def set_steps(
+        self,
+        steps: t.List['auto_test_step_models.AutoTestStepBase.InputAsJSON'],
+    ) -> None:
         """Set the steps of this suite.
 
-        :param steps: The json data that should be parsed into the steps of
-            this suite. They will be checked by this function.
+        :param steps: The new steps of this suite.
         :returns: Nothing
         """
         new_steps = []
         for idx, step_data in enumerate(steps):
-            with psef.helpers.get_from_map_transaction(
-                psef.helpers.ensure_json_dict(step_data)
-            ) as [get, opt]:
-
-                step_id = opt('id', int, None)
-                # data gets validated in the `step.update_data_from_json`
-                data = get('data', dict)
-                typ_str = get('type', str)
-                name = get('name', str)
-                hidden = get('hidden', bool)
-                weight = t.cast(
-                    float,
-                    get('weight', numbers.Real)  # type: ignore
-                )
-
             try:
-                step_type = auto_test_handlers[typ_str]
+                step_type = auto_test_handlers[step_data['type']]
             except KeyError as exc:
                 raise APIException(
                     'The given test type is not valid',
-                    f'The given test type "{typ_str}" is not known',
+                    f'The given test type "{step_data["type"]}" is not known',
                     APICodes.INVALID_PARAM, 400
                 ) from exc
 
-            if step_id is None:
+            if step_data.get('id') is None:
                 step = step_type()
                 db.session.add(step)
             else:
-                step = psef.helpers.get_or_404(step_type, step_id)
+                step = psef.helpers.get_or_404(step_type, step_data['id'])
                 assert isinstance(step, step_type)
 
-            step.hidden = hidden
+            step.hidden = step_data['hidden']
             step.order = idx
-            step.name = name
-            step.weight = weight
+            step.name = step_data['name']
+            step.weight = step_data['weight']
 
-            step.update_data_from_json(data)
+            step.update_data_from_json(step_data['data'])
             new_steps.append(step)
 
         self.steps = new_steps

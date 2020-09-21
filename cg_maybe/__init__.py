@@ -18,7 +18,7 @@ class Just(t.Generic[_T]):
     def map(self, mapper: t.Callable[[_T], _Y]) -> 'Just[_Y]':
         return Just(mapper(self.value))
 
-    def or_default(self, _value: _T) -> _T:
+    def or_default(self, _value: _Y) -> _T:
         return self.value
 
 
@@ -31,7 +31,7 @@ class _Nothing(t.Generic[_T]):
     def map(self, _mapper: t.Callable[[_T], _Y]) -> '_Nothing[_Y]':
         return Nothing
 
-    def or_default(self, value: _T) -> _T:
+    def or_default(self, value: _Y) -> _Y:
         return value
 
 
