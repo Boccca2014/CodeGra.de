@@ -284,7 +284,7 @@ def test_data(db=None):
     ) as c:
         cs = json.load(c)
         for c in cs:
-            for row in c['rows']:
+            for i, row in enumerate(c['rows']):
                 assignment = m.Assignment.query.filter_by(
                     name=c['assignment']
                 ).first()
@@ -300,6 +300,7 @@ def test_data(db=None):
                             description=row['description'],
                             assignment=assignment,
                             rubric_row_type='normal',
+                            position=i,
                         )
                         db.session.add(rubric_row)
                     for item in row['items']:

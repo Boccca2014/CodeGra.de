@@ -707,7 +707,9 @@ def add_assignment_rubric(assignment_id: int
         with db.session.begin_nested():
             helpers.ensure_keys_in_dict(content, [('rows', list)])
             rows = t.cast(t.List[JSONType], content['rows'])
-            new_rubric_rows = [process_rubric_row(r) for r in rows]
+            new_rubric_rows = [
+                process_rubric_row(r, i) for i, r in enumerate(rows)
+            ]
             new_row_ids = set(
                 row.id for row in new_rubric_rows
                 # Primary keys can be `None`, but only while they are not yet
@@ -760,7 +762,7 @@ def add_assignment_rubric(assignment_id: int
     return jsonify(assig.rubric_rows)
 
 
-def process_rubric_row(row: JSONType) -> models.RubricRow:
+def process_rubric_row(row: JSONType, position: int) -> models.RubricRow:
     """Process a single rubric row updating or creating it.
 
     This function works on the input json data. It makes sure that the input
@@ -812,10 +814,10 @@ def process_rubric_row(row: JSONType) -> models.RubricRow:
         row_id = t.cast(int, row['id'])
         # This ensures the type is never changed.
         rubric_row = helpers.get_or_404(row_type, row_id)
-        rubric_row.update_from_json(header, desc, items)
+        rubric_row.update_from_json(header, desc, position, items)
         return rubric_row
     else:
-        return row_type.create_from_json(header, desc, items)
+        return row_type.create_from_json(header, desc, position, items)
 
 
 @api.route('/assignments/<int:assignment_id>/submission', methods=['POST'])

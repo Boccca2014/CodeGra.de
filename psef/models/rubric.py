@@ -289,6 +289,7 @@ class RubricRowBase(helpers.NotEqualMixin, Base):
         db.TIMESTAMP(timezone=True),
         default=DatetimeWithTimezone.utcnow
     )
+    position = db.Column('position', db.Integer, nullable=False)
     items = db.relationship(
         lambda: RubricItem,
         backref=db.backref("rubricrow"),
@@ -360,6 +361,7 @@ class RubricRowBase(helpers.NotEqualMixin, Base):
             assignment_id=self.assignment_id,
             items=[item.copy() for item in self.items],
             rubric_row_type=self.rubric_row_type,
+            position=self.position,
         )
 
     def is_selected(self) -> bool:
@@ -482,8 +484,11 @@ class RubricRowBase(helpers.NotEqualMixin, Base):
         self.items = new_items
 
     def update_from_json(
-        self, header: str, description: str,
-        items: t.List[RubricItem.JSONBaseSerialization]
+        self,
+        header: str,
+        description: str,
+        position: int,
+        items: t.List[RubricItem.JSONBaseSerialization],
     ) -> None:
         """Update this rubric in place.
 
@@ -501,12 +506,16 @@ class RubricRowBase(helpers.NotEqualMixin, Base):
         """
         self.header = header
         self.description = description
+        self.position = position
         self.update_items_from_json(items)
 
     @classmethod
     def create_from_json(
-        cls: t.Type['RubricRowBase'], header: str, description: str,
-        items: t.List[RubricItem.JSONBaseSerialization]
+        cls: t.Type['RubricRowBase'],
+        header: str,
+        description: str,
+        position: int,
+        items: t.List[RubricItem.JSONBaseSerialization],
     ) -> 'RubricRowBase':
         """Create a new rubric row for an assignment.
 
@@ -521,6 +530,7 @@ class RubricRowBase(helpers.NotEqualMixin, Base):
             header=header,
             description=description,
             description_type=RubricDescriptionType.markdown,
+            position=position,
         )
         self.update_items_from_json(items)
 
