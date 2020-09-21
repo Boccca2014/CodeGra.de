@@ -780,6 +780,10 @@ export default {
             storeLoadAutoTestResult: 'loadAutoTestResult',
         }),
 
+        ...mapActions('peer_feedback', {
+            storeLoadPeerFeedbackConnectionsForUser: 'loadConnectionsForUser',
+        }),
+
         loadData() {
             Promise.all([
                 this.storeLoadSingleAssignment({
@@ -793,6 +797,18 @@ export default {
                 }),
             ]).then(this.loadCurrentSubmissionData, error => {
                 this.error = error;
+            });
+        },
+
+        maybeLoadPeerFeedbackConnections() {
+            if (this.userId === this.$utils.getProps(this.submission, null, 'userId')) {
+                return Promise.resolve();
+            } else if (this.$utils.getProps(this.assignment, null, 'peer_feedback_settings') == null) {
+                return Promise.resolve();
+            }
+            return this.storeLoadPeerFeedbackConnectionsForUser({
+                userId: this.userId,
+                assignmentId: this.assignmentId,
             });
         },
 
@@ -853,6 +869,13 @@ export default {
                     assignmentId: this.assignmentId,
                     submissionId: this.submissionId,
                 }),
+                // We need to know if we are looking at a peer feedback subject
+                // of ours, because in that case we can probably give this
+                // student feedback.
+                //
+                // TODO: Don't do this load if it is not needed, e.g. if the
+                // current user is the teacher.
+                this.maybeLoadPeerFeedbackConnections(),
             ];
 
             // Load the AutoTest result of this submission. This must happen here because the

@@ -190,7 +190,6 @@ export default {
 
     .code {
         padding-right: 0;
-        overflow-x: hidden;
     }
 
     .inner-markdown-viewer,

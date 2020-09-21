@@ -260,7 +260,9 @@ action is required.${divEnd}`;
             // setInterval is not used as this might cause a large load on the
             // server. Now we know there is `timeoutTime` between each request.
             const cont = data => {
-                this.memberStates = data;
+                if (data != null) {
+                    this.memberStates = data;
+                }
                 this.updateStates = null;
                 if (this.showLtiProgress && !this.compDestroyed) {
                     this.updateStates = setTimeout(() => this.reloadGroupStates(), timeoutTime);
@@ -269,7 +271,8 @@ action is required.${divEnd}`;
 
             this.group
                 .getMemberStates(this.assignment.id)
-                .then(({ data }) => cont(data), ({ data }) => cont(data));
+                // TODO: Show error when request failed.
+                .then(({ data }) => cont(data), () => cont());
         },
 
         startEditTitle() {

@@ -1,15 +1,17 @@
 /* SPDX-License-Identifier: AGPL-3.0-only */
 import SnippetManager from '@/components/SnippetManager';
 import { shallowMount, createLocalVue } from '@vue/test-utils';
-import VueRouter from 'vue-router';
+import VDebounce from 'vue-debounce';
 import Vuex from 'vuex';
 import BootstrapVue from 'bootstrap-vue'
+import router from '@/router';
 
 jest.mock('axios');
 
 const localVue = createLocalVue();
 localVue.use(Vuex);
 localVue.use(BootstrapVue);
+localVue.use(VDebounce);
 
 const snippets = [
     { id: 1, key: 'key_abc', value: 'value_abc' },
@@ -82,6 +84,7 @@ describe('SnippetManager.vue', () => {
         });
 
         wrapper = shallowMount(SnippetManager, {
+            router,
             store,
             localVue,
             mocks: {
