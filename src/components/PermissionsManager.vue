@@ -110,7 +110,7 @@ import Icon from 'vue-awesome/components/Icon';
 import 'vue-awesome/icons/exclamation-triangle';
 import 'vue-awesome/icons/times';
 
-import { waitAtLeast } from '@/utils';
+import { Just, Nothing, waitAtLeast } from '@/utils';
 import { CoursePermission, GlobalPermission } from '@/permissions';
 
 import DescriptionPopover from './DescriptionPopover';
@@ -228,27 +228,35 @@ export default {
 
         getAllPermissions() {
             return this.$http.get(this.getRetrieveUrl(this.courseId)).then(({ data }) => {
-                const fields = [];
-                const items = [];
+                if (data.length === 0) {
+                    this.fields = [];
+                    this.items = [];
+                    return;
+                }
+
+                const fields = data.map(roleData => ({
+                    key: roleData.name,
+                    label: roleData.name,
+                    id: roleData.id,
+                    own: roleData.own,
+                }));
+
+                const items = this.$utils.filterMap(
+                    Object.entries(data[0].perms),
+                    ([name]) => {
+                        if (!this.$utils.hasAttr(this.permissionLookup, name)) {
+                            return Nothing;
+                        }
+                        return Just(Object.assign(
+                            { name },
+                            this.permissionLookup[name],
+                        ));
+                    },
+                );
 
                 data.forEach(roleData => {
-                    fields.push({
-                        key: roleData.name,
-                        label: roleData.name,
-                        id: roleData.id,
-                        own: roleData.own,
-                    });
-
-                    Object.entries(roleData.perms).forEach(([name, value], i) => {
-                        if (!this.$utils.hasAttr(this.permissionLookup, name)) {
-                            return;
-                        }
-                        if (!items[i]) {
-                            items[i] = Object.assign(
-                                { name },
-                                this.permissionLookup[name]);
-                        }
-                        items[i][roleData.name] = value;
+                    items.forEach(item => {
+                        item[roleData.name] = roleData.perms[item.value];
                     });
                 });
 
