@@ -2564,6 +2564,13 @@ class AutoTestRunner:
             )
             cont.run_command(['grep', CODEGRADE_USER, '/etc/sudoers'])
 
+            if self.config['AUTO_TEST_STARTUP_COMMAND'] is not None:
+                cont.run_command([
+                    'bash',
+                    '-c',
+                    self.config['AUTO_TEST_STARTUP_COMMAND'],
+                ])
+
         with timed_code('download_fixtures'):
             self.download_fixtures(cont)
 
