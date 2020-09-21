@@ -102,14 +102,19 @@ class PlagiarismMatch(Base):
 
         :returns: A object as described above.
         """
+        files = [self.file1, self.file2]
+        lines = [
+            (self.file1_start, self.file1_end),
+            (self.file2_start, self.file2_end)
+        ]
+        if self.plagiarism_case.works.own_work.id != self.file1.work_id:
+            files.reverse()
+            lines.reverse()
+
         return {
             'id': self.id,
-            'files': [self.file1, self.file2],
-            'lines':
-                [
-                    (self.file1_start, self.file1_end),
-                    (self.file2_start, self.file2_end)
-                ],
+            'files': files,
+            'lines': lines,
         }
 
 
