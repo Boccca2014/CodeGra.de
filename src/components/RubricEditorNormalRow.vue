@@ -357,6 +357,8 @@ input.points {
 </style>
 
 <style lang="less">
+@import '~mixins';
+
 .rubric-editor-row.normal {
     .input-group-append.rounded-bottom-0 .input-group-text {
         border-bottom-left-radius: 0 !important;
@@ -364,7 +366,7 @@ input.points {
     }
 
     .add-button [disabled] {
-        background-color: white !important;
+        .default-background;
     }
 }
 </style>

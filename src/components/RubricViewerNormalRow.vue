@@ -208,11 +208,19 @@ export default {
 
         &:hover {
             background-color: rgba(0, 0, 0, 0.09375);
+
+            @{dark-mode} {
+                background-color: rgba(0, 0, 0, 0.125);
+            }
         }
     }
 
     &.selected {
         background-color: rgba(0, 0, 0, 0.0625);
+
+        @{dark-mode} {
+            background-color: rgba(0, 0, 0, 0.09375);
+        }
     }
 
     .description {

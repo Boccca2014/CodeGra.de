@@ -17,14 +17,13 @@ const LabelledHr = tsx.component({
 
         const labelStyle = {
             position: 'absolute',
-            backgroundColor: 'white',
             transform: 'translateY(-50%)',
         };
 
         return <hr style={hrStyle}>
-            <small class="pr-2 d-inline-block text-muted font-italic"
+            <small class="pr-2 default-background text-muted"
                    style={labelStyle}>
-                {props.label}
+                <i>{props.label}</i>
             </small>
         </hr>;
     },

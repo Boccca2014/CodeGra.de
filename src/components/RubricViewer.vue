@@ -267,26 +267,36 @@ export default {
 <style lang="less">
 @import '~mixins.less';
 
-.rubric-viewer-row {
+.rubric-viewer {
     .nav-tabs .nav-link {
         padding: 0.25rem 0.5rem;
 
         &.active {
-            background-color: rgba(0, 0, 0, 0.0625);
+            background-color: rgba(0, 0, 0, 0.0625) !important;
             border-bottom-width: 0;
+
+            @{dark-mode} {
+                background-color: rgba(0, 0, 0, 0.09375) !important;
+            }
         }
 
         .badge {
             transform: translateY(-2px);
         }
     }
+}
 
+.rubric-viewer-row {
     .row-description {
         position: relative;
         max-height: 6.66rem;
         overflow: auto;
         line-height: 1.3;
         background-color: rgba(0, 0, 0, 0.0625);
+
+        @{dark-mode} {
+            background-color: rgba(0, 0, 0, 0.09375);
+        }
 
         .rubric-lock {
             position: sticky;
