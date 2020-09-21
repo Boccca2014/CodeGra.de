@@ -231,21 +231,24 @@ export default {
                 const fields = [];
                 const items = [];
 
-                data.forEach(item => {
+                data.forEach(roleData => {
                     fields.push({
-                        key: item.name,
-                        label: item.name,
-                        id: item.id,
-                        own: item.own,
+                        key: roleData.name,
+                        label: roleData.name,
+                        id: roleData.id,
+                        own: roleData.own,
                     });
 
-                    Object.entries(item.perms).forEach(([name, value], i) => {
+                    Object.entries(roleData.perms).forEach(([name, value], i) => {
+                        if (!this.$utils.hasAttr(this.permissionLookup, name)) {
+                            return;
+                        }
                         if (!items[i]) {
                             items[i] = Object.assign(
                                 { name },
                                 this.permissionLookup[name]);
                         }
-                        items[i][item.name] = value;
+                        items[i][roleData.name] = value;
                     });
                 });
 
