@@ -37,7 +37,7 @@
 
         <b-button-group v-else
                         v-b-popover.window.top.hover="openOrClosePopover">
-            <submit-button class="state-button larger state-hidden state-open"
+            <submit-button class="state-button larger state-hidden state-open text-nowrap"
                            :variant="ltiHiddenOpenVariant"
                            :duration="0"
                            confirm="true"
