@@ -74,98 +74,130 @@
 <div v-else
      class="rubric-editor"
      :class="{ grow, editable }">
-    <b-tabs no-fade
-            nav-class="border-0"
-            v-model="currentCategory">
-        <b-nav-item slot="tabs-end"
-                    class="add-row font-weight-bold"
-                    @click.prevent="createRow"
-                    href="#"
-                    v-b-popover.top.hover="'Click here to add a new category.'"
-                    v-if="editable">
-            <fa-icon name="plus" class="align-middle"/>
-        </b-nav-item>
+    <div class="d-flex flex-row mb-3">
+        <slick-list :value="rubricRows"
+                    lock-axis="y"
+                    lock-to-container-edges
+                    :distance="5"
+                    :should-cancel-start="() => !editable"
+                    @input="reorderRows"
+                    @sort-start="onSortStart"
+                    @sort-end="onSortEnd"
+                    class="category-list flex-grow-0">
+            <slick-item v-for="row, i in rubricRows"
+                        :key="`rubric-editor-${id}-row-${i}`"
+                        :index="i"
+                        class="category-item p-2 border border-right-0"
+                        :class="{
+                            grabbing: slickItemMoving,
+                            'text-muted font-italic': !row.header,
+                            'active': currentCategory === i,
+                            'rounded-left rounded-bottom-0': i === 0,
+                            'rounded-left rounded-top-0': !editable && i === rubricRows.length - 1,
+                        }"
+                        @click.native.capture="currentCategory = i">
+                <div class="d-inline-block mr-2"
+                     :title="{normal: 'Discrete', continuous: 'Continuous'}[row.type]">
+                    <fa-icon v-if="row.type === 'normal'"
+                             name="ellipsis-h"
+                             title="Discrete category" />
+                    <fa-icon v-else-if="row.type === 'continuous'"
+                             name="progress"
+                             title="Continuous category" />
+                    <div class="d-inline-block" style="width: 1rem" v-else />
+                </div>
 
-        <b-tab class="border px-3 pt-3 pb-0"
-               :class="{ 'rounded-bottom': editable, 'border-bottom-0': !editable }"
-               v-for="row, i in rubricRows"
-               :key="`rubric-${id}-${i}`">
+                <div class="flex-grow-1">
+                    <b-badge v-if="row.locked === 'auto_test'"
+                             title="This is an AutoTest category"
+                             variant="primary"
+                             class="float-right mt-1 ml-2">
+                        AT
+                    </b-badge>
+                    {{ row.header || 'Unnamed' }}
+                </div>
+            </slick-item>
 
-            <template #title>
-                <template v-if="row.header">
-                    {{ row.header }}
-                </template>
+            <template v-if="editable">
+                <b-button class="w-100 border border-right-0 rounded-right-0"
+                          :class="{ 'rounded-top-0': rubricRows.length > 0 }"
+                          @click="createRow">
+                    <fa-icon name="plus" /> Category
+                </b-button>
 
-                <span v-else
-                      class="text-muted font-italic">
-                    Unnamed
-                </span>
-
-                <b-badge v-if="row.locked === 'auto_test'"
-                         title="This is an AutoTest category"
-                         variant="primary"
-                         class="ml-1">
-                    AT
-                </b-badge>
+                <small class="d-block p-2 text-right text-muted">
+                    Reorder categories by dragging them up or down
+                </small>
             </template>
+        </slick-list>
 
+        <template v-if="rubricRows.length === 0">
+            <h4 v-if="editable"
+                slot="empty"
+                class="flex-grow-1 p-5 border rounded-right text-center text-muted">
+                Click "<fa-icon name="plus" /> Category" add a category.
+            </h4>
+        </template>
+
+        <div v-else
+             v-for="row in [rubricRows[currentCategory]]"
+             class="flex-grow-1 d-flex flex-column px-3 pt-2 border rounded-right rounded-bottom">
             <template v-if="row.type == '' && editable">
                 <h4 class="text-center py-2">Select the type of category</h4>
 
-                <div class="d-flex flex-row justify-content-center mb-3">
+                <div class="d-flex flex-row flex-grow-1 align-items-center justify-content-center mb-3">
                     <cg-wizard-button
                         label="Discrete"
                         icon="ellipsis-h"
-                        size="small"
-                        @click="setRowType(i, 'normal')" />
+                        size="medium"
+                        @click="setRowType(currentCategory, 'normal')" />
 
                     <cg-wizard-button
                         label="Continuous"
                         icon="progress"
-                        size="small"
-                        @click="setRowType(i, 'continuous')" />
+                        size="medium"
+                        @click="setRowType(currentCategory, 'continuous')" />
                 </div>
             </template>
 
-            <component
-                v-else-if="row.type !== ''"
-                :is="`rubric-editor-${row.type}-row`"
-                :value="row"
-                :assignment="assignment"
-                :auto-test="autoTestConfig"
-                :editable="editable"
-                :active="currentCategory === i"
-                @input="rowChanged(i, $event)"
-                @submit="() => $refs.submitButton.onClick()"
-                @delete="deleteRow(i)" />
+            <template v-else-if="row.type !== ''">
+                <component :is="`rubric-editor-${row.type}-row`"
+                           :value="row"
+                           :assignment="assignment"
+                           :auto-test="autoTestConfig"
+                           :editable="editable"
+                           active
+                           :grow="grow"
+                           @input="rowChanged(currentCategory, $event)"
+                           @submit="() => $refs.submitButton.onClick()"
+                           class="flex-grow-1"/>
+
+                <div v-if="editable"
+                     v-b-popover.top.hover="row.locked ? 'You cannot remove locked categories' : ''"
+                     class="align-self-start mb-3">
+                    <cg-submit-button variant="danger"
+                                      class="delete-category flex-grow-0"
+                                      :wait-at-least="0"
+                                      :submit="() => {}"
+                                      :disabled="!!row.locked"
+                                      @after-success="deleteRow(currentCategory)"
+                                      confirm="Do you really want to delete this category?">
+                        <fa-icon v-if="row.locked" name="lock" />
+                        Remove category
+                    </cg-submit-button>
+                </div>
+            </template>
 
             <b-alert v-else show variant="danger">
                 Something went wrong unexpectedly!
             </b-alert>
-        </b-tab>
-
-        <h4 v-if="editable"
-             slot="empty"
-             class="border rounded-bottom p-5 text-center text-muted">
-            Click the '+' above to add a category.
-        </h4>
-    </b-tabs>
+        </div>
+    </div>
 
     <template v-if="editable">
-        <b-alert v-if="showMaxPointsWarning"
-                 class="max-points-warning mt-3"
-                 variant="warning"
-                 show>
-            {{ maximumPointsWarningText }}
-        </b-alert>
-
-        <b-button-toolbar v-if="rubric"
-                          class="my-3 justify-content-center">
+        <b-form-group v-if="rubric"
+                      label="Points needed for a 10">
             <b-input-group class="max-points-input-group">
-                <b-input-group-prepend is-text>
-                    Points needed for a 10:
-                </b-input-group-prepend>
-
                 <input type="number"
                        min="0"
                        step="1"
@@ -192,7 +224,14 @@
                     </cg-description-popover>
                 </b-input-group-append>
             </b-input-group>
-        </b-button-toolbar>
+        </b-form-group>
+
+        <b-alert v-if="showMaxPointsWarning"
+                 class="max-points-warning mt-3"
+                 variant="warning"
+                 show>
+            {{ maximumPointsWarningText }}
+        </b-alert>
 
         <hr />
 
@@ -218,7 +257,7 @@
                                   confirm="By deleting a rubric the rubric and all grades given with it
                                        will be lost forever! So are you really sure?"
                                   confirm-in-modal>
-                    <fa-icon name="times"/>
+                    <fa-icon name="times"/> Delete
                 </cg-submit-button>
 
                 <cg-submit-button class="reset-rubric border-left rounded-left-0"
@@ -227,7 +266,7 @@
                                   :submit="resetRubric"
                                   confirm="Are you sure you want to revert your changes?"
                                   :disabled="serverData != null && rubricRows.length === 0">
-                    <fa-icon name="reply"/>
+                    <fa-icon name="reply"/> Reset
                 </cg-submit-button>
             </div>
 
@@ -373,9 +412,10 @@
         </b-button-toolbar>
     </template>
 
-    <p class="max-points border rounded-bottom p-3 mb-3" v-else>
+    <p class="max-points border rounded p-3 mb-3" v-else>
         To get a full mark you need to score
-        {{ internalFixedMaxPoints || rubricMaxPoints }} points in this rubric.
+        <b>{{ internalFixedMaxPoints || rubricMaxPoints }} points</b>
+        in this rubric.
     </p>
 </div>
 </template>
@@ -383,6 +423,7 @@
 <script>
 import Multiselect from 'vue-multiselect';
 import { mapActions, mapGetters } from 'vuex';
+import { SlickList, SlickItem } from 'vue-slicksort';
 
 import 'vue-awesome/icons/copy';
 import 'vue-awesome/icons/plus';
@@ -429,6 +470,8 @@ export default {
             loadingAssignments: false,
             loadAssignmentsError: '',
             showRubricImporter: false,
+
+            slickItemMoving: false,
 
             ValidationError,
         };
@@ -523,7 +566,7 @@ export default {
                     this.rubricMaxPoints
                 } rubric points.`;
             } else if (num > this.rubricMaxPoints) {
-                return `This means that it will not be possible to achieve a 10; a ${formatGrade(
+                return `This means that it will not be possible to achieve a 10; ${formatGrade(
                     this.rubricMaxPoints / num * 10,
                 )} will be the maximum achievable grade.`;
             } else {
@@ -582,6 +625,14 @@ export default {
                 acc.add(assigLike.courseId);
                 return acc;
             }, new Set());
+        },
+
+        canMoveLeft() {
+            return this.currentCategory > 0;
+        },
+
+        canMoveRight() {
+            return this.currentCategory < this.rubricRows.length - 1;
         },
     },
 
@@ -783,6 +834,10 @@ export default {
             }
 
             this.rubric = this.rubric.deleteRow(idx);
+
+            if (idx === rows.length - 1) {
+                this.currentCategory -= 1;
+            }
         },
 
         rowChanged(idx, rowData) {
@@ -801,12 +856,37 @@ export default {
             );
             return `${courseName} - ${assigLike.name}`;
         },
+
+        reorderRows(rows) {
+            this.ensureEditable();
+
+            this.rubric = this.rubric.setRows(rows);
+        },
+
+        onSortStart() {
+            this.slickItemMoving = true;
+        },
+
+        onSortEnd({ oldIndex, newIndex }) {
+            this.slickItemMoving = false;
+
+            const curr = this.currentCategory;
+            if (oldIndex === curr) {
+                this.currentCategory = newIndex;
+            } else if (oldIndex < curr && newIndex >= curr) {
+                this.currentCategory -= 1;
+            } else if (oldIndex > curr && newIndex <= curr) {
+                this.currentCategory += 1;
+            }
+        },
     },
 
     components: {
         RubricEditorNormalRow,
         RubricEditorContinuousRow,
         Multiselect,
+        SlickList,
+        SlickItem,
     },
 };
 </script>
@@ -822,6 +902,37 @@ export default {
 
 .wizard-button-container:not(:last-child) {
     margin-right: 1rem;
+}
+
+.category-list {
+    width: 12rem;
+}
+
+.category-item {
+    overflow: hidden;
+    z-index: 99999;
+    user-select: none;
+    cursor: grab;
+    background-color: rgba(255, 255, 255, 0.75);
+    display: flex;
+    flex-direction: row;
+    align-items: flex-start;
+
+    &:not(:last-child) {
+        margin-bottom: -1px;
+    }
+
+    &.active {
+        background-color: rgba(0, 0, 0, 0.0625);
+    }
+
+    &:hover {
+        background-color: rgba(0, 0, 0, 0.0925);
+    }
+}
+
+.grabbing {
+    cursor: grabbing;
 }
 
 input.max-points {
@@ -844,10 +955,6 @@ input.max-points {
             .primary-button-color;
             transition: background-color @transition-duration;
             color: white;
-        }
-
-        .badge {
-            transform: translateY(-2px);
         }
     }
 

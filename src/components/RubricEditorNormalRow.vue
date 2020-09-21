@@ -4,65 +4,58 @@
      @mouseenter="lockPopoverVisible = true"
      @mouseleave="lockPopoverVisible = false">
     <template v-if="editable">
-        <b-input-group class="mb-3">
-            <b-input-group-prepend is-text>
-                Category name
-            </b-input-group-prepend>
+        <b-form-group label="Category name">
+            <b-input-group>
+                <input class="category-name form-control"
+                       placeholder="Category name"
+                       :value="value.header"
+                       @input="updateProp($event, 'header')"
+                       @keydown.ctrl.enter="submitRubric" />
 
-            <input class="category-name form-control"
-                   placeholder="Category name"
-                   :value="value.header"
-                   @input="updateProp($event, 'header')"
-                   @keydown.ctrl.enter="submitRubric" />
+                <b-input-group-append v-if="value.locked"
+                                      class="cursor-help"
+                                      is-text
+                                      v-b-popover.top.hover="lockPopover">
+                    <fa-icon class="lock-icon" name="lock" />
+                </b-input-group-append>
+            </b-input-group>
+        </b-form-group>
 
-            <b-input-group-append v-if="value.locked"
-                                  class="cursor-help"
-                                  is-text
-                                  v-b-popover.top.hover="lockPopover">
-                <fa-icon class="lock-icon" name="lock" />
-            </b-input-group-append>
-
-            <b-input-group-append v-else>
-                <cg-submit-button variant="danger"
-                                  class="delete-category"
-                                  label="Remove category"
-                                  :wait-at-least="0"
-                                  :submit="() => {}"
-                                  @after-success="deleteRow"
-                                  confirm="Do you really want to delete this category?" />
-            </b-input-group-append>
-        </b-input-group>
-
-        <previewable-markdown-editor
-            class="category-description mb-3"
-            :rows="5"
-            placeholder="Category description"
-            :tabindex="active ? null : -1"
-            :value="value.description"
-            @input="updateProp($event, 'description')"
-            @submit="submitRubric"
-            :hide-toggle="!value.isMarkdown">
-            <template #empty>
-                No description...
-            </template>
-        </previewable-markdown-editor>
-
-        <labelled-hr label="Items" />
+        <b-form-group label="Category description">
+            <previewable-markdown-editor
+                class="category-description"
+                :rows="5"
+                placeholder="Category description"
+                :tabindex="active ? null : -1"
+                :value="value.description"
+                @input="updateProp($event, 'description')"
+                @submit="submitRubric"
+                :hide-toggle="!value.isMarkdown">
+                <template #empty>
+                    No description...
+                </template>
+            </previewable-markdown-editor>
+        </b-form-group>
     </template>
 
-    <div v-else
-         class="mb-3">
-        <template v-if="value.locked">
-            <b-popover :show="lockPopoverVisible"
-                       :target="`rubric-lock-${id}`"
-                       :content="lockPopover"
-                       triggers=""
-                       placement="top" />
+    <template v-else>
+        <h4 class="mb-3">
+            <!-- Put the lock before the header text so that the header text
+                 wraps around it rather than pushing the lock to a new line. -->
+            <template v-if="value.locked">
+                <b-popover :show="lockPopoverVisible"
+                           :target="`rubric-lock-${id}`"
+                           :content="lockPopover"
+                           triggers=""
+                           placement="top" />
 
-            <fa-icon name="lock"
-                     class="float-right"
-                     :id="`rubric-lock-${id}`" />
-        </template>
+                <fa-icon name="lock"
+                         class="mt-1 float-right"
+                         :id="`rubric-lock-${id}`" />
+            </template>
+
+            {{ value.header }}
+        </h4>
 
         <p v-if="!value.description"
            class="text-muted font-italic"
@@ -74,107 +67,107 @@
         <p v-else class="text-wrap-pre"
            >{{ value.description }}</p>
 
-        <labelled-hr label="Items" />
-    </div>
+        <hr />
+    </template>
 
-    <div class="item-container row d-flex flex-row flex-wrap">
-        <div v-for="item, i in value.items"
-             :key="item.id || -item.trackingId"
-             class="rubric-item col-12 col-md-6 col-xl-4 mb-3 d-flex flex-column"
-             ref="rubricItems">
-            <template v-if="editable">
-                <b-input-group>
-                    <input type="number"
-                           class="points form-control rounded-bottom-0 px-2"
-                           step="any"
-                           :tabindex="active ? null : -1"
-                           placeholder="Pts."
-                           :value="item.points"
-                           @input="updateItem(i, 'points', $event)"
-                           @keydown.ctrl.enter="submitRubric" />
+    <b-form-group :label="editable ? 'Category items' : ''"
+                  class="mb-0">
+        <div class="item-container d-flex flex-row flex-wrap">
+            <div v-for="item, i in value.items"
+                 :key="item.id || -item.trackingId"
+                 class="rubric-item col-12 col-md-6 col-xl-4 mb-3 d-flex flex-column"
+                 ref="rubricItems">
+                <template v-if="editable">
+                    <b-input-group>
+                        <input type="number"
+                               class="points form-control rounded-bottom-0 px-2"
+                               step="any"
+                               :tabindex="active ? null : -1"
+                               placeholder="Pts."
+                               :value="item.points"
+                               @input="updateItem(i, 'points', $event)"
+                               @keydown.ctrl.enter="submitRubric" />
 
-                    <input type="text"
-                           class="header form-control rounded-bottom-0"
-                           placeholder="Header"
-                           :tabindex="active ? null : -1"
-                           :value="item.header"
-                           @input="updateItem(i, 'header', $event)"
-                           @keydown.ctrl.enter="submitRubric" />
+                        <input type="text"
+                               class="header form-control rounded-bottom-0"
+                               placeholder="Header"
+                               :tabindex="active ? null : -1"
+                               :value="item.header"
+                               @input="updateItem(i, 'header', $event)"
+                               @keydown.ctrl.enter="submitRubric" />
 
-                    <b-input-group-append
-                        v-if="canChangeItems"
-                        is-text
-                        class="delete-item rounded-bottom-0 text-muted cursor-pointer"
-                        v-b-popover.top.hover="'Delete this item.'"
-                        @click="deleteItem(i)">
-                        <fa-icon name="times" />
-                    </b-input-group-append>
-                </b-input-group>
+                        <b-input-group-append
+                            v-if="canChangeItems"
+                            is-text
+                            class="delete-item rounded-bottom-0 text-muted cursor-pointer"
+                            v-b-popover.top.hover="'Delete this item.'"
+                            @click="deleteItem(i)">
+                            <fa-icon name="times" />
+                        </b-input-group-append>
+                    </b-input-group>
 
-                <previewable-markdown-editor
-                    class="description border-top-0 rounded-top-0"
-                    :rows="8"
-                    placeholder="Description"
-                    :tabindex="active ? null : -1"
-                    :value="item.description"
-                    @input="updateItem(i, 'description', $event)"
-                    @submit="submitRubric"
-                    :hide-toggle="!value.isMarkdown">
-                    <template #empty>
-                        No description...
-                    </template>
-                </previewable-markdown-editor>
-            </template>
+                    <previewable-markdown-editor
+                        class="description border-top-0 rounded-top-0"
+                        :rows="8"
+                        placeholder="Description"
+                        :tabindex="active ? null : -1"
+                        :value="item.description"
+                        @input="updateItem(i, 'description', $event)"
+                        @submit="submitRubric"
+                        :hide-toggle="!value.isMarkdown">
+                        <template #empty>
+                            No description...
+                        </template>
+                    </previewable-markdown-editor>
+                </template>
 
-            <template v-else>
-                <span class="flex-grow-0 px-1">
-                    <b class="points pr-1">{{ item.points }}</b>
-                    -
-                    <b class="header pl-1">{{ item.header }}</b>
-                </span>
+                <template v-else>
+                    <span class="flex-grow-0 px-1">
+                        <b class="points pr-1">{{ item.points }}</b>
+                        -
+                        <b class="header pl-1">{{ item.header }}</b>
+                    </span>
 
-                <p class="description flex-grow-1 border rounded mb-0 px-3 py-2">
-                    <span v-if="!item.description"
-                          class="text-muted font-italic">No description</span>
-                    <inner-markdown-viewer
-                        v-else-if="item.isMarkdown"
-                        :markdown="item.description" />
-                    <span v-else class="text-wrap-pre">{{ item.description }}</span>
-                </p>
-            </template>
-        </div>
+                    <!-- Weird formatting required for text-wrap-pre formatting. -->
+                    <p class="description flex-grow-1 border rounded mb-0 px-3 py-2 text-wrap-pre"
+                        ><template v-if="item.description">{{ item.description }}</template
+                        ><span v-else class="text-muted font-italic">No description.</span>
+                    </p>
+                </template>
+            </div>
 
-        <div v-if="canChangeItems"
-             class="rubric-item add-button col-12 col-md-6 col-xl-4 mb-3"
-             @click="createItem">
-            <div class="wrapper">
-                <b-input-group>
-                    <input type="number"
-                           class="points form-control rounded-bottom-0 px-2"
-                           step="any"
-                           placeholder="Pts."
-                           disabled />
+            <div v-if="canChangeItems"
+                 class="rubric-item add-button col-12 col-md-6 col-xl-4 mb-3"
+                 @click="createItem">
+                <div class="wrapper">
+                    <b-input-group>
+                        <input type="number"
+                               class="points form-control rounded-bottom-0 px-2"
+                               step="any"
+                               placeholder="Pts."
+                               disabled />
 
-                    <input type="text"
-                           class="header form-control rounded-bottom-0"
-                           placeholder="Header"
-                           disabled />
-                </b-input-group>
+                        <input type="text"
+                               class="header form-control rounded-bottom-0"
+                               placeholder="Header"
+                               disabled />
+                    </b-input-group>
 
-                <previewable-markdown-editor
-                    class="description border-top-0 rounded-top-0"
-                    value=""
-                    :rows="8"
-                    placeholder="Description"
-                    disabled
-                    :hide-toggle="!value.isMarkdown" />
+                    <previewable-markdown-editor
+                        class="description border-top-0 rounded-top-0"
+                        value=""
+                        :rows="8"
+                        placeholder="Description"
+                        disabled
+                        :hide-toggle="!value.isMarkdown" />
 
-                <div class="overlay rounded cursor-pointer">
-                    <fa-icon name="plus" :scale="3" />
+                    <div class="overlay rounded cursor-pointer">
+                        <fa-icon name="plus" :scale="3" />
+                    </div>
                 </div>
             </div>
         </div>
-    </div>
+    </b-form-group>
 </div>
 </template>
 
@@ -183,7 +176,6 @@ import 'vue-awesome/icons/times';
 import 'vue-awesome/icons/plus';
 import 'vue-awesome/icons/lock';
 
-import LabelledHr from './LabelledHr';
 import InnerMarkdownViewer from './InnerMarkdownViewer';
 import PreviewableMarkdownEditor from './PreviewableMarkdownEditor';
 
@@ -278,14 +270,9 @@ export default {
                 this.$emit('submit');
             });
         },
-
-        deleteRow() {
-            this.$emit('delete');
-        },
     },
 
     components: {
-        LabelledHr,
         InnerMarkdownViewer,
         PreviewableMarkdownEditor,
     },
@@ -296,12 +283,11 @@ export default {
 @import '~mixins.less';
 
 .item-container {
-    position: relative;
+    margin: 0 -0.5rem;
 }
 
-.item-container,
 .rubric-item {
-    padding: 0 0.5rem 0 0.5rem;
+    padding: 0 0.5rem;
 }
 
 .add-button .wrapper {

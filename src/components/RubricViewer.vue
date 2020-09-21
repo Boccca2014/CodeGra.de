@@ -6,11 +6,14 @@
     <b-tabs no-fade
             v-model="currentCategory">
         <b-tab v-for="row, i in rubric.rows"
-               :key="`rubric-${row.id}`">
+               :key="`rubric-${row.id}`"
+               title-link-class="d-flex flex-row align-items-center text-nowrap">
             <template #title>
-                <template v-if="row.header">
+                <span v-if="row.header"
+                     class="d-inline-block text-truncate"
+                     :title="row.header">
                     {{ row.header }}
-                </template>
+                </span>
 
                 <span v-else
                       class="text-muted font-italic">
@@ -268,7 +271,12 @@ export default {
 @import '~mixins.less';
 
 .rubric-viewer {
-    .nav-tabs .nav-link {
+    .nav-item {
+        max-width: 10rem;
+    }
+
+    .nav-link {
+        display: block;
         padding: 0.25rem 0.5rem;
 
         &.active {
@@ -279,10 +287,10 @@ export default {
                 background-color: rgba(0, 0, 0, 0.09375) !important;
             }
         }
+    }
 
-        .badge {
-            transform: translateY(-2px);
-        }
+    .tab-content {
+        padding-left: 0;
     }
 }
 

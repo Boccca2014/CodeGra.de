@@ -561,6 +561,36 @@ export class Rubric<T extends number | undefined | null> {
         rows[idx] = rowData;
         return new Rubric(rows);
     }
+
+    // eslint-disable-next-line class-methods-use-this
+    setRows(rows: ReadonlyArray<RubricRow<T>>) {
+        return new Rubric(rows);
+    }
+
+    moveRowLeft(idx: number) {
+        if (idx <= 0) {
+            return this;
+        }
+
+        const rows = this.rows.slice();
+        const [el] = rows.splice(idx, 1);
+        rows.splice(idx - 1, 0, el);
+
+        return new Rubric(rows);
+    }
+
+    moveRowRight(idx: number) {
+        if (idx >= this.rows.length - 1) {
+            console.log('nothing changed');
+            return this;
+        }
+
+        const rows = this.rows.slice();
+        const [el] = rows.splice(idx, 1);
+        rows.splice(idx + 1, 0, el);
+
+        return new Rubric(rows);
+    }
 }
 
 export interface RubricResultItemServerData extends RubricItemServerData {

@@ -4,86 +4,81 @@
      @mouseenter="lockPopoverVisible = true"
      @mouseleave="lockPopoverVisible = false">
     <template v-if="editable">
-        <b-input-group class="mb-3">
-            <b-input-group-prepend is-text>
-                Category name
-            </b-input-group-prepend>
+        <b-form-group label="Category name">
+            <b-input-group>
+                <input class="category-name form-control"
+                       placeholder="Category name"
+                       :value="value.header"
+                       @input="updateProp($event, 'header')"
+                       @keydown.ctrl.enter="submitRubric" />
 
-            <input class="category-name form-control"
-                   placeholder="Category name"
-                   :value="value.header"
-                   @input="updateProp($event, 'header')"
-                   @keydown.ctrl.enter="submitRubric" />
+                <b-input-group-append v-if="value.locked"
+                                      class="cursor-help"
+                                      is-text
+                                      v-b-popover.top.hover="lockPopover">
+                    <fa-icon class="lock-icon" name="lock" />
+                </b-input-group-append>
+            </b-input-group>
+        </b-form-group>
 
-            <b-input-group-append v-if="value.locked"
-                                  class="cursor-help"
-                                  is-text
-                                  v-b-popover.top.hover="lockPopover">
-                <fa-icon class="lock-icon" name="lock" />
-            </b-input-group-append>
+        <b-form-group label="Category description">
+            <previewable-markdown-editor
+                class="category-description"
+                :rows="5"
+                placeholder="Description"
+                :tabindex="active ? null : -1"
+                :value="value.description"
+                @input="updateProp($event, 'description')"
+                @submit="submitRubric"
+                :hide-toggle="!value.isMarkdown">
+                <template #empty>
+                    No description...
+                </template>
+            </previewable-markdown-editor>
+        </b-form-group>
 
-            <b-input-group-append v-else>
-                <cg-submit-button variant="danger"
-                                  class="delete-category"
-                                  label="Remove category"
-                                  :wait-at-least="0"
-                                  :submit="() => {}"
-                                  @after-success="$emit('delete')"
-                                  confirm="Do you really want to delete this category?" />
-            </b-input-group-append>
-        </b-input-group>
-
-        <b-input-group class="mb-3">
-            <b-input-group-prepend is-text>
-                Max points
-            </b-input-group-prepend>
-
+        <b-form-group label="Max points">
             <input class="points form-control"
                    type="number"
                    placeholder="Points"
                    :value="onlyItem.points"
                    @input="updatePoints"
                    @keydown.ctrl.enter="submitRubric" />
-        </b-input-group>
-
-        <previewable-markdown-editor
-            class="category-description mb-3"
-            :rows="5"
-            placeholder="Description"
-            :tabindex="active ? null : -1"
-            :value="value.description"
-            @input="updateProp($event, 'description')"
-            @submit="submitRubric"
-            :hide-toggle="!value.isMarkdown">
-            <template #empty>
-                No description...
-            </template>
-        </previewable-markdown-editor>
+        </b-form-group>
     </template>
 
     <div v-else>
-        <template v-if="value.locked">
-            <b-popover :show="lockPopoverVisible"
-                       :target="`rubric-lock-${id}`"
-                       :content="lockPopover"
-                       triggers=""
-                       placement="top" />
+        <h4 class="mb-3">
+            <!-- Put the lock before the header text so that the header text
+                 wraps around it rather than pushing the lock to a new line. -->
+            <template v-if="value.locked">
+                <b-popover :show="lockPopoverVisible"
+                           :target="`rubric-lock-${id}`"
+                           :content="lockPopover"
+                           triggers=""
+                           placement="top" />
 
-            <fa-icon name="lock"
-                     class="float-right"
-                     :id="`rubric-lock-${id}`" />
-        </template>
+                <fa-icon name="lock"
+                         class="mt-1 float-right"
+                         :id="`rubric-lock-${id}`" />
+            </template>
+
+            {{ value.header }}
+        </h4>
 
         <p v-if="!value.description"
-           class="mb-3 pb-3 border-bottom text-muted font-italic"
-           >This category has no description.</p>
+           class="mb-3 pb-3 text-muted font-italic">
+            This category has no description.
+        </p>
         <inner-markdown-viewer
             v-else-if="value.isMarkdown"
             :markdown="value.description" />
-        <p v-else class="mb-3 pb-3 border-bottom text-wrap-pre"
+        <p v-else class="mb-3 pb-3 text-wrap-pre"
            >{{ value.description }}</p>
 
-        <p class="mb-0 pb-3">
+        <hr />
+
+        <p>
             This is a continuous rubric category. You can score anywhere between
             <b>0</b> and <b>{{ onlyItem.points }} points</b> in this category.
         </p>
@@ -175,10 +170,6 @@ export default {
             this.$nextTick(() => {
                 this.$emit('submit');
             });
-        },
-
-        deleteRow() {
-            this.$emit('delete');
         },
     },
 
