@@ -181,6 +181,7 @@ export default {
                 const readable = availableAt.clone().local().calendar(this.$root.$now);
 
                 switch (this.assignment.state) {
+                case states.GRADING:
                 case states.SUBMITTING:
                 case states.OPEN:
                     base = `Openend ${readable}`;
@@ -196,6 +197,7 @@ export default {
                     }
                     break;
                 default:
+                    base = 'Unknown state';
                     break;
                 }
 
