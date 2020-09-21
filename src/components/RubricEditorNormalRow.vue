@@ -41,7 +41,11 @@
             :value="value.description"
             @input="updateProp($event, 'description')"
             @submit="submitRubric"
-            :hide-toggle="!value.isMarkdown" />
+            :hide-toggle="!value.isMarkdown">
+            <template #empty>
+                No description...
+            </template>
+        </previewable-markdown-editor>
 
         <labelled-hr label="Items" />
     </template>
@@ -115,7 +119,11 @@
                     :value="item.description"
                     @input="updateItem(i, 'description', $event)"
                     @submit="submitRubric"
-                    :hide-toggle="!value.isMarkdown" />
+                    :hide-toggle="!value.isMarkdown">
+                    <template #empty>
+                        No description...
+                    </template>
+                </previewable-markdown-editor>
             </template>
 
             <template v-else>

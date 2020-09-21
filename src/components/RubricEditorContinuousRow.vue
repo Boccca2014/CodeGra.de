@@ -54,7 +54,11 @@
             :value="value.description"
             @input="updateProp($event, 'description')"
             @submit="submitRubric"
-            :hide-toggle="!value.isMarkdown" />
+            :hide-toggle="!value.isMarkdown">
+            <template #empty>
+                No description...
+            </template>
+        </previewable-markdown-editor>
     </template>
 
     <div v-else>
