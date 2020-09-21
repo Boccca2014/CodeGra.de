@@ -868,6 +868,14 @@ def start_polling(config: 'psef.FlaskConfig') -> None:
                 ['apt', 'install', '-y', 'wget', 'curl', 'unzip'],
                 retry_amount=4,
             )
+        if config['AUTO_TEST_STARTUP_COMMAND'] is not None:
+            cont.run_command(
+                [
+                    'bash',
+                    '-c',
+                    config['AUTO_TEST_STARTUP_COMMAND'],
+                ]
+            )
 
         for _ in helpers.retry_loop(
             sys.maxsize,
@@ -2563,13 +2571,6 @@ class AutoTestRunner:
                        ).encode('utf8')
             )
             cont.run_command(['grep', CODEGRADE_USER, '/etc/sudoers'])
-
-            if self.config['AUTO_TEST_STARTUP_COMMAND'] is not None:
-                cont.run_command([
-                    'bash',
-                    '-c',
-                    self.config['AUTO_TEST_STARTUP_COMMAND'],
-                ])
 
         with timed_code('download_fixtures'):
             self.download_fixtures(cont)
