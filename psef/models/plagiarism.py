@@ -63,11 +63,13 @@ class PlagiarismMatch(Base):
         'plagiarism_case_id',
         db.Integer,
         db.ForeignKey('PlagiarismCase.id', ondelete='CASCADE'),
+        nullable=False,
     )
 
     plagiarism_case = db.relationship(
         lambda: PlagiarismCase,
         back_populates="matches",
+        foreign_keys=plagiarism_case_id,
         uselist=False,
     )
 
