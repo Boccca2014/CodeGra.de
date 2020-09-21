@@ -51,7 +51,7 @@ const PreviewableMarkdownEditor = tsx.component({
             () => <div class="border-top clearfix">
                 <a href="#"
                    onClick={m.prevent(() => this.preview = !this.preview)}
-                   class="px-2 float-right inline-link">
+                   class="preview-toggle px-2 float-right inline-link">
                     <small>Toggle preview</small>
                 </a>
             </div>,
