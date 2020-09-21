@@ -13,6 +13,7 @@ const PreviewableMarkdownEditor = tsx.component({
         placeholder: p(String).default(''),
         disabled: p(Boolean).default(false),
         tabindex: p.ofType<number | undefined>().default(undefined),
+        hideToggle: p(Boolean).default(false),
     },
 
     data() {
@@ -37,15 +38,20 @@ const PreviewableMarkdownEditor = tsx.component({
                           onKeyup={m.ctrl.enter(() => this.$emit('submit'))} />,
         );
 
-        return <div class="border rounded">
-            {innerViewer}
-            <div class="border-top clearfix">
+        let toggle = this.$utils.ifOrEmpty(
+            !this.hideToggle,
+            () => <div class="border-top clearfix">
                 <a href="#"
                    onClick={m.prevent(() => this.preview = !this.preview)}
                    class="px-2 float-right inline-link">
                     <small>Toggle preview</small>
                 </a>
-            </div>
+            </div>,
+        );
+
+        return <div class="border rounded">
+            {innerViewer}
+            {toggle}
         </div>;
     },
 });

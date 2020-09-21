@@ -47,21 +47,14 @@
         </b-input-group>
 
         <previewable-markdown-editor
-            v-if="value.isMarkdown"
             class="category-description mb-3"
+            :rows="5"
             placeholder="Description"
             :tabindex="active ? null : -1"
             :value="value.description"
             @input="updateProp($event, 'description')"
-            @submit="submitRubric" />
-        <textarea
-            v-else
-            class="category-description mb-3"
-            placeholder="Description"
-            :tabindex="active ? null : -1"
-            :value="value.description"
-            @input="updateProp($event, 'description')"
-            @keyup.ctrl.enter="submitRubric" />
+            @submit="submitRubric"
+            :hide-toggle="!value.isMarkdown" />
     </template>
 
     <div v-else>

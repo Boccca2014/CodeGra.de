@@ -34,22 +34,14 @@
         </b-input-group>
 
         <previewable-markdown-editor
-            v-if="value.isMarkdown"
             class="category-description mb-3"
+            :rows="5"
             placeholder="Category description"
             :tabindex="active ? null : -1"
             :value="value.description"
             @input="updateProp($event, 'description')"
-            @submit="submitRubric"/>
-        <textarea
-            v-else
-            class="category-description mb-3 form-control"
-            placeholder="Category description"
-            :tabindex="active ? null : -1"
-            :value="value.description"
-            @input="updateProp($event, 'description')"
-            @keyup.ctrl.enter="submitRubric"/>
-
+            @submit="submitRubric"
+            :hide-toggle="!value.isMarkdown" />
 
         <labelled-hr label="Items" />
     </template>
@@ -116,23 +108,14 @@
                 </b-input-group>
 
                 <previewable-markdown-editor
-                    v-if="value.isMarkdown"
                     class="description border-top-0 rounded-top-0"
                     :rows="8"
                     placeholder="Description"
                     :tabindex="active ? null : -1"
                     :value="item.description"
                     @input="updateItem(i, 'description', $event)"
-                    @submit="submitRubric" />
-                <textarea
-                    v-else
-                    class="description form-control border-top-0 rounded-top-0"
-                    :rows="8"
-                    placeholder="Description"
-                    :tabindex="active ? null : -1"
-                    :value="item.description"
-                    @input="updateItem(i, 'description', $event)"
-                    @keyup.ctrl.enter="submitRubric" />
+                    @submit="submitRubric"
+                    :hide-toggle="!value.isMarkdown" />
             </template>
 
             <template v-else>
@@ -153,7 +136,7 @@
             </template>
         </div>
 
-        <div v-if="editable && canChangeItems"
+        <div v-if="canChangeItems"
              class="rubric-item add-button col-12 col-md-6 col-xl-4 mb-3"
              @click="createItem">
             <div class="wrapper">
@@ -171,19 +154,12 @@
                 </b-input-group>
 
                 <previewable-markdown-editor
-                    v-if="value.isMarkdown"
                     class="description border-top-0 rounded-top-0"
                     value=""
                     :rows="8"
                     placeholder="Description"
-                    disabled />
-                <textarea
-                    v-else
-                    class="description form-control border-top-0 rounded-top-0"
-                    value=""
-                    :rows="8"
-                    placeholder="Description"
-                    disabled />
+                    disabled
+                    :hide-toggle="!value.isMarkdown" />
 
                 <div class="overlay rounded cursor-pointer">
                     <fa-icon name="plus" :scale="3" />
