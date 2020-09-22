@@ -17,7 +17,7 @@ interface SearchTerm<K> {
 type SearchRecord<K extends string> = Record<K, string> & Record<string, any>;
 
 // Special characters in a regex that must be escaped.
-const regexSpecial = /[\\.^$?*+([|{]/g;
+const regexSpecial = /[\\.^$?*+([|{)]/g;
 
 function regexEscape(str: string): string {
     return str.replace(regexSpecial, c => `\\${c}`);
@@ -38,10 +38,13 @@ export class Search<K extends string> {
         // TODO: More intelligent splitting of terms. Allow quoting to
         // represent a term containing whitespace? Search all keys except one/a
         // few?
-        const terms = query.split(/\s+/).map(t => this.makeTerm(t));
+        const terms = query
+            .split(/\s+/)
+            .filter(x => x)
+            .map(t => this.makeTerm(t));
 
         return items.filter(item =>
-            terms.every(term => term.keys.some(key => term.q.test(item[key]))),
+            terms.every(term => term.keys.some(key => term.q.test(item[key] || ''))),
         );
     }
 

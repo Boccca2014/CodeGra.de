@@ -111,6 +111,7 @@ import 'vue-awesome/icons/exclamation-triangle';
 import 'vue-awesome/icons/times';
 
 import { Just, Nothing, waitAtLeast } from '@/utils';
+import { Search } from '@/utils/search';
 import { CoursePermission, GlobalPermission } from '@/permissions';
 
 import DescriptionPopover from './DescriptionPopover';
@@ -175,17 +176,17 @@ export default {
             return res;
         },
 
+        itemsWithIndex() {
+            return this.items.map((item, index) => Object.assign({ index }, item));
+        },
+
         filteredIndices() {
-            const filter = (this.filter || '').toLocaleLowerCase();
-            return this.items.reduce((acc, perm, i) => {
-                if (
-                    perm.value.toLocaleLowerCase().indexOf(filter) >= 0 ||
-                    perm.name.toLocaleLowerCase().indexOf(filter) >= 0 ||
-                    perm.description.toLocaleLowerCase().indexOf(filter) >= 0 ||
-                    (perm.warning && perm.warning.toLocaleLowerCase().indexOf(filter) >= 0)
-                ) {
-                    acc.add(i);
-                }
+            const searcher = new Search(['value', 'name', 'description', 'warning']);
+
+            return searcher.search(
+                this.filter || '', this.itemsWithIndex,
+            ).reduce((acc, perm) => {
+                acc.add(perm.index);
                 return acc;
             }, new Set());
         },
