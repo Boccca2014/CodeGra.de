@@ -268,11 +268,13 @@
         <span class="s1">&#39;plagiarism_case_id&#39;</span><span class="p">,</span>
         <span class="n">db</span><span class="o">.</span><span class="n">Integer</span><span class="p">,</span>
         <span class="n">db</span><span class="o">.</span><span class="n">ForeignKey</span><span class="p">(</span><span class="s1">&#39;PlagiarismCase.id&#39;</span><span class="p">,</span> <span class="n">ondelete</span><span class="o">=</span><span class="s1">&#39;CASCADE&#39;</span><span class="p">),</span>
+        <span class="n">nullable</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
     <span class="p">)</span>
 
     <span class="n">plagiarism_case</span> <span class="o">=</span> <span class="n">db</span><span class="o">.</span><span class="n">relationship</span><span class="p">(</span>
         <span class="k">lambda</span><span class="p">:</span> <span class="n">PlagiarismCase</span><span class="p">,</span>
         <span class="n">back_populates</span><span class="o">=</span><span class="s2">&quot;matches&quot;</span><span class="p">,</span>
+        <span class="n">foreign_keys</span><span class="o">=</span><span class="n">plagiarism_case_id</span><span class="p">,</span>
         <span class="n">uselist</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
     <span class="p">)</span>
 
@@ -307,14 +309,19 @@
 
 <span class="sd">        :returns: A object as described above.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">files</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">file1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">file2</span><span class="p">]</span>
+        <span class="n">lines</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">file1_start</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">file1_end</span><span class="p">),</span>
+            <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">file2_start</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">file2_end</span><span class="p">)</span>
+        <span class="p">]</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">plagiarism_case</span><span class="o">.</span><span class="n">works</span><span class="o">.</span><span class="n">own_work</span><span class="o">.</span><span class="n">id</span> <span class="o">!=</span> <span class="bp">self</span><span class="o">.</span><span class="n">file1</span><span class="o">.</span><span class="n">work_id</span><span class="p">:</span>
+            <span class="n">files</span><span class="o">.</span><span class="n">reverse</span><span class="p">()</span>
+            <span class="n">lines</span><span class="o">.</span><span class="n">reverse</span><span class="p">()</span>
+
         <span class="k">return</span> <span class="p">{</span>
             <span class="s1">&#39;id&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">id</span><span class="p">,</span>
-            <span class="s1">&#39;files&#39;</span><span class="p">:</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">file1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">file2</span><span class="p">],</span>
-            <span class="s1">&#39;lines&#39;</span><span class="p">:</span>
-                <span class="p">[</span>
-                    <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">file1_start</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">file1_end</span><span class="p">),</span>
-                    <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">file2_start</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">file2_end</span><span class="p">)</span>
-                <span class="p">],</span>
+            <span class="s1">&#39;files&#39;</span><span class="p">:</span> <span class="n">files</span><span class="p">,</span>
+            <span class="s1">&#39;lines&#39;</span><span class="p">:</span> <span class="n">lines</span><span class="p">,</span>
         <span class="p">}</span></div>
 
 
