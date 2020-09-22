@@ -87,8 +87,9 @@
             <slick-item v-for="row, i in rubricRows"
                         :key="`rubric-editor-${id}-row-${i}`"
                         :index="i"
-                        class="category-item p-2 border border-right-0"
+                        class="category-item p-2 border border-right-0 cursor-pointer"
                         :class="{
+                            grab: editable,
                             grabbing: slickItemMoving,
                             'text-muted font-italic': !row.header,
                             'active': currentCategory === i,
@@ -929,10 +930,14 @@ export default {
     &:hover {
         background-color: rgba(0, 0, 0, 0.0925);
     }
-}
 
-.grabbing {
-    cursor: grabbing;
+    &.grab {
+        cursor: grab !important;
+    }
+
+    &.grabbing {
+        cursor: grabbing !important;
+    }
 }
 
 input.max-points {
