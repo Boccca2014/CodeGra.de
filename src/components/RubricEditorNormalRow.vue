@@ -26,7 +26,6 @@
                 class="category-description"
                 :rows="5"
                 placeholder="Category description"
-                :tabindex="active ? null : -1"
                 :value="value.description"
                 @input="updateProp($event, 'description')"
                 @submit="submitRubric"
@@ -82,7 +81,6 @@
                         <input type="number"
                                class="points form-control rounded-bottom-0 px-2"
                                step="any"
-                               :tabindex="active ? null : -1"
                                placeholder="Pts."
                                :value="item.points"
                                @input="updateItem(i, 'points', $event)"
@@ -91,7 +89,6 @@
                         <input type="text"
                                class="header form-control rounded-bottom-0"
                                placeholder="Header"
-                               :tabindex="active ? null : -1"
                                :value="item.header"
                                @input="updateItem(i, 'header', $event)"
                                @keydown.ctrl.enter="submitRubric" />
@@ -110,7 +107,6 @@
                         class="description border-top-0 rounded-top-0"
                         :rows="8"
                         placeholder="Description"
-                        :tabindex="active ? null : -1"
                         :value="item.description"
                         @input="updateItem(i, 'description', $event)"
                         @submit="submitRubric"
@@ -196,10 +192,6 @@ export default {
             default: null,
         },
         editable: {
-            type: Boolean,
-            default: false,
-        },
-        active: {
             type: Boolean,
             default: false,
         },

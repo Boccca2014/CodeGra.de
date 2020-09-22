@@ -26,7 +26,6 @@
                 class="category-description"
                 :rows="5"
                 placeholder="Description"
-                :tabindex="active ? null : -1"
                 :value="value.description"
                 @input="updateProp($event, 'description')"
                 @submit="submitRubric"
@@ -109,10 +108,6 @@ export default {
             default: null,
         },
         editable: {
-            type: Boolean,
-            default: false,
-        },
-        active: {
             type: Boolean,
             default: false,
         },
