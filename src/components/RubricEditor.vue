@@ -916,6 +916,7 @@ export default {
 
 .category-list {
     width: 12rem;
+    font-size: 90%;
 }
 
 .category-item {
