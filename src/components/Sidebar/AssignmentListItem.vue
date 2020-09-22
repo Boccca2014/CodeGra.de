@@ -11,7 +11,6 @@
                 :badge-variant="examBadgeVariant" />
             <assignment-date
                 :assignment="assignment"
-                :now="$root.$now"
                 relative />
         </div>
 
@@ -33,7 +32,6 @@
 
             <assignment-date
                 :assignment="assignment"
-                :now="$root.$now"
                 relative />
         </template>
     </router-link>

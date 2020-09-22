@@ -6,14 +6,17 @@ import { Moment } from 'moment';
 import * as models from '@/models';
 import { Variant, isVariant } from '@/types';
 import * as utils from '@/utils';
+import * as components from '@/components';
 
 function renderAvailableAt(
     h: CreateElement,
     assignment: models.Assignment,
     relative: boolean,
 ) {
-    if (relative) {
-        return ['Starts ', <cg-relative-time date={assignment.availableAt} />];
+    // We know that this is never `null` (because of the check in `render`) but
+    // we cannot guarentee it to typescript.
+    if (relative && assignment.availableAt != null) {
+        return ['Starts ', <components.RelativeTime date={assignment.availableAt} />];
     } else {
         return ['Starts on ', assignment.getFormattedAvailableAt()];
     }
@@ -25,7 +28,7 @@ function renderDeadline(
     relative: boolean,
 ) {
     if (relative) {
-        return ['Due ', <cg-relative-time date={assignment.deadline} />];
+        return ['Due ', <components.RelativeTime date={assignment.deadline} />];
     } else {
         return ['Due at ', assignment.getFormattedDeadline()];
     }
@@ -36,13 +39,13 @@ const AssignmentDate = tsx.component({
 
     props: {
         assignment: p.ofType<models.Assignment>().required,
-        now: p.ofType<Moment>().required,
         relative: p(Boolean).default(false),
         Tag: p(String).default('small'),
     },
 
-    render(h, { data, props }) {
-        const { assignment, now, relative, Tag } = props;
+    render(h, { data, props, parent }) {
+        const { assignment, relative, Tag } = props;
+        const now = parent.$root.$now;
 
         let content;
         if (assignment.isNotStartedExam(now)) {

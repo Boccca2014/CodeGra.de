@@ -1,4 +1,7 @@
 /* SPDX-License-Identifier: AGPL-3.0-only */
+// @ts-nocheck
+
+export { default as RelativeTime } from './RelativeTime';
 export { default as AssignmentDate } from './AssignmentDate';
 export { default as AssignmentName } from './AssignmentName';
 export { default as AssignmentState } from './AssignmentState';

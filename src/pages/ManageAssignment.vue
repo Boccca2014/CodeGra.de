@@ -14,7 +14,6 @@
 
             <assignment-date
                 :assignment="assignment"
-                :now="$root.$now"
                 class="text-muted" />
         </template>
 
