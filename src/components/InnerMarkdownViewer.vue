@@ -111,7 +111,7 @@ export default {
     }
 
     pre {
-        padding: 0.75rem 1.25rem;
+        padding: 0.5rem 1rem;
         background-color: @color-lightest-gray;
         border-radius: 0.25rem;
         font-size: 100%;
