@@ -20,30 +20,37 @@ const PreviewableMarkdownEditor = tsx.component({
         return { preview: false };
     },
 
+    methods: {
+        renderPreview(h: CreateElement) {
+            return this.$utils.ifExpr(
+                !!this.value,
+                () => <InnerMarkdownViewer
+                    markdown={this.value}
+                    class="px-3 py-2" />,
+                () => <div class="empty px-3 py-2 text-muted font-italic">
+                    {this.$slots.empty || 'Field is empty...'}
+                </div>,
+            );
+        },
+
+        renderEditor(h: CreateElement) {
+            return <textarea
+                value={this.value}
+                class="form-control border-0"
+                rows={this.rows}
+                placeholder={this.placeholder}
+                tabindex={this.tabindex}
+                disabled={this.disabled}
+                onInput={$event => this.$emit('input', $event)}
+                onKeyup={m.ctrl.enter(() => this.$emit('submit'))} />;
+        },
+    },
+
     render(h: CreateElement) {
         const innerViewer = this.$utils.ifExpr(
             this.preview,
-            () => this.$utils.ifExpr(
-                !!this.value,
-                () =>
-                    <InnerMarkdownViewer
-                        markdown={this.value}
-                        class="px-3 py-2" />,
-                () =>
-                    <div class="empty px-3 py-2 text-muted font-italic">
-                        {this.$slots.empty || 'Field is empty...'}
-                    </div>,
-            ),
-            () =>
-                <textarea
-                    value={this.value}
-                    class="form-control border-0"
-                    rows={this.rows}
-                    placeholder={this.placeholder}
-                    tabindex={this.tabindex}
-                    disabled={this.disabled}
-                    onInput={$event => this.$emit('input', $event)}
-                    onKeyup={m.ctrl.enter(() => this.$emit('submit'))} />,
+            () => this.renderPreview(h),
+            () => this.renderEditor(h),
         );
 
         let toggle = this.$utils.ifOrEmpty(
