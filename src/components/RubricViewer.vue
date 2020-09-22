@@ -271,9 +271,7 @@ export default {
 @import '~mixins.less';
 
 .rubric-viewer {
-    .nav-item {
-        max-width: 10rem;
-    }
+    font-size: 90%;
 
     .nav-link {
         display: block;
