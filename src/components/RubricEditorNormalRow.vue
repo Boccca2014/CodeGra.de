@@ -56,15 +56,14 @@
             {{ value.header }}
         </h4>
 
-        <p v-if="!value.description"
-           class="text-muted font-italic"
-           >This category has no description.</p>
-        <inner-markdown-viewer
-            v-else-if="value.isMarkdown"
-            :markdown="value.description"
-            class="mb-3" />
-        <p v-else class="text-wrap-pre"
-           >{{ value.description }}</p>
+        <template v-if="value.description">
+            <inner-markdown-viewer
+                v-if="value.isMarkdown"
+                :markdown="value.description"
+                class="mb-3" />
+            <p v-else class="text-wrap-pre"
+               >{{ value.description }}</p>
+        </template>
 
         <hr />
     </template>

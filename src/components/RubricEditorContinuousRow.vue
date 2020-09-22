@@ -46,7 +46,7 @@
         </b-form-group>
     </template>
 
-    <div v-else>
+    <template v-else>
         <h4 class="mb-3">
             <!-- Put the lock before the header text so that the header text
                  wraps around it rather than pushing the lock to a new line. -->
@@ -65,23 +65,22 @@
             {{ value.header }}
         </h4>
 
-        <p v-if="!value.description"
-           class="mb-3 pb-3 text-muted font-italic">
-            This category has no description.
-        </p>
-        <inner-markdown-viewer
-            v-else-if="value.isMarkdown"
-            :markdown="value.description" />
-        <p v-else class="mb-3 pb-3 text-wrap-pre"
-           >{{ value.description }}</p>
+        <template v-if="value.description">
+            <inner-markdown-viewer
+                v-if="value.isMarkdown"
+                :markdown="value.description" />
+            <p v-else class="mb-3 text-wrap-pre"
+               >{{ value.description }}</p>
+        </template>
 
         <hr />
 
         <p>
-            This is a continuous rubric category. You can score anywhere between
-            <b>0</b> and <b>{{ onlyItem.points }} points</b> in this category.
+            This is a continuous rubric category. You can score anywhere
+            between <b>0</b> and <b>{{ onlyItem.points }} points</b> in this
+            category.
         </p>
-    </div>
+    </template>
 </div>
 </template>
 
