@@ -161,37 +161,35 @@
                 </div>
             </template>
 
-            <template v-else-if="row.type !== ''">
-                <component :is="`rubric-editor-${row.type}-row`"
-                           :value="row"
-                           :assignment="assignment"
-                           :auto-test="autoTestConfig"
-                           :editable="editable"
-                           active
-                           :grow="grow"
-                           @input="rowChanged(currentCategory, $event)"
-                           @submit="() => $refs.submitButton.onClick()"
-                           class="flex-grow-1"/>
-
-                <div v-if="editable"
-                     v-b-popover.top.hover="row.locked ? 'You cannot remove locked categories' : ''"
-                     class="align-self-start mb-3">
-                    <cg-submit-button variant="danger"
-                                      class="delete-category flex-grow-0"
-                                      :wait-at-least="0"
-                                      :submit="() => {}"
-                                      :disabled="!!row.locked"
-                                      @after-success="deleteRow(currentCategory)"
-                                      confirm="Do you really want to delete this category?">
-                        <fa-icon v-if="row.locked" name="lock" />
-                        Remove category
-                    </cg-submit-button>
-                </div>
-            </template>
+            <component v-else-if="row.type !== ''"
+                       :is="`rubric-editor-${row.type}-row`"
+                       :value="row"
+                       :assignment="assignment"
+                       :auto-test="autoTestConfig"
+                       :editable="editable"
+                       :grow="grow"
+                       @input="rowChanged(currentCategory, $event)"
+                       @submit="() => $refs.submitButton.onClick()"
+                       class="flex-grow-1"/>
 
             <b-alert v-else show variant="danger">
                 Something went wrong unexpectedly!
             </b-alert>
+
+            <div v-if="editable"
+                 v-b-popover.top.hover="row.locked ? 'You cannot remove locked categories' : ''"
+                 class="align-self-start mb-3">
+                <cg-submit-button variant="danger"
+                                  class="delete-category flex-grow-0"
+                                  :wait-at-least="0"
+                                  :submit="() => {}"
+                                  :disabled="!!row.locked"
+                                  @after-success="deleteRow(currentCategory)"
+                                  confirm="Do you really want to delete this category?">
+                    <fa-icon v-if="row.locked" name="lock" />
+                    Remove category
+                </cg-submit-button>
+            </div>
         </div>
     </div>
 
