@@ -18,16 +18,6 @@ const processCase = (run, serverCase) => {
         return Object.assign({ course: run.courses[assig.course_id] }, assig);
     });
 
-    if (serverCase.assignments[0].id !== run.assignment.id) {
-        serverCase.assignments.reverse();
-        serverCase.assignment_ids.reverse();
-        serverCase.users.reverse();
-
-        if (serverCase.submissions != null) {
-            serverCase.submissions.reverse();
-        }
-    }
-
     serverCase.canView = serverCase.can_see_details;
     if (!serverCase.canView) {
         // eslint-disable-next-line
