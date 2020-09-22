@@ -38,7 +38,7 @@ const PreviewableMarkdownEditor = tsx.component({
                 value={this.value}
                 class="form-control border-0"
                 rows={this.rows}
-                placeholder={this.placeholder}
+                placeholder={`${this.placeholder} (this field supports markdown)`}
                 tabindex={this.tabindex}
                 disabled={this.disabled}
                 onInput={$event => this.$emit('input', $event)}
