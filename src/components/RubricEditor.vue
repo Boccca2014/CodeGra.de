@@ -918,10 +918,8 @@ export default {
 }
 
 .category-item {
-    overflow: hidden;
     z-index: 99999;
     user-select: none;
-    cursor: grab;
     background-color: rgba(255, 255, 255, 0.75);
     display: flex;
     flex-direction: row;
