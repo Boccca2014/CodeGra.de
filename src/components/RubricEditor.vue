@@ -136,7 +136,14 @@
             <h4 v-if="editable"
                 slot="empty"
                 class="no-categories flex-grow-1 mb-0 p-5 border rounded-right rounded-bottom text-center text-muted">
-                Click "<fa-icon name="plus" /> Category" add a category.
+                Click
+                <b-button size="lg"
+                          class="add-row mx-2"
+                          style="font-size: 1em"
+                          @click="createRow">
+                    <fa-icon name="plus" /> Category
+                </b-button>
+                to add a category.
             </h4>
         </template>
 
