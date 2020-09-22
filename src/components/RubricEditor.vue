@@ -120,7 +120,7 @@
             </slick-item>
 
             <template v-if="editable">
-                <b-button class="w-100 border border-right-0 rounded-right-0"
+                <b-button class="add-row w-100 border border-right-0 rounded-right-0"
                           :class="{ 'rounded-top-0': rubricRows.length > 0 }"
                           @click="createRow">
                     <fa-icon name="plus" /> Category
@@ -135,7 +135,7 @@
         <template v-if="rubricRows.length === 0">
             <h4 v-if="editable"
                 slot="empty"
-                class="flex-grow-1 p-5 border rounded-right text-center text-muted">
+                class="no-categories flex-grow-1 mb-0 p-5 border rounded-right rounded-bottom text-center text-muted">
                 Click "<fa-icon name="plus" /> Category" add a category.
             </h4>
         </template>
@@ -574,7 +574,7 @@ export default {
                     this.rubricMaxPoints
                 } rubric points.`;
             } else if (num > this.rubricMaxPoints) {
-                return `This means that it will not be possible to achieve a 10; ${formatGrade(
+                return `This means that it will not be possible to achieve a 10; a ${formatGrade(
                     this.rubricMaxPoints / num * 10,
                 )} will be the maximum achievable grade.`;
             } else {
