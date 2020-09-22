@@ -198,6 +198,29 @@
     <template v-if="editable">
         <b-form-group v-if="rubric"
                       label="Points needed for a 10">
+            <template #description>
+                The number of points a student must achieve in this rubric to
+                achieve the maximum grade.
+
+                <cg-description-popover hug-text placement="top">
+                    <p class="mb-2">
+                        By default students must achieve the top item in each
+                        discrete category and 100% in each continuous category.
+                    </p>
+
+                    <p class="mb-2">
+                        Setting this lower than the maximum amount of points
+                        possible for this rubric makes it easier to achieve the
+                        maximum grade.
+                    </p>
+
+                    <p class="mb-0">
+                        Values higher than the maximum amount of points make it
+                        impossible to achieve the maximum grade.
+                    </p>
+                </cg-description-popover>
+            </template>
+
             <b-input-group class="max-points-input-group">
                 <input type="number"
                        min="0"
@@ -209,20 +232,6 @@
 
                 <b-input-group-append is-text>
                     out of {{ rubricMaxPoints }}
-
-                    <cg-description-popover hug-text placement="top">
-                        The number of points a student must achieve in this
-                        rubric to achieve the maximum grade. By default students
-                        must achieve the top item in each discrete category and
-                        100% in each continuous category.<br>
-
-                        Setting this lower than the maximum amount of points
-                        possible for this rubric makes it easier to achieve the
-                        maximum grade.<br>
-
-                        Values higher than the maximum amount of points make it
-                        impossible to achieve the maximum grade.
-                    </cg-description-popover>
                 </b-input-group-append>
             </b-input-group>
         </b-form-group>
