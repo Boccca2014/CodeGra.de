@@ -5,16 +5,16 @@
      @mouseenter="lockPopoverVisible = true"
      @mouseleave="lockPopoverVisible = false">
     <div class="row-description d-flex border-bottom">
-        <p v-if="!rubricRow.description"
-           class="flex-grow-1 my-2 px-3 text-muted font-italic"
-           >This category has no description</p>
-        <inner-markdown-viewer
-           v-else-if="rubricRow.isMarkdown"
-           :markdown="rubricRow.description"
-           class="flex-grow-1 my-2 px-3" />
-        <p v-else
-           class="flex-grow-1 my-2 px-3 text-wrap-pre"
-           >{{ rubricRow.description }}</p>
+        <p class="flex-grow-1 my-2 px-3">
+            <b>{{ rubricRow.header }}</b>
+
+            <inner-markdown-viewer
+                v-if="rubricRow.isMarkdown"
+                :markdown="rubricRow.description" />
+            <span v-else
+               class="d-block text-wrap-pre"
+               >{{ rubricRow.description }}</span>
+        </p>
 
         <template v-if="locked">
             <!-- Due to a rendering issue in edge, giving the icon
