@@ -97,7 +97,8 @@
                             'rounded-left rounded-top-0': !editable && i === rubricRows.length - 1,
                         }"
                         @click.native.capture="currentCategory = i">
-                <div class="d-inline-block mr-2"
+                <div class="d-inline-block mr-2 text-center"
+                     style="width: 1rem"
                      :title="{normal: 'Discrete', continuous: 'Continuous'}[row.type]">
                     <fa-icon v-if="row.type === 'normal'"
                              name="ellipsis-h"
@@ -105,7 +106,6 @@
                     <fa-icon v-else-if="row.type === 'continuous'"
                              name="progress"
                              title="Continuous category" />
-                    <div class="d-inline-block" style="width: 1rem" v-else />
                 </div>
 
                 <div class="flex-grow-1">
