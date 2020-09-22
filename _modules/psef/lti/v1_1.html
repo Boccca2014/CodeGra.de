@@ -706,6 +706,12 @@
     <span class="k">def</span> <span class="nf">_roles</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
                <span class="n">role_type</span><span class="p">:</span> <span class="n">t</span><span class="o">.</span><span class="n">Type</span><span class="p">[</span><span class="n">T_LTI_ROLE</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">t</span><span class="o">.</span><span class="n">Sequence</span><span class="p">[</span><span class="n">T_LTI_ROLE</span><span class="p">]:</span>
         <span class="n">roles</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_unsorted_roles</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">role_type</span><span class="p">)</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
+            <span class="s1">&#39;Getting roles for LTI 1.1&#39;</span><span class="p">,</span>
+            <span class="n">role_type</span><span class="o">=</span><span class="n">role_type</span><span class="o">.</span><span class="vm">__name__</span><span class="p">,</span>
+            <span class="n">found_raw_roles</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">launch_params</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">key</span><span class="p">),</span>
+            <span class="n">parsed_roles</span><span class="o">=</span><span class="n">roles</span><span class="p">,</span>
+        <span class="p">)</span>
         <span class="n">roles</span><span class="o">.</span><span class="n">sort</span><span class="p">(</span><span class="n">reverse</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">roles</span>
 
