@@ -328,6 +328,13 @@ def test_jplag(
             )
             assert len(case['matches']
                        ) == len(row[4:]) / 6, "Amount matches match"
+            for match in case['matches']:
+                assert len(match['files']) == 2
+                assert len(case['submissions']) == 2
+                for cfile, sub in zip(match['files'], case['submissions']):
+                    assert (
+                        models.File.query.get(cfile['id']).work_id == sub['id']
+                    )
 
         # Limit without offset should mean a offset of 0
         test_client.req(

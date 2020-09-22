@@ -182,7 +182,7 @@
                     :key="`file-comparison-${key}-${getFromFileTree(key == 'self' ? tree1 : tree2, file)}`"
                     :header="file.file_name"
                     :ref="`file-comparison-${key}-${getFromFileTree(key == 'self' ? tree1 : tree2, file)}`">
-                <router-link v-if="detail.assignments[key == 'self' ? 0 : 1].id == assignment.id"
+                <router-link v-if="detail.assignment_ids[key == 'self' ? 0 : 1] == assignment.id"
                              slot="header"
                              :to="fileRoute(file, key == 'self' ? 0 : 1)">
                              {{ getFromFileTree(key == 'self' ? tree1 : tree2, file) }}
@@ -599,11 +599,15 @@ export default {
         },
 
         fileRoute(file, index) {
+            // We only generate file links to files from the same assignment.
+            if (this.detail.assignment_ids[index] !== this.assignmentId) {
+                return {};
+            }
             return {
                 name: 'submission_file',
                 params: {
-                    courseId: this.detail.assignments[index].course_id,
-                    assignmentId: this.detail.assignments[index].id,
+                    courseId: this.assignment.courseId,
+                    assignmentId: this.assignment.id,
                     submissionId: this.detail.submissions[index].id,
                     fileId: file.id,
                 },
@@ -650,21 +654,17 @@ export default {
             await this.loadPlagiarismRun(this.plagiarismRunId);
 
             this.$http
-                .get(`/api/v1/plagiarism/${this.plagiarismRunId}/cases/${this.plagiarismCaseId}?no_course_in_assignment=true`)
+                .get(this.$utils.buildUrl(
+                    ['api', 'v1', 'plagiarism', this.plagiarismRunId, 'cases', this.plagiarismCaseId],
+                    {
+                        query: {
+                            no_course_in_assignment: true,
+                            no_assignment_in_case: true,
+                        },
+                    },
+                ))
                 .then(
                     ({ data }) => {
-                        if (data.assignments[0].id !== this.assignmentId) {
-                            data.users.reverse();
-                            data.assignments.reverse();
-                            data.submissions.reverse();
-
-                            for (let i = 0, l = data.matches.length; i < l; i++) {
-                                const match = data.matches[i];
-                                match.files.reverse();
-                                match.lines.reverse();
-                            }
-                        }
-
                         data.userIds = data.users.map(
                             user => this.$utils.getProps(user, null, 'id'),
                         );
