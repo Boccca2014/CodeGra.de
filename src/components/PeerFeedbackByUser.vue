@@ -1,5 +1,5 @@
 <template>
-<div v-if="!assignment.deadlinePassed()"
+<div v-if="!assignment.deadlinePassed($root.$now)"
      class="p-3 border rounded text-muted font-italic">
     <p>
         Peer feedback will be available once the deadline for this assignment has
