@@ -179,7 +179,7 @@ export default class FeedbackArea extends Vue {
         const replies = this.nonDeletedReplies;
         return (
             !this.nonEditable &&
-            FeedbackLine.canAddReply(this.submission) &&
+            FeedbackLine.canAddReply(this.submission, this.$root.$now) &&
             replies.length > 0 && !replies[replies.length - 1].isEmpty
         );
     }
