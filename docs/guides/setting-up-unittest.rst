@@ -1,3 +1,5 @@
+.. _setting-up-unit-tests:
+
 Setting up Unit Tests
 =====================
 
@@ -22,23 +24,15 @@ Compatibility scripts
 
 For most unit testing frameworks it is necessary to install additional software
 and to figure out how to make the framework output its results to the correct
-location. We provide wrapper scripts for a growing list of frameworks at our
-`AutoTest Examples <https://github.com/CodeGra-de/AutoTest-examples>`__ GitHub
-repository that handle all of this for you. Is your preferred testing framework
-not listed or does a script not work as you need it to? Please send an email
-to `support@codegrade.com <mailto:support@codegrade.com>`__ so we can discuss the
+location. We provide wrapper scripts for a growing list of frameworks that
+handle all of this for you. Want to know if your preferred testing framework is
+supported, or does a script not work as you need it to? Please send an email to
+`support@codegrade.com <mailto:support@codegrade.com>`__ so we can discuss the
 possibilities!
 
 All wrapper scripts have a similar interface and procedure for running tests.
 To see the options and commands provided by a script run it with the ``--help``
 flag.
-
-Initial setup
-~~~~~~~~~~~~~
-
-Upload the wrapper script and the other files in the ``fixtures`` subdirectory
-of the testing framework as fixtures to your AutoTest setup.  Also upload the
-test files that you want to execute as fixtures.
 
 Installing dependencies
 ~~~~~~~~~~~~~~~~~~~~~~~
@@ -52,23 +46,23 @@ For example, to install JUnit 4 and its dependencies you would run
 
 .. code-block:: bash
 
-    $FIXTURES/cg-junit install
+    cg-junit4 install
 
 Compiling code and tests
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
 For compiled languages it can be tricky to get the compiler to find all
-libraries needed to compile the students' code and your tests. For these
-languages the wrapper scripts provide a ``compile`` command that configures the
-compiler to be able to find the required libraries. The ``compile`` command
-takes file names as arguments and compiles those files.
+libraries and other dependencies needed to compile the students' code and your
+tests. For these languages the wrapper scripts provide a ``compile`` command
+that configures the compiler to be able to find the required libraries. The
+``compile`` command takes file names as arguments and compiles those files.
 
 For example, to compile all ``.java`` files in the current directory, including
 a JUnit version 4 test class, you would run
 
 .. code-block:: bash
 
-    $FIXTURES/cg-junit compile *.java
+    cg-junit4 compile *.java
 
 Running tests
 ~~~~~~~~~~~~~
@@ -77,7 +71,7 @@ Running the tests can be similarly tricky when a language needs to know about
 certain locations of libraries it depends on, but also because you need to
 figure out how you can make the framework output its results in the correct
 format, or in the correct location. The wrapper scripts handle this in their
-```run`` command.
+``run`` command.
 
 The scripts extract the output location from ``$CG_JUNIT_XML_LOCATION`` and
 then unset it before running the tests. This way students have no access to
@@ -88,10 +82,10 @@ For example, to run a JUnit 4 test class named ``MyClass`` you would run
 
 .. code-block::
 
-    $FIXTURES/cg-junit run MyClass
+    cg-junit4 run MyClass
 
 .. note::
 
-    The exact arguments to the ``run`` command of each script may differ from
-    script to script. They are described in more detail in the readme files
-    accompanying each script.
+    The exact arguments to the ``run`` command of each script may differ
+    between scripts.  They are described in more detail in the output of the
+    ``--help`` flag of each script.

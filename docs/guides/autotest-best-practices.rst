@@ -148,7 +148,7 @@ and give it a score and then use a Capture Points test to load this into
 AutoTest.
 
 For some linters, CodeGrade can provide these wrapper scripts for you, contact
-us for more details.
+us at `support@codegrade.com <mailto:support@codegrade.com>`_ for more details.
 
 .. note::
     Sometimes some warnings/errors are more important than others, keep this
@@ -162,8 +162,8 @@ modifying the test code, so that it outputs a score between zero and one at
 the end of the tests. In this way you can use a Capture Points test in AutoTest
 to capture the score of the unit tests.
 
-For common unit testing frameworks, we already have written frameworks to
-easily and seamlessly use them in CodeGrade, please contact us at
+For many unit testing frameworks we already have written wrapper scripts to
+easily and seamlessly use them in CodeGrade. Please contact us at
 `support@codegrade.com <mailto:support@codegrade.com>`_ for details.
 
 How to integrate existing grading scripts?

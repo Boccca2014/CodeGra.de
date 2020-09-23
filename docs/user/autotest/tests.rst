@@ -107,6 +107,10 @@ between 0 and 1.
     Points Test with your own frameworks, contact us and we're happy to help
     you!
 
+    See also the :ref:`Unit Test <setting-up-unit-tests>` documentation for
+    achieving something similar while displaying the results in a more
+    user-friendly way.
+
 Checkpoint
 ---------------
 A Checkpoint can be used to add conditions to your Test Categories. A Checkpoint
@@ -143,9 +147,8 @@ Compatibility scripts
 ~~~~~~~~~~~~~~~~~~~~~
 For most unit testing frameworks it is necessary to install additional software
 and to figure out how to make the framework output its results to the correct
-location. We provide wrapper scripts for a growing list of frameworks at our
-`AutoTest Examples <https://github.com/CodeGra-de/AutoTest-examples>`__ GitHub
-repository that handle all of this for you. Is your preferred testing framework
-not listed or does a script not work as you need it to? Please send an email
-to `support@codegrade.com <mailto:support@codegrade.com>`__ so we can discuss
-the possibilities!
+location. We provide wrapper scripts for a growing list of frameworks that
+handle all of this for you. Want to know if your preferred testing framework is
+supported, or does a script not work as you need it to? Please send an email to
+`support@codegrade.com <mailto:support@codegrade.com>`__ so we can discuss the
+possibilities!
