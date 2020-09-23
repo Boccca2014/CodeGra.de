@@ -1,43 +1,47 @@
 <!-- SPDX-License-Identifier: AGPL-3.0-only -->
 <template>
-<div class="manage-assignment loading" v-if="loading">
-    <local-header>
-        <template slot="title" v-if="assignment && Object.keys(assignment).length">
-            <span>{{ assignment.name }}</span>
-            <small v-if="formattedDeadline">- {{ formattedDeadline }}</small>
-            <small v-else class="text-muted"><i>- No deadline</i></small>
-        </template>
-        <loader :scale="1"/>
-    </local-header>
-    <loader page-loader/>
-</div>
-<div class="manage-assignment" v-else>
+<div class="manage-assignment" :class="{ loading }">
     <local-header always-show-extra-slot
                   class="header">
-        <template slot="title">
-            <span>{{ assignment.name }}</span>
-            <small v-if="formattedDeadline">- {{ formattedDeadline  }}</small>
-            <small v-else class="text-muted"><i>- No deadline</i></small>
+        <cg-loader v-if="loading"
+                   :scale="1" />
+
+        <template #title
+                  v-if="assignment">
+            <assignment-name
+                :assignment="assignment"
+                :now="$root.$now" />
+
+            <assignment-date
+                :assignment="assignment"
+                class="text-muted" />
         </template>
-        <assignment-state :assignment="assignment"
-                          :key="assignmentId"
-                          class="assignment-state"
-                          :editable="canEditState"
-                          size="sm"/>
-        <template slot="extra">
-            <category-selector default="general"
-                               v-model="selectedCat"
-                               :categories="categories"/>
+
+        <assignment-state
+            v-if="assignment"
+            :key="assignmentId"
+            :assignment="assignment"
+            :editable="canEditState"
+            size="sm"/>
+
+        <template #extra>
+            <category-selector
+                default="general"
+                v-model="selectedCat"
+                :categories="categories"/>
         </template>
     </local-header>
 
-    <div class="page-content" v-if="loadingInner">
+    <loader page-loader v-if="loading" />
+
+    <div class="page-content" v-else-if="loadingInner">
         <loader page-loader />
     </div>
 
-    <div class="page-content"
-         :key="assignmentId"
-         v-show="!loadingInner">
+    <div v-if="!loading"
+         v-show="!loadingInner"
+         class="page-content"
+         :key="assignmentId">
         <div :class="{hidden: selectedCat !== 'general'}"
              v-if="visibleCats.general"
              class="row cat-wrapper">
@@ -235,6 +239,8 @@ import { mapActions, mapGetters } from 'vuex';
 import 'vue-awesome/icons/reply';
 
 import {
+    AssignmentDate,
+    AssignmentName,
     AssignmentState,
     AssignmentGeneralSettings,
     AssignmentGraderSettings,
@@ -272,6 +278,10 @@ export default {
 
     computed: {
         ...mapGetters('assignments', ['getAssignment']),
+
+        formattedAvailableAt() {
+            return (this.assignment && this.assignment.getFormattedAvailableAt()) || '';
+        },
 
         formattedDeadline() {
             return (this.assignment && this.assignment.getFormattedDeadline()) || '';
@@ -479,6 +489,8 @@ export default {
     },
 
     components: {
+        AssignmentDate,
+        AssignmentName,
         AssignmentState,
         AssignmentGeneralSettings,
         AssignmentGraderSettings,
@@ -523,6 +535,8 @@ export default {
 </style>
 
 <style lang="less">
+@import '~mixins.less';
+
 .manage-assignment .card {
     margin-bottom: 1rem;
 }

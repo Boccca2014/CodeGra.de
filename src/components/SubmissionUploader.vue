@@ -684,7 +684,7 @@ export default {
         },
 
         submitDisabledReasons() {
-            return this.assignment.getSubmitDisabledReasons();
+            return this.assignment.getSubmitDisabledReasons(this.$root.$now);
         },
 
         disabled() {
