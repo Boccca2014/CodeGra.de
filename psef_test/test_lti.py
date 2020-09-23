@@ -2485,6 +2485,7 @@ def test_open_edx_launches(test_client, app, describe, tomorrow):
     def do_launch(**extra_data):
         status = extra_data.pop('status')
         message = extra_data.pop('message', None)
+        outcome_url = extra_data.pop('lis_outcome_service_url', '')
 
         with app.app_context():
             data = {
@@ -2497,9 +2498,11 @@ def test_open_edx_launches(test_client, app, describe, tomorrow):
                 'context_title': 'WRONG_TITLE',
                 'resource_link_id': 'My link id',
                 'oauth_consumer_key': 'open_edx_lti',
-                'lis_outcome_service_url': '',
                 **extra_data,
             }
+
+            if outcome_url is not None:
+                data['lis_outcome_service_url'] = outcome_url
 
             res = test_client.post('/api/v1/lti/launch/1', data=data)
             assert res.status_code in {302, 303}
@@ -2519,6 +2522,14 @@ def test_open_edx_launches(test_client, app, describe, tomorrow):
 
     with describe('Cannot launch without assignment name'):
         do_launch(status=400, message=re.compile("'Display Name' option"))
+
+    with describe('With assignment name but no outcome service url'):
+        do_launch(
+            custom_component_display_name='My name',
+            lis_outcome_service_url=None,
+            status=400,
+            message=re.compile('"Scored" option'),
+        )
 
     with describe('With assignment name but not absolute service url'):
         do_launch(
