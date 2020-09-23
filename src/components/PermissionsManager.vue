@@ -181,7 +181,11 @@ export default {
         },
 
         filteredIndices() {
-            const searcher = new Search(['value', 'name', 'description', 'warning']);
+            const searcher = new Search(
+                ['value', 'name', 'description', 'warning'].concat(
+                    this.fields.map(f => f.key),
+                ),
+            );
 
             return searcher.search(
                 this.filter || '', this.itemsWithIndex,
