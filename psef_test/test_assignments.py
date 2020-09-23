@@ -432,6 +432,54 @@ def test_update_rubric_row(
             )
 
 
+def test_reorder_rubric_rows(
+    logged_in, test_client, teacher_user, assignment
+):
+    url = f'/api/v1/assignments/{assignment.id}/rubrics/'
+
+    def make_item(i, j):
+        return {
+            'header': f'item header {i}-{j}',
+            'description': f'item description {i}-{j}',
+            'points': 10 * i + j,
+        }
+
+    def make_row(i):
+        return {
+            'type': 'normal',
+            'header': f'row header {i}',
+            'description': f'row description {i}',
+            'items': [make_item(i, 1), make_item(i, 2), make_item(i, 3)],
+        }
+
+    rubric = [make_row(1), make_row(2), make_row(3)]
+
+    with logged_in(teacher_user):
+        before = test_client.req(
+            'put',
+            url,
+            200,
+            data={'rows': rubric},
+        )
+
+        reordered = copy.deepcopy(before)
+        reordered[0], reordered[1] = reordered[1], reordered[0]
+
+        after = test_client.req(
+            'put',
+            url,
+            200,
+            data={'rows': reordered},
+        )
+
+    b0, b1, *b_rest = before
+    a0, a1, *a_rest = after
+
+    assert b0 == a1
+    assert b1 == a0
+    assert b_rest == a_rest
+
+
 @pytest.mark.parametrize('item_id', [err404(-1), None, err404(1000)])
 @pytest.mark.parametrize('item_description', [err400(None), 'new idesc'])
 @pytest.mark.parametrize('item_header', [err400(None), 'new ihead'])
