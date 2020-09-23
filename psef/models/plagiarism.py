@@ -531,3 +531,7 @@ class PlagiarismRun(Base):
             Assignment.id.in_(all_assigs) |
             (Assignment.id == self.assignment_id),
         ).all()
+
+
+    def do_run(self) -> None:
+        pass

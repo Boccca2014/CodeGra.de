@@ -100,7 +100,7 @@ FlaskConfig = TypedDict(
         'JWT_ACCESS_TOKEN_EXPIRES': int,
         'UPLOAD_DIR': str,
         'MIRROR_UPLOAD_DIR': str,
-        'SHARED_TEMP_DIR': str,
+        '_SHARED_TEMP_DIR': str,
         'MAX_NUMBER_OF_FILES': int,
         'MAX_FILE_SIZE': int,
         'MAX_NORMAL_UPLOAD_SIZE': int,

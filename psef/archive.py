@@ -30,6 +30,7 @@ SPDX-License-Identifier: MIT
 
 import os
 import abc
+import uuid
 import typing as t
 import tarfile
 import zipfile
@@ -40,10 +41,10 @@ from os import path
 import py7zlib
 import structlog
 
-from cg_object_storage import FileSize
+from cg_object_storage import FileSize, BulkPutter
 from cg_object_storage.utils import limited_copy
 
-from . import app
+from . import app, extract_tree
 from .helpers import register, add_warning
 from .exceptions import APIWarnings
 
@@ -182,26 +183,20 @@ class Archive(t.Generic[TT]):  # pylint: disable=unsubscriptable-object
         finally:
             arr.close()
 
-    def extract(self, to_path: str, max_size: FileSize) -> FileSize:
+    def extract(self, putter: BulkPutter, max_size: FileSize) -> extract_tree.ExtractFileTree:
         """Safely extract the current archive.
 
-        :param to_path: The path were the archive should be extracted to.
         :returns: Nothing
         """
-        # Make sure we are passing a proper path as to_path
-        assert to_path
-        assert path.isabs(to_path)
-        assert path.isdir(to_path)
 
-        self.check_files(to_path)
-        res = self.__extract_archive(to_path, max_size)
+        self.check_files()
+        res = self.__extract_archive(putter, max_size)
         self.replace_symlinks(to_path)
         return res
 
     def __extract_archive(
-        self, base_to_path: str, max_size: FileSize
+        self, putter: BulkPutter, max_size: FileSize
     ) -> FileSize:
-        assert base_to_path
         total_size = FileSize(0)
 
         def maybe_raise_too_large(
@@ -324,7 +319,7 @@ class Archive(t.Generic[TT]):  # pylint: disable=unsubscriptable-object
             self.__max_items_check_done = True
         return self.__archive.get_members()
 
-    def check_files(self, to_path: str) -> None:
+    def check_files(self) -> None:
         """
         Check that all of the files contained in the archive are within the
         target directory.
@@ -349,16 +344,16 @@ class Archive(t.Generic[TT]):  # pylint: disable=unsubscriptable-object
         :param to_path: The path were the archive should be extracted to.
         :returns: Nothing
         """
-        target_path = _safe_join(to_path)
+        _base_path = f'/{uuid.uuid4()}'
 
         for member in self.get_members():
             # Don't use `_safe_join` here as we detect unsafe joins here to
             # raise an `UnsafeArchive` exception.
             extract_path = path.normpath(
-                path.realpath(path.join(target_path, member.name))
+                path.realpath(path.join(_base_path, member.name))
             )
 
-            if not extract_path.startswith(target_path):
+            if not extract_path.startswith(_base_path):
                 raise UnsafeArchive(
                     'Archive member destination is outside the target'
                     ' directory', member

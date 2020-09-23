@@ -56,6 +56,21 @@ class File:
 
 FileT = t.TypeVar('FileT', bound=File, covariant=True)
 
+class _BulkPutter(t.Generic[FileT]):
+    @abc.abstractmethod
+    def put_from_file(self, src_path: str, *, move: bool) -> FileT:
+        ...
+
+    @abc.abstractmethod
+    def put_from_string(self, source: str) -> FileT:
+        ...
+
+    @abc.abstractmethod
+    def put_from_stream(
+        self, stream: utils.ReadableStream, *, max_size: FileSize
+    ) -> Maybe[FileT]:
+        ...
+
 
 class _Storage(t.Generic[FileT]):
     @abc.abstractmethod
@@ -79,6 +94,10 @@ class _Storage(t.Generic[FileT]):
     @abc.abstractmethod
     def check_health(self, min_free_space: FileSize) -> bool:
         ...
+
+    @contextlib.contextmanager
+    def bulk_put(self) -> _BulkPutter[FileT]:
+        return self
 
 
 class LocalFile(File):
@@ -226,3 +245,4 @@ class LocalStorage(_Storage[LocalFile]):
 
 
 Storage = _Storage[File]
+BulkPutter = _BulkPutter[File]
