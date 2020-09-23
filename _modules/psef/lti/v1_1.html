@@ -1471,9 +1471,18 @@
                     <span class="s2">&quot;We couldn&#39;t find the assignment name. Please make sure&quot;</span>
                     <span class="s2">&quot; you set the &#39;Display Name&#39; option.&quot;</span>
                 <span class="p">),</span> <span class="p">(</span>
-                    <span class="s1">&#39;The custom_component_display_name property was missing from&#39;</span>
-                    <span class="s1">&#39; launch_params&#39;</span>
+                    <span class="s1">&#39;The custom_component_display_name property was missing&#39;</span>
+                    <span class="s1">&#39; from launch_params&#39;</span>
                 <span class="p">),</span> <span class="n">APICodes</span><span class="o">.</span><span class="n">INVALID_STATE</span><span class="p">,</span> <span class="mi">400</span>
+            <span class="p">)</span>
+        <span class="k">elif</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">has_outcome_service_url</span><span class="p">():</span>
+            <span class="k">raise</span> <span class="n">APIException</span><span class="p">(</span>
+                <span class="p">(</span>
+                    <span class="s1">&#39;We do not have the option to passback the grade. This is&#39;</span>
+                    <span class="s1">&#39; probably because you forgot to enable the &quot;Scored&quot;&#39;</span>
+                    <span class="s1">&#39; option when configuring the assignment.&#39;</span>
+                <span class="p">),</span> <span class="s1">&#39;The outcome service url is missing&#39;</span><span class="p">,</span>
+                <span class="n">APICodes</span><span class="o">.</span><span class="n">INVALID_PARAM</span><span class="p">,</span> <span class="mi">400</span>
             <span class="p">)</span>
         <span class="k">elif</span> <span class="ow">not</span> <span class="n">urlparse</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">outcome_service_url</span><span class="p">)</span><span class="o">.</span><span class="n">netloc</span><span class="p">:</span>
             <span class="k">raise</span> <span class="n">APIException</span><span class="p">(</span>
