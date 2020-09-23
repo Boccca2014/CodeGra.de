@@ -260,19 +260,14 @@ def test_data(db=None):
                                 name='Top stub dir ({})'.format(u.name),
                                 is_directory=True
                             )
-                            filename = str(uuid.uuid4())
-                            shutil.copyfile(
-                                __file__,
-                                os.path.join(
-                                    app.config['UPLOAD_DIR'], filename
-                                )
-                            )
+                            path = __file__
+                            backing_file = app.file_storage.put_from_file(path)
                             f.children = [
                                 m.File(
                                     work=work,
                                     name='manage.py',
                                     is_directory=False,
-                                    filename=filename
+                                    backing_file=backing_file
                                 )
                             ]
                             db.session.add(f)
