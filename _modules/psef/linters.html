@@ -485,7 +485,10 @@
         <span class="k">if</span> <span class="n">name</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
             <span class="k">if</span> <span class="s1">&#39;.&#39;</span> <span class="ow">in</span> <span class="n">name</span><span class="p">:</span>
                 <span class="k">raise</span> <span class="n">ValidationException</span><span class="p">(</span>
-                    <span class="s1">&#39;The given config is not valid&#39;</span><span class="p">,</span> <span class="p">(</span>
+                    <span class="p">(</span>
+                        <span class="s1">&#39;The given config is not valid: invalid module used,&#39;</span>
+                        <span class="s1">&#39; only default checkstyle modules are supported&#39;</span>
+                    <span class="p">),</span> <span class="p">(</span>
                         <span class="s1">&#39;Invalid module used, only default checkstyle &#39;</span>
                         <span class="s1">&#39;modules are supported&#39;</span>
                     <span class="p">)</span>
@@ -502,13 +505,19 @@
             <span class="s1">&#39;basedir&#39;</span><span class="p">,</span> <span class="s1">&#39;cacheFile&#39;</span><span class="p">,</span> <span class="s1">&#39;haltOnException&#39;</span><span class="p">,</span> <span class="s1">&#39;file&#39;</span>
         <span class="p">}:</span>
             <span class="k">raise</span> <span class="n">ValidationException</span><span class="p">(</span>
-                <span class="s1">&#39;The given config is not valid&#39;</span><span class="p">,</span>
-                <span class="sa">f</span><span class="s1">&#39;Invalid property &quot;</span><span class="si">{</span><span class="n">attrib</span><span class="p">[</span><span class="s2">&quot;name&quot;</span><span class="p">]</span><span class="si">}</span><span class="s1">&quot; found&#39;</span>
+                <span class="p">(</span>
+                    <span class="s1">&#39;The given config is not valid: invalid property&#39;</span>
+                    <span class="sa">f</span><span class="s1">&#39; &quot;</span><span class="si">{</span><span class="n">attrib</span><span class="p">[</span><span class="s2">&quot;name&quot;</span><span class="p">]</span><span class="si">}</span><span class="s1">&quot; found&#39;</span>
+                <span class="p">),</span>
+                <span class="sa">f</span><span class="s1">&#39;Invalid property &quot;</span><span class="si">{</span><span class="n">attrib</span><span class="p">[</span><span class="s2">&quot;name&quot;</span><span class="p">]</span><span class="si">}</span><span class="s1">&quot; found&#39;</span><span class="p">,</span>
             <span class="p">)</span>
         <span class="k">if</span> <span class="nb">list</span><span class="p">(</span><span class="n">prop</span><span class="p">):</span>
             <span class="k">raise</span> <span class="n">ValidationException</span><span class="p">(</span>
-                <span class="s1">&#39;The given config is not valid&#39;</span><span class="p">,</span>
-                <span class="s1">&#39;A property cannot have children&#39;</span>
+                <span class="p">(</span>
+                    <span class="s1">&#39;The given config is not valid: a property cannot have&#39;</span>
+                    <span class="s1">&#39; children&#39;</span>
+                <span class="p">),</span>
+                <span class="s1">&#39;A property cannot have children&#39;</span><span class="p">,</span>
             <span class="p">)</span>
 
     <span class="nd">@classmethod</span>
@@ -541,15 +550,21 @@
             <span class="s1">&#39;name&#39;</span>
         <span class="p">)</span> <span class="o">!=</span> <span class="s1">&#39;Checker&#39;</span><span class="p">:</span>
             <span class="k">raise</span> <span class="n">ValidationException</span><span class="p">(</span>
-                <span class="s1">&#39;The given config is not valid.&#39;</span><span class="p">,</span>
-                <span class="s1">&#39;The given top module of the config should be Checker.&#39;</span>
+                <span class="p">(</span>
+                    <span class="s1">&#39;The given config is not valid: the given top module of the&#39;</span>
+                    <span class="s1">&#39; config should be Checker.&#39;</span>
+                <span class="p">),</span>
+                <span class="s1">&#39;The given top module of the config should be Checker.&#39;</span><span class="p">,</span>
             <span class="p">)</span>
         <span class="k">for</span> <span class="n">sub_el</span> <span class="ow">in</span> <span class="n">xml_config</span><span class="p">:</span>
             <span class="n">validate_func</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_get_validate_func</span><span class="p">(</span><span class="n">sub_el</span><span class="o">.</span><span class="n">tag</span><span class="p">)</span>
             <span class="k">if</span> <span class="n">validate_func</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
                 <span class="k">raise</span> <span class="n">ValidationException</span><span class="p">(</span>
-                    <span class="s1">&#39;The given config is not valid&#39;</span><span class="p">,</span>
-                    <span class="sa">f</span><span class="s1">&#39;Unknown tag &quot;</span><span class="si">{</span><span class="n">sub_el</span><span class="o">.</span><span class="n">tag</span><span class="si">}</span><span class="s1">&quot; encountered&#39;</span>
+                    <span class="p">(</span>
+                        <span class="s1">&#39;The given config is not valid: unknown tag&#39;</span>
+                        <span class="sa">f</span><span class="s1">&#39; &quot;</span><span class="si">{</span><span class="n">sub_el</span><span class="o">.</span><span class="n">tag</span><span class="si">}</span><span class="s1">&quot; encountered&#39;</span>
+                    <span class="p">),</span>
+                    <span class="sa">f</span><span class="s1">&#39;Unknown tag &quot;</span><span class="si">{</span><span class="n">sub_el</span><span class="o">.</span><span class="n">tag</span><span class="si">}</span><span class="s1">&quot; encountered&#39;</span><span class="p">,</span>
                 <span class="p">)</span>
             <span class="n">validate_func</span><span class="p">(</span><span class="n">sub_el</span><span class="p">)</span></div>
 
