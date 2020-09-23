@@ -686,7 +686,16 @@ Do you want to overwrite it?`;
     .default-background;
 
     display: flex;
+    // TODO: Figure out what this line is supposed to do, because "top" is an
+    // invalid value for "align-items".
     align-items: top;
+
+    // Set a max width so that the content of the comment becomes scrollable if
+    // it is too wide, rather than that the feedback area becomes wider than
+    // the code viewer and the code viewer itself becomes scrollable. This can
+    // happen, for example, when a comment contains a super long mathematical
+    // equation.
+    max-width: 100%;
 
     @media @media-small {
         flex-direction: column-reverse;
@@ -804,7 +813,6 @@ Do you want to overwrite it?`;
     z-index: 10;
 }
 
-
 .feedback-reply .feedback-reply-message-wrapper .card-body {
     padding: 0;
 }
@@ -869,8 +877,6 @@ Do you want to overwrite it?`;
 .feedback-reply .edit-buttons-wrapper .btn {
     display: inline-block;
     padding: 0 0.5rem;
-    /* margin: -0.25rem; */
-    /* margin-top: -0.5rem; */
     border: none;
     margin-left: 0;
     box-shadow: none !important;
