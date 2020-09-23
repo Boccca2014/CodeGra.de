@@ -499,6 +499,12 @@ class LTI(AbstractLTIConnector):  # pylint: disable=too-many-public-methods
     def _roles(self, key: str,
                role_type: t.Type[T_LTI_ROLE]) -> t.Sequence[T_LTI_ROLE]:
         roles = self._get_unsorted_roles(key, role_type)
+        logger.info(
+            'Getting roles for LTI 1.1',
+            role_type=role_type.__name__,
+            found_raw_roles=self.launch_params.get(key),
+            parsed_roles=roles,
+        )
         roles.sort(reverse=True)
         return roles
 
