@@ -9,7 +9,7 @@
                    v-model="username"
                    ref="username"
                    name="username"
-                   @keyup.enter="$refs.submit.onClick"/>
+                   @keydown.enter="$refs.submit.onClick"/>
         </b-form-group>
 
         <b-form-group label="Password">
@@ -18,7 +18,7 @@
                    v-model="password"
                    placeholder="Enter your password"
                    name="password"
-                   @keyup.enter="$refs.submit.onClick" />
+                   @keydown.enter="$refs.submit.onClick" />
         </b-form-group>
 
         <div class="d-flex align-items-center"
@@ -39,11 +39,10 @@
                            :wait-at-least="0">
                 <template slot="warning" slot-scope="scope">
                     {{ scope.warning.messages.map(x => x.text).join(' ') }}<br>
-                Close this message to continue.
-            </template>
-        </submit-button>
-
-    </div>
+                    Close this message to continue.
+                </template>
+            </submit-button>
+        </div>
     </b-form>
 
     <sso-providers @saml-login="$emit('saml-login', $event)"
