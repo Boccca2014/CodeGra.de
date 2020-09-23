@@ -58,8 +58,9 @@ export default tsx.component({
         }
 
         const aStyle = {
-            'text-decoration': 'none',
-            'color': 'inherit',
+            textDecoration: 'none',
+            color: 'inherit',
+            lineHeight: 1.1,
         };
 
         let badgeVariant: Variant;
@@ -75,7 +76,7 @@ export default tsx.component({
                 <router-link style={aStyle}
                              class={['sidebar-item manage-link', { selected: manageSelected }]}
                              to={manageRoute}>
-                    <Icon name="gear" style="transform: translateY(-3px)" />
+                    <Icon name="gear" />
                 </router-link>
             );
         }

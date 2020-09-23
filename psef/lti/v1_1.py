@@ -499,6 +499,12 @@ class LTI(AbstractLTIConnector):  # pylint: disable=too-many-public-methods
     def _roles(self, key: str,
                role_type: t.Type[T_LTI_ROLE]) -> t.Sequence[T_LTI_ROLE]:
         roles = self._get_unsorted_roles(key, role_type)
+        logger.info(
+            'Getting roles for LTI 1.1',
+            role_type=role_type.__name__,
+            found_raw_roles=self.launch_params.get(key),
+            parsed_roles=roles,
+        )
         roles.sort(reverse=True)
         return roles
 
@@ -1258,9 +1264,18 @@ class OpenEdX(_BareRolesLTIProvider):
                     "We couldn't find the assignment name. Please make sure"
                     " you set the 'Display Name' option."
                 ), (
-                    'The custom_component_display_name property was missing from'
-                    ' launch_params'
+                    'The custom_component_display_name property was missing'
+                    ' from launch_params'
                 ), APICodes.INVALID_STATE, 400
+            )
+        elif not self.has_outcome_service_url():
+            raise APIException(
+                (
+                    'We do not have the option to passback the grade. This is'
+                    ' probably because you forgot to enable the "Scored"'
+                    ' option when configuring the assignment.'
+                ), 'The outcome service url is missing',
+                APICodes.INVALID_PARAM, 400
             )
         elif not urlparse(self.outcome_service_url).netloc:
             raise APIException(

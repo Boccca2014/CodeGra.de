@@ -1,12 +1,12 @@
 /* SPDX-License-Identifier: AGPL-3.0-only */
-import Vue from 'vue';
 import moment from 'moment';
+import * as tsx from 'vue-tsx-support';
 import p from 'vue-strict-prop';
 
 // @ts-ignore
 import { readableFormatDate } from '@/utils';
 
-export default Vue.extend({
+export default tsx.component({
     functional: true,
 
     props: {

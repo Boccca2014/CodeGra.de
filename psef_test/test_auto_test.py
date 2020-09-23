@@ -3103,3 +3103,38 @@ def test_update_step_attachment(
         assert not os.path.exists(
             f'{app.config["UPLOAD_DIR"]}/{new_attachment}'
         )
+
+
+@pytest.mark.parametrize('should_fail', [True, False])
+def test_run_auto_test_startup_command(
+    basic, test_client, logged_in, describe, lxc_stub, monkeypatch, app,
+    session, admin_user, stub_function_class, assert_similar, should_fail,
+    monkeypatch_for_run
+):
+    with describe('setup'):
+
+        class CalledBroker(Exception):
+            pass
+
+        def _raise_exc():
+            raise CalledBroker
+
+        monkeypatch.setattr(
+            psef.helpers.BrokerSession, '__init__',
+            stub_function_class(_raise_exc)
+        )
+
+        if should_fail:
+            status = 1
+        else:
+            status = 0
+
+        monkeypatch.setitem(
+            app.config, 'AUTO_TEST_STARTUP_COMMAND', f'exit {status}'
+        )
+
+    with describe('should fail or not'):
+        with pytest.raises(
+            psef.auto_test.LXCProcessError if should_fail else CalledBroker
+        ):
+            psef.auto_test.start_polling(app.config)
