@@ -8,20 +8,13 @@ interface SearchTerm<K> {
     // Keys to search on.
     keys: ReadonlyArray<K>;
     // Search query.
-    q: RegExp;
+    q: string;
 }
 
 // Type that defines an object that contains all keys in K, where K is
 // a distinct union over strings, and requires the values of those keys to be
 // of type string. Other keys are allowed and can be of any type.
 type SearchRecord<K extends string> = Record<K, string> & Record<string, any>;
-
-// Special characters in a regex that must be escaped.
-const regexSpecial = /[\\.^$?*+([|{)]/g;
-
-function regexEscape(str: string): string {
-    return str.replace(regexSpecial, c => `\\${c}`);
-}
 
 export class Search<K extends string> {
     private static defaultOptions: SearchOptions = {
@@ -44,13 +37,17 @@ export class Search<K extends string> {
             .map(t => this.makeTerm(t));
 
         return items.filter(item =>
-            terms.every(term => term.keys.some(key => term.q.test(item[key] || ''))),
+            terms.every(term =>
+                term.keys.some(key => {
+                    const val = String(item[key] ?? '');
+                    return val.indexOf(term.q) !== -1;
+                }),
+            ),
         );
     }
 
     private makeTerm(query: string): SearchTerm<K> {
         const colon = query.indexOf(':');
-
         if (colon !== -1) {
             // We get the key in this roundabout way to make typescript happy,
             // because this way it can infer that the key is actually one of
@@ -61,19 +58,22 @@ export class Search<K extends string> {
             if (key != null) {
                 return {
                     keys: [key],
-                    q: this.makeRegex(query.slice(colon + 1)),
+                    q: this.prepareTerm(query.slice(colon + 1)),
                 };
             }
         }
 
         return {
             keys: this.keys,
-            q: this.makeRegex(query),
+            q: this.prepareTerm(query),
         };
     }
 
-    private makeRegex(str: string): RegExp {
-        const flags = this.options.caseInsensitive ? 'i' : '';
-        return new RegExp(regexEscape(str), flags);
+    private prepareTerm(str: string): string {
+        if (this.options.caseInsensitive) {
+            return str.toLocaleLowerCase();
+        } else {
+            return str;
+        }
     }
 }
