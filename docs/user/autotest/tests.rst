@@ -125,6 +125,8 @@ This can be done with a Checkpoint, which is for instance useful if you check
 compilation in a first test and you only want to run following tests if this
 test succeeded.
 
+.. _autotest-tests-unit-test:
+
 Unit Test
 ---------
 The Unit Test provides integration with unit testing frameworks that support
@@ -152,3 +154,30 @@ handle all of this for you. Want to know if your preferred testing framework is
 supported, or does a script not work as you need it to? Please send an email to
 `support@codegrade.com <mailto:support@codegrade.com>`__ so we can discuss the
 possibilities!
+
+Supported frameworks
+^^^^^^^^^^^^^^^^^^^^
+
++--------------------+------------------+-------------------+
+| Framework          | Language(s)      | Script name       |
++====================+==================+===================+
+| Check              | C/C++            | ``cg-check``      |
++--------------------+------------------+-------------------+
+| xUnit              | C#               | ``cg-xunit``      |
++--------------------+------------------+-------------------+
+| Tasty (Quickcheck) | Haskell          | ``cg-quickcheck`` |
++--------------------+------------------+-------------------+
+| Junit 4            | Java             | ``cg-junit4``     |
++--------------------+------------------+-------------------+
+| Junit 5            | Java             | ``cg-junit5``     |
++--------------------+------------------+-------------------+
+| Jest               | Javascript       | ``cg-jest``       |
++--------------------+------------------+-------------------+
+| Mocha              | Javascript       | ``cg-mocha``      |
++--------------------+------------------+-------------------+
+| MOxUnit            | Matlab/Octave    | ``cg-moxunit``    |
++--------------------+------------------+-------------------+
+| Nbgrader           | Jupyter Notebook | ``cg-moxunit``    |
++--------------------+------------------+-------------------+
+| Pytest             | Python 2+3       | ``cg-pytest``     |
++--------------------+------------------+-------------------+

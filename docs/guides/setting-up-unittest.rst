@@ -25,10 +25,11 @@ Compatibility scripts
 For most unit testing frameworks it is necessary to install additional software
 and to figure out how to make the framework output its results to the correct
 location. We provide wrapper scripts for a growing list of frameworks that
-handle all of this for you. Want to know if your preferred testing framework is
-supported, or does a script not work as you need it to? Please send an email to
-`support@codegrade.com <mailto:support@codegrade.com>`__ so we can discuss the
-possibilities!
+handle all of this for you. Check out the :ref:`Unit Test documentation
+<autotest-tests-unit-test>` for a list of frameworks that are already
+supported, or contact us at `support@codegrade.com
+<mailto:support@codegrade.com>`_ if your preferred framework is not listed
+there so we can discuss the possibilities!
 
 All wrapper scripts have a similar interface and procedure for running tests.
 To see the options and commands provided by a script run it with the ``--help``
@@ -78,11 +79,11 @@ then unset it before running the tests. This way students have no access to
 this information when their code is running. The testing framework is then
 configured to output its results at that location and the tests are executed.
 
-For example, to run a JUnit 4 test class named ``MyClass`` you would run
+For example, to run a JUnit 4 test class named ``MyTestClass`` you would run
 
 .. code-block::
 
-    cg-junit4 run MyClass
+    cg-junit4 run MyTestClass
 
 .. note::
 
