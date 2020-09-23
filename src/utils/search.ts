@@ -39,7 +39,7 @@ export class Search<K extends string> {
         return items.filter(item =>
             terms.every(term =>
                 term.keys.some(key => {
-                    const val = String(item[key] ?? '');
+                    const val = this.prepareTerm(String(item[key] ?? ''));
                     return val.indexOf(term.q) !== -1;
                 }),
             ),
