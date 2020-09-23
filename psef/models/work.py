@@ -2,6 +2,7 @@
 
 SPDX-License-Identifier: AGPL-3.0-only
 """
+import io
 import os
 import enum
 import typing as t
@@ -31,7 +32,7 @@ from . import user as user_models
 from . import group as group_models
 from . import _MyQuery
 from . import assignment as assignment_models
-from .. import auth, helpers, signals, features
+from .. import auth, helpers, signals, features, current_app
 from .linter import LinterState, LinterComment, LinterInstance
 from .rubric import RubricItem, WorkRubricItem
 from .comment import CommentBase
@@ -948,23 +949,17 @@ class Work(Base):
         self,
         exclude_owner: 'file_models.FileOwner',
         create_leading_directory: bool = True
-    ) -> str:
-        """Create zip in `MIRROR_UPLOADS` directory.
+    ) -> io.BytesIO:
+        """Create zip from the files in this submission.
 
         :param exclude_owner: Which files to exclude.
-        :returns: The name of the zip file in the `MIRROR_UPLOADS` dir.
+        :returns: The BytesIO containing the zipfile.
         """
-        path, name = psef.files.random_file_path(True)
-
-        with open(
-            path,
-            'w+b',
-        ) as f, tempfile.TemporaryDirectory(
+        result = io.BytesIO()
+        with tempfile.TemporaryDirectory(
             suffix='dir',
         ) as tmpdir, zipfile.ZipFile(
-            f,
-            'w',
-            compression=zipfile.ZIP_DEFLATED,
+            result, 'w', compression=zipfile.ZIP_DEFLATED
         ) as zipf:
             # Restore the files to tmpdir
             tree_root = psef.files.restore_directory_structure(
@@ -982,7 +977,7 @@ class Work(Base):
                     path = psef.files.safe_join(root, file)
                     zipf.write(path, path[leading_len:])
 
-        return name
+        return result
 
     @classmethod
     def create_from_tree(

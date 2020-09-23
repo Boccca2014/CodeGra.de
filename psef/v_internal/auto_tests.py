@@ -11,7 +11,7 @@ import typing as t
 import requests
 import werkzeug
 import structlog
-from flask import request, make_response, send_from_directory
+from flask import request, send_file, make_response
 
 from . import api
 from .. import app, files, tasks, models, helpers, auto_test
@@ -215,12 +215,10 @@ def get_result_data(auto_test_id: int, result_id: int
         else:
             excluded_user = models.FileOwner.teacher
 
-        file_name = result.work.create_zip(
-            excluded_user,
-            create_leading_directory=False,
+        zip_file = result.work.create_zip(
+            excluded_user, create_leading_directory=False
         )
-        directory = app.config['MIRROR_UPLOAD_DIR']
-        res = send_from_directory(directory, file_name)
+        return send_file(zip_file)
 
     return res
 

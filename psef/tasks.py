@@ -591,6 +591,17 @@ def _clone_commit_as_submission_1(
 
 
 @celery.task
+def _delete_mirror_file_at_time_1(name: str, deletion_time: str) -> None:
+    if current_task.maybe_delay_task(
+        DatetimeWithTimezone.fromisoformat(deletion_time)
+    ):
+        return
+
+    found = p.app.mirror_file_storage.get(name)
+    found.if_just(lambda f: f.delete())
+
+
+@celery.task
 def _delete_file_at_time_1(
     filename: str, in_mirror_dir: bool, deletion_time: str
 ) -> None:
@@ -904,7 +915,7 @@ adjust_amount_runners = _adjust_amount_runners_1.delay  # pylint: disable=invali
 kill_runners_and_adjust = _kill_runners_and_adjust_1.delay  # pylint: disable=invalid-name
 update_latest_results_in_broker = _update_latest_results_in_broker_1.delay  # pylint: disable=invalid-name
 clone_commit_as_submission = _clone_commit_as_submission_1.delay  # pylint: disable=invalid-name
-delete_file_at_time = _delete_file_at_time_1.delay  # pylint: disable=invalid-name
+delete_mirror_file_at_time = _delete_mirror_file_at_time_1.delay  # pylint: disable=invalid-name
 send_direct_notification_emails = _send_direct_notification_emails_1.delay  # pylint: disable=invalid-name
 send_email_as_user = _send_email_as_user_1.delay  # pylint: disable=invalid-name
 

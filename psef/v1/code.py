@@ -223,10 +223,16 @@ def get_file_url(file: models.FileMixin[object]) -> str:
     :param file: The file object
     :returns: The name of the newly created file (the copy).
     """
-    path, name = files.random_file_path(True)
-    shutil.copyfile(file.get_diskname(), path)
+    with file.open() as src:
+        result = app.mirror_file_storage.put_from_stream(
+            src, max_size=app.max_single_file_size
+        )
+    if result.is_nothing:
+        helpers.raise_file_too_big_exception(
+            app.max_single_file_size, single_file=True
+        )
 
-    return name
+    return result.value.name
 
 
 def get_feedback(file: models.File, linter: bool = False) -> _FeedbackMapping:
@@ -397,7 +403,7 @@ def split_code(
     """
     code.fileowner = old_owner
     old_id = code.id
-    old_diskname = None if code.is_directory else code.get_diskname()
+    backing_file = code.backing_file
     db.session.flush()
     code = models.File.query.filter(models.File.id == code.id).one()
 
@@ -408,10 +414,9 @@ def split_code(
     db.session.flush()
 
     code.fileowner = new_owner
-    if not code.is_directory:
-        assert old_diskname is not None
-        _, code.filename = files.random_file_path()
-        shutil.copyfile(old_diskname, code.get_diskname())
+    if backing_file.is_just:
+        new_file = backing_file.value.copy()
+        code.update_backing_file(new_file)
     else:
         redistribute_directory(
             code, t.cast(models.File, models.File.query.get(old_id))
@@ -509,24 +514,20 @@ def update_code(file_id: int) -> JSONResponse[models.File]:
             app.max_file_size, single_file=True
         )
 
-    def _update_file(
-        code: models.File,
-        other: models.FileOwner,
-    ) -> None:
+    def _update_file(code: models.File) -> None:
         if request.args.get('operation', None) == 'rename':
-            code.rename_code(new_name, new_parent, other)
+            code.rename_code(new_name, new_parent, models.FileOwner.student)
             db.session.flush()
             code.parent = new_parent
         else:
-            with open(code.get_diskname(), 'wb') as f:
-                f.write(request.get_data())
+            max_size = app.max_single_file_size
+            new_file = app.file_storage.put_from_stream(
+                request.stream, max_size=max_size
+            )
+            if new_file.is_nothing:
+                helpers.raise_file_too_big_exception(max_size, True)
 
-    if code.work.assignment.is_open and current_user.id == code.work.user_id:
-        current, other = models.FileOwner.both, models.FileOwner.teacher
-    elif code.work.user_id == current_user.id:
-        current, other = models.FileOwner.student, models.FileOwner.teacher
-    else:
-        current, other = models.FileOwner.teacher, models.FileOwner.student
+            code.update_backing_file(new_file.value, delete=True)
 
     if request.args.get('operation', None) == 'rename':
         ensure_keys_in_dict(request.args, [('new_path', str)])
@@ -534,11 +535,11 @@ def update_code(file_id: int) -> JSONResponse[models.File]:
         path_arr, _ = files.split_path(new_path)
         new_name = path_arr[-1]
         new_parent = code.work.search_file(
-            '/'.join(path_arr[:-1]) + '/', other
+            '/'.join(path_arr[:-1]) + '/', models.FileOwner.student
         )
 
-    if code.fileowner == current:
-        _update_file(code, other)
+    if code.fileowner == models.FileOwner.teacher:
+        _update_file(code)
     elif code.fileowner != models.FileOwner.both:
         raise APIException(
             'This file does not belong to you',
@@ -547,8 +548,10 @@ def update_code(file_id: int) -> JSONResponse[models.File]:
         )
     else:
         with db.session.begin_nested():
-            code = split_code(code, current, other)
-            _update_file(code, other)
+            code = split_code(
+                code, models.FileOwner.teacher, models.FileOwner.student
+            )
+            _update_file(code)
 
     db.session.commit()
 

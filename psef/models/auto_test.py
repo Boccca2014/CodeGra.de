@@ -1078,27 +1078,23 @@ class AutoTestRun(Base, TimestampMixin, IdMixin):
 
         ATResult = auto_test_step_models.AutoTestStepResult  # pylint: disable=invalid-name
 
-        attachments = db.session.query(ATResult.attachment_filename).filter(
-            ATResult.attachment_filename.isnot(None),
+        results_with_attachment = ATResult.query.filter(
+            ATResult.has_attachment,
             ATResult.auto_test_result_id.in_(
                 [result.id for result in self.results]
             )
         ).all()
 
-        if attachments:
+        if results_with_attachment:
 
             def after_req() -> None:
-                for attachment, in attachments:
-                    # This is never the case as we filter the attachments in
-                    # the query, but mypy doesn't understand that.
-                    if attachment is None:  # pragma: no cover
-                        continue
-
-                    path = psef.files.safe_join(
-                        psef.app.config['UPLOAD_DIR'], attachment
-                    )
-                    if os.path.isfile(path):
-                        os.unlink(path)
+                for result in results_with_attachment:
+                    attachment = result.attachment
+                    if attachment.is_just:
+                        try:
+                            attachment.value.delete()
+                        except Exception:  # pragma: no cover
+                            pass
 
             callback_after_this_request(after_req)
 

@@ -168,23 +168,22 @@ def get_feedback(work: models.Work) -> t.Mapping[str, str]:
         '/', '_'
     )
 
-    path, name = psef.files.random_file_path(True)
+    output_string = []
+    output_string.append(
+        f'Assignment: {work.assignment.name}\n'
+        f'Grade: {grade}\n'
+        f'General feedback:\n{general_comment}\n\n'
+        f'Comments:\n'
+    )
+    for comment in comments:
+        output_string.append(f'{comment}\n')
 
-    with open(path, 'w') as f:
-        f.write(
-            f'Assignment: {work.assignment.name}\n'
-            f'Grade: {grade}\n'
-            f'General feedback:\n{general_comment}\n\n'
-            f'Comments:\n'
-        )
-        for comment in comments:
-            f.write(f'{comment}\n')
+    output_string.append('\nLinter comments:\n')
+    for lcomment in linter_comments:
+        output_string.append(f'{lcomment}\n')
 
-        f.write('\nLinter comments:\n')
-        for lcomment in linter_comments:
-            f.write(f'{lcomment}\n')
-
-    return {'name': name, 'output_name': filename}
+    result = app.mirror_file_storage.put_from_string(''.join(output_string))
+    return {'name': result.name, 'output_name': filename}
 
 
 def get_zip(work: models.Work,
@@ -205,9 +204,17 @@ def get_zip(work: models.Work,
                                  attached course. (INCORRECT_PERMISSION)
     """
     auth.ensure_can_view_files(work, exclude_owner == FileOwner.student)
+    with work.create_zip(exclude_owner) as zip_file:
+        max_size = app.max_large_file_size
+        result = app.mirror_file_storage.put_from_stream(
+            stream=zip_file, max_size=max_size
+        )
+
+    if result.is_nothing:
+        helpers.raise_file_too_big_exception(max_size, True)
 
     return {
-        'name': work.create_zip(exclude_owner),
+        'name': result.value.name,
         'output_name':
             f'{work.assignment.name}-{work.user.name}-archive.zip'.replace(
                 '/', '_'
@@ -938,7 +945,6 @@ def create_new_file(submission_id: int) -> JSONResponse[t.Mapping[str, t.Any]]:
             400,
         )
 
-    filename: t.Optional[str]
     parts = patharr[end_idx:]
 
     if set(parts) & psef.files.SPECIAL_FILENAMES:
@@ -953,20 +959,31 @@ def create_new_file(submission_id: int) -> JSONResponse[t.Mapping[str, t.Any]]:
 
     for idx, part in enumerate(parts):
         if _is_last(idx) and not create_dir:
-            is_dir = False
-            d_filename, filename = psef.files.random_file_path()
-            with open(d_filename, 'wb') as f:
-                f.write(request.get_data(as_text=False))
+            max_size = app.max_single_file_size
+            backing_file = app.file_storage.put_from_stream(
+                request.stream, max_size=max_size
+            )
+            if backing_file.is_nothing:
+                helpers.raise_file_too_big_exception(max_size, True)
+
+            code = models.File(
+                work_id=submission_id,
+                name=part,
+                backing_file=backing_file.value,
+                is_directory=False,
+                parent=parent,
+                fileowner=new_owner,
+            )
         else:
-            is_dir, filename = True, None
-        code = models.File(
-            work_id=submission_id,
-            name=part,
-            filename=filename,
-            is_directory=is_dir,
-            parent=parent,
-            fileowner=new_owner,
-        )
+            code = models.File(
+                work_id=submission_id,
+                name=part,
+                backing_file=None,
+                is_directory=True,
+                parent=parent,
+                fileowner=new_owner,
+            )
+
         db.session.add(code)
         parent = code
     db.session.commit()

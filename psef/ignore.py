@@ -169,14 +169,14 @@ class SubmissionFilter:
                 deleted_tree = self.file_allowed(tree)
                 if deleted_tree is not None:
                     res.append(deleted_tree)
-                    tree.delete(app.config['UPLOAD_DIR'])
+                    tree.delete()
 
             return res
         else:
             deleted_file = self.file_allowed(cur)
             if deleted_file is None:
                 return []
-            cur.delete(app.config['UPLOAD_DIR'])
+            cur.delete()
             return [deleted_file]
 
     def process_submission(

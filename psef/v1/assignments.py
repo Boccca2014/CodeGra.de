@@ -1792,19 +1792,20 @@ def start_plagiarism_check(
             max_size=max_size, keys=['old_submissions']
         )
         tree = psef.files.process_files(old_subs, max_size=max_size)
+        # Normally we don't extract archives in archives, however for the
+        # plagiarism we do this. So after extracting this directory we now loop
+        # over all the children to check if they are directories in which case
+        # we extract them.
         for i, child in enumerate(tree.values):
             if isinstance(
                 child,
                 psef.files.ExtractFileTreeFile,
             ) and archive.Archive.is_archive(child.name):
-                child_path = psef.files.safe_join(
-                    current_app.config['UPLOAD_DIR'], child.disk_name
-                )
-                with open(child_path, 'rb') as f:
+                with child.backing_file.open() as child_stream:
                     tree.values[i] = psef.files.process_files(
                         [
                             werkzeug.datastructures.FileStorage(
-                                stream=f,
+                                stream=child_stream,
                                 filename=child.name,
                             )
                         ],
@@ -1813,7 +1814,7 @@ def start_plagiarism_check(
                     # This is to create a name for the author that resembles
                     # the name of the archive.
                     tree.values[i].name = child.name.split('.')[0]
-                os.unlink(child_path)
+                child.backing_file.delete()
 
         virtual_course = models.Course.create_virtual_course(tree)
         db.session.add(virtual_course)

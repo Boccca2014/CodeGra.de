@@ -10,8 +10,9 @@ import subprocess
 import urllib.parse
 from configparser import ConfigParser
 
-from mypy_extensions import TypedDict
-from typing_extensions import Literal
+from typing_extensions import Literal, TypedDict
+
+import cg_object_storage
 
 cur_dir = os.path.dirname(os.path.abspath(__file__))
 config_file = os.getenv(
@@ -149,7 +150,7 @@ FlaskConfig = TypedDict(
         'SESSION_COOKIE_SAMESITE': Literal['None', 'Strict', 'Lax'],
         'SESSION_COOKIE_SECURE': bool,
         'SENTRY_DSN': t.Optional[str],
-        'MIN_FREE_DISK_SPACE': int,
+        'MIN_FREE_DISK_SPACE': cg_object_storage.FileSize,
         'REDIS_CACHE_URL': str,
         'LOGIN_TOKEN_BEFORE_TIME': t.Sequence[datetime.timedelta],
         'RATELIMIT_STORAGE_URL': t.Optional[str],
@@ -367,7 +368,8 @@ set_str(CONFIG, backend_ops, 'JPLAG_JAR', 'jplag.jar')
 set_str(CONFIG, backend_ops, 'SENTRY_DSN', None)
 
 GB = 1024 ** 3
-set_int(CONFIG, backend_ops, 'MIN_FREE_DISK_SPACE', 10 * GB)
+min_free = backend_ops.getint('MIN_FREE_DISK_SPACE', fallback=10 * GB)
+CONFIG['MIN_FREE_DISK_SPACE'] = cg_object_storage.FileSize(min_free)
 
 
 def _set_version() -> None:

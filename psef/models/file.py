@@ -2,20 +2,21 @@
 
 SPDX-License-Identifier: AGPL-3.0-only
 """
-import os
 import enum
 import uuid
-import shutil
 import typing as t
 from abc import abstractmethod
 from collections import defaultdict
 
 import structlog
-from flask import current_app
 from sqlalchemy import event
 from sqlalchemy_utils import UUIDType
+from typing_extensions import Literal
 
 import psef
+import cg_maybe
+import cg_flask_helpers
+import cg_object_storage
 from cg_enum import CGEnum
 from cg_dt_utils import DatetimeWithTimezone
 from cg_sqlalchemy_helpers import hybrid_property
@@ -26,7 +27,7 @@ from cg_sqlalchemy_helpers.mixins import TimestampMixin
 
 from . import Base, db
 from . import work as work_models
-from .. import auth, helpers
+from .. import auth, helpers, current_app
 from ..exceptions import APICodes, APIException
 from ..permissions import CoursePermission
 
@@ -58,12 +59,50 @@ class FileMixin(t.Generic[T]):
     """A mixin for representing a file in the database.
     """
 
+    @t.overload
+    def __init__(
+        self,
+        name: str,
+        *,
+        is_directory: Literal[True],
+        backing_file: None = None,
+        **extra_opts: object,
+    ) -> None:
+        ...
+
+    @t.overload
+    def __init__(
+        self,
+        name: str,
+        backing_file: cg_object_storage.File,
+        *,
+        is_directory: Literal[False] = False,
+        **extra_opts: object,
+    ) -> None:
+        ...
+
+    def __init__(
+        self,
+        name: str,
+        backing_file: t.Optional[cg_object_storage.File] = None,
+        **kwargs: t.Any,
+    ) -> None:
+        filename = None
+        if backing_file is not None:
+            filename = backing_file.name
+
+        super().__init__(  # type: ignore
+            name=name,
+            _filename=filename,
+            **kwargs,
+        )
+
     # The given name of the file.
     name = db.Column('name', db.Unicode, nullable=False)
 
     # This is the filename for the actual file on the disk. This is probably a
     # randomly generated uuid.
-    filename = db.Column('filename', db.Unicode, nullable=True)
+    _filename = db.Column('filename', db.Unicode, nullable=True)
 
     @abstractmethod
     def get_id(self) -> T:
@@ -73,13 +112,14 @@ class FileMixin(t.Generic[T]):
 
     is_directory: ImmutableColumnProxy[bool]
 
-    def open(self) -> t.BinaryIO:
-        """Open this file.
+    @property
+    def backing_file(self) -> cg_maybe.Maybe[cg_object_storage.File]:
+        if self._filename is None:
+            return cg_maybe.Nothing
+        return current_app.file_storage.get(self._filename)
 
-        This file checks if this file can be opened.
-
-        :returns: The contents of the file with newlines.
-        """
+    @property
+    def unwrapped_backing_file(self) -> cg_object_storage.File:
         if self.is_directory:
             raise APIException(
                 'Cannot display this file as it is a directory.',
@@ -87,20 +127,52 @@ class FileMixin(t.Generic[T]):
                 APICodes.OBJECT_WRONG_TYPE, 400
             )
 
-        filename = self.get_diskname()
-        if os.path.islink(filename):  # pragma: no cover
-            # This should not be possible as we replace symlinks with regular
-            # files on submission.
-            logger.error(
-                'Symlink found in uploads directory',
-                filename=filename,
-            )
+        backing_file = self.backing_file
+
+        if backing_file.is_nothing or not backing_file.value.exists:
             raise APIException(
-                f'This file is a symlink to `{os.readlink(filename)}`.',
-                f'The file {self.get_id()} is a symlink',
+                'This file could not be found or is a symlink.',
+                f'The file {self.get_id()} could not be found',
                 APICodes.INVALID_STATE, 410
             )
-        return open(filename, 'rb')
+
+        return backing_file.value
+
+    def update_backing_file(
+        self, new_file: cg_object_storage.File, *, delete: bool = False
+    ) -> None:
+        if self.is_directory:
+            raise AssertionError('Cannot set file of directory')
+        if delete:
+            cg_flask_helpers.callback_after_this_request(self._get_deleter())
+
+        self._filename = new_file.name
+
+    def open(self) -> t.IO[bytes]:
+        """Open this file.
+
+        This file checks if this file can be opened.
+
+        :returns: The contents of the file with newlines.
+        """
+        backing_file = self.unwrapped_backing_file
+
+        return backing_file.open()
+
+    def _get_deleter(self) -> t.Callable[[], None]:
+        backing = self.backing_file
+        if backing.is_just:
+            deleter = backing.value.delete
+
+            def callback(deleter: t.Callable[[], None] = deleter) -> None:
+                try:
+                    deleter()
+                except (AssertionError, FileNotFoundError):
+                    pass
+
+            return callback
+
+        return lambda: None
 
     def delete_from_disk(self) -> None:
         """Delete the file from disk if it is not a directory.
@@ -121,22 +193,7 @@ class FileMixin(t.Generic[T]):
 
         :returns: Nothing.
         """
-        try:
-            os.remove(self.get_diskname())
-        except (AssertionError, FileNotFoundError):
-            pass
-
-    def get_diskname(self) -> str:
-        """Get the absolute path on the disk for this file.
-
-        :returns: The absolute path.
-        """
-        assert self.filename
-        assert not self.is_directory
-
-        return psef.files.safe_join(
-            current_app.config['UPLOAD_DIR'], self.filename
-        )
+        self._get_deleter()()
 
     def __to_json__(self) -> t.Mapping[str, object]:
         return {
@@ -161,6 +218,9 @@ class FileMixin(t.Generic[T]):
 
 NFM_T = t.TypeVar('NFM_T', bound='NestedFileMixin')  # pylint: disable=invalid-name
 
+LiteralTrue: Literal[True] = True
+LiteralFalse: Literal[False] = False
+
 
 class NestedFileMixin(FileMixin[T]):
     """A mixin representing nested files, i.e. a structure of directories where
@@ -182,17 +242,43 @@ class NestedFileMixin(FileMixin[T]):
         """
         raise NotImplementedError
 
-    if t.TYPE_CHECKING:  # pragma: no cover
-        # pylint: disable=unused-argument
-        def __init__(
-            self,
-            name: str,
-            parent: t.Optional['NestedFileMixin[T]'],
-            is_directory: bool,
-            filename: t.Optional[str] = None,
-            **extra_opts: object,
-        ) -> None:
-            ...
+    @t.overload
+    def __init__(
+        self,
+        name: str,
+        parent: t.Optional['NestedFileMixin[T]'],
+        is_directory: Literal[True],
+        backing_file: None,
+        **extra_opts: object,
+    ) -> None:
+        ...
+
+    @t.overload
+    def __init__(
+        self: NFM_T,
+        name: str,
+        parent: NFM_T,
+        is_directory: Literal[False],
+        backing_file: cg_object_storage.File,
+        **extra_opts: object,
+    ) -> None:
+        ...
+
+    def __init__(
+        self,
+        name: str,
+        parent: t.Any,
+        is_directory: t.Any,
+        backing_file: t.Any,
+        **extra_opts: object,
+    ) -> None:
+        super().__init__(
+            name=name,
+            parent=parent,
+            is_directory=is_directory,
+            backing_file=backing_file,
+            **extra_opts,
+        )
 
     # The id of the parent.
     parent_id: ImmutableColumnProxy[t.Optional[T]]
@@ -215,10 +301,11 @@ class NestedFileMixin(FileMixin[T]):
         :param top: The parent file
         :returns: Nothing
         """
-        new_top = cls(
-            is_directory=True,
+        new_top: NFM_T = cls(  # type: ignore[abstract]
             name=tree.name,
             parent=top,
+            is_directory=LiteralTrue,
+            backing_file=None,
             **creation_opts,
         )
 
@@ -228,10 +315,10 @@ class NestedFileMixin(FileMixin[T]):
                     child, new_top, creation_opts
                 )
             elif isinstance(child, psef.files.ExtractFileTreeFile):
-                cls(
+                cls(  # type: ignore[abstract]
                     name=child.name,
-                    filename=child.disk_name,
-                    is_directory=False,
+                    backing_file=child.backing_file,
+                    is_directory=LiteralFalse,
                     parent=new_top,
                     **creation_opts,
                 )
@@ -357,15 +444,6 @@ class File(NestedFileMixin[int], Base):
         else:
             return teacher
 
-    def get_diskname(self) -> str:
-        """Get the absolute path on the disk for this file.
-
-        :returns: The absolute path.
-        :raises AssertionError: If this file is deleted.
-        """
-        assert not self._deleted
-        return super().get_diskname()
-
     def get_path(self) -> str:
         return '/'.join(self.get_path_list())
 
@@ -449,7 +527,7 @@ class File(NestedFileMixin[int], Base):
         }
 
 
-class AutoTestFixture(Base, FileMixin[int], TimestampMixin):
+class AutoTestFixture(FileMixin[int], TimestampMixin, Base):
     """This class represents a single fixture for an AutoTest configuration.
     """
     __tablename__ = 'AutoTestFixture'
@@ -510,20 +588,16 @@ class AutoTestFixture(Base, FileMixin[int], TimestampMixin):
             committed to the database, but where it does not have an underlying
             file yet.
         """
-        path, filename = psef.files.random_file_path()
-        old_path = self.get_diskname()
-        helpers.callback_after_this_request(
-            lambda: shutil.copy(old_path, path)
-        )
+        new_file = self.unwrapped_backing_file.copy()
 
         return AutoTestFixture(
             hidden=self.hidden,
             name=self.name,
-            filename=filename,
+            backing_file=new_file,
         )
 
 
-class AutoTestOutputFile(Base, NestedFileMixin[uuid.UUID], TimestampMixin):
+class AutoTestOutputFile(NestedFileMixin[uuid.UUID], TimestampMixin, Base):
     """This class represents an output file from an AutoTest run.
 
     The output files are connected to both a

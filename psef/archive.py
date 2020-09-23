@@ -39,7 +39,9 @@ from os import path
 
 import py7zlib
 import structlog
-from typing_extensions import Protocol
+
+from cg_object_storage import FileSize
+from cg_object_storage.utils import limited_copy
 
 from . import app
 from .helpers import register, add_warning
@@ -47,7 +49,6 @@ from .exceptions import APIWarnings
 
 T = t.TypeVar('T', bound='_BaseArchive')
 TT = t.TypeVar('TT')
-FileSize = t.NewType('FileSize', int)
 
 logger = structlog.get_logger()
 
@@ -63,59 +64,6 @@ class ArchiveMemberInfo(t.Generic[TT]):  # pylint: disable=unsubscriptable-objec
     is_dir: bool
     size: FileSize
     orig_file: TT
-
-
-_BUFFER_SIZE = 16 * 1024
-
-
-class ReadableStream(Protocol):
-    """A protocol representing an object from which you can read binary data.
-    """
-
-    def read(self, amount: int) -> bytes:  # pylint: disable=unused-argument,no-self-use
-        ...
-
-
-def limited_copy(
-    src: ReadableStream, dst: t.IO[bytes], max_size: FileSize
-) -> FileSize:
-    """Copy ``max_size`` bytes from ``src`` to ``dst``.
-
-    >>> import io
-    >>> dst = io.BytesIO()
-    >>> limited_copy(io.BytesIO(b'1234567890'), dst, 15)
-    10
-    >>> dst.seek(0)
-    0
-    >>> dst.read()
-    b'1234567890'
-    >>> dst = io.BytesIO()
-    >>> limited_copy(io.BytesIO(b'1234567890'), dst, 5)
-    Traceback (most recent call last):
-    ...
-    _LimitedCopyOverflow
-
-
-    :raises _LimitedCopyOverflow: If more data was in source than
-        ``max_size``. In this case some data may have been written to ``dst``,
-        but this is not guaranteed.
-    """
-    size_left = max_size
-    written = FileSize(0)
-
-    while True:
-        buf: bytes = src.read(_BUFFER_SIZE)
-        if not buf:
-            break
-        elif len(buf) > size_left:
-            raise _LimitedCopyOverflow
-
-        dst.write(buf)
-
-        written = FileSize(written + len(buf))
-        size_left = FileSize(size_left - len(buf))
-
-    return written
 
 
 def _safe_join(*args: str) -> str:
@@ -676,7 +624,9 @@ class _ZipArchive(_BaseArchive[zipfile.ZipInfo]):  # pylint: disable=unsubscript
 
         with open(dst_path,
                   'wb') as dst, self._archive.open(member.orig_file) as src:
-            limited_copy(src, dst, size_left)
+            res = limited_copy(src, dst, size_left)
+            if not res.complete:
+                raise _LimitedCopyOverflow
 
     def get_members(self) -> t.Iterable[ArchiveMemberInfo[zipfile.ZipInfo]]:
         """Get all members from this zip archive.

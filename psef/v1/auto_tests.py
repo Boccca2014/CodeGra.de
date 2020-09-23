@@ -101,13 +101,18 @@ def _update_auto_test(
         )
 
         for new_fixture in new_fixtures:
-            new_file_name, filename = files.random_file_path()
             assert new_fixture.filename is not None
-            new_fixture.save(new_file_name)
+            backing_file = app.file_storage.put_from_stream(
+                new_fixture.stream, max_size=app.max_single_file_size
+            )
+            if backing_file.is_nothing:
+                helpers.raise_file_too_big_exception(
+                    app.max_single_file_size, single_file=True
+                )
             auto_test.fixtures.append(
                 models.AutoTestFixture(
                     name=files.escape_logical_filename(new_fixture.filename),
-                    filename=filename,
+                    backing_file=backing_file.value,
                 )
             )
         renames = files.fix_duplicate_filenames(auto_test.fixtures)
@@ -949,16 +954,14 @@ def get_auto_test_step_result_attachment(
     auth.AutoTestResultPermissions(step_result.result).ensure_may_see()
     auth.ensure_can_view_autotest_step_details(step_result.step)
 
-    if step_result.attachment_filename is None:
+    if step_result.attachment.is_nothing:
         raise APIException(
             'This step did not produce an attachment',
             f'The step result {step_result.id} does not contain an attachment',
             APICodes.OBJECT_NOT_FOUND, 404
         )
 
-    res = flask.send_from_directory(
-        app.config['UPLOAD_DIR'],
-        step_result.attachment_filename,
+    return flask.send_file(
+        step_result.attachment.value.open(),
+        mimetype='application/octet-stream'
     )
-    res.headers['Content-Type'] = 'application/octet-stream'
-    return res

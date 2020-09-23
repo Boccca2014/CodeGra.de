@@ -24,6 +24,7 @@ from typing_extensions import Protocol
 from werkzeug.datastructures import FileStorage
 
 import psef.models as models
+import cg_object_storage
 
 from . import app, archive, helpers, blackboard
 from .ignore import (
@@ -84,8 +85,8 @@ def init_app(_: t.Any) -> None:
     pass
 
 
-def get_file_size(f: str) -> archive.FileSize:
-    return archive.FileSize(max(1, os.path.getsize(f)))
+def get_file_size(f: str) -> cg_object_storage.FileSize:
+    return cg_object_storage.FileSize(max(1, os.path.getsize(f)))
 
 
 def safe_join(parent: str, *children: str) -> str:
@@ -287,12 +288,7 @@ def get_stat_information(file: models.NestedFileMixin[T]
     :returns: The information as described above.
     """
     mod_date = file.modification_date
-
-    if file.is_directory:
-        size = 0
-    else:
-        filename = file.get_diskname()
-        size = os.stat(filename).st_size
+    size = file.backing_file.map(lambda f: f.size).or_default(0)
 
     return {
         'is_directory': file.is_directory,
@@ -440,16 +436,18 @@ def _restore_directory_structure(
     :returns: A tree as described in :py:func:`.restore_directory_structure`
     """
     out = safe_join(parent, code.name)
-    if code.is_directory:
+    backing_file = code.backing_file
+    if backing_file.is_nothing:
+        assert code.is_directory
         os.mkdir(out)
 
-        subtree: t.List[FileTree] = [
+        subtree: t.List[FileTree[T]] = [
             _restore_directory_structure(child, out, cache)
             for child in cache[code.get_id()]
         ]
         return FileTree(name=code.name, id=code.get_id(), entries=subtree)
     else:  # this is a file
-        shutil.copyfile(code.get_diskname(), out, follow_symlinks=False)
+        backing_file.value.save_to_disk(out)
         return FileTree(name=code.name, id=code.get_id(), entries=None)
 
 
@@ -528,14 +526,12 @@ def rename_directory_structure(
                     )
                     break
 
-                new_name, filename = random_file_path()
-                shutil.move(path, new_name)
+                copied_file = app.file_storage.put_from_file(path, move=True)
                 res.append(
                     ExtractFileTreeFile(
                         name=key,
-                        disk_name=filename,
                         parent=None,
-                        size=size,
+                        backing_file=copied_file,
                     )
                 )
             else:
@@ -554,15 +550,14 @@ def rename_directory_structure(
     assert len(result_lists) == 1
     assert isinstance(result_lists[0], ExtractFileTreeDirectory)
     if size_left < 0:
-        new_name, filename = random_file_path()
-        with open(new_name, 'w') as f:
-            f.write('Size limit was exceeded, so some files were not copied\n')
+        exceeded_file = app.file_storage.put_from_string(
+            'Size limit was exceeded, so some files were not copied\n',
+        )
         result_lists[0].add_child(
             ExtractFileTreeSpecialFile(
                 name='cg-size-limit-exceeded',
-                disk_name=filename,
+                backing_file=exceeded_file,
                 parent=None,
-                size=get_file_size(new_name),
             )
         )
     return result_lists[0]
@@ -668,44 +663,6 @@ def extract(
         shutil.rmtree(tmpdir)
 
 
-def random_file_path(use_mirror_dir: bool = False) -> t.Tuple[str, str]:
-    """Generates a new random file path in the upload directory.
-
-    :param use_mirror_dir: Use the mirror directory as the basedir of the
-        random file path.
-    :returns: The path to the new file and the name of the file.
-    """
-    if use_mirror_dir:
-        root = app.config['MIRROR_UPLOAD_DIR']
-    else:
-        root = app.config['UPLOAD_DIR']
-
-    while True:
-        name = str(uuid.uuid4())
-        candidate = safe_join(root, name)
-        if not os.path.exists(candidate):  # pragma: no cover
-            break
-    return candidate, name
-
-
-def save_stream(stream: FileStorage) -> str:
-    """Save the data from a stream to a new random filepath in the upload
-    directory.
-
-    :param stream: The stream to be saved.
-    :returns: The filename where the data is stored relative to the UPLOADS
-        directory..
-    """
-    new_file_name, filename = random_file_path()
-    stream.save(new_file_name)
-    if get_file_size(new_file_name) > app.max_single_file_size:
-        os.unlink(new_file_name)
-        helpers.raise_file_too_big_exception(
-            app.max_single_file_size, single_file=True
-        )
-    return filename
-
-
 def process_files(
     files: t.MutableSequence[FileStorage],
     max_size: archive.FileSize,
@@ -752,20 +709,20 @@ def process_files(
                     max_size=max_size,
                 ))
             else:
-                new_file_name, filename = random_file_path()
-                file.save(new_file_name)
-                tree.add_child(
-                    ExtractFileTreeFile(
-                        name=file.filename,
-                        disk_name=filename,
-                        parent=None,
-                        size=get_file_size(new_file_name),
-                    )
+                saved_file = app.file_storage.put_from_stream(
+                    file.stream, max_size=app.max_single_file_size
                 )
-                if tree.get_size() > app.max_single_file_size:
+                if saved_file.is_nothing:
                     helpers.raise_file_too_big_exception(
                         app.max_single_file_size, single_file=True
                     )
+                tree.add_child(
+                    ExtractFileTreeFile(
+                        name=file.filename,
+                        parent=None,
+                        backing_file=saved_file.value,
+                    )
+                )
 
     else:
         tree = extract(
@@ -823,7 +780,7 @@ def process_files(
     tree_size = tree.get_size()
     logger.info('Total size', total_size=tree_size, size=max_size)
     if tree_size > max_size:
-        tree.delete(app.config['UPLOAD_DIR'])
+        tree.delete()
         helpers.raise_file_too_big_exception(max_size, single_file=False)
 
     return tree
@@ -923,23 +880,3 @@ def split_path(path: str) -> t.Tuple[t.Sequence[str], bool]:
     patharr = [item for item in path.split('/') if item]
 
     return patharr, is_dir
-
-
-def check_dir(path: str, *, check_size: bool = False) -> bool:
-    """Check if the path is a directory that is readable, writable, and
-    executable for the current user.
-
-    :param path: Path to check.
-    :param check_size: Also check if there is enough free space in the given
-        directory.
-    :returns: ``True`` if path has the properties described above, ``False``
-        otherwise.
-    """
-    mode = os.R_OK | os.W_OK | os.X_OK
-    res = os.access(path, mode) and os.path.isdir(path)
-
-    if res and check_size:
-        free_space = shutil.disk_usage(path).free
-        res = free_space > app.config['MIN_FREE_DISK_SPACE']
-
-    return res

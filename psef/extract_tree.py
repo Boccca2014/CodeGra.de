@@ -8,12 +8,12 @@ import typing as t
 import dataclasses
 
 import psef
+from cg_object_storage import File as _File
+from cg_object_storage import FileSize
 
 if t.TYPE_CHECKING and not getattr(t, 'SPHINX', False):  # pragma: no cover
     # pylint: disable=unused-import
     import psef.files
-
-    from . import archive
 
 
 # This is a bug: https://github.com/python/mypy/issues/5374
@@ -33,7 +33,7 @@ class ExtractFileTreeBase:
     def forget_parent(self) -> None:
         self.parent = None
 
-    def delete(self, base_dir: str) -> None:
+    def delete(self) -> None:
         """Delete the this file and all its children.
 
         :param base_dir: The base directory where the files can be found.
@@ -62,7 +62,7 @@ class ExtractFileTreeBase:
             return [*self.parent.get_name_list(), self.name]
 
     @abc.abstractmethod
-    def get_size(self) -> 'psef.archive.FileSize':
+    def get_size(self) -> FileSize:
         """Get the size of this file.
 
         For a normal file this is the amount of space used on disk, and for a
@@ -92,17 +92,14 @@ class ExtractFileTreeFile(ExtractFileTreeBase):
     :ivar ~.ExtractFileTreeFile.diskname: The name of the file saved in the
         uploads directory.
     """
-    disk_name: str
-    size: 'psef.archive.FileSize'
+    backing_file: _File
 
-    def get_size(self) -> 'psef.archive.FileSize':
-        return self.size
+    def get_size(self) -> FileSize:
+        return self.backing_file.size
 
-    def delete(self, base_dir: str) -> None:
-        super().delete(base_dir)
-        path = psef.files.safe_join(base_dir, self.disk_name)
-        assert path.startswith(base_dir)
-        os.unlink(path)
+    def delete(self) -> None:
+        super().delete()
+        self.backing_file.delete()
 
     @property
     def is_dir(self) -> bool:
@@ -138,13 +135,13 @@ class ExtractFileTreeDirectory(ExtractFileTreeBase):
     """
     values: t.List[ExtractFileTreeBase]
 
-    def get_size(self) -> 'psef.archive.FileSize':
-        return psef.archive.FileSize(sum(c.get_size() for c in self.values))
+    def get_size(self) -> FileSize:
+        return FileSize(sum(c.get_size() for c in self.values))
 
-    def delete(self, base_dir: str) -> None:
-        super().delete(base_dir)
+    def delete(self) -> None:
+        super().delete()
         for val in self.values:
-            val.delete(base_dir)
+            val.delete()
 
     def get_all_children(self) -> t.Iterable['ExtractFileTreeBase']:
         """Get all the children of this directory.
