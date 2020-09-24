@@ -69,17 +69,14 @@ class ArchiveMemberInfo(t.Generic[TT]):  # pylint: disable=unsubscriptable-objec
     :ivar name: The complete name of the member including previous directories.
     :ivar is_dir: Is the member a directory
     """
-    name: t.Sequence[str]
+    name: t.Sequence[str] = dataclasses.field(init=False)
+    orig_name: str
     is_dir: bool
     size: FileSize
     orig_file: TT
 
-
-def _safe_join(*args: str) -> str:
-    assert args
-    res = path.normpath(path.realpath(path.join(*args)))
-    assert res.startswith(args[0])
-    return res
+    def __post_init__(self) -> None:
+        self.name = [p for p in self.orig_name.split('/') if p]
 
 
 class ArchiveException(Exception):
@@ -158,22 +155,9 @@ class Archive(t.Generic[TT]):  # pylint: disable=unsubscriptable-object
 
     @classmethod
     @contextlib.contextmanager
-    def create_from_fileobj(cls, filename: str, fileobj: t.IO[bytes]) -> t.Iterator['Archive[object]']:
+    def create_from_fileobj(cls, filename: str, fileobj: t.IO[bytes]
+                            ) -> t.Iterator['Archive[object]']:
         """Create a instance of this class from the given filename.
-
-        >>> with Archive.create_from_file('test_data/test_blackboard/correct.tar.gz') as arch:
-        ...  arch
-        <psef.archive.Archive object at 0x...>
-        >>> with Archive.create_from_file('non_existing.tar.gz') as arch:
-        ...  arch
-        Traceback (most recent call last):
-        ...
-        FileNotFoundError: [Errno 2] No such file or directory: 'non_existing.tar.gz'
-        >>> with Archive.create_from_file('not_an_archive') as arch:
-        ...  arch
-        Traceback (most recent call last):
-        ...
-        psef.archive.UnrecognizedArchiveFormat: Path is not a recognized archive format
 
         :param filename: The path to the file as source for this archive.
         :returns: An instance of :class:`Archive` when the filename was a
@@ -192,9 +176,7 @@ class Archive(t.Generic[TT]):  # pylint: disable=unsubscriptable-object
         finally:
             arr.close()
 
-    def extract(
-        self, putter: Putter, max_size: FileSize
-    ) -> ExtractFileTree:
+    def extract(self, putter: Putter, max_size: FileSize) -> ExtractFileTree:
         """Safely extract the current archive.
 
         :returns: Nothing
@@ -302,35 +284,23 @@ class Archive(t.Generic[TT]):  # pylint: disable=unsubscriptable-object
         target directory.
 
 
-        >>> from pprint import pprint
-        >>> class Bunch: pass
-        >>> import psef
-        >>> psef.archive.app = Bunch()
-        >>> psef.archive.app.config = {'MAX_NUMBER_OF_FILES': 100000}
-        >>> with Archive.create_from_file(
-        ...  'test_data/test_submissions/multiple_dir_archive.tar.gz'
-        ... ) as arch:
-        ...  print(arch.check_files('/tmp/out'))
-        None
-        >>> with Archive.create_from_file('test_data/test_submissions/unsafe.tar.gz') as arch:
-        ...  arch.check_files('/tmp/out')
-        Traceback (most recent call last):
-        ...
-        psef.archive.UnsafeArchive: Archive member destination is outside the target directory
-
         :param to_path: The path were the archive should be extracted to.
         :returns: Nothing
         """
-        _base_path = f'/{uuid.uuid4()}'
+        _base_path = f'/{uuid.uuid4()}/'
 
         for member in self.get_members():
-            # Don't use `_safe_join` here as we detect unsafe joins here to
-            # raise an `UnsafeArchive` exception.
-            extract_path = path.normpath(
-                path.realpath(path.join(_base_path, *member.name))
+            paths = (
+                path.normpath(
+                    path.realpath(path.join(_base_path, member.orig_name))
+                ),
+                path.normpath(path.join(_base_path, member.orig_name)),
+                path.normpath(path.join(_base_path, *member.name)),
             )
 
-            if not extract_path.startswith(_base_path):
+            if not member.name or not all(
+                p.startswith(_base_path) and p != _base_path for p in paths
+            ):
                 raise UnsafeArchive(
                     'Archive member destination is outside the target'
                     ' directory', member
@@ -461,22 +431,6 @@ class _TarArchive(_BaseArchive[tarfile.TarInfo]):  # pylint: disable=unsubscript
             function can therefore be used to filter out some files, like
             sparse files. Files that are symlinks should be kept, as special
             error handling is in place for such files.
-
-        >>> from pprint import pprint
-        >>> zp = _TarArchive('test_data/test_submissions/multiple_dir_archive.tar.gz')
-        >>> print([dataclasses.astuple(i) for i in sorted(zp.get_members())])
-        [('dir/', True, ..., ...), \
-('dir/single_file_work', False, ..., ...), \
-('dir/single_file_work_copy', False, ..., ...), \
-('dir2/', True, ..., ...), \
-('dir2/single_file_work', False, ..., ...), \
-('dir2/single_file_work_copy', False, ..., ...)]
-        >>> zp = _TarArchive('test_data/test_submissions/deheading_dir_archive.tar.gz')
-        >>> print([dataclasses.astuple(i) for i in sorted(zp.get_members())])
-        [('dir/', True, ..., ...), \
-('dir/dir2/', True, ..., ...), \
-('dir/dir2/single_file_work', False, ..., ...), \
-('dir/dir2/single_file_work_copy', False, ..., ...)]
         """
         for member in self._archive.getmembers():
             if not self._member_is_safe(member):
@@ -484,7 +438,7 @@ class _TarArchive(_BaseArchive[tarfile.TarInfo]):  # pylint: disable=unsubscript
 
             name = member.name
             yield ArchiveMemberInfo(
-                name=os.path.normpath(name).split('/'),
+                orig_name=name,
                 is_dir=member.isdir(),
                 size=FileSize(member.size),
                 orig_file=member,
@@ -540,42 +494,32 @@ def _get_members_of_archives(
     :param arch: The archive to get the archive members of.
     :returns: A iterable of archive member objects.
     """
-    seen_dirs: t.Set[t.Tuple[str, ...]] = set()
-
     for member in archive_files:
+        print(member)
         cur_is_dir = member.filename[-1] == '/'
-        name_list = [p for p in member.filename.split('/') if p]
+        name = [p for p in member.filename.split('/') if p]
 
-        while name_list:
-            cur_name = tuple(name_list)
-            if cur_name in seen_dirs:
-                break
-            seen_dirs.add(cur_name)
-
-            if cur_is_dir:
-                yield ArchiveMemberInfo(
-                    name=cur_name,
-                    is_dir=cur_is_dir,
-                    orig_file=member,
-                    size=FileSize(0),
-                )
-            elif isinstance(member, zipfile.ZipInfo):
-                yield ArchiveMemberInfo(
-                    name=cur_name,
-                    is_dir=False,
-                    orig_file=member,
-                    size=FileSize(member.file_size),
-                )
-            elif isinstance(member, py7zlib.ArchiveFile):
-                yield ArchiveMemberInfo(
-                    name=cur_name,
-                    is_dir=False,
-                    orig_file=member,
-                    size=FileSize(member.size),
-                )
-
-            cur_is_dir = True
-            name_list.pop()
+        if cur_is_dir:
+            yield ArchiveMemberInfo(
+                orig_name=member.filename,
+                is_dir=cur_is_dir,
+                orig_file=member,
+                size=FileSize(0),
+            )
+        elif isinstance(member, zipfile.ZipInfo):
+            yield ArchiveMemberInfo(
+                orig_name=member.filename,
+                is_dir=False,
+                orig_file=member,
+                size=FileSize(member.file_size),
+            )
+        elif isinstance(member, py7zlib.ArchiveFile):
+            yield ArchiveMemberInfo(
+                orig_name=member.filename,
+                is_dir=False,
+                orig_file=member,
+                size=FileSize(member.size),
+            )
 
 
 @_archive_handlers.register('.zip')
@@ -603,21 +547,6 @@ class _ZipArchive(_BaseArchive[zipfile.ZipInfo]):  # pylint: disable=unsubscript
 
     def get_members(self) -> t.Iterable[ArchiveMemberInfo[zipfile.ZipInfo]]:
         """Get all members from this zip archive.
-
-        >>> zp = _ZipArchive('test_data/test_submissions/multiple_dir_archive.zip')
-        >>> print([dataclasses.astuple(i) for i in sorted(zp.get_members())])
-        [('dir/', True, ..., ...), \
-('dir/single_file_work', False, ..., ...), \
-('dir/single_file_work_copy', False, ..., ...), \
-('dir2/', True, ..., ...), \
-('dir2/single_file_work', False, ..., ...), \
-('dir2/single_file_work_copy', False, ..., ...)]
-        >>> zp = _ZipArchive('test_data/test_submissions/deheading_dir_archive.zip')
-        >>> print([dataclasses.astuple(i) for i in sorted(zp.get_members())])
-        [('dir/', True, ..., ...), \
-('dir/dir2/', True, ..., ...), \
-('dir/dir2/single_file_work', False, ..., ...), \
-('dir/dir2/single_file_work_copy', False, ..., ...)]
         """
         yield from _get_members_of_archives(self._archive.infolist())
 
@@ -659,21 +588,6 @@ class _7ZipArchive(_BaseArchive[py7zlib.ArchiveFile]):  # pylint: disable=unsubs
     def get_members(self
                     ) -> t.Iterable[ArchiveMemberInfo[py7zlib.ArchiveFile]]:
         """Get all members from this 7zip archive.
-
-        >>> zp = _7ZipArchive('test_data/test_submissions/multiple_dir_archive.7z')
-        >>> print([(i.name, i.is_dir) for i in sorted(zp.get_members())])
-        [('dir/', True), \
-('dir/single_file_work', False), \
-('dir/single_file_work_copy', False), \
-('dir2/', True), \
-('dir2/single_file_work', False), \
-('dir2/single_file_work_copy', False)]
-        >>> zp = _7ZipArchive('test_data/test_submissions/deheading_dir_archive.7z')
-        >>> print([(i.name, i.is_dir) for i in sorted(zp.get_members())])
-        [('dir/', True), \
-('dir/dir2/', True), \
-('dir/dir2/single_file_work', False), \
-('dir/dir2/single_file_work_copy', False)]
         """
         yield from _get_members_of_archives(self._archive.getmembers())
 
