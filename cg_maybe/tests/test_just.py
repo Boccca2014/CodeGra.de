@@ -1,8 +1,9 @@
-from cg_maybe import Just
+from cg_maybe import Just, Nothing
 
 
 def test_map():
     assert Just(5).map(lambda x: x * x).value == 25
+
 
 def test_unsafe_extract():
     just = Just(object())
@@ -27,3 +28,11 @@ def test_if_just():
 
     Just(obj).if_just(call)
     assert called
+
+
+def test_alt():
+    just1 = Just(5)
+    just2 = Just(6)
+
+    assert just1.alt(just2) is just1
+    assert just1.alt(Nothing) is just1

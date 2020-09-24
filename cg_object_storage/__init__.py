@@ -234,8 +234,7 @@ class _LocalFilePutter:
     def rollback(self) -> None:
         for new_path in self.__new_files:
             try:
-                # os.unlink(new_path)
-                pass
+                os.unlink(new_path)
             except BaseException:  # pragma: no cover
                 pass
 
@@ -278,7 +277,7 @@ class LocalStorage(_Storage[LocalFile]):
 
     def get(self, name: str) -> Maybe[LocalFile]:
         path = self.safe_join(name)
-        return path.map(lambda name: LocalFile(name, self))
+        return path.map(lambda _: LocalFile(name, self))
 
     def _get_putter(self) -> _LocalFilePutter:
         return _LocalFilePutter(self)

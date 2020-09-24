@@ -1,6 +1,6 @@
 import pytest
 
-from cg_maybe import Nothing
+from cg_maybe import Just, Nothing
 
 
 def test_map():
@@ -26,3 +26,10 @@ def test_if_just():
 
     Nothing.if_just(call)
     assert not called
+
+
+def test_alt():
+    just = Just(5)
+
+    assert Nothing.alt(just) is just
+    assert Nothing.alt(Nothing) is Nothing
