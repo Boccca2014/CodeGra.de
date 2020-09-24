@@ -31,9 +31,8 @@ supported, or contact us at `support@codegrade.com
 <mailto:support@codegrade.com>`_ if your preferred framework is not listed
 there so we can discuss the possibilities!
 
-All wrapper scripts have a similar interface and procedure for running tests.
-To see the options and commands provided by a script run it with the ``--help``
-flag.
+All wrapper scripts share a similar interface and procedure for running tests,
+which we describe below.
 
 Installing dependencies
 ~~~~~~~~~~~~~~~~~~~~~~~
@@ -75,8 +74,7 @@ format, or in the correct location. The wrapper scripts handle this in their
 ``run`` command.
 
 The scripts extract the output location from ``$CG_JUNIT_XML_LOCATION`` and
-then unset it before running the tests. This way students have no access to
-this information when their code is running. The testing framework is then
+then unset it before running the tests. The testing framework is then
 configured to output its results at that location and the tests are executed.
 
 For example, to run a JUnit 4 test class named ``MyTestClass`` you would run
@@ -88,5 +86,4 @@ For example, to run a JUnit 4 test class named ``MyTestClass`` you would run
 .. note::
 
     The exact arguments to the ``run`` command of each script may differ
-    between scripts.  They are described in more detail in the output of the
-    ``--help`` flag of each script.
+    between scripts.

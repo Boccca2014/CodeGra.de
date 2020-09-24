@@ -25,5 +25,10 @@ with a Python3 Regular Expression. This output should be a **number between
     unit test script that parses the output and outputs a number between 0.0 and
     1.0 (e.g. the amount of passed tests divided by the total amount of tests).
 
+    We recommend you run your program with our utility program
+    ``normalize_floats`` to ensure that the score you write can be read
+    correctly by CodeGrade. For example, if the command to run your tests is
+    ``run_tests``, you would run ``normalize_floats run_tests``.
+
     For unit testing frameworks the :ref:`Unit Test <setting-up-unit-tests>`
     may be more appropriate, though.
