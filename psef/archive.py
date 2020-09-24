@@ -208,7 +208,7 @@ class Archive(t.Generic[TT]):  # pylint: disable=unsubscriptable-object
         self, putter: Putter, max_size: FileSize
     ) -> ExtractFileTree:
         total_size = FileSize(0)
-        base = ExtractFileTree(name=self.__filename, parent=None)
+        base = ExtractFileTree(name=self.__filename)
         symlinks = []
 
         def raise_archive_too_large() -> t.NoReturn:

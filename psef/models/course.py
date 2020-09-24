@@ -493,9 +493,7 @@ class Course(NotEqualMixin, Base, mixins.TimestampMixin, mixins.IdMixin):
 
             subdir: psef.files.ExtractFileTreeBase
             if isinstance(child, psef.files.ExtractFileTreeFile):
-                subdir = psef.files.ExtractFileTreeDirectory(
-                    name='top', parent=None
-                )
+                subdir = psef.files.ExtractFileTreeDirectory(name='top')
                 tree.forget_child(child)
                 subdir.add_child(child)
             else:

@@ -421,14 +421,10 @@ def rename_directory_structure(
 
                 copied_file = putter.from_file(path, move=True)
                 res.append(
-                    ExtractFileTreeFile(
-                        name=key,
-                        parent=None,
-                        backing_file=copied_file,
-                    )
+                    ExtractFileTreeFile(name=key, backing_file=copied_file)
                 )
             else:
-                new_dir = ExtractFileTreeDirectory(name=key, parent=None)
+                new_dir = ExtractFileTreeDirectory(name=key)
                 for child in __to_lists(safe_join(name, key), value):
                     new_dir.add_child(child)
                 res.append(new_dir)
@@ -446,9 +442,7 @@ def rename_directory_structure(
         )
         result_lists[0].add_child(
             ExtractFileTreeSpecialFile(
-                name='cg-size-limit-exceeded',
-                backing_file=exceeded_file,
-                parent=None,
+                name='cg-size-limit-exceeded', backing_file=exceeded_file
             )
         )
     return result_lists[0]
@@ -562,7 +556,7 @@ def _process_files(
         return not force_txt and archive.Archive.is_archive(f.filename)
 
     if len(files) > 1 or not consider_archive(files[0]):
-        tree = ExtractFileTree(name='top', parent=None)
+        tree = ExtractFileTree(name='top')
         filename_counter: t.Counter[str] = Counter()
         # We reverse sort on length so that in the case we have two files named
         # `a` and one name `a (1)` the resulting file `a (1)` will be the
@@ -597,9 +591,7 @@ def _process_files(
                     )
                 tree.add_child(
                     ExtractFileTreeFile(
-                        name=filename,
-                        parent=None,
-                        backing_file=saved_file.value,
+                        name=filename, backing_file=saved_file.value
                     )
                 )
 

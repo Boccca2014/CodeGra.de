@@ -437,7 +437,7 @@ def _clone_commit_as_submission_1(
         p.files.replace_symlinks(tmpdir)
 
         tree = p.extract_tree.ExtractFileTree(
-            name=clone_data.repository_name.replace('/', ' - '), parent=None
+            name=clone_data.repository_name.replace('/', ' - ')
         )
         for child in p.files.rename_directory_structure(
             tmpdir, putter, p.app.max_file_size

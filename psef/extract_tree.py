@@ -26,7 +26,9 @@ class ExtractFileTreeBase:
         archive that was extracted.
     """
     name: str
-    parent: t.Optional['ExtractFileTreeDirectory']
+    parent: t.Optional['ExtractFileTreeDirectory'] = dataclasses.field(
+        default=None, init=False
+    )
 
     def __post_init__(self) -> None:
         self.name = psef.files.escape_logical_filename(self.name)
@@ -181,7 +183,7 @@ class ExtractFileTreeDirectory(ExtractFileTreeBase):
 
     def lookup_direct_child(self,
                             name: str) -> t.Optional[ExtractFileTreeBase]:
-        return self._lookup.get(name)
+        return self._lookup.get(psef.files.escape_logical_filename(name))
 
     def forget_child(self, f: ExtractFileTreeBase) -> None:
         """Remove a child as one of our children.
@@ -221,13 +223,13 @@ class ExtractFileTree(ExtractFileTreeDirectory):
         base = self._find_child(name[:-1])
         base.add_child(
             ExtractFileTreeFile(
-                name=name[-1], backing_file=backing_file, parent=None
+                name=name[-1], backing_file=backing_file
             )
         )
 
     def insert_dir(self, name: t.Sequence[str]) -> None:
         base = self._find_child(name[:-1])
-        base.add_child(ExtractFileTreeDirectory(name=name[-1], parent=None))
+        base.add_child(ExtractFileTreeDirectory(name=name[-1]))
 
     def _find_child(self, name: t.Sequence[str]) -> ExtractFileTreeDirectory:
         cur: ExtractFileTreeDirectory = self
@@ -235,7 +237,7 @@ class ExtractFileTree(ExtractFileTreeDirectory):
             prev = cur
             new_cur = cur.lookup_direct_child(sub)
             if new_cur is None:
-                cur = ExtractFileTreeDirectory(name=sub, parent=None)
+                cur = ExtractFileTreeDirectory(name=sub)
                 prev.add_child(cur)
             else:
                 assert isinstance(new_cur, ExtractFileTreeDirectory)
