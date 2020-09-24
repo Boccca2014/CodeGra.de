@@ -138,12 +138,15 @@ class SubmissionFilter:
         :returns: The modified tree, and a list of files that were deleted.
         """
         # pylint: disable=no-self-use
-
         changes = []
-        if len(tree.values) == 1 and tree.values[0].is_dir:
+
+        def is_dir(f: ExtractFileTreeBase) -> bool:
+            return f.is_dir
+
+        if tree.only_child.map(is_dir).or_default(False):
             tree = copy.deepcopy(tree)
 
-        while len(tree.values) == 1 and tree.values[0].is_dir:
+        while tree.only_child.map(is_dir).or_default(False):
             changes.append(
                 FileDeletion(
                     deletion_type=DeletionType.leading_directory,
@@ -162,10 +165,10 @@ class SubmissionFilter:
 
             # Copy is needed here as we modify values by doing a `.delete` call
             # on one of the children.
-            for child in copy.copy(tree.values):
+            for child in list(tree.values):
                 res.extend(self._delete_file(child))
 
-            if not tree.values:
+            if tree.is_empty:
                 deleted_tree = self.file_allowed(tree)
                 if deleted_tree is not None:
                     res.append(deleted_tree)
@@ -204,7 +207,7 @@ class SubmissionFilter:
         if handle_ignore != IgnoreHandling.keep:
             # Copy is needed here as we modify values by doing a `.delete` call
             # on one of the children.
-            for child in copy.copy(tree.values):
+            for child in list(tree.values):
                 total_changes.extend(self._delete_file(child))
 
             tree, removed_top_dirs = self._remove_leading_directories(tree)
@@ -953,7 +956,7 @@ class SubmissionValidator(SubmissionFilter):
         :returns: If the submission is valid.
         """
         if (
-            f.is_dir and not t.cast(ExtractFileTreeDirectory, f).values and
+            isinstance(f, ExtractFileTreeDirectory) and f.is_empty and
             self.options.get(Options.OptionName.delete_empty_directories)
         ):
             return FileDeletion(

@@ -182,7 +182,8 @@ def get_feedback(work: models.Work) -> t.Mapping[str, str]:
     for lcomment in linter_comments:
         output_string.append(f'{lcomment}\n')
 
-    result = app.mirror_file_storage.put_from_string(''.join(output_string))
+    with app.mirror_file_storage.putter() as putter:
+        result = putter.from_string(''.join(output_string))
     return {'name': result.name, 'output_name': filename}
 
 
@@ -206,9 +207,8 @@ def get_zip(work: models.Work,
     auth.ensure_can_view_files(work, exclude_owner == FileOwner.student)
     with work.create_zip(exclude_owner) as zip_file:
         max_size = app.max_large_file_size
-        result = app.mirror_file_storage.put_from_stream(
-            stream=zip_file, max_size=max_size
-        )
+        with app.mirror_file_storage.putter() as putter:
+            result = putter.from_stream(stream=zip_file, max_size=max_size)
 
     if result.is_nothing:
         helpers.raise_file_too_big_exception(max_size, True)
@@ -960,9 +960,10 @@ def create_new_file(submission_id: int) -> JSONResponse[t.Mapping[str, t.Any]]:
     for idx, part in enumerate(parts):
         if _is_last(idx) and not create_dir:
             max_size = app.max_single_file_size
-            backing_file = app.file_storage.put_from_stream(
-                request.stream, max_size=max_size
-            )
+            with app.file_storage.putter() as putter:
+                backing_file = putter.from_stream(
+                    request.stream, max_size=max_size
+                )
             if backing_file.is_nothing:
                 helpers.raise_file_too_big_exception(max_size, True)
 

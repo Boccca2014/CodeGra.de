@@ -43,9 +43,9 @@ def post_file() -> JSONResponse[str]:
     :raises PermissionException: If there is no logged in user. (NOT_LOGGED_IN)
     """
     max_size = app.max_single_file_size
-    result = app.mirror_file_storage.put_from_stream(
-        request.stream, max_size=max_size
-    )
+    with app.mirror_file_storage.putter() as putter:
+        result = putter.from_stream(request.stream, max_size=max_size)
+
     if result.is_nothing:
         raise_file_too_big_exception(max_size, True)
 

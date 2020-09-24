@@ -258,16 +258,20 @@ def test_data(db=None):
                             f = m.File(
                                 work=work,
                                 name='Top stub dir ({})'.format(u.name),
-                                is_directory=True
+                                is_directory=True,
+                                backing_file=None,
+                                parent=None,
                             )
                             path = __file__
-                            backing_file = app.file_storage.put_from_file(path)
+                            with app.file_storage.putter() as p:
+                                backing_file = p.from_file(path, move=False)
                             f.children = [
                                 m.File(
                                     work=work,
                                     name='manage.py',
                                     is_directory=False,
-                                    backing_file=backing_file
+                                    backing_file=backing_file,
+                                    parent=f,
                                 )
                             ]
                             db.session.add(f)

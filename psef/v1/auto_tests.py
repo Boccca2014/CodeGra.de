@@ -100,21 +100,26 @@ def _update_auto_test(
             only_start=True,
         )
 
-        for new_fixture in new_fixtures:
-            assert new_fixture.filename is not None
-            backing_file = app.file_storage.put_from_stream(
-                new_fixture.stream, max_size=app.max_single_file_size
-            )
-            if backing_file.is_nothing:
-                helpers.raise_file_too_big_exception(
-                    app.max_single_file_size, single_file=True
+        with app.file_storage.putter() as putter:
+            max_size = app.max_single_file_size
+            for new_fixture in new_fixtures:
+                assert new_fixture.filename is not None
+                backing_file = putter.from_stream(
+                    new_fixture.stream, max_size=max_size
                 )
-            auto_test.fixtures.append(
-                models.AutoTestFixture(
-                    name=files.escape_logical_filename(new_fixture.filename),
-                    backing_file=backing_file.value,
+                if backing_file.is_nothing:
+                    helpers.raise_file_too_big_exception(
+                        app.max_single_file_size, single_file=True
+                    )
+                auto_test.fixtures.append(
+                    models.AutoTestFixture(
+                        name=files.escape_logical_filename(
+                            new_fixture.filename
+                        ),
+                        backing_file=backing_file.value,
+                    )
                 )
-            )
+
         renames = files.fix_duplicate_filenames(auto_test.fixtures)
         if renames:
             logger.info('Fixtures were renamed', renamed_fixtures=renames)

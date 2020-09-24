@@ -2,6 +2,7 @@
 
 SPDX-License-Identifier: AGPL-3.0-only
 """
+import os
 import enum
 import uuid
 import typing as t
@@ -19,11 +20,11 @@ import cg_flask_helpers
 import cg_object_storage
 from cg_enum import CGEnum
 from cg_dt_utils import DatetimeWithTimezone
-from cg_sqlalchemy_helpers import hybrid_property
+from cg_sqlalchemy_helpers import expression, hybrid_property
 from cg_sqlalchemy_helpers.types import (
-    MyQuery, ColumnProxy, ImmutableColumnProxy
+    MyQuery, ColumnProxy, FilterColumn, ImmutableColumnProxy
 )
-from cg_sqlalchemy_helpers.mixins import TimestampMixin
+from cg_sqlalchemy_helpers.mixins import UUIDMixin, TimestampMixin
 
 from . import Base, db
 from . import work as work_models
@@ -327,6 +328,48 @@ class NestedFileMixin(FileMixin[T]):
                 assert False
         return new_top
 
+    @classmethod
+    def _make_cache(cls: t.Type['NFM_T'], query_filter: FilterColumn
+                    ) -> t.Mapping[t.Optional[t.Any], t.Sequence['NFM_T']]:
+        cache = defaultdict(list)
+        query: MyQuery[NFM_T] = cls.query  # type: ignore[attr-defined]
+        for f in query.filter(query_filter).order_by(cls.name):
+            cache[f.parent_id].append(f)
+
+        return cache
+
+    @classmethod
+    def restore_directory_structure(
+        cls: t.Type['NestedFileMixin[T]'],
+        parent: str,
+        cache: t.Mapping[t.Optional[T], t.Sequence['NestedFileMixin[T]']],
+    ) -> 'psef.files.FileTree[T]':
+        """Restore the directory structure for this class.
+        """
+        return cache[None][0]._restore_directory_structure(parent, cache)
+
+    def _restore_directory_structure(
+        self: 'NestedFileMixin[T]',
+        parent: str,
+        cache: t.Mapping[t.Optional[T], t.Sequence['NestedFileMixin[T]']],
+    ) -> 'psef.files.FileTree[T]':
+        FileTree = psef.files.FileTree
+
+        out = psef.files.safe_join(parent, self.name)
+        backing_file = self.backing_file
+        if backing_file.is_nothing:
+            assert self.is_directory
+            os.mkdir(out)
+
+            subtree = [
+                child._restore_directory_structure(out, cache)
+                for child in cache[self.get_id()]
+            ]
+            return FileTree(name=self.name, id=self.get_id(), entries=subtree)
+        else:  # this is a file
+            backing_file.value.save_to_disk(out)
+            return FileTree(name=self.name, id=self.get_id(), entries=None)
+
 
 class File(NestedFileMixin[int], Base):
     """
@@ -459,18 +502,29 @@ class File(NestedFileMixin[int], Base):
         upper.append(self.name)
         return upper
 
-    def list_contents(
-        self,
-        exclude: FileOwner,
-    ) -> 'psef.files.FileTree[int]':
+    @classmethod
+    def make_cache(
+        cls,
+        work: 'psef.models.Work',
+        exclude: FileOwner = FileOwner.teacher,
+    ) -> t.Mapping[t.Optional[int], t.Sequence['File']]:
+        return cls._make_cache(
+            expression.and_(
+                cls.work == work,
+                cls.fileowner != exclude,
+                ~cls.self_deleted,
+            )
+        )
+
+    def list_contents(self, exclude: FileOwner) -> 'psef.files.FileTree[int]':
         """List the basic file info and the info of its children.
 
         :param exclude: The file owner to exclude from the tree.
 
-        :returns: A :class:`psef.files.FileTree` object where the given file is
-            the root object.
+        :returns: A :class:`psef.files.FileTree` object where this file is the
+                  root object.
         """
-        cache = self.work.get_file_children_mapping(exclude)
+        cache = self.make_cache(self.work, exclude)
         return self._inner_list_contents(cache)
 
     def rename_code(
@@ -654,14 +708,13 @@ class AutoTestOutputFile(NestedFileMixin[uuid.UUID], TimestampMixin, Base):
     def list_contents(self) -> 'psef.files.FileTree[uuid.UUID]':
         """List the basic file info and the info of its children.
         """
-        cache: t.Mapping[t.Optional[uuid.UUID], t.
-                         List[AutoTestOutputFile]] = defaultdict(list)
-
-        for f in AutoTestOutputFile.query.filter_by(
-            auto_test_result_id=self.auto_test_result_id,
-            auto_test_suite_id=self.auto_test_suite_id
-        ).order_by(AutoTestOutputFile.name):
-            cache[f.parent_id].append(f)
+        cls = type(self)
+        cache = self._make_cache(
+            expression.and_(
+                cls.auto_test_result_id == self.auto_test_result_id,
+                cls.auto_test_suite_id == self.auto_test_suite_id
+            )
+        )
 
         return self._inner_list_contents(cache)
 
@@ -672,3 +725,45 @@ def _receive_after_delete(
 ) -> None:
     """Listen for the 'after_delete' event"""
     helpers.callback_after_this_request(target.delete_from_disk)
+
+
+class PlagiarismBaseCodeFile(NestedFileMixin[uuid.UUID], Base):
+    """This object describes a file or directory that stored is stored as base
+    code for a plagiarism run.
+    """
+    id = db.Column('id', UUIDType, primary_key=True, default=uuid.uuid4)
+
+    def get_id(self) -> uuid.UUID:
+        return self.id
+
+    plagiarism_run_id = db.Column(
+        'plagiarism_run_id',
+        db.Integer,
+        db.ForeignKey('PlagiarismRun.id', ondelete='CASCADE'),
+        nullable=False,
+    )
+
+    is_directory = db.Column('is_directory', db.Boolean, nullable=False)
+    parent_id = db.Column(
+        'parent_id', UUIDType, db.ForeignKey('plagiarism_base_code_file.id')
+    )
+
+    # This variable is generated from the backref from the parent
+    children: MyQuery["File"]
+
+    parent = db.relationship(
+        lambda: PlagiarismBaseCodeFile,
+        remote_side=[id],
+        backref=db.backref('children', lazy='dynamic'),
+    )
+
+    plagiarism_run = db.relationship(
+        lambda: psef.models.PlagiarismRun,
+        foreign_keys=plagiarism_run_id,
+    )
+
+    @classmethod
+    def make_cache(cls, plagiarism_run: 'psef.models.PlagiarismRun'
+                   ) -> t.Mapping[t.Optional[uuid.UUID], t.
+                                  Sequence['PlagiarismBaseCodeFile']]:
+        return cls._make_cache(cls.plagiarism_run == plagiarism_run)

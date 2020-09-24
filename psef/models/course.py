@@ -483,7 +483,7 @@ class Course(NotEqualMixin, Base, mixins.TimestampMixin, mixins.IdMixin):
             is_lti=False
         )
         self.assignments.append(assig)
-        for child in copy.copy(tree.values):
+        for child in list(tree.values):
             # This is done before we wrap single files to get better author
             # names.
             work = work_models.Work(
@@ -494,7 +494,7 @@ class Course(NotEqualMixin, Base, mixins.TimestampMixin, mixins.IdMixin):
             subdir: psef.files.ExtractFileTreeBase
             if isinstance(child, psef.files.ExtractFileTreeFile):
                 subdir = psef.files.ExtractFileTreeDirectory(
-                    name='top', values=[child], parent=None
+                    name='top', parent=None
                 )
                 tree.forget_child(child)
                 subdir.add_child(child)

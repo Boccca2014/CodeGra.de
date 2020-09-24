@@ -12,10 +12,10 @@ import typing as t
 import datetime
 from collections import defaultdict
 
-import werkzeug
 import structlog
 from flask import request
 from sqlalchemy.orm import joinedload, selectinload
+from werkzeug.datastructures import FileStorage
 
 import psef
 import psef.files
@@ -1779,99 +1779,113 @@ def start_plagiarism_check(
         )
     old_assigs = helpers.get_in_or_error(
         models.Assignment,
-        t.cast(models.DbColumn[int], models.Assignment.id),
+        models.Assignment.id,
         t.cast(t.List[int], old_assig_ids),
     )
 
     for old_course_id in set(a.course_id for a in old_assigs):
         auth.ensure_permission(CPerm.can_view_plagiarism, old_course_id)
 
-    if has_old_submissions:
-        max_size = current_app.max_file_size
-        old_subs = helpers.get_files_from_request(
-            max_size=max_size, keys=['old_submissions']
-        )
-        tree = psef.files.process_files(old_subs, max_size=max_size)
-        # Normally we don't extract archives in archives, however for the
-        # plagiarism we do this. So after extracting this directory we now loop
-        # over all the children to check if they are directories in which case
-        # we extract them.
-        for i, child in enumerate(tree.values):
-            if isinstance(
-                child,
-                psef.files.ExtractFileTreeFile,
-            ) and archive.Archive.is_archive(child.name):
-                with child.backing_file.open() as child_stream:
-                    tree.values[i] = psef.files.process_files(
-                        [
-                            werkzeug.datastructures.FileStorage(
-                                stream=child_stream,
-                                filename=child.name,
-                            )
-                        ],
+    with psef.current_app.file_storage.putter() as putter:
+        if has_old_submissions:
+            max_size = current_app.max_file_size
+            old_subs = helpers.get_files_from_request(
+                max_size=max_size, keys=['old_submissions']
+            )
+            tree = psef.files.process_files(
+                old_subs, max_size=max_size, putter=putter
+            )
+            # Normally we don't extract archives in archives, however for the
+            # plagiarism we do this. So after extracting this directory we now
+            # loop over all the children to check if they are directories in
+            # which case we extract them.
+            for old_child in tree.values:
+                if not (
+                    isinstance(
+                        old_child,
+                        psef.files.ExtractFileTreeFile,
+                    ) and archive.Archive.is_archive(old_child.name)
+                ):
+                    continue
+
+                with old_child.backing_file.open() as old_child_stream:
+                    tree.forget_child(old_child)
+
+                    new_child = psef.files.extract(
+                        FileStorage(
+                            stream=old_child_stream, filename=old_child.name
+                        ),
+                        old_child.name,
+                        putter=putter,
                         max_size=max_size,
                     )
                     # This is to create a name for the author that resembles
                     # the name of the archive.
-                    tree.values[i].name = child.name.split('.')[0]
-                child.backing_file.delete()
+                    new_child.name = old_child.name.split('.', 1)[0]
+                    tree.add_child(new_child)
 
-        virtual_course = models.Course.create_virtual_course(tree)
-        db.session.add(virtual_course)
-        old_assigs.append(virtual_course.assignments[0])
+                old_child.backing_file.delete()
 
-    # provider_cls is a subclass of PlagiarismProvider and that can be
-    # instantiated
-    provider: plagiarism.PlagiarismProvider = t.cast(t.Any, provider_cls)()
-    provider.set_options(content)
+            virtual_course = models.Course.create_virtual_course(tree)
+            db.session.add(virtual_course)
+            old_assigs.append(virtual_course.assignments[0])
 
-    # If base code was provided check this now. We do this after all checking
-    # as the task is responsible for cleaning the created directory, so any
-    # exception after this point would mean that the directory won't be cleaned
-    # up.
-    base_code_dir = None
-    if has_base_code:
-        # We do not have any provider yet that doesn't support this, so we
-        # don't check the coverage.
-        if not provider.supports_base_code():  # pragma: no cover
-            raise APIException(
-                'This provider does not support base code',
-                f'The provider "{provider_name}" does not support base code',
-                APICodes.INVALID_PARAM, 400
-            )
+        # provider_cls is a subclass of PlagiarismProvider and that can be
+        # instantiated
+        provider: plagiarism.PlagiarismProvider = t.cast(t.Any, provider_cls)()
+        provider.set_options(content)
 
-        base_code = helpers.get_files_from_request(
-            max_size=current_app.max_large_file_size, keys=['base_code']
-        )[0]
-        base_code_dir, _ = psef.files.extract_to_temp(
-            base_code,
-            max_size=current_app.max_large_file_size,
-            archive_name='base_code_archive',
-            parent_result_dir=current_app.config['SHARED_TEMP_DIR'],
+        run = models.PlagiarismRun(
+            json_config=json_config,
+            assignment=assig,
+            old_assignments=old_assigs,
         )
-
-    try:
-        run = models.PlagiarismRun(json_config=json_config, assignment=assig)
         db.session.add(run)
-        db.session.commit()
+        db.session.flush()
+
+        if has_base_code:
+            base_code = helpers.get_files_from_request(
+                max_size=current_app.max_large_file_size, keys=['base_code']
+            )[0]
+
+            # We do not have any provider yet that doesn't support this, so we
+            # don't check the coverage.
+            if not provider.supports_base_code():  # pragma: no cover
+                raise APIException(
+                    'This provider does not support base code',
+                    f'"{provider_name}" does not support base code',
+                    APICodes.INVALID_PARAM, 400
+                )
+            elif (
+                not base_code.filename or
+                not psef.archive.Archive.is_archive(base_code.filename)
+            ):
+                raise APIException(
+                    'You can currently only provide an archive of base code',
+                    'The uploaded file was not an archive',
+                    APICodes.INVALID_PARAM, 400
+                )
+
+            tree = psef.files.extract(
+                base_code,
+                base_code.filename,
+                max_size=current_app.max_large_file_size,
+                putter=putter,
+            )
+            BaseCode = models.PlagiarismBaseCodeFile
+            base_code_file = BaseCode.create_from_extract_directory(
+                tree, top=None, creation_opts={'plagiarism_run': run}
+            )
+            db.session.add(base_code_file)
 
         # Start after this request because the created run needs to be commited
         # into the database
         helpers.callback_after_this_request(
-            lambda: psef.tasks.run_plagiarism_control(
-                plagiarism_run_id=run.id,
-                main_assignment_id=assig.id,
-                old_assignment_ids=[a.id for a in old_assigs],
-                call_args=provider.get_program_call(),
-                base_code_dir=base_code_dir,
-                csv_location=provider.matches_output,
-            )
+            lambda: psef.tasks.
+            run_plagiarism_control(plagiarism_run_id=run.id, )
         )
-    except:  # pylint: disable=broad-except; #pragma: no cover
-        # Delete base_code_dir if anything goes wrong
-        if base_code_dir:
-            shutil.rmtree(base_code_dir)
-        raise
+
+        db.session.commit()
 
     return jsonify(run)
 

@@ -224,9 +224,9 @@ def get_file_url(file: models.FileMixin[object]) -> str:
     :returns: The name of the newly created file (the copy).
     """
     with file.open() as src:
-        result = app.mirror_file_storage.put_from_stream(
-            src, max_size=app.max_single_file_size
-        )
+        with app.mirror_file_storage.putter() as putter:
+            result = putter.from_stream(src, max_size=app.max_single_file_size)
+
     if result.is_nothing:
         helpers.raise_file_too_big_exception(
             app.max_single_file_size, single_file=True
@@ -521,9 +521,9 @@ def update_code(file_id: int) -> JSONResponse[models.File]:
             code.parent = new_parent
         else:
             max_size = app.max_single_file_size
-            new_file = app.file_storage.put_from_stream(
-                request.stream, max_size=max_size
-            )
+            stream = request.stream
+            with app.file_storage.putter() as putter:
+                new_file = putter.from_stream(stream, max_size=max_size)
             if new_file.is_nothing:
                 helpers.raise_file_too_big_exception(max_size, True)
 

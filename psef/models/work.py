@@ -822,40 +822,6 @@ class Work(Base):
             *self.search_file_filters(pathname, exclude),
         )
 
-    def get_file_children_mapping(
-        self, exclude: 'file_models.FileOwner'
-    ) -> t.Mapping[t.Optional[int], t.Sequence['file_models.File']]:
-        """Get a mapping that maps a file id to all its children.
-
-        This implementation does a single query to the database and runs in
-        O(n*log(n)), so it will be quite a bit quicker than using the
-        `children` attribute on files if you are going to need all children or
-        all files.
-
-        The list of children is sorted on filename.
-
-        :param exclude: The file owners to exclude
-        :returns: A mapping from file id to list of all its children for this
-            submission.
-        """
-        cache: t.Mapping[t.Optional[int], t.
-                         List['file_models.File']] = defaultdict(list)
-        files = file_models.File.query.filter(
-            file_models.File.work == self,
-            file_models.File.fileowner != exclude,
-            ~file_models.File.self_deleted,
-        ).all()
-        # We sort in Python as this increases consistency between different
-        # server platforms, Python also has better defaults.
-        # TODO: Investigate if sorting in the database first and sorting in
-        # Python after is faster, as sorting in the database should be faster
-        # overal and sorting an already sorted list in Python is really fast.
-        files.sort(key=lambda el: el.name.lower())
-        for f in files:
-            cache[f.parent_id].append(f)
-
-        return cache
-
     @classmethod
     def peer_feedback_submissions_filter(
         cls,
@@ -961,9 +927,9 @@ class Work(Base):
         ) as tmpdir, zipfile.ZipFile(
             result, 'w', compression=zipfile.ZIP_DEFLATED
         ) as zipf:
-            # Restore the files to tmpdir
-            tree_root = psef.files.restore_directory_structure(
-                self, tmpdir, exclude_owner
+            tree_root = file_models.File.restore_directory_structure(
+                tmpdir,
+                file_models.File.make_cache(self, exclude_owner),
             )
 
             if create_leading_directory:

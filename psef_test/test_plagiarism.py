@@ -901,6 +901,14 @@ def test_jplag_base_code(
     def callback(call, **kwargs):
         f_p = os.path.join(call[call.index('-r') + 1], 'computer_matches.csv')
         assert call[call.index('-bc') + 1].startswith('/tmp/')
+        print()
+        print()
+        print()
+        print(list(os.walk(call[call.index('-bc') + 1])))
+        print()
+        print()
+        print()
+        print()
         assert os.listdir(call[call.index('-bc') + 1]) == ['dir']
         assert len(
             os.listdir('{}/dir'.format(call[call.index('-bc') + 1]))

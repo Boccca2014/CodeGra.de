@@ -16,13 +16,14 @@ import tarfile
 import zipfile
 import tempfile
 import dataclasses
-from collections import defaultdict
+from collections import Counter, defaultdict
 
 import structlog
 from werkzeug.utils import secure_filename
 from typing_extensions import Protocol
 from werkzeug.datastructures import FileStorage
 
+import cg_helpers
 import psef.models as models
 import cg_object_storage
 
@@ -370,123 +371,15 @@ def search_path_in_filetree(filetree: FileTree[T], path: str) -> T:
     return cur.id
 
 
-def restore_directory_structure(
-    work: models.Work,
-    parent: str,
-    exclude: models.FileOwner = models.FileOwner.teacher
-) -> FileTree[int]:
-    """Restores the directory structure recursively for a submission
-    (a :class:`.models.Work`).
-
-    The directory structure is returned like this:
-
-    .. code:: python
-
-       {
-           "id": 1,
-           "name": "rootdir"
-           "entries": [
-               {
-                   "id": 2,
-                   "name": "file1.txt"
-               },
-               {
-                   "id": 3,
-                   "name": "subdir"
-                   "entries": [
-                       {
-                           "id": 4,
-                           "name": "file2.txt."
-                       },
-                       {
-                           "id": 5,
-                           "name": "file3.txt"
-                       }
-                   ],
-               },
-           ],
-       }
-
-    :param work: A submissions.
-    :param parent: Path to parent directory.
-    :param exclude: The file owner to exclude.
-    :returns: A tree as described.
-    """
-    code = helpers.filter_single_or_404(
-        models.File,
-        models.File.work_id == work.id,
-        models.File.parent_id.is_(None),
-        models.File.fileowner != exclude,
-        ~models.File.self_deleted,
-    )
-    cache = work.get_file_children_mapping(exclude)
-    return _restore_directory_structure(code, parent, cache)
-
-
-def _restore_directory_structure(
-    code: models.FileMixin[T],
-    parent: str,
-    cache: t.Mapping[t.Optional[T], t.Sequence[models.FileMixin[T]]],
-) -> FileTree[T]:
-    """Worker function for :py:func:`.restore_directory_structure`
-
-    :param code: A file
-    :param parent: Path to parent directory
-    :param cache: The cache to use to get file children.
-    :returns: A tree as described in :py:func:`.restore_directory_structure`
-    """
-    out = safe_join(parent, code.name)
-    backing_file = code.backing_file
-    if backing_file.is_nothing:
-        assert code.is_directory
-        os.mkdir(out)
-
-        subtree: t.List[FileTree[T]] = [
-            _restore_directory_structure(child, out, cache)
-            for child in cache[code.get_id()]
-        ]
-        return FileTree(name=code.name, id=code.get_id(), entries=subtree)
-    else:  # this is a file
-        backing_file.value.save_to_disk(out)
-        return FileTree(name=code.name, id=code.get_id(), entries=None)
-
-
 def rename_directory_structure(
-    rootdir: str, disk_limit: t.Optional[archive.FileSize] = None
+    rootdir: str,
+    putter: cg_object_storage.Putter,
+    disk_limit: t.Optional[archive.FileSize] = None,
 ) -> ExtractFileTreeDirectory:
     """Creates a nested dictionary that represents the folder structure of
     rootdir.
 
-    A tree like:
-
-    - dir1
-        - dir 2
-            - file 1
-            - file 2
-        - file 3
-
-    will be moved to files given by :py:func:`random_file_path` and the object
-    returned will represent the file structure, which will be something like
-    this:
-
-    .. code:: python
-
-      {
-          'dir1': {
-              [
-                  'dir 2':{
-                      [
-                          ('file 1', 'new_name'),
-                          ('file 2', 'new_name2')
-                      ]
-                  },
-                  ('file 3', 'new_name3')
-              ]
-          }
-      }
-
     :param str rootdir: The root directory to rename, files will not be removed
-    :returns: The tree as described above
     """
     directory: t.MutableMapping[str, t.Any] = {}
 
@@ -526,7 +419,7 @@ def rename_directory_structure(
                     )
                     break
 
-                copied_file = app.file_storage.put_from_file(path, move=True)
+                copied_file = putter.from_file(path, move=True)
                 res.append(
                     ExtractFileTreeFile(
                         name=key,
@@ -535,9 +428,7 @@ def rename_directory_structure(
                     )
                 )
             else:
-                new_dir = ExtractFileTreeDirectory(
-                    name=key, values=[], parent=None
-                )
+                new_dir = ExtractFileTreeDirectory(name=key, parent=None)
                 for child in __to_lists(safe_join(name, key), value):
                     new_dir.add_child(child)
                 res.append(new_dir)
@@ -550,7 +441,7 @@ def rename_directory_structure(
     assert len(result_lists) == 1
     assert isinstance(result_lists[0], ExtractFileTreeDirectory)
     if size_left < 0:
-        exceeded_file = app.file_storage.put_from_string(
+        exceeded_file = putter.from_string(
             'Size limit was exceeded, so some files were not copied\n',
         )
         result_lists[0].add_child(
@@ -563,70 +454,9 @@ def rename_directory_structure(
     return result_lists[0]
 
 
-def extract_to_temp(
-    file: FileStorage,
-    max_size: archive.FileSize,
-    archive_name: str = 'archive',
-    parent_result_dir: t.Optional[str] = None,
-) -> t.Tuple[str, archive.FileSize]:
-    """Extracts the contents of file into a temporary directory.
-
-    :param file: The archive to extract.
-    :param max_size: The maximum size the extracted archive may be.
-    :param archive_name: The name used for the archive in error messages.
-    :param parent_result_dir: The location the resulting directory should be
-        placed in.
-    :returns: The pathname of the new temporary directory.
-    """
-    tmpfd, tmparchive = tempfile.mkstemp()
-    size: archive.FileSize
-    tmpdir = None
-    remove_tmpdir = True
-
-    try:
-        os.remove(tmparchive)
-        tmparchive += '_archive_{}'.format(
-            os.path.basename(secure_filename(file.filename))
-        )
-        tmpdir = tempfile.mkdtemp(dir=parent_result_dir)
-        file.save(tmparchive)
-
-        with archive.Archive.create_from_file(tmparchive) as arch:
-            size = arch.extract(to_path=tmpdir, max_size=max_size)
-    except (
-        tarfile.ReadError, zipfile.BadZipFile,
-        archive.UnrecognizedArchiveFormat
-    ) as exc:
-        raise APIException(
-            f'The given {archive_name} could not be extracted',
-            "The given archive doesn't seem to be an archive",
-            APICodes.INVALID_ARCHIVE,
-            400,
-        ) from exc
-    except (archive.ArchiveTooLarge, archive.FileTooLarge) as e:
-        helpers.raise_file_too_big_exception(
-            max_size, single_file=isinstance(e, archive.FileTooLarge)
-        )
-    except archive.UnsafeArchive as e:
-        logger.warning('Unsafe archive submitted', exc_info=True)
-        raise APIException(
-            f'The given {archive_name} contains invalid or too many files',
-            str(e), APICodes.UNSAFE_ARCHIVE, 400
-        ) from e
-    else:
-        remove_tmpdir = False
-    finally:
-        os.close(tmpfd)
-        os.remove(tmparchive)
-        if remove_tmpdir and tmpdir is not None:
-            shutil.rmtree(tmpdir)
-
-    return tmpdir, size
-
-
 def extract(
-    file: FileStorage,
-    max_size: archive.FileSize,
+    fileobj: FileStorage, filename: str, max_size: archive.FileSize,
+    putter: cg_object_storage.Putter
 ) -> ExtractFileTree:
     """Extracts all files in archive with random name to uploads folder.
 
@@ -640,27 +470,33 @@ def extract(
     :returns: A file tree as generated by
         :py:func:`rename_directory_structure`.
     """
-    tmpdir, _ = extract_to_temp(
-        file=file,
-        max_size=max_size,
-    )
-
-    try:
-        res = rename_directory_structure(tmpdir).values
-        for val in res:
-            val.forget_parent()
-
-        assert file.filename is not None
-        new_parent = ExtractFileTree(
-            name=file.filename,
-            values=[],
-            parent=None,
-        )
-        for val in res:
-            new_parent.add_child(val)
-        return new_parent
-    finally:
-        shutil.rmtree(tmpdir)
+    # Werkzeug implements a fix for https://github.com/python/cpython/pull/3249
+    # which we need.
+    with archive.Archive.create_from_fileobj(
+        filename, t.cast(t.IO[bytes], fileobj)
+    ) as arch:
+        try:
+            return arch.extract(max_size=max_size, putter=putter)
+        except (
+            tarfile.ReadError, zipfile.BadZipFile,
+            archive.UnrecognizedArchiveFormat
+        ) as exc:
+            raise APIException(
+                f'The given {filename} could not be extracted',
+                "The given archive doesn't seem to be an archive",
+                APICodes.INVALID_ARCHIVE,
+                400,
+            ) from exc
+        except (archive.ArchiveTooLarge, archive.FileTooLarge) as e:
+            helpers.raise_file_too_big_exception(
+                max_size, single_file=isinstance(e, archive.FileTooLarge)
+            )
+        except archive.UnsafeArchive as e:
+            logger.warning('Unsafe archive submitted', exc_info=True)
+            raise APIException(
+                f'The given {filename} contains invalid or too many files',
+                str(e), APICodes.UNSAFE_ARCHIVE, 400
+            ) from e
 
 
 def process_files(
@@ -669,6 +505,7 @@ def process_files(
     force_txt: bool = False,
     ignore_filter: t.Optional[SubmissionFilter] = None,
     handle_ignore: IgnoreHandling = IgnoreHandling.keep,
+    putter: cg_object_storage.Putter = None
 ) -> ExtractFileTree:
     """Process the given files by extracting, moving and saving their tree
     structure.
@@ -682,6 +519,32 @@ def process_files(
     :returns: The tree of the files as is described by
         :py:func:`rename_directory_structure`
     """
+
+    def cont(_putter: cg_object_storage.Putter) -> ExtractFileTree:
+        return _process_files(
+            files=files,
+            max_size=max_size,
+            force_txt=force_txt,
+            ignore_filter=ignore_filter,
+            handle_ignore=handle_ignore,
+            putter=_putter,
+        )
+
+    if putter is None:
+        with app.file_storage.putter() as _putter:
+            return cont(_putter)
+    else:
+        return cont(putter)
+
+
+def _process_files(
+    files: t.MutableSequence[FileStorage],
+    max_size: archive.FileSize,
+    force_txt: bool,
+    ignore_filter: t.Optional[SubmissionFilter],
+    handle_ignore: IgnoreHandling,
+    putter: cg_object_storage.Putter,
+) -> ExtractFileTree:
     if ignore_filter is None:
         ignore_filter = EmptySubmissionFilter()
 
@@ -699,17 +562,33 @@ def process_files(
         return not force_txt and archive.Archive.is_archive(f.filename)
 
     if len(files) > 1 or not consider_archive(files[0]):
-        tree = ExtractFileTree(name='top', values=[], parent=None)
-        for file in files:
+        tree = ExtractFileTree(name='top', parent=None)
+        filename_counter: t.Counter[str] = Counter()
+        # We reverse sort on length so that in the case we have two files named
+        # `a` and one name `a (1)` the resulting file `a (1)` will be the
+        # origin `a (1)`.
+        for file in sorted(
+            files,
+            key=lambda f: len(f.filename or ''),
+            reverse=True,
+        ):
             assert file.filename is not None
+            filename = file.filename
+
+            idx = 0
+            while filename_counter[filename] > 0:
+                idx += 1
+                parts = file.filename.split('.')
+                parts[0] += f' ({idx})'
+                filename = '.'.join(parts)
+            filename_counter[filename] += 1
 
             if consider_archive(file):
-                tree.add_child(extract(
-                    file,
-                    max_size=max_size,
-                ))
+                tree.add_child(
+                    extract(file, filename, max_size=max_size, putter=putter)
+                )
             else:
-                saved_file = app.file_storage.put_from_stream(
+                saved_file = putter.from_stream(
                     file.stream, max_size=app.max_single_file_size
                 )
                 if saved_file.is_nothing:
@@ -718,7 +597,7 @@ def process_files(
                     )
                 tree.add_child(
                     ExtractFileTreeFile(
-                        name=file.filename,
+                        name=filename,
                         parent=None,
                         backing_file=saved_file.value,
                     )
@@ -727,7 +606,9 @@ def process_files(
     else:
         tree = extract(
             files[0],
+            cg_helpers.handle_none(files[0].filename, 'archive'),
             max_size=max_size,
+            putter=putter,
         )
 
     if not tree.contains_file:
@@ -738,7 +619,6 @@ def process_files(
             400,
         )
 
-    tree.fix_duplicate_filenames()
     original_tree = copy.deepcopy(tree)
     tree, total_changes, missing_files = ignore_filter.process_submission(
         tree, handle_ignore
@@ -758,11 +638,6 @@ def process_files(
         )
 
     logger.info('Removing files', removed_files=total_changes)
-
-    if actual_file_changes:
-        # We need to do this again as moving files might have caused duplicate
-        # filenames
-        tree.fix_duplicate_filenames()
 
     # It did contain files before deleting, so the deletion caused the tree to
     # be empty.
@@ -799,14 +674,18 @@ def process_blackboard_zip(
     :returns: List of tuples (BBInfo, tree)
     """
 
-    def __get_files(info: blackboard.SubmissionInfo) -> t.List[FileStorage]:
+    def __get_files(info: blackboard.SubmissionInfo,
+                    skip: bool) -> t.List[FileStorage]:
         files = []
         for blackboard_file in info.files:
             if isinstance(blackboard_file, blackboard.FileInfo):
                 name = blackboard_file.original_name
-                stream = open(
-                    safe_join(tmpdir, blackboard_file.name), mode='rb'
-                )
+                bb_file = bb_tree.lookup_direct_child(blackboard_file.name)
+                if not isinstance(bb_file, ExtractFileTreeFile):
+                    if skip:
+                        continue
+                    assert False
+                stream = bb_file.backing_file.open()
             else:
                 name = blackboard_file[0]
                 stream = io.BytesIO(blackboard_file[1])
@@ -817,28 +696,35 @@ def process_blackboard_zip(
             files.append(FileStorage(stream=stream, filename=name))
         return files
 
-    tmpdir, _ = extract_to_temp(
-        blackboard_zip,
-        max_size=max_size,
-    )
-    try:
-        info_files = filter(
-            None, (_BB_TXT_FORMAT.match(f) for f in os.listdir(tmpdir))
+    with app.file_storage.putter() as putter:
+        bb_tree = extract(
+            blackboard_zip,
+            cg_helpers.handle_none(blackboard_zip.filename, 'bb_zip'),
+            max_size=app.max_large_file_size,
+            putter=putter,
+        )
+        info_files = (
+            f for f in bb_tree.values if _BB_TXT_FORMAT.match(f.name)
         )
         submissions = []
         for info_file in info_files:
-            info = blackboard.parse_info_file(
-                safe_join(tmpdir, info_file.string)
-            )
+            if not isinstance(info_file, ExtractFileTreeFile):
+                continue
+
+            with info_file.backing_file.open() as info_fileobj:
+                info = blackboard.parse_info_file(info_fileobj)
 
             try:
                 tree = process_files(
-                    files=__get_files(info), max_size=max_size
+                    files=__get_files(info, skip=False),
+                    max_size=max_size,
+                    putter=putter,
                 )
-            # TODO: We catch all exceptions, this should probably be narrowed
-            # down, however finding all exception types is difficult.
+            # TODO: We catch all exceptions, this should probably be
+            # narrowed down, however finding all exception types is
+            # difficult.
             except Exception:  # pylint: disable=broad-except
-                files = __get_files(info)
+                files = __get_files(info, skip=True)
                 files.append(
                     FileStorage(
                         stream=io.BytesIO(
@@ -848,14 +734,17 @@ def process_blackboard_zip(
                     )
                 )
                 tree = process_files(
-                    files=files, max_size=max_size, force_txt=True
+                    files=files,
+                    max_size=max_size,
+                    force_txt=True,
+                    putter=putter
                 )
 
             submissions.append((info, tree))
+
         if not submissions:
             raise ValueError
-    finally:
-        shutil.rmtree(tmpdir)
+
     return submissions
 
 
@@ -880,3 +769,40 @@ def split_path(path: str) -> t.Tuple[t.Sequence[str], bool]:
     patharr = [item for item in path.split('/') if item]
 
     return patharr, is_dir
+
+
+def replace_symlinks(to_path: str) -> None:
+    """Replace symlinks in the given directory with regular files
+    containing a notice that the symlink was replaced.
+
+    :param to_path: Directory to scan for symlinks.
+    :returns: Nothing
+    """
+    for parent, _, files in os.walk(to_path):
+        for f in files:
+            file_path = os.path.join(parent, f)
+
+            if not os.path.islink(file_path):
+                assert os.path.isfile(file_path) or os.path.isdir(file_path)
+                # This cannot be covered, see:
+                # https://bitbucket.org/ned/coveragepy/issues/198/continue-marked-as-not-covered
+                continue  # pragma: no cover
+
+            rel_path = os.path.relpath(file_path, to_path)
+            link_target = os.readlink(file_path)
+            os.unlink(file_path)
+
+            with open(file_path, 'w') as new_file:
+                new_file.write(
+                    (
+                        'This file was a symbolic link to "{}" when it '
+                        'was submitted, but CodeGrade does not support '
+                        'symbolic links.\n'
+                    ).format(link_target),
+                )
+
+            logger.warning(
+                'Symlink detected in archive',
+                filename=rel_path,
+                link_target=link_target,
+            )

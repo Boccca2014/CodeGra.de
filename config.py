@@ -100,7 +100,6 @@ FlaskConfig = TypedDict(
         'JWT_ACCESS_TOKEN_EXPIRES': int,
         'UPLOAD_DIR': str,
         'MIRROR_UPLOAD_DIR': str,
-        '_SHARED_TEMP_DIR': str,
         'MAX_NUMBER_OF_FILES': int,
         'MAX_FILE_SIZE': int,
         'MAX_NORMAL_UPLOAD_SIZE': int,
@@ -322,13 +321,6 @@ if not os.path.isdir(CONFIG['MIRROR_UPLOAD_DIR']):
     warnings.warn(
         f'The given uploads directory "{CONFIG["MIRROR_UPLOAD_DIR"]}"'
         ' does not exist',
-    )
-
-set_str(CONFIG, backend_ops, 'SHARED_TEMP_DIR', tempfile.gettempdir())
-if not os.path.isdir(CONFIG['SHARED_TEMP_DIR']):
-    warnings.warn(
-        f'The given shared temp dir "{CONFIG["SHARED_TEMP_DIR"]}"'
-        ' does not exist'
     )
 
 # Maximum size in bytes for single upload request

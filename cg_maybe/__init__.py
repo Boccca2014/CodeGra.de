@@ -23,6 +23,9 @@ class Just(t.Generic[_T]):
     def map(self, mapper: t.Callable[[_T], _TT]) -> 'Just[_TT]':
         return Just(mapper(self.value))
 
+    def alt(self, alternative: 'Maybe[_T]') -> 'Maybe[_T]':
+        return self
+
     def unsafe_extract(self) -> _T:
         return self.value
 
@@ -41,6 +44,9 @@ class _Nothing(t.Generic[_T]):
 
     def map(self, _mapper: t.Callable[[_T], _TT]) -> '_Nothing[_TT]':
         return Nothing
+
+    def alt(self, alternative: 'Maybe[_T]') -> 'Maybe[_T]':
+        return alternative
 
     def or_default(self, value: _Y) -> _Y:
         return value

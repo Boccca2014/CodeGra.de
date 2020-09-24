@@ -138,152 +138,13 @@ def _send_grader_status_mail_1(
 
 @celery.task
 def _run_plagiarism_control_1(  # pylint: disable=too-many-branches,too-many-statements
-    plagiarism_run_id: int,
-    main_assignment_id: int,
-    old_assignment_ids: t.List[int],
-    call_args: t.List[str],
-    base_code_dir: t.Optional[str],
-    csv_location: str,
+    plagiarism_run_id: int
 ) -> None:
-    def at_end() -> None:
-        if base_code_dir:
-            shutil.rmtree(base_code_dir)
-
-    with p.helpers.defer(
-        at_end,
-    ), tempfile.TemporaryDirectory(
-    ) as result_dir, tempfile.TemporaryDirectory(
-    ) as tempdir, tempfile.TemporaryDirectory() as archive_dir:
-        plagiarism_run = p.models.PlagiarismRun.query.get(plagiarism_run_id)
-
-        if plagiarism_run is None:  # pragma: no cover
-            logger.info(
-                'Plagiarism run was already deleted',
-                plagiarism_run_id=plagiarism_run_id,
-            )
-            return
-
-        def set_state(state: p.models.PlagiarismState) -> None:
-            assert plagiarism_run is not None
-            plagiarism_run.state = state
-            p.models.db.session.commit()
-
-        set_state(p.models.PlagiarismState.started)
-
-        supports_progress = plagiarism_run.plagiarism_cls.supports_progress()
-        progress_prefix = str(uuid.uuid4())
-
-        archival_arg_present = '{ archive_dir }' in call_args
-        if '{ restored_dir }' in call_args:
-            call_args[call_args.index('{ restored_dir }')] = tempdir
-        if '{ result_dir }' in call_args:
-            call_args[call_args.index('{ result_dir }')] = result_dir
-        if archival_arg_present:
-            call_args[call_args.index('{ archive_dir }')] = archive_dir
-        if base_code_dir:
-            call_args[call_args.index('{ base_code_dir }')] = base_code_dir
-        if supports_progress:
-            call_args[call_args.index('{ progress_prefix }')] = progress_prefix
-
-        file_lookup_tree: t.Dict[int, p.files.FileTree[int]] = {}
-        submission_lookup: t.Dict[str, int] = {}
-        old_subs: t.Set[int] = set()
-
-        assig_ids = [main_assignment_id, *old_assignment_ids]
-        assigs = p.helpers.get_in_or_error(
-            p.models.Assignment,
-            t.cast(p.models.DbColumn[int], p.models.Assignment.id),
-            assig_ids,
-        )
-
-        chained: t.List[t.List[p.models.Work]] = []
-        for assig in assigs:
-            chained.append(assig.get_all_latest_submissions().all())
-            if assig.id == main_assignment_id:
-                plagiarism_run.submissions_total = len(chained[-1])
-                p.models.db.session.commit()
-
-        for sub in itertools.chain.from_iterable(chained):
-            main_assig = sub.assignment_id == main_assignment_id
-
-            dir_name = (
-                f'{sub.user.name} || {sub.assignment_id}'
-                f'-{sub.id}-{sub.user_id}'
-            )
-            submission_lookup[dir_name] = sub.id
-            parent = p.files.safe_join(tempdir, dir_name)
-
-            if not main_assig:
-                old_subs.add(sub.id)
-                if archival_arg_present:
-                    parent = os.path.join(archive_dir, dir_name)
-
-            os.mkdir(parent)
-            part_tree = p.files.restore_directory_structure(sub, parent)
-            file_lookup_tree[sub.id] = p.files.FileTree(
-                name=dir_name,
-                id=-1,
-                entries=[part_tree],
-            )
-
-        if supports_progress:
-            set_state(p.models.PlagiarismState.parsing)
-        else:  # pragma: no cover
-            # We don't have any providers not supporting progress
-            set_state(p.models.PlagiarismState.running)
-
-        def got_output(line: str) -> bool:
-            if not supports_progress:  # pragma: no cover
-                return False
-
-            assert plagiarism_run is not None
-            new_val = plagiarism_run.plagiarism_cls.get_progress_from_line(
-                progress_prefix, line
-            )
-            if new_val is not None:
-                cur, tot = new_val
-                if (
-                    cur == tot and
-                    plagiarism_run.state == p.models.PlagiarismState.parsing
-                ):
-                    set_state(p.models.PlagiarismState.comparing)
-                    plagiarism_run.submissions_done = 0
-                else:
-                    val = cur + (plagiarism_run.submissions_total or 0) - tot
-                    plagiarism_run.submissions_done = val
-                p.models.db.session.commit()
-                return True
-            return False
-
-        try:
-            ok, stdout = p.helpers.call_external(
-                call_args, got_output, nice_level=10
-            )
-        # pylint: disable=broad-except
-        except Exception:  # pragma: no cover
-            set_state(p.models.PlagiarismState.crashed)
-            raise
-        logger.info(
-            'Plagiarism call finished',
-            finished_successfully=ok,
-            captured_stdout=stdout
-        )
-
-        set_state(p.models.PlagiarismState.finalizing)
-
-        plagiarism_run.log = stdout
-        if ok:
-            csv_file = os.path.join(result_dir, csv_location)
-            csv_file = plagiarism_run.plagiarism_cls.transform_csv(csv_file)
-
-            for case in p.plagiarism.process_output_csv(
-                submission_lookup, old_subs, file_lookup_tree, csv_file
-            ):
-                plagiarism_run.cases.append(case)
-            set_state(p.models.PlagiarismState.done)
-        else:
-            set_state(p.models.PlagiarismState.crashed)
-        p.models.db.session.commit()
+    run = p.models.PlagiarismRun.query.get(plagiarism_run_id)
+    if run is None:
+        logger.error('Plagiarism run was already deleted')
+        return
+    run.do_run()
 
 
 @celery.task
@@ -551,7 +412,7 @@ def _clone_commit_as_submission_1(
     created_at = DatetimeWithTimezone.utcfromtimestamp(unix_timestamp)
 
     with webhook.written_private_key() as fname, tempfile.TemporaryDirectory(
-    ) as tmpdir:
+    ) as tmpdir, p.app.file_storage.putter() as putter:
         ssh_username = webhook.ssh_username
         assert ssh_username is not None
         program = p.helpers.format_list(
@@ -573,14 +434,16 @@ def _clone_commit_as_submission_1(
         if not success:
             return
 
-        p.archive.Archive.replace_symlinks(tmpdir)
+        p.files.replace_symlinks(tmpdir)
+
         tree = p.extract_tree.ExtractFileTree(
-            values=p.files.rename_directory_structure(
-                tmpdir, p.app.max_file_size
-            ).values,
-            name=clone_data.repository_name.replace('/', ' - '),
-            parent=None
+            name=clone_data.repository_name.replace('/', ' - '), parent=None
         )
+        for child in p.files.rename_directory_structure(
+            tmpdir, putter, p.app.max_file_size
+        ).values:
+            tree.add_child(child)
+
         logger.info('Creating submission')
         work = p.models.Work.create_from_tree(
             assignment, webhook.user, tree, created_at=created_at

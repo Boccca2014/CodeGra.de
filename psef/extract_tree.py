@@ -8,6 +8,7 @@ import typing as t
 import dataclasses
 
 import psef
+from cg_maybe import Just, Maybe, Nothing
 from cg_object_storage import File as _File
 from cg_object_storage import FileSize
 
@@ -133,7 +134,24 @@ class ExtractFileTreeDirectory(ExtractFileTreeBase):
     :ivar ~.ExtractFileTreeDirectory.values: The items present in this
         directory.
     """
-    values: t.List[ExtractFileTreeBase]
+    _lookup: t.Dict[str, ExtractFileTreeBase] = dataclasses.field(init=False)
+
+    def __post_init__(self) -> None:
+        self._lookup = {}
+
+    @property
+    def only_child(self) -> Maybe[ExtractFileTreeBase]:
+        if len(self._lookup) == 1:
+            return Just(next(iter(self._lookup.values())))
+        return Nothing
+
+    @property
+    def values(self) -> t.Iterable[ExtractFileTreeBase]:
+        return self._lookup.values()
+
+    @property
+    def is_empty(self) -> bool:
+        return not self._lookup
 
     def get_size(self) -> FileSize:
         return FileSize(sum(c.get_size() for c in self.values))
@@ -157,6 +175,14 @@ class ExtractFileTreeDirectory(ExtractFileTreeBase):
     def is_dir(self) -> bool:
         return True
 
+    def add_child(self, f: ExtractFileTreeBase) -> None:
+        assert f.name not in self._lookup
+        self._lookup[f.name] = f
+
+    def lookup_direct_child(self,
+                            name: str) -> t.Optional[ExtractFileTreeBase]:
+        return self._lookup.get(name)
+
     def forget_child(self, f: ExtractFileTreeBase) -> None:
         """Remove a child as one of our children.
 
@@ -165,37 +191,13 @@ class ExtractFileTreeDirectory(ExtractFileTreeBase):
         :param f: The file to forget.
         """
         f.forget_parent()
-        self.values.remove(f)
-
-    def add_child(self, f: ExtractFileTreeBase) -> None:
-        """Add a directory as a child.
-
-        :param f: The file to add.
-        """
-        assert f is not self
-        assert f.parent is None
-
-        f.parent = self
-        self.values.append(f)
+        self._lookup.pop(f.name)
 
     def __to_json__(self) -> t.Mapping[str, object]:
         return {
             'name': self.name,
             'entries': sorted(self.values, key=lambda x: x.name.lower()),
         }
-
-    def fix_duplicate_filenames(self) -> None:
-        """Fix duplicate filenames in this directory and all its sub
-        directories.
-
-        This will rename files when duplicates are detected by adding a ``
-        ($number)`` suffix to the file.
-        """
-        psef.files.fix_duplicate_filenames(self.values)
-
-        for child in self.values:
-            if isinstance(child, ExtractFileTreeDirectory):
-                child.fix_duplicate_filenames()
 
 
 @dataclasses.dataclass
@@ -215,6 +217,32 @@ class ExtractFileTree(ExtractFileTreeDirectory):
             isinstance(v, ExtractFileTreeFile) for v in self.get_all_children()
         )
 
+    def insert_file(self, name: t.Sequence[str], backing_file: _File) -> None:
+        base = self._find_child(name[:-1])
+        base.add_child(
+            ExtractFileTreeFile(
+                name=name[-1], backing_file=backing_file, parent=None
+            )
+        )
+
+    def insert_dir(self, name: t.Sequence[str]) -> None:
+        base = self._find_child(name[:-1])
+        base.add_child(ExtractFileTreeDirectory(name=name[-1], parent=None))
+
+    def _find_child(self, name: t.Sequence[str]) -> ExtractFileTreeDirectory:
+        cur: ExtractFileTreeDirectory = self
+        for sub in name:
+            prev = cur
+            new_cur = cur.lookup_direct_child(sub)
+            if new_cur is None:
+                cur = ExtractFileTreeDirectory(name=sub, parent=None)
+                prev.add_child(cur)
+            else:
+                assert isinstance(new_cur, ExtractFileTreeDirectory)
+                cur = new_cur
+
+        return cur
+
     def remove_leading_self(self) -> None:
         """Removing leading directories in this directory.
 
@@ -225,12 +253,13 @@ class ExtractFileTree(ExtractFileTreeDirectory):
 
         If one of the conditions don't hold a :exc:`AssertionError` is raised.
         """
-        # pylint: disable=access-member-before-definition,attribute-defined-outside-init
-        # Pylint is too stupid to see that this property already exists.
-        assert len(self.values) == 1
-        assert isinstance(self.values[0], ExtractFileTreeDirectory)
-        child = self.values[0]
-        child.forget_parent()
-        for grandchild in child.values:
+        maybe_only_child = self.only_child
+        assert maybe_only_child.is_just
+        only_child = maybe_only_child.value
+        assert isinstance(only_child, ExtractFileTreeDirectory)
+
+        only_child.forget_parent()
+        for grandchild in only_child.values:
             grandchild.parent = self
-        self.values = child.values
+
+        self._lookup = {c.name: c for c in only_child.values}

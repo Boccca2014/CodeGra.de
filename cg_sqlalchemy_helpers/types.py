@@ -476,7 +476,7 @@ class MyDb:  # pragma: no cover
         *,
         uselist: Literal[True],
         passive_deletes: bool = False,
-        secondary: 'RawTable',
+        secondary: t.Union['RawTable'],
         cascade: str = '',
         lazy: Literal['select', 'join', 'selectin'] = 'select',
         order_by: t.Union[t.Callable[[], 'DbColumn'], t.

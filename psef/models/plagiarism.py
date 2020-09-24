@@ -2,20 +2,28 @@
 
 SPDX-License-Identifier: AGPL-3.0-only
 """
+import os
 import enum
 import json
+import uuid
 import typing as t
+import tempfile
+import itertools
 
+import structlog
 from typing_extensions import Literal, TypedDict
 
 import psef
 import cg_enum
 from cg_dt_utils import DatetimeWithTimezone
+from cg_cache.intra_request import cached_property
 from cg_sqlalchemy_helpers.types import ColumnProxy
 
 from . import Base, db
-from .. import auth, helpers
+from .. import auth, files, helpers
 from .assignment import Assignment
+
+logger = structlog.get_logger()
 
 
 class PlagiarismMatch(Base):
@@ -332,6 +340,25 @@ class PlagiarismState(cg_enum.CGEnum):
     comparing: int = 8
 
 
+_PlagiarismRunOldAssignment = db.Table(
+    'plagiarism_run_old_assignment',
+    db.Column(
+        'old_assignment_id',
+        db.Integer,
+        db.ForeignKey('Assignment.id'),
+        nullable=False,
+        primary_key=True,
+    ),
+    db.Column(
+        'plagiarism_run_id',
+        db.Integer,
+        db.ForeignKey('PlagiarismRun.id'),
+        nullable=False,
+        primary_key=True,
+    )
+)
+
+
 class PlagiarismRun(Base):
     """Describes a run for a plagiarism provider.
 
@@ -387,6 +414,26 @@ class PlagiarismRun(Base):
         cascade='all,delete',
         uselist=True,
     )
+
+    old_assignments = db.relationship(
+        lambda: Assignment,
+        secondary=_PlagiarismRunOldAssignment,
+        cascade='all,delete',
+        order_by=lambda: Assignment.created_at,
+        uselist=True,
+    )
+
+    def __init__(
+        self,
+        json_config: str,
+        assignment: Assignment,
+        old_assignments: t.Sequence[Assignment],
+    ) -> None:
+        super().__init__(
+            json_config=json_config,
+            assignment=assignment,
+            old_assignments=old_assignments,
+        )
 
     class _AssignmentJSON(TypedDict):
         id: int
@@ -456,7 +503,7 @@ class PlagiarismRun(Base):
             'state': self.state,
             'submissions_done': self.submissions_done,
             'submissions_total': self.submissions_total,
-            'provider_name': self.provider_name,
+            'provider_name': type(self.provider).__name__,
             'config': json.loads(self.json_config),
             'created_at': self.created_at,
             'assignment': self.assignment,
@@ -487,27 +534,17 @@ class PlagiarismRun(Base):
             **self.__to_json__(),
         }
 
-    @property
-    def provider_name(self) -> str:
-        """
-        :returns: The provider name of this plagiarism run.
-        """
-        for key, val in json.loads(self.json_config):
-            if key == 'provider':
-                return val
-        # This can never happen
-        raise KeyError  # pragma: no cover
-
-    @property
-    def plagiarism_cls(self) -> t.Type['psef.plagiarism.PlagiarismProvider']:
-        """Get the class of the plagiarism provider of this run.
-
-        :returns: The class of this plagiarism provider run.
-        """
-        return psef.helpers.get_class_by_name(
-            psef.plagiarism.PlagiarismProvider,
-            self.provider_name,
+    @cached_property
+    def provider(self) -> 'psef.plagiarism.PlagiarismProvider':
+        loaded_json = dict(json.loads(self.json_config))
+        cls = helpers.get_class_by_name(
+            psef.plagiarism.PlagiarismProvider, loaded_json['provider']
         )
+        # provider_cls is a subclass of PlagiarismProvider and that can be
+        # instantiated
+        provider: psef.plagiarism.PlagiarismProvider = t.cast(t.Any, cls)()
+        provider.set_options(loaded_json)
+        return provider
 
     def _get_connected_assignments(self) -> t.Sequence[Assignment]:
         """Get a sequence of all assignments that have a case connected to this
@@ -532,6 +569,146 @@ class PlagiarismRun(Base):
             (Assignment.id == self.assignment_id),
         ).all()
 
+    def _do_run(
+        self, result_dir: str, restored_dir: str, archive_dir: str,
+        base_code_dir: str
+    ) -> None:
+        def set_state(state: PlagiarismState) -> None:
+            self.state = state
+            db.session.commit()
+
+        set_state(PlagiarismState.started)
+
+        provider = self.provider
+        supports_progress = provider.supports_progress()
+        progress_prefix = str(uuid.uuid4())
+        call_args = helpers.format_list(
+            provider.get_program_call(),
+            restored_dir=restored_dir,
+            result_dir=result_dir,
+            archive_dir=archive_dir,
+            base_code_dir=base_code_dir,
+            progress_prefix=progress_prefix,
+        )
+
+        file_lookup_tree: t.Dict[int, files.FileTree[int]] = {}
+        submission_lookup: t.Dict[str, int] = {}
+        old_subs: t.Set[int] = set()
+
+        direct_subs = self.assignment.get_all_latest_submissions().all()
+        all_subs = [direct_subs]
+        self.submissions_total = len(direct_subs)
+        db.session.commit()
+
+        for old_assig in self.old_assignments:
+            all_subs.append(old_assig.get_all_latest_submissions().all())
+
+        for sub in itertools.chain.from_iterable(all_subs):
+
+            dir_name = (
+                f'{sub.user.name.replace("/", "_")} || {sub.assignment_id}'
+                f'-{sub.id}-{sub.user_id}'
+            )
+            submission_lookup[dir_name] = sub.id
+            parent = files.safe_join(restored_dir, dir_name)
+
+            if sub.assignment_id != self.assignment_id:
+                old_subs.add(sub.id)
+                parent = os.path.join(archive_dir, dir_name)
+
+            os.mkdir(parent)
+            part_tree = psef.models.File.restore_directory_structure(
+                parent,
+                psef.models.File.make_cache(sub),
+            )
+            file_lookup_tree[sub.id] = files.FileTree(
+                name=dir_name,
+                id=-1,
+                entries=[part_tree],
+            )
+
+        if supports_progress:
+            set_state(PlagiarismState.parsing)
+        else:  # pragma: no cover
+            # We don't have any providers not supporting progress
+            set_state(PlagiarismState.running)
+
+        def got_output(line: str) -> bool:
+            if not supports_progress:  # pragma: no cover
+                return False
+
+            new_val = provider.get_progress_from_line(progress_prefix, line)
+            if new_val is not None:
+                cur, tot = new_val
+                if cur == tot and self.state == PlagiarismState.parsing:
+                    self.submissions_done = 0
+                    set_state(PlagiarismState.comparing)
+                else:
+                    val = cur + (self.submissions_total or 0) - tot
+                    self.submissions_done = val
+                    db.session.commit()
+
+                return True
+
+            return False
+
+        try:
+            ok, stdout = helpers.call_external(
+                call_args, got_output, nice_level=10
+            )
+        # pylint: disable=broad-except
+        except Exception:  # pragma: no cover
+            set_state(PlagiarismState.crashed)
+            raise
+
+        logger.info(
+            'Plagiarism call finished',
+            finished_successfully=ok,
+            captured_stdout=stdout
+        )
+
+        set_state(PlagiarismState.finalizing)
+
+        self.log = stdout
+        if ok:
+            csv_file = os.path.join(result_dir, provider.matches_output)
+            csv_file = provider.transform_csv(csv_file)
+
+            for case in psef.plagiarism.process_output_csv(
+                submission_lookup, old_subs, file_lookup_tree, csv_file
+            ):
+                self.cases.append(case)
+            set_state(PlagiarismState.done)
+        else:
+            set_state(PlagiarismState.crashed)
 
     def do_run(self) -> None:
-        pass
+        with tempfile.TemporaryDirectory() as tempdir:
+
+            def make_dir(name: str) -> str:
+                new_dir = os.path.join(tempdir, f'{name}_{uuid.uuid4()}')
+                os.mkdir(new_dir)
+                return new_dir
+
+            PBCF = psef.models.PlagiarismBaseCodeFile
+            base_code_dir = make_dir('base_code')
+            cache = PBCF.make_cache(self)
+            if cache:
+                restored = PBCF.restore_directory_structure(
+                    base_code_dir, cache
+                )
+                base_code_dir = os.path.join(base_code_dir, restored.name)
+
+            self._do_run(
+                result_dir=make_dir('result_dir'),
+                restored_dir=make_dir('restored_dir'),
+                archive_dir=make_dir('archive_dir'),
+                base_code_dir=base_code_dir,
+            )
+
+    def delete_base_code(self) -> None:
+        for sub_files in psef.models.PlagiarismBaseCodeFile.make_cache(
+            self
+        ).values():
+            for f in sub_files:
+                f.delete_from_disk()

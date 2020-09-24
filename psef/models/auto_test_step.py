@@ -1085,9 +1085,8 @@ class AutoTestStepResult(Base, TimestampMixin, IdMixin):
 
         self.schedule_attachment_deletion()
         max_size = current_app.max_single_file_size
-        new_file = current_app.file_storage.put_from_stream(
-            stream.stream, max_size=max_size
-        )
+        with current_app.file_storage.putter() as putter:
+            new_file = putter.from_stream(stream.stream, max_size=max_size)
         if new_file.is_nothing:
             helpers.raise_file_too_big_exception(max_size, True)
 
