@@ -48,10 +48,12 @@ def upgrade():
         sa.ForeignKeyConstraint(
             ['old_assignment_id'],
             ['Assignment.id'],
+            ondelete='CASCADE',
         ),
         sa.ForeignKeyConstraint(
             ['plagiarism_run_id'],
             ['PlagiarismRun.id'],
+            ondelete='CASCADE',
         ),
         sa.PrimaryKeyConstraint('old_assignment_id', 'plagiarism_run_id'),
     )
