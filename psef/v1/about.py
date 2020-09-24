@@ -66,9 +66,6 @@ def about(
         mirror_uploads = current_app.file_storage.check_health(
             min_free_space=min_free
         )
-        # temp_dir = check_dir(tempfile.gettempdir(), check_size=True)
-        # TODO: Figure out what to do with the tempdir.
-        temp_dir = True
 
         with helpers.BrokerSession() as ses:
             try:
@@ -87,7 +84,7 @@ def about(
             'uploads': uploads,
             'broker': broker_ok,
             'mirror_uploads': mirror_uploads,
-            'temp_dir': temp_dir,
+            'temp_dir': True,
         }
         res['health'] = health_value
 
