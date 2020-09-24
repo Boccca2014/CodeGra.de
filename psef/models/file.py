@@ -162,35 +162,21 @@ class FileMixin(t.Generic[T]):
 
     def _get_deleter(self) -> t.Callable[[], None]:
         backing = self.backing_file
-        if backing.is_just:
-            deleter = backing.value.delete
 
-            def callback(deleter: t.Callable[[], None] = deleter) -> None:
+        def make_deleter(backing: cg_object_storage.File
+                         ) -> t.Callable[[], None]:
+            def callback() -> None:
                 try:
-                    deleter()
-                except (AssertionError, FileNotFoundError):
+                    backing.delete()
+                except (AssertionError, FileNotFoundError):  # pragma: no cover
                     pass
 
             return callback
 
-        return lambda: None
+        return backing.map(make_deleter).or_default(lambda: None)
 
     def delete_from_disk(self) -> None:
         """Delete the file from disk if it is not a directory.
-
-        >>> import os
-        >>> f = FileMixin()
-        >>> f.filename = 'NON_EXISTING'
-        >>> f.get_diskname = lambda: f.filename
-        >>> f.delete_from_disk() is None
-        True
-        >>> open('new_file_name', 'w').close()
-        >>> f.filename = 'new_file_name'
-        >>> os.path.isfile(f.filename)
-        True
-        >>> f.delete_from_disk()
-        >>> os.path.isfile(f.filename)
-        False
 
         :returns: Nothing.
         """
@@ -333,7 +319,14 @@ class NestedFileMixin(FileMixin[T]):
                     ) -> t.Mapping[t.Optional[t.Any], t.Sequence['NFM_T']]:
         cache = defaultdict(list)
         query: MyQuery[NFM_T] = cls.query  # type: ignore[attr-defined]
-        for f in query.filter(query_filter).order_by(cls.name):
+        all_files = query.filter(query_filter).order_by(cls.name).all()
+        # We sort in Python as this increases consistency between different
+        # server platforms, Python also has better defaults.
+        # TODO: Investigate if sorting in the database first and sorting in
+        # Python after is faster, as sorting in the database should be faster
+        # overal and sorting an already sorted list in Python is really fast.
+        all_files.sort(key=lambda el: el.name.lower())
+        for f in all_files:
             cache[f.parent_id].append(f)
 
         return cache

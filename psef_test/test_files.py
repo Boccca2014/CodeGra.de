@@ -29,7 +29,7 @@ def test_get_code_metadata(
 ):
     filestr = 'a' * size
     monkeypatch.setattr(
-        psef.tasks, 'delete_file_at_time', stub_function_class()
+        psef.tasks, 'delete_mirror_file_at_time', stub_function_class()
     )
 
     perm_err = request.node.get_closest_marker('perm_error')
@@ -75,7 +75,7 @@ def test_get_code_with_head(
 ):
     filestr = 'a' * 10
     monkeypatch.setattr(
-        psef.tasks, 'delete_file_at_time', stub_function_class()
+        psef.tasks, 'delete_mirror_file_at_time', stub_function_class()
     )
 
     with logged_in(student_user):
@@ -110,13 +110,14 @@ def test_code_gets_deleted_automatically(
     with describe('setup'):
         filestr = 'a' * 10
         new_file_at_time = stub_function_class()
-        orig_file_at_time = psef.tasks._delete_file_at_time_1
+        orig_file_at_time = psef.tasks._delete_mirror_file_at_time_1
         monkeypatch.setattr(
-            psef.tasks, 'delete_file_at_time', new_file_at_time
+            psef.tasks, 'delete_mirror_file_at_time', new_file_at_time
         )
         apply_async = stub_function_class()
         monkeypatch.setattr(
-            psef.tasks._delete_file_at_time_1, 'apply_async', apply_async
+            psef.tasks._delete_mirror_file_at_time_1, 'apply_async',
+            apply_async
         )
 
     with describe('upload'), logged_in(student_user):
@@ -156,26 +157,3 @@ def test_code_gets_deleted_automatically(
         orig_file_at_time(**new_file_args)
         assert not os.path.isfile(path)
         assert not apply_async.called
-
-
-def test_save_stream(describe, monkeypatch, app):
-    with tempfile.TemporaryDirectory() as upload_dir:
-        monkeypatch.setitem(app.config, "UPLOAD_DIR", upload_dir)
-
-        with describe('not too large file'), open(__file__, 'rb') as f:
-            filename = psef.files.save_stream(FileStorage(f))
-            filepath = f'{upload_dir}/{filename}'
-            f.seek(0, 0)
-
-            assert os.path.exists(filepath)
-            assert f.read() == open(filepath, 'rb').read()
-
-        with describe('too large file'), open(__file__, 'rb') as f:
-            monkeypatch.setitem(app.config, 'MAX_FILE_SIZE', 10)
-
-            old_files = os.listdir(upload_dir)
-
-            with pytest.raises(psef.errors.APIException):
-                psef.files.save_stream(FileStorage(f))
-
-            assert os.listdir(upload_dir) == old_files

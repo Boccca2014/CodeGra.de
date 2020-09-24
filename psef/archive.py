@@ -76,7 +76,7 @@ class ArchiveMemberInfo(t.Generic[TT]):  # pylint: disable=unsubscriptable-objec
     orig_file: TT
 
     def __post_init__(self) -> None:
-        self.name = [p for p in self.orig_name.split('/') if p]
+        self.name = [p for p in self.orig_name.split('/') if p and p != '.']
 
 
 class ArchiveException(Exception):
@@ -409,15 +409,6 @@ class _TarArchive(_BaseArchive[tarfile.TarInfo]):  # pylint: disable=unsubscript
         assert fileobj is not None
         offset_data = tarinfo.offset_data  # type: ignore[attr-defined]
         fileobj.seek(offset_data)
-        print()
-        print()
-        print()
-        print()
-        print(tarinfo, fileobj, tarinfo.size)
-        print()
-        print()
-        print()
-        print()
         return putter.from_stream(
             fileobj, max_size=size_left, size=Just(FileSize(tarinfo.size))
         )
@@ -495,7 +486,6 @@ def _get_members_of_archives(
     :returns: A iterable of archive member objects.
     """
     for member in archive_files:
-        print(member)
         cur_is_dir = member.filename[-1] == '/'
         name = [p for p in member.filename.split('/') if p]
 

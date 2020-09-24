@@ -467,7 +467,7 @@ def extract(
     # Werkzeug implements a fix for https://github.com/python/cpython/pull/3249
     # which we need.
     with archive.Archive.create_from_fileobj(
-        filename, t.cast(t.IO[bytes], fileobj)
+        escape_logical_filename(filename), t.cast(t.IO[bytes], fileobj)
     ) as arch:
         try:
             return arch.extract(max_size=max_size, putter=putter)
@@ -488,7 +488,7 @@ def extract(
         except archive.UnsafeArchive as e:
             logger.warning('Unsafe archive submitted', exc_info=True)
             raise APIException(
-                f'The given {filename} contains invalid or too many files',
+                f'The given archive contains invalid or too many files',
                 str(e), APICodes.UNSAFE_ARCHIVE, 400
             ) from e
 
@@ -666,17 +666,18 @@ def process_blackboard_zip(
     :returns: List of tuples (BBInfo, tree)
     """
 
-    def __get_files(info: blackboard.SubmissionInfo,
-                    skip: bool) -> t.List[FileStorage]:
+    def __get_files(info: blackboard.SubmissionInfo) -> t.List[FileStorage]:
         files = []
         for blackboard_file in info.files:
             if isinstance(blackboard_file, blackboard.FileInfo):
                 name = blackboard_file.original_name
                 bb_file = bb_tree.lookup_direct_child(blackboard_file.name)
                 if not isinstance(bb_file, ExtractFileTreeFile):
-                    if skip:
-                        continue
-                    assert False
+                    raise AssertionError(
+                        'File {} was not a file but instead was {}'.format(
+                            blackboard_file.name, bb_file
+                        )
+                    )
                 stream = bb_file.backing_file.open()
             else:
                 name = blackboard_file[0]
@@ -708,7 +709,7 @@ def process_blackboard_zip(
 
             try:
                 tree = process_files(
-                    files=__get_files(info, skip=False),
+                    files=__get_files(info),
                     max_size=max_size,
                     putter=putter,
                 )
@@ -716,7 +717,7 @@ def process_blackboard_zip(
             # narrowed down, however finding all exception types is
             # difficult.
             except Exception:  # pylint: disable=broad-except
-                files = __get_files(info, skip=True)
+                files = __get_files(info)
                 files.append(
                     FileStorage(
                         stream=io.BytesIO(

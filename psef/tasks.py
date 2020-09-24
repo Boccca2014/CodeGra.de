@@ -439,9 +439,12 @@ def _clone_commit_as_submission_1(
         tree = p.extract_tree.ExtractFileTree(
             name=clone_data.repository_name.replace('/', ' - ')
         )
-        for child in p.files.rename_directory_structure(
-            tmpdir, putter, p.app.max_file_size
-        ).values:
+        for child in list(
+            p.files.rename_directory_structure(
+                tmpdir, putter, p.app.max_file_size
+            ).values
+        ):
+            child.forget_parent()
             tree.add_child(child)
 
         logger.info('Creating submission')

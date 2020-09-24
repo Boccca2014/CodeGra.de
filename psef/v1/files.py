@@ -81,11 +81,8 @@ def get_file(
     too_old = wanted_file.map(
         lambda f: (get_request_start_time() - f.creation_time) > _MAX_AGE
     ).or_default(False)
-    if too_old and wanted_file.is_just:
-        wanted_file.value.delete()
 
     if wanted_file.is_nothing or too_old:
-        breakpoint()
         raise APIException(
             'The specified file was not found',
             f'The file with name "{file_name}" was not found or is deleted.',

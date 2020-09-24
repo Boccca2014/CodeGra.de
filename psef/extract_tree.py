@@ -42,7 +42,6 @@ class ExtractFileTreeBase:
         :param base_dir: The base directory where the files can be found.
         :returns: Nothing.
         """
-        # pylint: disable=unused-argument
         if self.parent is not None:
             self.parent.forget_child(self)
 
@@ -160,7 +159,10 @@ class ExtractFileTreeDirectory(ExtractFileTreeBase):
 
     def delete(self) -> None:
         super().delete()
-        for val in self.values:
+        old_lookup = self._lookup
+        self._lookup = {}
+        for val in old_lookup.values():
+            val.parent = None
             val.delete()
 
     def get_all_children(self) -> t.Iterable['ExtractFileTreeBase']:
@@ -178,8 +180,10 @@ class ExtractFileTreeDirectory(ExtractFileTreeBase):
         return True
 
     def add_child(self, f: ExtractFileTreeBase) -> None:
+        assert f.parent is None
         assert f.name not in self._lookup
         self._lookup[f.name] = f
+        f.parent = self
 
     def lookup_direct_child(self,
                             name: str) -> t.Optional[ExtractFileTreeBase]:

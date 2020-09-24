@@ -223,7 +223,6 @@ class _LocalFilePutter:
                 res = utils.exact_copy(stream, dst=dst, length=size.value)
             else:
                 res = utils.limited_copy(stream, dst=dst, max_size=max_size)
-        print('wrote', os_path.getsize(dst_path))
 
         if not res.complete:
             os.unlink(dst_path)
