@@ -581,7 +581,6 @@ export class Rubric<T extends number | undefined | null> {
 
     moveRowRight(idx: number) {
         if (idx >= this.rows.length - 1) {
-            console.log('nothing changed');
             return this;
         }
 
