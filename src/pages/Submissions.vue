@@ -7,25 +7,31 @@
      v-else>
     <local-header always-show-extra-slot
                   :back-route="headerBackRoute">
-        <template slot="title" v-if="assignment && Object.keys(assignment).length">
-            {{ assignment.name }}
+        <template #title
+                  v-if="assignment">
+            <assignment-name
+                :assignment="assignment" />
 
-            <small v-if="assignment.hasDeadline">- due {{ assignment.getFormattedDeadline() }}</small>
-            <small v-else class="text-muted"><i>- No deadline</i></small>
+            <assignment-date
+                :assignment="assignment"
+                class="text-muted" />
         </template>
-        <small slot="title"
-               v-else
-               class="text-muted font-italic">
-            Unknown assignment
-        </small>
 
-        <div slot="extra" v-show="!isStudent">
+        <template #title
+                  v-else>
+            <small class="text-muted font-italic">
+                Unknown assignment...
+            </small>
+        </template>
+
+        <template #extra
+                  v-show="!isStudent">
             <category-selector slot="extra"
                                default=""
                                v-model="selectedCat"
                                :disabled="loadingInner"
                                :categories="categories"/>
-        </div>
+        </template>
 
         <b-input-group v-if="assignment != null">
             <b-button v-if="isStudent"
@@ -360,6 +366,8 @@ import {
     SubmissionsExporter,
     WebhookInstructions,
     PeerFeedbackOverview,
+    AssignmentDate,
+    AssignmentName,
 } from '@/components';
 import StudentContact from '@/components/StudentContact';
 
@@ -521,7 +529,7 @@ export default {
         },
 
         uploadDisabledMessage() {
-            const reasons = this.assignment.getSubmitDisabledReasons();
+            const reasons = this.assignment.getSubmitDisabledReasons(this.$root.$now);
 
             if (!this.assignment.files_upload_enabled) {
                 reasons.unshift('file uploads are disabled for this assignment.');
@@ -535,7 +543,7 @@ export default {
         },
 
         webhookDisabledMessage() {
-            const reasons = this.assignment.getSubmitDisabledReasons();
+            const reasons = this.assignment.getSubmitDisabledReasons(this.$root.$now);
 
             if (reasons.length === 0) {
                 return '';
@@ -565,7 +573,7 @@ export default {
 
             if (assig.deadline == null) {
                 return 'Peer feedback is disabled because the deadline has not been set yet.';
-            } else if (assig.deadlinePassed()) {
+            } else if (assig.deadlinePassed(this.$root.$now)) {
                 return '';
             } else {
                 const pfSettings = assig.peer_feedback_settings;
@@ -907,6 +915,8 @@ export default {
         LateSubmissionIcon,
         StudentContact,
         PeerFeedbackOverview,
+        AssignmentDate,
+        AssignmentName,
         AnalyticsDashboard: () => ({
             component: import('@/components/AnalyticsDashboard'),
             loading: Loader,

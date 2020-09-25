@@ -91,7 +91,9 @@ export default {
     data() {
         return {
             graders: this.assignment.reminderTime.isValid(),
-            reminderTime: this.$utils.formatDate(this.assignment.getReminderTimeOrDefault()),
+            reminderTime: this.$utils.formatDate(
+                this.assignment.getReminderTimeOrDefault(this.$root.$now),
+            ),
             finished: this.assignment.done_email != null,
             doneEmail: this.assignment.done_email,
             doneType: this.assignment.done_type,
