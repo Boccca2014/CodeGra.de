@@ -432,9 +432,7 @@ def test_update_rubric_row(
             )
 
 
-def test_reorder_rubric_rows(
-    logged_in, test_client, teacher_user, assignment
-):
+def test_reorder_rubric_rows(logged_in, test_client, teacher_user, assignment):
     url = f'/api/v1/assignments/{assignment.id}/rubrics/'
 
     def make_item(i, j):
@@ -449,7 +447,9 @@ def test_reorder_rubric_rows(
             'type': 'normal',
             'header': f'row header {i}',
             'description': f'row description {i}',
-            'items': [make_item(i, 1), make_item(i, 2), make_item(i, 3)],
+            'items': [make_item(i, 1),
+                      make_item(i, 2),
+                      make_item(i, 3)],
         }
 
     rubric = [make_row(1), make_row(2), make_row(3)]
