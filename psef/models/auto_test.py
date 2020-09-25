@@ -1086,15 +1086,14 @@ class AutoTestRun(Base, TimestampMixin, IdMixin):
         ).all()
 
         if results_with_attachment:
+            attachments = [r.attachment for r in results_with_attachment]
 
             def after_req() -> None:
-                for result in results_with_attachment:
-                    attachment = result.attachment
-                    if attachment.is_just:
-                        try:
-                            attachment.value.delete()
-                        except Exception:  # pragma: no cover
-                            pass
+                for attachment in attachments:
+                    try:
+                        attachment.if_just(lambda a: a.delete())
+                    except Exception:  # pragma: no cover
+                        pass
 
             callback_after_this_request(after_req)
 
