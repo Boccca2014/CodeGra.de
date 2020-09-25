@@ -898,6 +898,19 @@ class WorkPermissions(CoursePermissionChecker):
         work.
         """
         self._ensure(CPerm.can_edit_others_work)
+        if self.work.assignment.is_open:
+            raise PermissionException(
+                (
+                    'You cannot edit work as teacher'
+                    ' if the assignment is stil open!'
+                ),
+                (
+                    f'The assignment "{self.work.assignment.id}" is still'
+                    ' open.'
+                ),
+                APICodes.INCORRECT_PERMISSION,
+                403,
+            )
 
     @CoursePermissionChecker.as_ensure_function
     def ensure_may_see(self) -> None:

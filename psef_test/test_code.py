@@ -1,5 +1,6 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 import os
+import copy
 import uuid
 import datetime
 
@@ -396,7 +397,7 @@ def test_delete_code_as_student(
         test_client.req(
             'delete',
             f'/api/v1/code/{res["entries"][0]["id"]}',
-            204,
+            403,
             result=None,
         )
 
@@ -416,7 +417,7 @@ def test_delete_code_as_student(
             200,
         )['entries']
 
-        assert len(ents) == 1
+        assert len(ents) == 2
 
         ents = test_client.req(
             'get',
@@ -508,83 +509,6 @@ def test_delete_code_twice(
     'filename', ['../test_submissions/multiple_dir_archive.zip'],
     indirect=True
 )
-def test_delete_dir_with_deleted_files_as_student(
-    assignment_real_works, test_client, request, error_template, student_user,
-    logged_in, session, describe
-):
-    assignment, work = assignment_real_works
-    work_id = work['id']
-
-    with logged_in(student_user):
-        res = test_client.req(
-            'get',
-            f'/api/v1/submissions/{work_id}/files/',
-            200,
-            result={
-                'id': str,
-                'name': str,
-                'entries': [
-                    {
-                        'entries': [dict, dict],
-                        '__allow_extra__': True,
-                    },
-                    dict,
-                ],
-            },
-        )
-        dir = res['entries'][0]
-
-        with describe('delete first file in a subdirectory'):
-            test_client.req(
-                'delete',
-                f'/api/v1/code/{dir["entries"][0]["id"]}',
-                204,
-                result=None,
-            )
-
-        with describe(
-            'check that it is still not possible to delete directory'
-        ):
-            test_client.req(
-                'delete',
-                f'/api/v1/code/{dir["id"]}',
-                400,
-                result=error_template,
-            )
-
-        with describe('delete second file in subdirectory'):
-            test_client.req(
-                'delete',
-                f'/api/v1/code/{dir["entries"][1]["id"]}',
-                204,
-                result=None,
-            )
-
-        with describe('check that we can now delete directory'):
-            test_client.req(
-                'delete',
-                f'/api/v1/code/{dir["id"]}',
-                204,
-                result=None,
-            )
-
-        with describe('check that directory is gone'):
-            res = test_client.req(
-                'get',
-                f'/api/v1/submissions/{work_id}/files/',
-                200,
-                result={
-                    'id': str,
-                    'name': str,
-                    'entries': [dict],
-                },
-            )
-
-
-@pytest.mark.parametrize(
-    'filename', ['../test_submissions/multiple_dir_archive.zip'],
-    indirect=True
-)
 def test_delete_dir_with_deleted_files_as_ta(
     assignment_real_works, test_client, request, error_template, ta_user,
     student_user, logged_in, session, describe
@@ -610,13 +534,6 @@ def test_delete_dir_with_deleted_files_as_ta(
             },
         )
         dir = res['entries'][0]
-
-        test_client.req(
-            'delete',
-            f'/api/v1/code/{dir["entries"][0]["id"]}',
-            204,
-            result=None,
-        )
 
     with logged_in(ta_user):
         res = test_client.req(
@@ -764,7 +681,9 @@ def test_invalid_delete_code(
             204,
         )
 
-        p_run = m.PlagiarismRun(assignment=assignment, json_config='')
+        p_run = m.PlagiarismRun(
+            assignment=assignment, json_config='[]', old_assignments=[]
+        )
         p_case = m.PlagiarismCase(
             work1_id=work_id,
             work2_id=other_work.id,
@@ -871,8 +790,7 @@ def test_update_code(
         )['entries'][0]['id']
 
     with logged_in(student_user):
-        assert adjust_code(code_id, 200) == code_id
-        assert adjust_code(code_id, 200) == code_id
+        adjust_code(code_id, 403)
 
         m.Assignment.query.filter_by(id=assignment.id).update({
             'state': m.AssignmentStateEnum.done
@@ -924,18 +842,18 @@ def test_update_code(
     with logged_in(ta_user):
         old = get_code_data(new_id)
     with logged_in(student_user):
-        adjust_code(code_id, 200)
+        adjust_code(code_id, 403)
     with logged_in(ta_user):
         assert old == get_code_data(new_id)
 
     # Make sure invalid utf-8 can be uploaded
-    with logged_in(student_user):
+    with logged_in(ta_user):
         data = b'\x00' + os.urandom(12) + b'\xff'
         # Make sure we sent a string that is not valid utf-8
         with pytest.raises(UnicodeDecodeError):
             data.decode('utf-8')
-        adjust_code(code_id, 200, data)
-        assert data == get_code_data(code_id)
+        adjust_code(new_id, 200, data)
+        assert data == get_code_data(new_id)
 
 
 @pytest.mark.parametrize(
@@ -1006,10 +924,10 @@ def test_rename_code(
         if status < 400:
             return res['id']
 
-    def get_file_tree():
+    def get_file_tree(owner='auto'):
         return test_client.req(
             'get',
-            f'/api/v1/submissions/{work_id}/files/?owner=auto',
+            f'/api/v1/submissions/{work_id}/files/?owner={owner}',
             200,
             result={
                 'entries': list,
@@ -1020,6 +938,7 @@ def test_rename_code(
 
     with logged_in(ta_user):
         files = get_file_tree()
+        original_tree = copy.deepcopy(files)
         assert files['name'] == f'multiple_dir_archive{extension}'
         assert len(files['entries']) == 2
         assert 'dir' == files['entries'][0]['name']
@@ -1027,75 +946,10 @@ def test_rename_code(
         old_data0 = get_code_data(files['entries'][0]['entries'][0]['id'])
         code_id = files['entries'][0]['entries'][0]['id']
 
-    with logged_in(student_user):
-        assert old_data0 == get_code_data(code_id)
-        assert adjust_code(code_id, 200, 'new_data--\n') == code_id
-        assert adjust_code(code_id, 200, 'new_data\n') == code_id
-        assert get_code_data(code_id) == 'new_data\n'
-
-        assert rename(
-            code_id, f'/multiple_dir_archive{extension}/dir///NEW_NAME///', 200
-        ) == code_id
-        assert 'new_data\n' == get_code_data(code_id)
-        assert get_file_tree(
-        )['entries'][0]['entries'][0]['name'] == 'NEW_NAME'
-
-        assert rename(
-            files['entries'][0]['id'],
-            f'/multiple_dir_archive{extension}/dir3/', 200
-        )
-        assert 'new_data\n' == get_code_data(code_id)
-        files = get_file_tree()
-        assert files['entries'][1]['name'] == 'dir3'
-        assert files['entries'][0]['name'] == 'dir2'
-        assert len(files['entries'][1]['entries']) == 2
-        assert files['entries'][1]['entries'][0]['id'] == code_id
-
-        added_file = adjust_code(
-            create_file(f'/multiple_dir_archive{extension}/dir3/sub_dir/file'),
-            200,
-            'CONTENT',
-        )
-
-        rename(
-            files['entries'][0]['id'],
-            f'/multiple_dir_archive{extension}/dir3', 400
-        )
-
         m.Assignment.query.filter_by(id=assignment.id).update({
             'state': m.AssignmentStateEnum.done
         })
         session.commit()
-        rename(
-            files['entries'][0]['id'],
-            f'/multiple_dir_archive{extension}/dir3', 403
-        )
-        rename(
-            files['entries'][0]['id'],
-            f'/multiple_dir_archive{extension}/dir4', 403
-        )
-
-    role = m.CourseRole.query.filter_by(
-        course_id=assignment.course_id, name='Student'
-    ).one()
-    role.set_permission(CoursePermission.can_upload_after_deadline, True)
-    session.commit()
-
-    with logged_in(student_user):
-        added_file2 = adjust_code(
-            create_file(
-                f'/multiple_dir_archive{extension}/dir3/sub_dir/file2'
-            ),
-            200,
-            'CONTENT',
-        )
-        added_file3 = adjust_code(
-            create_file(
-                f'/multiple_dir_archive{extension}/dir3/sub_dir/file3'
-            ),
-            200,
-            'CONTENT',
-        )
 
     with logged_in(ta_user):
         added_file4 = adjust_code(
@@ -1107,53 +961,36 @@ def test_rename_code(
         )
 
         files = get_file_tree()
-        ff = files['entries'][1]['entries']
-        assert len(ff) == 3
+        ff = files['entries'][-1]['entries']
+        assert len(ff) == 1
         assert ff[-1]['name'] == 'sub_dir'
-        assert ff[-1]['entries'][0]['id'] == added_file
-        assert ff[-1]['entries'][1]['id'] == added_file4
-        assert len(ff[-1]['entries']) == 2
+        assert ff[-1]['entries'][0]['id'] == added_file4
+        assert len(ff[-1]['entries']) == 1
         del ff
 
         rename(
-            files['entries'][1]['id'],
+            files['entries'][-1]['id'],
             f'/multiple_dir_archive{extension}/dir4', 200
         )
         files = get_file_tree()
 
-        assert len(files['entries']) == 2
+        assert len(files['entries']) == 3
 
-        assert files['entries'][0]['name'] == 'dir2'
-        assert files['entries'][1]['name'] == 'dir4'
+        assert files['entries'][-1]['name'] == 'dir4'
+        assert files['entries'][-2]['name'] == 'dir2'
 
-        ff = files['entries'][1]['entries']
-        assert len(ff) == 3
+        ff = files['entries'][-1]['entries']
+        assert len(ff) == 1
         assert ff[-1]['name'] == 'sub_dir'
-        assert ff[-1]['entries'][0]['id'] != added_file
-        assert ff[-1]['entries'][1]['id'] == added_file4
-        assert len(ff[-1]['entries']) == 2
+        assert ff[-1]['entries'][0]['id'] == added_file4
+        assert len(ff[-1]['entries']) == 1
         del ff
 
         assert len(files['entries'][0]['entries']) == 2
 
     with logged_in(student_user):
         files = get_file_tree()
-
-        assert len(files['entries']) == 2
-
-        assert files['entries'][0]['name'] == 'dir2'
-        assert files['entries'][1]['name'] == 'dir3'
-
-        ff = files['entries'][1]['entries']
-        assert len(ff) == 3
-        assert ff[-1]['name'] == 'sub_dir'
-        assert ff[-1]['entries'][0]['id'] == added_file
-        assert ff[-1]['entries'][1]['id'] == added_file2
-        assert ff[-1]['entries'][2]['id'] == added_file3
-        assert len(ff[-1]['entries']) == 3
-        del ff
-
-        assert len(files['entries'][0]['entries']) == 2
+        assert files == original_tree
 
     with logged_in(ta_user):
         files = get_file_tree()
@@ -1162,24 +999,6 @@ def test_rename_code(
             f'/multiple_dir_archive{extension}/dir4/sub_dir/dir', 200
         )
         files = get_file_tree()
-        assert len(files['entries']) == 1
-        assert len(files['entries'][0]['entries']) == 3
-
-    with logged_in(student_user):
-        files = get_file_tree()
-
         assert len(files['entries']) == 2
-
-        assert files['entries'][0]['name'] == 'dir2'
-        assert files['entries'][1]['name'] == 'dir3'
-
-        ff = files['entries'][1]['entries']
-        assert len(ff) == 3
-        assert ff[-1]['name'] == 'sub_dir'
-        assert ff[-1]['entries'][0]['id'] == added_file
-        assert ff[-1]['entries'][1]['id'] == added_file2
-        assert ff[-1]['entries'][2]['id'] == added_file3
-        assert len(ff[-1]['entries']) == 3
-        del ff
-
-        assert len(files['entries'][0]['entries']) == 2
+        assert files['entries'][-1]['name'] == 'dir4'
+        assert len(files['entries'][-1]['entries']) == 1
