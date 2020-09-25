@@ -646,19 +646,13 @@ class AutoTestFixture(FileMixin[int], TimestampMixin, Base):
             'hidden': self.hidden,
         }
 
-    def copy(self) -> 'AutoTestFixture':
+    def copy(self, putter: cg_object_storage.Putter) -> 'AutoTestFixture':
         """Copy this AutoTest fixture.
 
+        :param putter: The putter used to copy the underlying file.
         :returns: The copied AutoTest fixture.
-
-        .. note::
-
-            The connected file is only copied after this request has finished,
-            so there is a very small period of time where this fixture is
-            committed to the database, but where it does not have an underlying
-            file yet.
         """
-        new_file = self.unwrapped_backing_file.copy()
+        new_file = self.unwrapped_backing_file.copy(putter)
 
         return AutoTestFixture(
             hidden=self.hidden,

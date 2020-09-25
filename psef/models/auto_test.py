@@ -14,6 +14,7 @@ from sqlalchemy.sql.expression import or_, and_, case, nullsfirst
 
 import psef
 import cg_helpers
+import cg_object_storage
 from cg_dt_utils import DatetimeWithTimezone
 from cg_flask_helpers import callback_after_this_request
 from cg_sqlalchemy_helpers import UUIDType
@@ -1539,12 +1540,14 @@ class AutoTest(Base, TimestampMixin, IdMixin):
         rubric_mapping: (
             t.Mapping['psef.models.RubricRow', 'psef.models.RubricRow']
         ),
+        putter: cg_object_storage.Putter,
     ) -> 'AutoTest':
         """Copy this AutoTest configuration.
 
         :param rubric_mapping: The mapping how the rubric was copied, if suite
             ``A`` was copied to suite ``B`` then suite ``B`` is connected to
             rubric row ``rubric_mapping[A.rubric_row]``.
+        :param putter: The putter used to copy fixtures.
         :returns: The copied AutoTest config.
 
         .. note::
@@ -1554,7 +1557,7 @@ class AutoTest(Base, TimestampMixin, IdMixin):
         """
         res = AutoTest(
             sets=[s.copy() for s in self.sets],
-            fixtures=[fixture.copy() for fixture in self.fixtures],
+            fixtures=[fixture.copy(putter) for fixture in self.fixtures],
             setup_script=self.setup_script,
             run_setup_script=self.run_setup_script,
             finalize_script=self.finalize_script,

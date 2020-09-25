@@ -479,11 +479,10 @@ def extract(
             400,
         ) from exc
     except (archive.ArchiveTooLarge, archive.FileTooLarge) as exc:
-        psef.helpers.raise_file_too_big_exception(
+        raise psef.helpers.make_file_too_big_exception(
             max_size,
             single_file=isinstance(exc, archive.FileTooLarge),
-            raise_from=exc,
-        )
+        ) from exc
     except archive.UnsafeArchive as e:
         logger.warning('Unsafe archive submitted', exc_info=True)
         raise APIException(
@@ -585,7 +584,7 @@ def _process_files(
                     file.stream, max_size=app.max_single_file_size
                 )
                 if saved_file.is_nothing:
-                    helpers.raise_file_too_big_exception(
+                    raise helpers.make_file_too_big_exception(
                         app.max_single_file_size, single_file=True
                     )
                 tree.add_child(
@@ -647,7 +646,7 @@ def _process_files(
     logger.info('Total size', total_size=tree_size, size=max_size)
     if tree_size > max_size:
         tree.delete()
-        helpers.raise_file_too_big_exception(max_size, single_file=False)
+        raise helpers.make_file_too_big_exception(max_size, single_file=False)
 
     return tree
 

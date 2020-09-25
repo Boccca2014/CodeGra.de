@@ -1162,12 +1162,10 @@ def ensure_json_dict(
     )
 
 
-def raise_file_too_big_exception(
+def make_file_too_big_exception(
     max_size: 'psef.archive.FileSize',
     single_file: bool = False,
-    *,
-    raise_from: t.Optional[Exception] = None,
-) -> t.NoReturn:
+) -> 'psef.errors.APIException':
     """Get an exception that should be thrown when uploade file is too big.
 
     :param max_size: The maximum size that was overwritten.
@@ -1184,13 +1182,10 @@ def raise_file_too_big_exception(
             f'The maximum is (extracted) size is '
             f'{human_readable_size(max_size)}.'
         )
-    result = psef.errors.APIException(
+    return psef.errors.APIException(
         msg, 'Request is bigger than maximum upload size of max_size bytes.',
         psef.errors.APICodes.REQUEST_TOO_LARGE, 400
     )
-    if raise_from:
-        raise result from raise_from
-    raise result
 
 
 def get_class_by_name(superclass: T_Type, name: str) -> T_Type:
@@ -1457,7 +1452,7 @@ def get_files_from_request(
     res = []
 
     if (request.content_length or 0) > max_size:
-        raise_file_too_big_exception(max_size)
+        raise make_file_too_big_exception(max_size)
 
     if not flask.request.files:
         raise errors.APIException(

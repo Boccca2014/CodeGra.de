@@ -1101,7 +1101,7 @@ class AutoTestStepResult(Base, TimestampMixin, IdMixin):
         with current_app.file_storage.putter() as putter:
             new_file = putter.from_stream(stream.stream, max_size=max_size)
         if new_file.is_nothing:
-            helpers.raise_file_too_big_exception(max_size, True)
+            raise helpers.make_file_too_big_exception(max_size, True)
 
         self._attachment_filename = new_file.value.name
 

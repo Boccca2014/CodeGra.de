@@ -15,7 +15,7 @@ from .. import app, auth, tasks
 from ..auth import APICodes, APIException
 from ..helpers import (
     JSONResponse, jsonify, get_request_start_time, callback_after_this_request,
-    raise_file_too_big_exception
+    make_file_too_big_exception
 )
 
 _MAX_AGE = timedelta(minutes=2)
@@ -43,7 +43,7 @@ def post_file() -> JSONResponse[str]:
         result = putter.from_stream(request.stream, max_size=max_size)
 
     if result.is_nothing:
-        raise_file_too_big_exception(max_size, True)
+        raise make_file_too_big_exception(max_size, True)
 
     tasks.delete_mirror_file_at_time(
         name=result.value.name,

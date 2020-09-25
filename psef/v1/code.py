@@ -4,7 +4,6 @@ APIs are used to manipulate student submitted code and the related feedback.
 
 SPDX-License-Identifier: AGPL-3.0-only
 """
-
 import uuid
 import typing as t
 
@@ -12,6 +11,8 @@ import werkzeug
 import sqlalchemy.sql as sql
 from flask import Response, request
 from sqlalchemy.orm import make_transient
+
+import cg_object_storage
 
 from . import api
 from .. import app, auth, files, models, helpers, current_user
@@ -222,12 +223,11 @@ def get_file_url(file: models.FileMixin[object]) -> str:
     :param file: The file object
     :returns: The name of the newly created file (the copy).
     """
-    with file.open() as src:
-        with app.mirror_file_storage.putter() as putter:
-            result = putter.from_stream(src, max_size=app.max_single_file_size)
+    with app.mirror_file_storage.putter() as putter, file.open() as src:
+        result = putter.from_stream(src, max_size=app.max_single_file_size)
 
     if result.is_nothing:
-        helpers.raise_file_too_big_exception(
+        raise helpers.make_file_too_big_exception(
             app.max_single_file_size, single_file=True
         )
 
@@ -383,9 +383,8 @@ def delete_code(file_id: int) -> EmptyResponse:
 
 
 def split_code(
-    code: models.File,
-    new_owner: FileOwner,
-    old_owner: FileOwner,
+    code: models.File, new_owner: FileOwner, old_owner: FileOwner,
+    putter: cg_object_storage.Putter
 ) -> models.File:
     """Split the given ``code`` into multiple code objects.
 
@@ -414,18 +413,21 @@ def split_code(
 
     code.fileowner = new_owner
     if backing_file.is_just:
-        new_file = backing_file.value.copy()
-        code.update_backing_file(new_file)
+        new_file = backing_file.value.copy(putter)
+        code.update_backing_file(new_file, delete=False)
     else:
         redistribute_directory(
-            code, t.cast(models.File, models.File.query.get(old_id))
+            code,
+            t.cast(models.File, models.File.query.get(old_id)),
+            putter=putter,
         )
 
     return code
 
 
 def redistribute_directory(
-    new_directory: models.File, old_directory: models.File
+    new_directory: models.File, old_directory: models.File,
+    putter: cg_object_storage.Putter
 ) -> None:
     """Redistribute a given old directory between itself and a new directory.
 
@@ -457,6 +459,7 @@ def redistribute_directory(
                 child,
                 new_directory.fileowner,
                 old_directory.fileowner,
+                putter=putter,
             )
             code.parent = new_directory
     db.session.flush()
@@ -509,11 +512,13 @@ def update_code(file_id: int) -> JSONResponse[models.File]:
     auth.CodePermisisons(code).ensure_may_edit()
 
     if (request.content_length or 0) > app.max_single_file_size:
-        helpers.raise_file_too_big_exception(
+        raise helpers.make_file_too_big_exception(
             app.max_file_size, single_file=True
         )
 
-    def _update_file(code: models.File) -> None:
+    def _update_file(
+        code: models.File, putter: cg_object_storage.Putter
+    ) -> None:
         if request.args.get('operation', None) == 'rename':
             code.rename_code(new_name, new_parent, models.FileOwner.student)
             db.session.flush()
@@ -521,10 +526,9 @@ def update_code(file_id: int) -> JSONResponse[models.File]:
         else:
             max_size = app.max_single_file_size
             stream = request.stream
-            with app.file_storage.putter() as putter:
-                new_file = putter.from_stream(stream, max_size=max_size)
+            new_file = putter.from_stream(stream, max_size=max_size)
             if new_file.is_nothing:
-                helpers.raise_file_too_big_exception(max_size, True)
+                raise helpers.make_file_too_big_exception(max_size, True)
 
             code.update_backing_file(new_file.value, delete=True)
 
@@ -538,19 +542,21 @@ def update_code(file_id: int) -> JSONResponse[models.File]:
         )
 
     if code.fileowner == models.FileOwner.teacher:
-        _update_file(code)
-    elif code.fileowner != models.FileOwner.both:
+        with app.file_storage.putter() as putter:
+            _update_file(code, putter)
+    elif code.fileowner == models.FileOwner.both:
+        with db.session.begin_nested(), app.file_storage.putter() as putter:
+            code = split_code(
+                code, models.FileOwner.teacher, models.FileOwner.student,
+                putter
+            )
+            _update_file(code, putter)
+    else:
         raise APIException(
             'This file does not belong to you',
             f'The file {code.id} belongs to {code.fileowner.name}',
             APICodes.INVALID_STATE, 403
         )
-    else:
-        with db.session.begin_nested():
-            code = split_code(
-                code, models.FileOwner.teacher, models.FileOwner.student
-            )
-            _update_file(code)
 
     db.session.commit()
 

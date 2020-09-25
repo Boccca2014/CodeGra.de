@@ -1810,8 +1810,9 @@ def start_plagiarism_check(
             )[0]
             run.add_base_code(base_code, putter)
 
-        db.session.commit()
+        db.session.flush()
 
+    db.session.commit()
     helpers.callback_after_this_request(
         lambda: psef.tasks.run_plagiarism_control(plagiarism_run_id=run.id, )
     )

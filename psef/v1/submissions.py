@@ -211,7 +211,7 @@ def get_zip(work: models.Work,
             result = putter.from_stream(stream=zip_file, max_size=max_size)
 
     if result.is_nothing:
-        helpers.raise_file_too_big_exception(max_size, True)
+        raise helpers.make_file_too_big_exception(max_size, True)
 
     return {
         'name': result.value.name,
@@ -898,7 +898,7 @@ def create_new_file(submission_id: int) -> JSONResponse[t.Mapping[str, t.Any]]:
         not create_dir and request.content_length and
         request.content_length > app.max_single_file_size
     ):
-        helpers.raise_file_too_big_exception(
+        raise helpers.make_file_too_big_exception(
             app.max_single_file_size, single_file=True
         )
 
@@ -957,36 +957,38 @@ def create_new_file(submission_id: int) -> JSONResponse[t.Mapping[str, t.Any]]:
             400,
         )
 
-    for idx, part in enumerate(parts):
-        if _is_last(idx) and not create_dir:
-            max_size = app.max_single_file_size
-            with app.file_storage.putter() as putter:
+    with app.file_storage.putter() as putter:
+        for idx, part in enumerate(parts):
+            if _is_last(idx) and not create_dir:
+                max_size = app.max_single_file_size
                 backing_file = putter.from_stream(
                     request.stream, max_size=max_size
                 )
-            if backing_file.is_nothing:
-                helpers.raise_file_too_big_exception(max_size, True)
+                if backing_file.is_nothing:
+                    raise helpers.make_file_too_big_exception(max_size, True)
 
-            code = models.File(
-                work_id=submission_id,
-                name=part,
-                backing_file=backing_file.value,
-                is_directory=False,
-                parent=parent,
-                fileowner=new_owner,
-            )
-        else:
-            code = models.File(
-                work_id=submission_id,
-                name=part,
-                backing_file=None,
-                is_directory=True,
-                parent=parent,
-                fileowner=new_owner,
-            )
+                code = models.File(
+                    work_id=submission_id,
+                    name=part,
+                    backing_file=backing_file.value,
+                    is_directory=False,
+                    parent=parent,
+                    fileowner=new_owner,
+                )
+            else:
+                code = models.File(
+                    work_id=submission_id,
+                    name=part,
+                    backing_file=None,
+                    is_directory=True,
+                    parent=parent,
+                    fileowner=new_owner,
+                )
 
-        db.session.add(code)
-        parent = code
+            db.session.add(code)
+            parent = code
+
+        db.session.flush()
     db.session.commit()
 
     assert code is not None

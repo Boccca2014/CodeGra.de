@@ -744,14 +744,14 @@ class PlagiarismRun(Base):
         """Delete the base code from disk for this plagiarism run after the
         current request has finished.
         """
-        to_delete = []
+        to_delete: t.List[cg_object_storage.File] = []
         for sub_files in psef.models.PlagiarismBaseCodeFile.make_cache(
             self
         ).values():
             for sub in sub_files:
                 sub.backing_file.if_just(to_delete.append)
 
-        def do_delete():
+        def do_delete() -> None:
             for f in to_delete:
                 try:
                     f.delete()

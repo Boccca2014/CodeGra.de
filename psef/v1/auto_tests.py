@@ -108,7 +108,7 @@ def _update_auto_test(
                     new_fixture.stream, max_size=max_size
                 )
                 if backing_file.is_nothing:
-                    helpers.raise_file_too_big_exception(
+                    raise helpers.make_file_too_big_exception(
                         app.max_single_file_size, single_file=True
                     )
                 auto_test.fixtures.append(
@@ -856,7 +856,9 @@ def copy_auto_test(auto_test_id: int) -> JSONResponse[models.AutoTest]:
 
     db.session.flush()
 
-    assignment.auto_test = test.copy(mapping)
+    with app.file_storage.putter() as putter:
+        assignment.auto_test = test.copy(mapping, putter)
+        db.session.flush()
     db.session.commit()
     return jsonify(assignment.auto_test)
 
