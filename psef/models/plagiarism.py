@@ -674,7 +674,7 @@ class PlagiarismRun(Base):
         self,
         result_dir: str,
         old_subs: t.Container[int],
-        file_lookup_tree: t.Mapping[int, files.FileTree[int]],
+        file_lookup_tree: t.Mapping[int, 'files.FileTree[int]'],
         submission_lookup: t.Mapping[str, int],
     ) -> None:
         csv_file = os.path.join(result_dir, self.provider.matches_output)

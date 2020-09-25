@@ -101,7 +101,7 @@ class _Nothing(t.Generic[_T]):
     def if_just(self, callback: t.Callable[[_T], None]) -> None:
         pass
 
-    def __str__(self) -> str:
+    def __repr__(self) -> str:
         return 'Nothing'
 
     # pylint: enable=no-self-use,missing-function-docstring
