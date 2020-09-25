@@ -943,6 +943,7 @@ class Work(Base):
                     path = psef.files.safe_join(root, file)
                     zipf.write(path, path[leading_len:])
 
+        result.seek(0)
         return result
 
     @classmethod

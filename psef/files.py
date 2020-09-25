@@ -466,31 +466,31 @@ def extract(
     """
     # Werkzeug implements a fix for https://github.com/python/cpython/pull/3249
     # which we need.
-    with archive.Archive.create_from_fileobj(
-        escape_logical_filename(filename), t.cast(t.IO[bytes], fileobj)
-    ) as arch:
-        try:
+    try:
+        with archive.Archive.create_from_fileobj(
+                escape_logical_filename(filename), t.cast(t.IO[bytes], fileobj)
+        ) as arch:
             return arch.extract(max_size=max_size, putter=putter)
-        except (
-            tarfile.ReadError, zipfile.BadZipFile,
-            archive.UnrecognizedArchiveFormat
-        ) as exc:
-            raise APIException(
-                f'The given {filename} could not be extracted',
-                "The given archive doesn't seem to be an archive",
-                APICodes.INVALID_ARCHIVE,
-                400,
-            ) from exc
-        except (archive.ArchiveTooLarge, archive.FileTooLarge) as e:
-            helpers.raise_file_too_big_exception(
-                max_size, single_file=isinstance(e, archive.FileTooLarge)
-            )
-        except archive.UnsafeArchive as e:
-            logger.warning('Unsafe archive submitted', exc_info=True)
-            raise APIException(
-                f'The given archive contains invalid or too many files',
-                str(e), APICodes.UNSAFE_ARCHIVE, 400
-            ) from e
+    except (
+        tarfile.ReadError, zipfile.BadZipFile,
+        archive.UnrecognizedArchiveFormat
+    ) as exc:
+        raise APIException(
+            f'The given {filename} could not be extracted',
+            "The given archive doesn't seem to be an archive",
+            APICodes.INVALID_ARCHIVE,
+            400,
+        ) from exc
+    except (archive.ArchiveTooLarge, archive.FileTooLarge) as e:
+        helpers.raise_file_too_big_exception(
+            max_size, single_file=isinstance(e, archive.FileTooLarge)
+        )
+    except archive.UnsafeArchive as e:
+        logger.warning('Unsafe archive submitted', exc_info=True)
+        raise APIException(
+            f'The given archive contains invalid or too many files',
+            str(e), APICodes.UNSAFE_ARCHIVE, 400
+        ) from e
 
 
 def process_files(
