@@ -2,7 +2,6 @@
 
 SPDX-License-Identifier: AGPL-3.0-only
 """
-import copy
 import enum
 import uuid
 import typing as t

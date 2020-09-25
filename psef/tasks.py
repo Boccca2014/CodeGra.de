@@ -11,7 +11,6 @@ from __future__ import annotations
 import os
 import json
 import uuid
-import shutil
 import typing as t
 import datetime
 import tempfile

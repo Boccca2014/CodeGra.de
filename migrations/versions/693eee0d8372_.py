@@ -22,6 +22,8 @@ def upgrade():
         'plagiarism_base_code_file',
         sa.Column('name', sa.Unicode(), nullable=False),
         sa.Column('filename', sa.Unicode(), nullable=True),
+        sa.Column('created_at', sa.DateTime(), nullable=False),
+        sa.Column('updated_at', sa.DateTime(), nullable=False),
         sa.Column(
             'modification_date', sa.TIMESTAMP(timezone=True), nullable=False
         ),

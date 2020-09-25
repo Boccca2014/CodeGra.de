@@ -6,7 +6,6 @@ SPDX-License-Identifier: AGPL-3.0-only
 """
 
 import uuid
-import shutil
 import typing as t
 
 import werkzeug

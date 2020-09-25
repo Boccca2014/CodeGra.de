@@ -5,17 +5,13 @@ the database.
 
 SPDX-License-Identifier: AGPL-3.0-only
 """
-import os
 from datetime import timedelta
 
 import werkzeug
-from flask import request, safe_join, send_file
-from werkzeug.exceptions import NotFound
-
-from cg_dt_utils import DatetimeWithTimezone
+from flask import request, send_file
 
 from . import api
-from .. import app, auth, files, tasks
+from .. import app, auth, tasks
 from ..auth import APICodes, APIException
 from ..helpers import (
     JSONResponse, jsonify, get_request_start_time, callback_after_this_request,

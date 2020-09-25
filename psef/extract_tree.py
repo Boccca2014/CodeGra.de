@@ -2,7 +2,6 @@
 
 SPDX-License-Identifier: AGPL-3.0-only
 """
-import os
 import abc
 import typing as t
 import dataclasses
@@ -142,16 +141,28 @@ class ExtractFileTreeDirectory(ExtractFileTreeBase):
 
     @property
     def only_child(self) -> Maybe[ExtractFileTreeBase]:
+        """Maybe get the only child in this directory.
+
+        This will return ``Nothing`` if the directory does not have exactly one
+        child.
+        """
         if len(self._lookup) == 1:
             return Just(next(iter(self._lookup.values())))
         return Nothing
 
     @property
     def values(self) -> t.Iterable[ExtractFileTreeBase]:
+        """The values of this directory.
+
+        You are not allowed to mutate the directory (call ``add_child``,
+        ``forget_child`` or ``delete``) while iterating of the result.
+        """
         return self._lookup.values()
 
     @property
     def is_empty(self) -> bool:
+        """Is this directory empty?
+        """
         return not self._lookup
 
     def get_size(self) -> FileSize:
@@ -180,6 +191,13 @@ class ExtractFileTreeDirectory(ExtractFileTreeBase):
         return True
 
     def add_child(self, f: ExtractFileTreeBase) -> None:
+        """Add a child to this directory.
+
+        :param f: The file to add.
+
+        :raises AssertionError: When the file already has a parent or if there
+            is already a file with the same name in this directory.
+        """
         assert f.parent is None
         assert f.name not in self._lookup
         self._lookup[f.name] = f
@@ -187,6 +205,11 @@ class ExtractFileTreeDirectory(ExtractFileTreeBase):
 
     def lookup_direct_child(self,
                             name: str) -> t.Optional[ExtractFileTreeBase]:
+        """Find a direct child of this directory with the given name.
+
+        :param name: The unescaped name that the file should have.
+        :returns: The found file or ``None``.
+        """
         return self._lookup.get(psef.files.escape_logical_filename(name))
 
     def forget_child(self, f: ExtractFileTreeBase) -> None:
@@ -224,6 +247,14 @@ class ExtractFileTree(ExtractFileTreeDirectory):
         )
 
     def insert_file(self, name: t.Sequence[str], backing_file: _File) -> None:
+        """Insert a file with the name in this directory.
+
+        :param name: The path of the new directory, the last item of the
+            sequence will be the name of the new file. Missing directories will
+            be created.
+        :param backing_file: The storage that should be connected to the new
+            extract file.
+        """
         base = self._find_child(name[:-1])
         base.add_child(
             ExtractFileTreeFile(
@@ -232,6 +263,12 @@ class ExtractFileTree(ExtractFileTreeDirectory):
         )
 
     def insert_dir(self, name: t.Sequence[str]) -> None:
+        """Insert a directory with the name in this directory.
+
+        :param name: The path of the new directory, the last item of the
+            sequence will be the name of the directory. Missing directories
+            will be created.
+        """
         base = self._find_child(name[:-1])
         base.add_child(ExtractFileTreeDirectory(name=name[-1]))
 

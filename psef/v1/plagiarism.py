@@ -42,7 +42,7 @@ def delete_plagiarism_run(plagiarism_id: int, ) -> EmptyResponse:
     auth.ensure_permission(
         CPerm.can_manage_plagiarism, run.assignment.course_id
     )
-    run.delete_base_code()
+    run.schedule_delete_base_code()
     models.db.session.delete(run)
     models.db.session.commit()
     return make_empty_response()

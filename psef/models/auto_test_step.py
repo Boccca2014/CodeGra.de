@@ -26,8 +26,8 @@ import cg_object_storage
 from cg_maybe import Maybe, Nothing
 from cg_dt_utils import DatetimeWithTimezone
 from cg_flask_helpers import callback_after_this_request
-from cg_sqlalchemy_helpers import hybrid_property
-from cg_sqlalchemy_helpers.types import DbType, ColumnProxy
+from cg_sqlalchemy_helpers import hybrid_property, hybrid_expression
+from cg_sqlalchemy_helpers.types import DbType, DbColumn, ColumnProxy
 from cg_sqlalchemy_helpers.mixins import IdMixin, TimestampMixin
 
 from . import Base, db
@@ -1020,11 +1020,19 @@ class AutoTestStepResult(Base, TimestampMixin, IdMixin):
         'attachment_filename', db.Unicode, nullable=True, default=None
     )
 
-    @hybrid_property
-    def has_attachment(self) -> bool:
-        # We compare with ``None`` here as ``sqlalchemy`` doesn't understand
-        # ``is`` comparisons.
-        return self._attachment_filename != None  # pylint: disable=singleton-comparison
+    def _get_has_attachment(self) -> bool:
+        return self.attachment.is_just
+
+    @hybrid_expression
+    def _get_has_attachment_expr(cls: t.Type['AutoTestStepResult']
+                                 ) -> DbColumn[bool]:
+        # pylint: disable=no-self-argument
+        return cls._attachment_filename.isnot(None)
+
+    #: Check if this step has an attachment
+    has_attachment = hybrid_property(
+        _get_has_attachment, expr=_get_has_attachment_expr
+    )
 
     @property
     def state(self) -> AutoTestStepResultState:
@@ -1052,6 +1060,11 @@ class AutoTestStepResult(Base, TimestampMixin, IdMixin):
 
     @property
     def attachment(self) -> Maybe[cg_object_storage.File]:
+        """Maybe the attachment of this step.
+
+        The step might not have an attachment in which case ``None`` is
+        returned.
+        """
         if self._attachment_filename is None:
             return Nothing
         return current_app.file_storage.get(self._attachment_filename)

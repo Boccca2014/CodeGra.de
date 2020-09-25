@@ -2,7 +2,6 @@
 
 SPDX-License-Identifier: AGPL-3.0-only
 """
-import os
 import math
 import uuid
 import typing as t
@@ -1092,7 +1091,8 @@ class AutoTestRun(Base, TimestampMixin, IdMixin):
                 for attachment in attachments:
                     try:
                         attachment.if_just(lambda a: a.delete())
-                    except Exception:  # pragma: no cover
+                    # pylint: disable=broad-except
+                    except BaseException:  # pragma: no cover
                         pass
 
             callback_after_this_request(after_req)

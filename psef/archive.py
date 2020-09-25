@@ -44,7 +44,6 @@ import structlog
 
 from cg_maybe import Just, Maybe
 from cg_object_storage import File, Putter, FileSize
-from cg_object_storage.utils import limited_copy
 
 from . import app
 from .helpers import register, add_warning
@@ -487,7 +486,6 @@ def _get_members_of_archives(
     """
     for member in archive_files:
         cur_is_dir = member.filename[-1] == '/'
-        name = [p for p in member.filename.split('/') if p]
 
         if cur_is_dir:
             yield ArchiveMemberInfo(

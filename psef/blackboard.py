@@ -4,7 +4,6 @@ This module implements the parsing of blackboard gradebook info files.
 SPDX-License-Identifier: AGPL-3.0-only
 """
 import re
-import mmap
 import typing as t
 import datetime
 

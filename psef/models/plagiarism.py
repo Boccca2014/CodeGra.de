@@ -12,16 +12,22 @@ import itertools
 
 import structlog
 from typing_extensions import Literal, TypedDict
+from werkzeug.datastructures import FileStorage
 
 import psef
 import cg_enum
+import cg_flask_helpers
+import cg_object_storage
 from cg_dt_utils import DatetimeWithTimezone
+from cg_object_storage import Putter
 from cg_cache.intra_request import cached_property
 from cg_sqlalchemy_helpers.types import ColumnProxy
 
 from . import Base, db
-from .. import auth, files, helpers
+from .. import auth, files, archive, helpers, current_app
+from .course import Course
 from .assignment import Assignment
+from ..exceptions import APICodes, APIException
 
 logger = structlog.get_logger()
 
@@ -112,18 +118,18 @@ class PlagiarismMatch(Base):
 
         :returns: A object as described above.
         """
-        files = [self.file1, self.file2]
+        connected_files = [self.file1, self.file2]
         lines = [
             (self.file1_start, self.file1_end),
             (self.file2_start, self.file2_end)
         ]
         if self.plagiarism_case.works.own_work.id != self.file1.work_id:
-            files.reverse()
+            connected_files.reverse()
             lines.reverse()
 
         return {
             'id': self.id,
-            'files': files,
+            'files': connected_files,
             'lines': lines,
         }
 
@@ -503,7 +509,7 @@ class PlagiarismRun(Base):
             'state': self.state,
             'submissions_done': self.submissions_done,
             'submissions_total': self.submissions_total,
-            'provider_name': type(self.provider).__name__,
+            'provider_name': self.provider.get_name(),
             'config': json.loads(self.json_config),
             'created_at': self.created_at,
             'assignment': self.assignment,
@@ -536,6 +542,8 @@ class PlagiarismRun(Base):
 
     @cached_property
     def provider(self) -> 'psef.plagiarism.PlagiarismProvider':
+        """The provider that did (/is doing/will be doing) this run.
+        """
         loaded_json = dict(json.loads(self.json_config))
         cls = helpers.get_class_by_name(
             psef.plagiarism.PlagiarismProvider, loaded_json['provider']
@@ -573,116 +581,142 @@ class PlagiarismRun(Base):
         self, result_dir: str, restored_dir: str, archive_dir: str,
         base_code_dir: str
     ) -> None:
-        def set_state(state: PlagiarismState) -> None:
-            self.state = state
-            db.session.commit()
-
-        set_state(PlagiarismState.started)
+        self._set_and_commit_state(PlagiarismState.started)
 
         provider = self.provider
-        supports_progress = provider.supports_progress()
-        progress_prefix = str(uuid.uuid4())
-        call_args = helpers.format_list(
-            provider.get_program_call(),
-            restored_dir=restored_dir,
-            result_dir=result_dir,
-            archive_dir=archive_dir,
-            base_code_dir=base_code_dir,
-            progress_prefix=progress_prefix,
-        )
 
         file_lookup_tree: t.Dict[int, files.FileTree[int]] = {}
         submission_lookup: t.Dict[str, int] = {}
         old_subs: t.Set[int] = set()
 
         direct_subs = self.assignment.get_all_latest_submissions().all()
-        all_subs = [direct_subs]
         self.submissions_total = len(direct_subs)
         db.session.commit()
 
-        for old_assig in self.old_assignments:
-            all_subs.append(old_assig.get_all_latest_submissions().all())
-
-        for sub in itertools.chain.from_iterable(all_subs):
-
-            dir_name = (
-                f'{sub.user.name.replace("/", "_")} || {sub.assignment_id}'
-                f'-{sub.id}-{sub.user_id}'
-            )
+        for sub in itertools.chain(
+            direct_subs,
+            *(a.get_all_latest_submissions() for a in self.old_assignments)
+        ):
+            dir_name = self._make_dir_name(sub)
             submission_lookup[dir_name] = sub.id
-            parent = files.safe_join(restored_dir, dir_name)
 
-            if sub.assignment_id != self.assignment_id:
-                old_subs.add(sub.id)
+            if sub.assignment_id == self.assignment_id:
+                parent = files.safe_join(restored_dir, dir_name)
+            else:
                 parent = os.path.join(archive_dir, dir_name)
+                old_subs.add(sub.id)
 
             os.mkdir(parent)
-            part_tree = psef.models.File.restore_directory_structure(
-                parent,
-                psef.models.File.make_cache(sub),
-            )
             file_lookup_tree[sub.id] = files.FileTree(
                 name=dir_name,
                 id=-1,
-                entries=[part_tree],
+                entries=[
+                    psef.models.File.restore_directory_structure(
+                        parent,
+                        psef.models.File.make_cache(sub),
+                    )
+                ],
             )
 
-        if supports_progress:
-            set_state(PlagiarismState.parsing)
+        if provider.supports_progress():
+            self._set_and_commit_state(PlagiarismState.parsing)
         else:  # pragma: no cover
             # We don't have any providers not supporting progress
-            set_state(PlagiarismState.running)
+            self._set_and_commit_state(PlagiarismState.running)
 
-        def got_output(line: str) -> bool:
-            if not supports_progress:  # pragma: no cover
-                return False
-
-            new_val = provider.get_progress_from_line(progress_prefix, line)
-            if new_val is not None:
-                cur, tot = new_val
-                if cur == tot and self.state == PlagiarismState.parsing:
-                    self.submissions_done = 0
-                    set_state(PlagiarismState.comparing)
-                else:
-                    val = cur + (self.submissions_total or 0) - tot
-                    self.submissions_done = val
-                    db.session.commit()
-
-                return True
-
-            return False
-
+        progress_prefix = str(uuid.uuid4())
         try:
-            ok, stdout = helpers.call_external(
-                call_args, got_output, nice_level=10
+            ok, self.log = helpers.call_external(
+                helpers.format_list(
+                    provider.get_program_call(),
+                    restored_dir=restored_dir,
+                    result_dir=result_dir,
+                    archive_dir=archive_dir,
+                    base_code_dir=base_code_dir,
+                    progress_prefix=progress_prefix,
+                ),
+                lambda line: self._update_state_from_output(
+                    line,
+                    progress_prefix=progress_prefix,
+                    provider=provider,
+                ),
+                nice_level=10,
             )
         # pylint: disable=broad-except
         except Exception:  # pragma: no cover
-            set_state(PlagiarismState.crashed)
+            self._set_and_commit_state(PlagiarismState.crashed)
             raise
 
         logger.info(
             'Plagiarism call finished',
             finished_successfully=ok,
-            captured_stdout=stdout
+            captured_stdout=self.log
         )
 
-        set_state(PlagiarismState.finalizing)
+        self._set_and_commit_state(PlagiarismState.finalizing)
 
-        self.log = stdout
         if ok:
-            csv_file = os.path.join(result_dir, provider.matches_output)
-            csv_file = provider.transform_csv(csv_file)
-
-            for case in psef.plagiarism.process_output_csv(
-                submission_lookup, old_subs, file_lookup_tree, csv_file
-            ):
-                self.cases.append(case)
-            set_state(PlagiarismState.done)
+            self._process_matches(
+                result_dir, old_subs, file_lookup_tree, submission_lookup
+            )
+            self._set_and_commit_state(PlagiarismState.done)
         else:
-            set_state(PlagiarismState.crashed)
+            self._set_and_commit_state(PlagiarismState.crashed)
+
+    @staticmethod
+    def _make_dir_name(sub: 'psef.models.Work') -> str:
+        return (
+            f'{sub.user.name.replace("/", "_")} || {sub.assignment_id}'
+            f'-{sub.id}-{sub.user_id}'
+        )
+
+    def _process_matches(
+        self,
+        result_dir: str,
+        old_subs: t.Container[int],
+        file_lookup_tree: t.Mapping[int, files.FileTree[int]],
+        submission_lookup: t.Mapping[str, int],
+    ) -> None:
+        csv_file = os.path.join(result_dir, self.provider.matches_output)
+        csv_file = self.provider.transform_csv(csv_file)
+        self.cases.extend(
+            psef.plagiarism.process_output_csv(
+                submission_lookup, old_subs, file_lookup_tree, csv_file
+            )
+        )
+
+    def _set_and_commit_state(self, state: PlagiarismState) -> None:
+        self.state = state
+        db.session.commit()
+
+    def _update_state_from_output(
+        self,
+        line: str,
+        *,
+        progress_prefix: str,
+        provider: 'psef.plagiarism.PlagiarismProvider',
+    ) -> bool:
+        if not provider.supports_progress():  # pragma: no cover
+            return False
+
+        new_val = provider.get_progress_from_line(progress_prefix, line)
+        if new_val is not None:
+            cur, tot = new_val
+            if cur == tot and self.state == PlagiarismState.parsing:
+                self.submissions_done = 0
+                self._set_and_commit_state(PlagiarismState.comparing)
+            else:
+                val = cur + (self.submissions_total or 0) - tot
+                self.submissions_done = val
+                db.session.commit()
+
+            return True
+
+        return False
 
     def do_run(self) -> None:
+        """Execute the plagiarism checker.
+        """
         with tempfile.TemporaryDirectory() as tempdir:
 
             def make_dir(name: str) -> str:
@@ -706,9 +740,109 @@ class PlagiarismRun(Base):
                 base_code_dir=base_code_dir,
             )
 
-    def delete_base_code(self) -> None:
+    def schedule_delete_base_code(self) -> None:
+        """Delete the base code from disk for this plagiarism run after the
+        current request has finished.
+        """
+        to_delete = []
         for sub_files in psef.models.PlagiarismBaseCodeFile.make_cache(
             self
         ).values():
-            for f in sub_files:
-                f.delete_from_disk()
+            for sub in sub_files:
+                sub.backing_file.if_just(to_delete.append)
+
+        def do_delete():
+            for f in to_delete:
+                try:
+                    f.delete()
+                # pylint: disable=broad-except
+                except Exception:  # pragma: ignore
+                    pass
+
+        cg_flask_helpers.callback_after_this_request(do_delete)
+
+    def add_base_code(self, base_code: FileStorage, putter: Putter) -> None:
+        """Add base code to this plagiarism run.
+
+        :param base_code: The file to use as base code, it will be extracted.
+        :param putter: The putter to use to add new files to storage.
+        """
+        # We do not have any provider yet that doesn't support this, so we
+        # don't check the coverage.
+        if not self.provider.supports_base_code():  # pragma: no cover
+            raise APIException(
+                'This provider does not support base code',
+                f'"{self.provider.get_name()}" does not support base code',
+                APICodes.INVALID_PARAM, 400
+            )
+        elif (
+            not base_code.filename or
+            not psef.archive.Archive.is_archive(base_code.filename)
+        ):
+            raise APIException(
+                'You can currently only provide an archive of base code',
+                'The uploaded file was not an archive', APICodes.INVALID_PARAM,
+                400
+            )
+
+        tree = psef.files.extract(
+            base_code,
+            base_code.filename,
+            max_size=current_app.max_large_file_size,
+            putter=putter,
+        )
+        BaseCode = psef.models.PlagiarismBaseCodeFile
+        base_code_file = BaseCode.create_from_extract_directory(
+            tree, top=None, creation_opts={'plagiarism_run': self}
+        )
+        db.session.add(base_code_file)
+
+    def add_old_submissions(
+        self,
+        old_subs: t.Sequence[FileStorage],
+        putter: cg_object_storage.Putter,
+    ) -> None:
+        """Add old submissions to this plagiarism run.
+
+        :param old_subs: A sequence of files that will be converted into
+            submissions.
+        :param putter: The putter to use to add new files to storage.
+        """
+        max_size = current_app.max_file_size
+        tree = psef.files.process_files(
+            old_subs, max_size=max_size, putter=putter
+        )
+        # Normally we don't extract archives in archives, however for the
+        # plagiarism we do this. So after extracting this directory we now
+        # loop over all the children to check if they are directories in
+        # which case we extract them.
+        for old_child in tree.values:
+            if not (
+                isinstance(
+                    old_child,
+                    psef.files.ExtractFileTreeFile,
+                ) and archive.Archive.is_archive(old_child.name)
+            ):
+                continue
+
+            with old_child.backing_file.open() as old_child_stream:
+                tree.forget_child(old_child)
+
+                new_child = psef.files.extract(
+                    FileStorage(
+                        stream=old_child_stream, filename=old_child.name
+                    ),
+                    old_child.name,
+                    putter=putter,
+                    max_size=max_size,
+                )
+                # This is to create a name for the author that resembles
+                # the name of the archive.
+                new_child.name = old_child.name.split('.', 1)[0]
+                tree.add_child(new_child)
+
+            old_child.backing_file.delete()
+
+        virtual_course = Course.create_virtual_course(tree)
+        db.session.add(virtual_course)
+        self.old_assignments.append(virtual_course.assignments[0])

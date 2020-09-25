@@ -24,7 +24,7 @@ from cg_sqlalchemy_helpers import expression, hybrid_property
 from cg_sqlalchemy_helpers.types import (
     MyQuery, ColumnProxy, FilterColumn, ImmutableColumnProxy
 )
-from cg_sqlalchemy_helpers.mixins import UUIDMixin, TimestampMixin
+from cg_sqlalchemy_helpers.mixins import TimestampMixin
 
 from . import Base, db
 from . import work as work_models
@@ -115,12 +115,21 @@ class FileMixin(t.Generic[T]):
 
     @property
     def backing_file(self) -> cg_maybe.Maybe[cg_object_storage.File]:
-        if self._filename is None:
+        """Maybe get the backing file for this file.
+
+        This will return ``Nothing`` for directories.
+        """
+        if self._filename is None or self.is_directory:
             return cg_maybe.Nothing
         return current_app.file_storage.get(self._filename)
 
     @property
     def unwrapped_backing_file(self) -> cg_object_storage.File:
+        """Get the backing file, or raise an exception if it cannot be found.
+
+        :raises APIException: If the ``backing_file`` is ``Nothing`` or if it
+            no longer exists.
+        """
         if self.is_directory:
             raise APIException(
                 'Cannot display this file as it is a directory.',
@@ -142,7 +151,14 @@ class FileMixin(t.Generic[T]):
     def update_backing_file(
         self, new_file: cg_object_storage.File, *, delete: bool = False
     ) -> None:
-        if self.is_directory:
+        """Replace the backing file of this ``File``.
+
+        :param new_file: The new backing file for this row.
+        :param delete: If ``True`` we will delete the old file at the end of
+            the request.
+        :raises AssertionError: When called on a directory.
+        """
+        if self.is_directory:  # pragma: no cover
             raise AssertionError('Cannot set file of directory')
         if delete:
             cg_flask_helpers.callback_after_this_request(self._get_deleter())
@@ -339,7 +355,7 @@ class NestedFileMixin(FileMixin[T]):
     ) -> 'psef.files.FileTree[T]':
         """Restore the directory structure for this class.
         """
-        return cache[None][0]._restore_directory_structure(parent, cache)
+        return cache[None][0]._restore_directory_structure(parent, cache)  # pylint: disable=protected-access
 
     def _restore_directory_structure(
         self: 'NestedFileMixin[T]',
@@ -355,7 +371,7 @@ class NestedFileMixin(FileMixin[T]):
             os.mkdir(out)
 
             subtree = [
-                child._restore_directory_structure(out, cache)
+                child._restore_directory_structure(out, cache)  # pylint: disable=protected-access
                 for child in cache[self.get_id()]
             ]
             return FileTree(name=self.name, id=self.get_id(), entries=subtree)
@@ -501,6 +517,13 @@ class File(NestedFileMixin[int], Base):
         work: 'psef.models.Work',
         exclude: FileOwner = FileOwner.teacher,
     ) -> t.Mapping[t.Optional[int], t.Sequence['File']]:
+        """Make a file cache object for the given work without files owned by
+        ``exclude``.
+
+        :param work: The work for which you want to create a cache object.
+        :param exclude: Files with this value as owner will not be included in
+            the resulting cache.
+        """
         return cls._make_cache(
             expression.and_(
                 cls.work == work,
@@ -720,7 +743,7 @@ def _receive_after_delete(
     helpers.callback_after_this_request(target.delete_from_disk)
 
 
-class PlagiarismBaseCodeFile(NestedFileMixin[uuid.UUID], Base):
+class PlagiarismBaseCodeFile(NestedFileMixin[uuid.UUID], Base, TimestampMixin):
     """This object describes a file or directory that stored is stored as base
     code for a plagiarism run.
     """
@@ -759,4 +782,8 @@ class PlagiarismBaseCodeFile(NestedFileMixin[uuid.UUID], Base):
     def make_cache(cls, plagiarism_run: 'psef.models.PlagiarismRun'
                    ) -> t.Mapping[t.Optional[uuid.UUID], t.
                                   Sequence['PlagiarismBaseCodeFile']]:
+        """Make a file cache object for the given plagiarism run.
+
+        :param plagiarism_run: The run for which you want to get the cache.
+        """
         return cls._make_cache(cls.plagiarism_run == plagiarism_run)

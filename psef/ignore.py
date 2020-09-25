@@ -16,7 +16,7 @@ from dataclasses import dataclass
 
 import structlog
 
-from . import app, helpers
+from . import helpers
 from .helpers import register
 from .exceptions import APICodes, APIException
 from .extract_tree import (

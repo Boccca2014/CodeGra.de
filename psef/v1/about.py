@@ -6,7 +6,6 @@ running psef.
 SPDX-License-Identifier: AGPL-3.0-only
 """
 import typing as t
-import tempfile
 
 import structlog
 from flask import request

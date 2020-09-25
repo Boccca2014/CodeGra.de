@@ -8,7 +8,6 @@ import enum
 import typing as t
 import zipfile
 import tempfile
-from collections import defaultdict
 
 import structlog
 import sqlalchemy
@@ -32,7 +31,7 @@ from . import user as user_models
 from . import group as group_models
 from . import _MyQuery
 from . import assignment as assignment_models
-from .. import auth, helpers, signals, features, current_app
+from .. import auth, helpers, signals, features
 from .linter import LinterState, LinterComment, LinterInstance
 from .rubric import RubricItem, WorkRubricItem
 from .comment import CommentBase

@@ -466,7 +466,6 @@ def test_jplag_old_assignments(
                 ])
 
     monkeypatch.setattr(subprocess, 'Popen', make_popen_stub(callback))
-    print('next')
 
     with logged_in(teacher_user):
         test_client.req(
@@ -510,7 +509,6 @@ def test_jplag_old_assignments(
                 'courses': {str(assignment.course_id): dict},
             }
         )
-        print('next2')
         plag = test_client.req(
             'get',
             f'/api/v1/plagiarism/{plag["id"]}?extended',
@@ -901,14 +899,6 @@ def test_jplag_base_code(
     def callback(call, **kwargs):
         f_p = os.path.join(call[call.index('-r') + 1], 'computer_matches.csv')
         assert call[call.index('-bc') + 1].startswith('/tmp/')
-        print()
-        print()
-        print()
-        print(list(os.walk(call[call.index('-bc') + 1])))
-        print()
-        print()
-        print()
-        print()
         assert os.listdir(call[call.index('-bc') + 1]) == ['dir']
         assert len(
             os.listdir('{}/dir'.format(call[call.index('-bc') + 1]))
@@ -979,6 +969,8 @@ def test_jplag_base_code(
                 'courses': {str(assignment.course_id): dict},
             }
         )
+
+        test_client.req('delete', f'/api/v1/plagiarism/{plag["id"]}', 204)
 
 
 @pytest.mark.parametrize('subprocess_exception', [True, False])
