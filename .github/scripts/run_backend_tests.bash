@@ -37,7 +37,7 @@ export POSTGRES_USERNAME=postgres
 export PGPASSWORD=postgres
 
 if [[ "$RUN_AT_ONLY" = "yes" ]]; then
-    timeout -k 900 900 \
+    timeout -k 1200 1200 \
             pytest --cov psef --cov cg_signals --cov cg_cache --cov cg_enum \
             --cov-append -x \
             --postgresql="GENERATE" \

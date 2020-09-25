@@ -3046,9 +3046,9 @@ def test_update_step_attachment(
             work_id=work['id'],
         ).one()
         step_result = res.step_results[0]
-        new_attachment = step_result.attachment_filename
+        new_attachment = step_result.attachment
 
-        assert new_attachment.is_jsut
+        assert new_attachment.is_just
         assert new_attachment.value.exists
         assert not old_attachment.value.exists
 
