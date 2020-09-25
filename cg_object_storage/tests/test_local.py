@@ -24,4 +24,3 @@ def test_put_by_stream(storage, storage_location, make_content, amount):
             result = p.from_stream(named_temp, max_size=100)
             assert result.is_nothing
             assert not os.listdir(storage_location)
-

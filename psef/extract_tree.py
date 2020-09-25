@@ -257,9 +257,7 @@ class ExtractFileTree(ExtractFileTreeDirectory):
         """
         base = self._find_child(name[:-1])
         base.add_child(
-            ExtractFileTreeFile(
-                name=name[-1], backing_file=backing_file
-            )
+            ExtractFileTreeFile(name=name[-1], backing_file=backing_file)
         )
 
     def insert_dir(self, name: t.Sequence[str]) -> None:

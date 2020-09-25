@@ -103,6 +103,7 @@ class _Nothing(t.Generic[_T]):
 
     def __str__(self) -> str:
         return 'Nothing'
+
     # pylint: enable=no-self-use,missing-function-docstring
 
 
