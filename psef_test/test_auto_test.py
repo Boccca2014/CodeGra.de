@@ -2036,14 +2036,15 @@ def test_output_dir(
     with describe('After deleting run results are removed from disk'):
         file = m.AutoTestOutputFile.query.get(sym_link_id)
         assert file is not None
-        path = file.get_diskname()
-        assert os.path.isfile(path)
+        back = file.backing_file
+        assert back.is_just
+        assert back.value.exists
         del file
 
         with logged_in(teacher):
             test_client.req('delete', f'{url}/runs/{run_id}', 204)
 
-        assert not os.path.isfile(path)
+        assert not back.value.exists
 
 
 def test_copy_auto_test(
@@ -3033,9 +3034,9 @@ def test_update_step_attachment(
 
     with describe('previous attachment should be deleted from disk'):
         step_result = res.step_results[0]
-        old_attachment = step_result.attachment_filename
-        assert old_attachment
-        assert os.path.exists(f'{app.config["UPLOAD_DIR"]}/{old_attachment}')
+        old_attachment = step_result.attachment
+        assert old_attachment.is_just
+        assert old_attachment.value.exists
 
         with tempfile.NamedTemporaryFile() as f:
             step_result.update_attachment(FileStorage(f))
@@ -3047,11 +3048,9 @@ def test_update_step_attachment(
         step_result = res.step_results[0]
         new_attachment = step_result.attachment_filename
 
-        assert new_attachment != old_attachment
-        assert os.path.exists(f'{app.config["UPLOAD_DIR"]}/{new_attachment}')
-        assert not os.path.exists(
-            f'{app.config["UPLOAD_DIR"]}/{old_attachment}'
-        )
+        assert new_attachment.is_jsut
+        assert new_attachment.value.exists
+        assert not old_attachment.value.exists
 
     with describe('should fail when step is not in the requested run'):
         with logged_in(teacher):
@@ -3080,13 +3079,12 @@ def test_update_step_attachment(
     with describe('should be deleted when the result is reset'):
         work2 = session.query(m.Work).filter_by(id=work2['id']).one()
         res2 = m.AutoTestResult.query.filter_by(work=work2).one()
-        attachment2 = os.path.join(
-            app.config["UPLOAD_DIR"], res2.step_results[0].attachment_filename
-        )
-        assert os.path.isfile(attachment2)
+        attach2 = res2.step_results[0].attachment
+        assert attach2.is_just
+        assert attach2.value.exists
         work2.assignment.auto_test.reset_work(work2)
         session.commit()
-        assert not os.path.isfile(attachment2)
+        assert not attach2.value.exists
 
     with describe('should be deleted when the run is deleted'):
         step_result_id = step_result.id
@@ -3100,9 +3098,7 @@ def test_update_step_attachment(
         assert attachment.status_code == 404
         assert ('The requested "AutoTestStepResult" was not found'
                 ) in attachment.json['message']
-        assert not os.path.exists(
-            f'{app.config["UPLOAD_DIR"]}/{new_attachment}'
-        )
+        assert not new_attachment.value.exists
 
 
 @pytest.mark.parametrize('should_fail', [True, False])
