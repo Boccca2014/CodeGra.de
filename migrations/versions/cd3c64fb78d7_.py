@@ -46,10 +46,12 @@ def upgrade():
         )
         for i, row in enumerate(sorted_rows):
             bind.execute(
-                text('''
-                UPDATE "RubricRow" SET position = {}
-                WHERE id = {}
-                '''.format(i, row['id']))
+                text(
+                    '''UPDATE "RubricRow" SET position = :position
+                    WHERE id = :row_id''',
+                    position=i,
+                    row_id=row['id'],
+                ),
             )
 
     op.alter_column('RubricRow', 'position', nullable=False)
