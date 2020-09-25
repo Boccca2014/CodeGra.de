@@ -1,7 +1,7 @@
 <!-- SPDX-License-Identifier: AGPL-3.0-only -->
 <script lang="ts">
 import { Vue, Component, Prop } from 'vue-property-decorator';
-import { Action } from 'vuex-class';
+import { Action, Getter } from 'vuex-class';
 import { CreateElement } from 'vue';
 
 import { CoursePermission as CPerm } from '@/permissions';
@@ -43,8 +43,24 @@ export default class AutoTestState extends Vue {
         autoTestResultId: number,
     }) => Promise<unknown>;
 
+    @Getter('submissions/getLatestSubmissions')
+    storeGetLatestSubmissions!: (assignmentId: number) => ReadonlyArray<models.Submission>;
+
     get state(): string {
         return this.result?.state ?? 'not_started';
+    }
+
+    get latestSubmissions() {
+        return this.storeGetLatestSubmissions(this.assignment.id);
+    }
+
+    get currentSubmissionIsLatest() {
+        const result = this.result as ({ submissionId?: number } | null);
+        const submissionId = result?.submissionId;
+        if (submissionId == null) {
+            return false;
+        }
+        return !!this.latestSubmissions.find(sub => sub.id === submissionId);
     }
 
     get canRestart(): boolean {
@@ -52,6 +68,9 @@ export default class AutoTestState extends Vue {
             return false;
         }
         if (!this.assignment) {
+            return false;
+        }
+        if (!this.currentSubmissionIsLatest) {
             return false;
         }
         return [
