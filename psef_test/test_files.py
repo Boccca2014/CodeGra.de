@@ -86,21 +86,23 @@ def test_get_code_with_head(
             real_data=filestr,
             result=str,
         )
-        path = os.path.join(app.config['MIRROR_UPLOAD_DIR'], fname)
-        assert os.path.isfile(path)
+        found = app.mirror_file_storage.get(fname)
+        assert found.is_just
+        assert found.value.exists
 
         head = test_client.head(f'/api/v1/files/{fname}')
         assert head.status_code == 200
-        assert os.path.isfile(path)
+        assert found.value.exists
 
         res = test_client.get(f'/api/v1/files/{fname}')
         assert res.status_code == 200
         assert res.get_data(as_text=True) == filestr
-        assert not os.path.isfile(path)
+        assert not found.value.exists
+        assert app.mirror_file_storage.get(fname).is_nothing
 
         res = test_client.get(f'/api/v1/files/{fname}')
         assert res.status_code == 404
-        assert not os.path.isfile(path)
+        assert not found.value.exists
 
 
 def test_code_gets_deleted_automatically(
@@ -129,15 +131,17 @@ def test_code_gets_deleted_automatically(
             real_data=filestr,
             result=str,
         )
-        path = os.path.join(app.config['MIRROR_UPLOAD_DIR'], fname)
-        assert os.path.isfile(path)
+        found = app.mirror_file_storage.get(fname)
+        assert found.is_just
+        assert found.value.exists
         new_file_args, = new_file_at_time.all_args
 
     with describe('calling API too late will return a 404'
                   ), freeze_time(tomorrow), logged_in(student_user):
         res = test_client.get(f'/api/v1/files/{fname}')
         assert res.status_code == 404
-        assert os.path.isfile(path)
+        assert found.value.exists
+        assert app.mirror_file_storage.get(fname).is_just
 
     with describe('task should not delete file directly'
                   ), freeze_time(upload_time):
@@ -145,7 +149,8 @@ def test_code_gets_deleted_automatically(
 
         # Should be delayed again
         orig_file_at_time(**new_file_args)
-        assert os.path.isfile(path)
+        assert found.value.exists
+        assert app.mirror_file_storage.get(fname).is_just
         assert apply_async.called
         assert apply_async.all_args[0]['kwargs'] == new_file_args
 
@@ -155,5 +160,6 @@ def test_code_gets_deleted_automatically(
         # Should not be delayed again
 
         orig_file_at_time(**new_file_args)
-        assert not os.path.isfile(path)
+        assert not found.value.exists
+        assert app.mirror_file_storage.get(fname).is_nothing
         assert not apply_async.called
