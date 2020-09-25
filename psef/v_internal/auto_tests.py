@@ -218,7 +218,7 @@ def get_result_data(auto_test_id: int, result_id: int
         zip_file = result.work.create_zip(
             excluded_user, create_leading_directory=False
         )
-        return send_file(zip_file)
+        return send_file(zip_file, attachment_filename='student.zip')
 
     return res
 

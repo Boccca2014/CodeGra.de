@@ -1090,7 +1090,7 @@ class AutoTestStepResult(Base, TimestampMixin, IdMixin):
         if new_file.is_nothing:
             helpers.raise_file_too_big_exception(max_size, True)
 
-        self.attachment_filename = new_file.value.name
+        self._attachment_filename = new_file.value.name
 
     def __to_json__(self) -> t.Mapping[str, object]:
         res = {
@@ -1100,7 +1100,7 @@ class AutoTestStepResult(Base, TimestampMixin, IdMixin):
             'achieved_points': self.achieved_points,
             'log': self.log,
             'started_at': self.started_at and self.started_at.isoformat(),
-            'attachment_id': self.attachment_filename,
+            'attachment_id': self._attachment_filename,
         }
         try:
             auth.ensure_can_view_autotest_step_details(self.step)
