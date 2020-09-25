@@ -57,7 +57,7 @@ logger = structlog.get_logger()
 
 
 @dataclasses.dataclass
-class Symlink:
+class _Symlink:
     target: str
 
 
@@ -223,7 +223,7 @@ class Archive(t.Generic[TT]):  # pylint: disable=unsubscriptable-object
                 if new_file.is_nothing:
                     raise_archive_too_large()
 
-                if isinstance(new_file.value, Symlink):
+                if isinstance(new_file.value, _Symlink):
                     link = new_file.value
                     backing_file = putter.from_string(
                         (
@@ -318,7 +318,7 @@ class _BaseArchive(abc.ABC, t.Generic[TT]):
     def extract_member(
         self, member: ArchiveMemberInfo[TT], size_left: FileSize,
         putter: Putter
-    ) -> Maybe[t.Union[File, Symlink]]:
+    ) -> Maybe[t.Union[File, _Symlink]]:
         """Extract the given filename to the given path.
 
         :param size_left: The maximum amount of size the extraction should
@@ -392,14 +392,14 @@ class _TarArchive(_BaseArchive[tarfile.TarInfo]):  # pylint: disable=unsubscript
     def extract_member(
         self, member: ArchiveMemberInfo[tarfile.TarInfo], size_left: FileSize,
         putter: Putter
-    ) -> Maybe[t.Union[File, Symlink]]:
+    ) -> Maybe[t.Union[File, _Symlink]]:
         """Extract the given member.
 
         :param member: The member to extract.
         """
         tarinfo = member.orig_file
         if tarinfo.islnk() or tarinfo.issym():
-            return Just(Symlink(tarinfo.linkname))
+            return Just(_Symlink(tarinfo.linkname))
 
         assert tarinfo.isfile()
         assert getattr(tarinfo, 'sparse', None) is None
