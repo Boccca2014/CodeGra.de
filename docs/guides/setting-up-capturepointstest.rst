@@ -28,7 +28,8 @@ with a Python3 Regular Expression. This output should be a **number between
     We recommend you run your program with our utility program
     ``normalize_floats`` to ensure that the score you write can be read
     correctly by CodeGrade. For example, if the command to run your tests is
-    ``run_tests``, you would run ``normalize_floats run_tests``.
+    ``run_tests``, you would run ``normalize_floats 2 run_tests`` to output the
+    score with 2 decimals precision.
 
     For unit testing frameworks the :ref:`Unit Test <setting-up-unit-tests>`
     may be more appropriate, though.
