@@ -8,7 +8,7 @@ import pytest
 
 sys.path.append(os.path.join(os.path.dirname(__file__), '..', '..'))
 
-from cg_object_storage import LocalFile, LocalStorage  # isort: skip
+from cg_object_storage import LocalStorage  # isort: skip
 
 
 def pytest_addoption(parser):
