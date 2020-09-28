@@ -20,7 +20,7 @@
                 @submit="submitRubric"
                 :hide-toggle="!value.isMarkdown">
                 <template #empty>
-                    No description...
+                    No description.
                 </template>
             </previewable-markdown-editor>
         </b-form-group>
