@@ -1055,13 +1055,9 @@ def test_rename_nested_dir(
 
     with describe('rename dir with mixed ownership'), logged_in(ta_user):
         dir3 = find_file(get_file_tree(), 'dir1/dir2/dir3')['id']
-        dir3_id = rename(
-            dir3, '/deep_nested_dirs.tar.gz/dir1/dir2/dir3_new'
-        )
+        dir3_id = rename(dir3, '/deep_nested_dirs.tar.gz/dir1/dir2/dir3_new')
         dir2 = find_file(get_file_tree(), 'dir1/dir2')['id']
-        dir2_id = rename(
-            dir2, '/deep_nested_dirs.tar.gz/dir1/dir2_new'
-        )
+        dir2_id = rename(dir2, '/deep_nested_dirs.tar.gz/dir1/dir2_new')
 
     with describe('dir should have expected shape'), logged_in(ta_user):
         new_ta_tree = get_file_tree()

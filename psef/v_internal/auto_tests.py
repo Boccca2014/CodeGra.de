@@ -188,8 +188,8 @@ def update_run(auto_test_id: int, run_id: int) -> EmptyResponse:
     '/auto_tests/<int:auto_test_id>/results/<int:result_id>', methods=['GET']
 )
 @feature_required(Feature.AUTO_TEST)
-def get_result_data(auto_test_id: int, result_id: int
-                    ) -> t.Union[Response, EmptyResponse]:
+def get_result_data(auto_test_id: int,
+                    result_id: int) -> t.Union[Response, EmptyResponse]:
     """Get the submission files for the given result_id.
 
     The files are zipped and this zip is send. This zip DOES NOT contain a top

@@ -76,9 +76,7 @@ class Just(t.Generic[_T]):
         """
         callback(self.value)
 
-    def try_extract(
-        self, _make_exception: t.Callable[[], Exception]
-    ) -> _T:
+    def try_extract(self, _make_exception: t.Callable[[], Exception]) -> _T:
         """Try to extract the value, raising an exception created by the given
         argument if the value is ``Nothing``.
 
