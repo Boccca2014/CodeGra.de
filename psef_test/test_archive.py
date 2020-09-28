@@ -39,7 +39,7 @@ def test_check_files(app, monkeypatch, describe):
                 def get_members(self):
                     return [
                         ArchiveMemberInfo(
-                            orig_name=name,
+                            name=name,
                             is_dir=True,
                             size=2,
                             orig_file=None,
@@ -64,7 +64,7 @@ def test_get_members_tarfile(describe):
     with describe('multiple dir'), open(f1, 'rb') as fp:
         zp = _TarArchive(fp)
         found = sorted(zp.get_members())
-        assert [(f.orig_name, f.is_dir) for f in found] == [
+        assert [(f.name, f.is_dir) for f in found] == [
             ('dir', True),
             ('dir/single_file_work', False),
             ('dir/single_file_work_copy', False),
@@ -76,7 +76,7 @@ def test_get_members_tarfile(describe):
     with describe('deheading dir'), open(f2, 'rb') as fp:
         zp = _TarArchive(fp)
         found = sorted(zp.get_members())
-        assert [(f.orig_name, f.is_dir) for f in found] == [
+        assert [(f.name, f.is_dir) for f in found] == [
             ('dir', True),
             ('dir/dir2', True),
             ('dir/dir2/single_file_work', False),
@@ -86,7 +86,7 @@ def test_get_members_tarfile(describe):
     with describe('with empty dir'), open(f3, 'rb') as fp:
         zp = _TarArchive(fp)
         found = sorted(zp.get_members())
-        assert [(f.orig_name, f.is_dir) for f in found] == [
+        assert [(f.name, f.is_dir) for f in found] == [
             ('with_empty_dir', True),
             ('with_empty_dir/empty_dir', True),
             ('with_empty_dir/full_dir', True),
@@ -103,7 +103,7 @@ def test_get_members_zipfile(describe):
     with describe('multiple dir'), open(f1, 'rb') as fp:
         zp = _ZipArchive(fp)
         found = sorted(zp.get_members())
-        assert [(f.orig_name, f.is_dir) for f in found] == [
+        assert [(f.name, f.is_dir) for f in found] == [
             ('dir/single_file_work', False),
             ('dir/single_file_work_copy', False),
             ('dir2/single_file_work', False),
@@ -113,7 +113,7 @@ def test_get_members_zipfile(describe):
     with describe('deheading dir'), open(f2, 'rb') as fp:
         zp = _ZipArchive(fp)
         found = sorted(zp.get_members())
-        assert [(f.orig_name, f.is_dir) for f in found] == [
+        assert [(f.name, f.is_dir) for f in found] == [
             ('dir/dir2/single_file_work', False),
             ('dir/dir2/single_file_work_copy', False),
         ]
@@ -121,7 +121,7 @@ def test_get_members_zipfile(describe):
     with describe('with empty dir'), open(f3, 'rb') as fp:
         zp = _ZipArchive(fp)
         found = sorted(zp.get_members())
-        assert [(f.orig_name, f.is_dir) for f in found] == [
+        assert [(f.name, f.is_dir) for f in found] == [
             ('with_empty_dir/', True),
             ('with_empty_dir/empty_dir/', True),
             ('with_empty_dir/full_dir/', True),
@@ -138,7 +138,7 @@ def test_get_members_7zip(describe):
     with describe('multiple dir'), open(f1, 'rb') as fp:
         zp = _7ZipArchive(fp)
         found = sorted(zp.get_members())
-        assert [(f.orig_name, f.is_dir) for f in found] == [
+        assert [(f.name, f.is_dir) for f in found] == [
             ('dir/single_file_work', False),
             ('dir/single_file_work_copy', False),
             ('dir2/single_file_work', False),
@@ -148,7 +148,7 @@ def test_get_members_7zip(describe):
     with describe('deheading dir'), open(f2, 'rb') as fp:
         zp = _7ZipArchive(fp)
         found = sorted(zp.get_members())
-        assert [(f.orig_name, f.is_dir) for f in found] == [
+        assert [(f.name, f.is_dir) for f in found] == [
             ('dir/dir2/single_file_work', False),
             ('dir/dir2/single_file_work_copy', False),
         ]
@@ -156,7 +156,7 @@ def test_get_members_7zip(describe):
     with describe('with empty dir'), open(f3, 'rb') as fp:
         zp = _7ZipArchive(fp)
         found = sorted(zp.get_members())
-        assert [(f.orig_name, f.is_dir) for f in found] == [
+        assert [(f.name, f.is_dir) for f in found] == [
             ('with_empty_dir/full_dir/a_file', False),
             # ERROR: This is in correct, but caused by our 7zip library:
             # https://github.com/fancycode/pylzma/issues/69

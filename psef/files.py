@@ -23,6 +23,7 @@ import psef
 import cg_helpers
 import psef.models as models
 import cg_object_storage
+from cg_object_storage import FileSize
 
 from . import app, archive, helpers, blackboard
 from .ignore import (
@@ -82,8 +83,8 @@ def init_app(_: t.Any) -> None:
     pass
 
 
-def get_file_size(f: str) -> cg_object_storage.FileSize:
-    return cg_object_storage.FileSize(max(1, os.path.getsize(f)))
+def get_file_size(f: str) -> FileSize:
+    return FileSize(max(1, os.path.getsize(f)))
 
 
 def safe_join(parent: str, *children: str) -> str:
@@ -370,7 +371,7 @@ def search_path_in_filetree(filetree: FileTree[T], path: str) -> T:
 def rename_directory_structure(
     rootdir: str,
     putter: cg_object_storage.Putter,
-    disk_limit: t.Optional[archive.FileSize] = None,
+    disk_limit: t.Optional[FileSize] = None,
 ) -> ExtractFileTreeDirectory:
     """Creates a nested dictionary that represents the folder structure of
     rootdir.
@@ -445,7 +446,7 @@ def rename_directory_structure(
 
 
 def extract(
-    fileobj: FileStorage, filename: str, max_size: archive.FileSize,
+    fileobj: FileStorage, filename: str, max_size: FileSize,
     putter: cg_object_storage.Putter
 ) -> ExtractFileTree:
     """Extracts all files in archive with random name to uploads folder.
@@ -493,7 +494,7 @@ def extract(
 
 def process_files(
     files: t.Sequence[FileStorage],
-    max_size: archive.FileSize,
+    max_size: FileSize,
     force_txt: bool = False,
     ignore_filter: t.Optional[SubmissionFilter] = None,
     handle_ignore: IgnoreHandling = IgnoreHandling.keep,
@@ -531,7 +532,7 @@ def process_files(
 
 def _process_files(
     files: t.Sequence[FileStorage],
-    max_size: archive.FileSize,
+    max_size: FileSize,
     force_txt: bool,
     ignore_filter: t.Optional[SubmissionFilter],
     handle_ignore: IgnoreHandling,
@@ -653,7 +654,7 @@ def _process_files(
 
 def process_blackboard_zip(
     blackboard_zip: FileStorage,
-    max_size: archive.FileSize,
+    max_size: FileSize,
 ) -> t.MutableSequence[t.Tuple[blackboard.SubmissionInfo, ExtractFileTree]]:
     """Process the given :py:mod:`.blackboard` zip file.
 
@@ -713,6 +714,7 @@ def process_blackboard_zip(
             # narrowed down, however finding all exception types is
             # difficult.
             except Exception:  # pylint: disable=broad-except
+                logger.info('Could not extract files', exc_info=True)
                 files = __get_files(info)
                 files.append(
                     FileStorage(

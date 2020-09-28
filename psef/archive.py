@@ -45,7 +45,7 @@ import structlog
 from cg_maybe import Just, Maybe
 from cg_object_storage import File, Putter, FileSize
 
-from . import app
+from . import app, files
 from .helpers import register, add_warning
 from .exceptions import APIWarnings
 from .extract_tree import ExtractFileTree
@@ -68,14 +68,14 @@ class ArchiveMemberInfo(t.Generic[TT]):  # pylint: disable=unsubscriptable-objec
     :ivar name: The complete name of the member including previous directories.
     :ivar is_dir: Is the member a directory
     """
-    name: t.Sequence[str] = dataclasses.field(init=False)
-    orig_name: str
+    name: str
     is_dir: bool
     size: FileSize
-    orig_file: TT
+    orig_file: TT = dataclasses.field(compare=False)
 
-    def __post_init__(self) -> None:
-        self.name = [p for p in self.orig_name.split('/') if p and p != '.']
+    @property
+    def name_list(self) -> t.List[str]:
+        return [p for p in self.name.split('/') if p and p != '.']
 
 
 class ArchiveException(Exception):
@@ -199,9 +199,12 @@ class Archive(t.Generic[TT]):  # pylint: disable=unsubscriptable-object
             )
             raise ArchiveTooLarge(max_size)
 
-        for member in self.get_members():
+        all_members = self.get_members()
+        files.fix_duplicate_filenames(all_members)
+
+        for member in all_members:
             if member.is_dir:
-                base.insert_dir(member.name)
+                base.insert_dir(member.name_list)
             else:
                 new_file = self.__archive.extract_member(
                     member,
@@ -222,7 +225,7 @@ class Archive(t.Generic[TT]):  # pylint: disable=unsubscriptable-object
                     )
                     logger.warning(
                         'Symlink detected in archive',
-                        filename=member.name,
+                        filename=member.name_list,
                         link_target=link.target,
                     )
                     symlinks.append(link.target)
@@ -230,7 +233,7 @@ class Archive(t.Generic[TT]):  # pylint: disable=unsubscriptable-object
                     backing_file = new_file.value
 
                 total_size = FileSize(total_size + backing_file.size)
-                base.insert_file(member.name, backing_file)
+                base.insert_file(member.name_list, backing_file)
 
         if symlinks:
             add_warning(
@@ -276,16 +279,17 @@ class Archive(t.Generic[TT]):  # pylint: disable=unsubscriptable-object
         _base_path = f'/{uuid.uuid4()}/'
 
         for member in self.get_members():
+            name_list = member.name_list
             paths = (
                 path.normpath(
-                    path.realpath(path.join(_base_path, member.orig_name))
+                    path.realpath(path.join(_base_path, member.name))
                 ),
-                path.normpath(path.join(_base_path, member.orig_name)),
-                path.normpath(path.join(_base_path, *member.name)),
+                path.normpath(path.join(_base_path, member.name)),
+                path.normpath(path.join(_base_path, *name_list)),
             )
 
-            if not member.name or not all(
-                p.startswith(_base_path) and p != _base_path for p in paths
+            if not name_list or any(
+                not p.startswith(_base_path) and p != _base_path for p in paths
             ):
                 raise UnsafeArchive(
                     'Archive member destination is outside the target'
@@ -415,7 +419,7 @@ class _TarArchive(_BaseArchive[tarfile.TarInfo]):  # pylint: disable=unsubscript
 
             name = member.name
             yield ArchiveMemberInfo(
-                orig_name=name,
+                name=name,
                 is_dir=member.isdir(),
                 size=FileSize(member.size),
                 orig_file=member,
@@ -476,21 +480,21 @@ def _get_members_of_archives(
 
         if cur_is_dir:
             yield ArchiveMemberInfo(
-                orig_name=member.filename,
+                name=member.filename,
                 is_dir=cur_is_dir,
                 orig_file=member,
                 size=FileSize(0),
             )
         elif isinstance(member, zipfile.ZipInfo):
             yield ArchiveMemberInfo(
-                orig_name=member.filename,
+                name=member.filename,
                 is_dir=False,
                 orig_file=member,
                 size=FileSize(member.file_size),
             )
         elif isinstance(member, py7zlib.ArchiveFile):
             yield ArchiveMemberInfo(
-                orig_name=member.filename,
+                name=member.filename,
                 is_dir=False,
                 orig_file=member,
                 size=FileSize(member.size),

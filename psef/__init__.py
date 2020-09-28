@@ -111,26 +111,28 @@ class PsefFlask(Flask):
         )
 
     @property
-    def max_single_file_size(self) -> 'psef.archive.FileSize':
+    def max_single_file_size(self) -> cg_object_storage.FileSize:
         """The maximum allowed size for a single file.
         """
-        return archive.FileSize(self.config['MAX_FILE_SIZE'])
+        return cg_object_storage.FileSize(self.config['MAX_FILE_SIZE'])
 
     @property
-    def max_file_size(self) -> 'psef.archive.FileSize':
+    def max_file_size(self) -> cg_object_storage.FileSize:
         """The maximum allowed size for normal files.
 
         .. note:: An individual file has a different limit!
         """
-        return archive.FileSize(self.config['MAX_NORMAL_UPLOAD_SIZE'])
+        return cg_object_storage.FileSize(
+            self.config['MAX_NORMAL_UPLOAD_SIZE']
+        )
 
     @property
-    def max_large_file_size(self) -> 'psef.archive.FileSize':
+    def max_large_file_size(self) -> cg_object_storage.FileSize:
         """The maximum allowed size for large files (such as blackboard zips).
 
         .. note:: An individual file has a different limit!
         """
-        return archive.FileSize(self.config['MAX_LARGE_UPLOAD_SIZE'])
+        return cg_object_storage.FileSize(self.config['MAX_LARGE_UPLOAD_SIZE'])
 
     @property
     def do_sanity_checks(self) -> bool:
@@ -153,8 +155,6 @@ app: PsefFlask = current_app  # pylint: disable=invalid-name
 
 _current_tester = None  # pylint: disable=invalid-name
 current_tester = LocalProxy(lambda: _current_tester)  # pylint: disable=invalid-name
-
-from . import archive  # isort:skip, pylint: disable=wrong-import-position
 
 
 def enable_testing() -> None:
