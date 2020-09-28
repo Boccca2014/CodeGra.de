@@ -242,10 +242,11 @@ class _LocalFile(File):
 
 
 def _is_file(path: str) -> bool:
-    if os_path.islink(path):
+    if os_path.islink(path):  # pragma: no cover
         logger.error(
             'Symlink found in storage',
             path=path,
+            report_to_sentry=True,
         )
         return False
     return os_path.isfile(path)

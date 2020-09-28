@@ -501,11 +501,12 @@ def update_code(file_id: int) -> JSONResponse[models.File]:
     )
 
     auth.CodePermisisons(code).ensure_may_edit()
+    is_rename = request.args.get('operation', None) == 'rename'
 
     def _update_file(
         code: models.File, putter: cg_object_storage.Putter
     ) -> None:
-        if request.args.get('operation', None) == 'rename':
+        if is_rename:
             code.rename_code(new_name, new_parent, models.FileOwner.student)
             db.session.flush()
             code.parent = new_parent
@@ -518,7 +519,7 @@ def update_code(file_id: int) -> JSONResponse[models.File]:
 
             code.update_backing_file(new_file.value, delete=True)
 
-    if request.args.get('operation', None) == 'rename':
+    if is_rename:
         ensure_keys_in_dict(request.args, [('new_path', str)])
         new_path = t.cast(str, request.args['new_path'])
         path_arr, _ = files.split_path(new_path)

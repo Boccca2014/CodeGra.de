@@ -923,6 +923,7 @@ def test_rename_code(
         )
         if status < 400:
             return res['id']
+        return res
 
     def get_file_tree(owner='auto'):
         return test_client.req(
@@ -967,6 +968,14 @@ def test_rename_code(
         assert ff[-1]['entries'][0]['id'] == added_file4
         assert len(ff[-1]['entries']) == 1
         del ff
+
+        err = rename(
+            files['entries'][-1]['id'],
+            f'/multiple_dir_archive{extension}/dir', 400
+        )
+        assert (
+            err['message'] == 'This file already exists within this directory'
+        )
 
         rename(
             files['entries'][-1]['id'],

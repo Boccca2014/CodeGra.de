@@ -754,6 +754,17 @@ def test_update_auto_test(
         res = test_client.get(f'{url}/fixtures/{fixture2["id"]}')
         assert res.get_data(as_text=True) == 'hello2'
 
+        update_test(fixture1=(io.BytesIO(b'newest'), 'file2'))
+        assert_similar(
+            test['fixtures'],
+            [{'hidden': True, 'id': fixture1['id'], 'name': 'file2'},
+             {'hidden': True, 'id': fixture2['id'], 'name': 'file2 (1)'},
+             {'hidden': True, 'id': str, 'name': 'file2 (2)'}]
+        )
+        fixture3 = test['fixtures'][-1]
+        res = test_client.get(f'{url}/fixtures/{fixture3["id"]}')
+        assert res.get_data(as_text=True) == 'newest'
+
     with describe('cannot update when there are runs'), logged_in(teacher):
         update_test(error=200)
         t = m.AutoTest.query.get(test['id'])

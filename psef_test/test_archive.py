@@ -2,8 +2,8 @@ import pytest
 
 import psef
 from psef.archive import (
-    Archive, UnsafeArchive, ArchiveMemberInfo, _TarArchive, _ZipArchive,
-    _7ZipArchive
+    Archive, UnsafeArchive, ArchiveMemberInfo, UnrecognizedArchiveFormat,
+    _TarArchive, _ZipArchive, _7ZipArchive
 )
 
 
@@ -162,3 +162,12 @@ def test_get_members_7zip(describe):
             # https://github.com/fancycode/pylzma/issues/69
             # ('with_empty_dir/empty_dir', True),
         ]
+
+
+def test_create_from_wrong_filename(describe):
+    with describe('cannot create from wrong filename'):
+        with pytest.raises(UnrecognizedArchiveFormat):
+            with open(__file__, 'rb') as fp, Archive.create_from_fileobj(
+                __file__, fp
+            ) as arch:
+                assert False
