@@ -9,6 +9,7 @@ import copy
 import json
 import uuid
 import typing as t
+import secrets
 
 import furl
 import structlog
@@ -28,7 +29,7 @@ from cryptography.hazmat.primitives.asymmetric import rsa
 import psef
 from cg_helpers import handle_none
 from cg_dt_utils import DatetimeWithTimezone
-from cg_sqlalchemy_helpers import hybrid_property
+from cg_sqlalchemy_helpers import ARRAY, hybrid_property
 from cg_sqlalchemy_helpers.types import DbColumn, ColumnProxy
 from cg_sqlalchemy_helpers.mixins import UUIDMixin, TimestampMixin
 
@@ -38,9 +39,12 @@ from . import work as work_models
 from . import course as course_models
 from . import assignment as assignment_models
 from .. import auth, signals, current_app
+from ..lti import v1_1 as lti_v1_1
 from ..lti import v1_3 as lti_v1_3
 from ..lti.v1_3 import claims as ltiv1_3_claims
-from ..registry import lti_provider_handlers, lti_1_3_lms_capabilities
+from ..registry import (
+    lti_1_1_providers, lti_provider_handlers, lti_1_3_lms_capabilities
+)
 from ..lti.v1_3.lms_capabilities import LMSCapabilities
 
 logger = structlog.get_logger()
@@ -91,6 +95,14 @@ class LTIProviderBase(Base, TimestampMixin):
     )
     key = db.Column('key', db.Unicode, unique=False, nullable=False)
 
+    _intended_use = db.Column(
+        'intended_use',
+        db.Unicode,
+        nullable=False,
+        default='',
+        server_default='',
+    )
+
     # This is only really available for LTI1.3, however we need to define it
     # here to be able to create a unique constraint.
     if not t.TYPE_CHECKING:
@@ -110,6 +122,22 @@ class LTIProviderBase(Base, TimestampMixin):
         db.Enum(*_ALL_LTI_PROVIDERS, name='ltiproviderversion'),
         nullable=False,
         server_default='lti1.1'
+    )
+
+    _finalized = db.Column(
+        'finalized',
+        db.Boolean,
+        nullable=False,
+        default=False,
+        server_default='true'
+    )
+
+    _edit_secret = db.Column(
+        'edit_secret',
+        UUIDType,
+        default=uuid.uuid4,
+        server_default=sqlalchemy.func.uuid_generate_v4(),
+        nullable=False
     )
 
     __mapper_args__ = {
@@ -138,6 +166,18 @@ class LTIProviderBase(Base, TimestampMixin):
             return None
 
         return user_link.user
+
+    @property
+    def is_finalized(self) -> bool:
+        """Is this provider finalized and ready for use.
+        """
+        return self._finalized
+
+    @property
+    def edit_secret(self) -> uuid.UUID:
+        """The secret which you can use to edit this provider.
+        """
+        return self._edit_secret
 
     @property
     def member_sourcedid_required(self) -> bool:
@@ -289,12 +329,21 @@ class LTIProviderBase(Base, TimestampMixin):
         return newest_grade_history
 
     def __to_json__(self) -> t.Mapping[str, object]:
-        return {
+        res = {
             'id': str(self.id),
             'lms': self.lms_name,
             'version': self._lti_provider_version,
             'created_at': self.created_at.isoformat(),
+            'intended_use': self._intended_use,
+            'finalized': self._finalized,
         }
+
+        if (
+            not self._finalized and
+            auth.LTIProviderPermissions(self).ensure_may_edit.as_bool()
+        ):
+            res['edit_secret'] = self.edit_secret
+        return res
 
 
 @lti_provider_handlers.register_table
@@ -315,9 +364,34 @@ class LTI1p1Provider(LTIProviderBase):
         lazy='select',
     )
 
-    def __init__(self, key: str) -> None:
-        super().__init__()
-        self.key = key
+    _lms_name = db.Column(
+        'lms_1p1_name',
+        db.Enum(*lti_1_1_providers.keys(), name='lti1p1lmsnames'),
+    )
+
+    _lms_secret = db.Column(
+        'lms_1p1_secret',
+        ARRAY(db.Unicode, as_tuple=True, dimensions=1),
+        nullable=True,
+    )
+
+    def __init__(self, lms: str, intended_use: str) -> None:
+        key = '_'.join(
+            [
+                *intended_use.lower().strip().split(),
+                secrets.token_hex(6),
+            ]
+        )
+        super().__init__(
+            key=key,
+            _lms_secret=(secrets.token_hex(32), ),
+            _intended_use=intended_use,
+            _finalized=False,
+        )
+        self._lms_name = lms
+
+    def finalize(self) -> None:
+        self._finalized = True
 
     def find_course(self,
                     lti_course_id: str) -> t.Optional['CourseLTIProvider']:
@@ -346,7 +420,15 @@ class LTI1p1Provider(LTIProviderBase):
     def lms_name(self) -> str:
         """The name of the lms connected to this provider.
         """
-        return self._lms_and_secrets[0]
+        return self._lms_name
+
+    def __to_json__(self) -> t.Mapping[str, object]:
+        base = super().__to_json__()
+        if not self.is_finalized:
+            base['lms_consumer_secret'] = self._lms_secret[-1]
+            base['lms_consumer_key'] = self.key
+
+        return base
 
     # The next methods all are handlers for signals we setup in `setup_signals`
     # at the end of the class
@@ -496,22 +578,6 @@ class LTI1p1Provider(LTIProviderBase):
             psef.helpers.try_for_every(reversed(self.secrets), try_passback)
 
     @property
-    def _lms_and_secrets(self) -> t.Tuple[str, t.List[str]]:
-        """Return the OAuth consumer secret and the name of the LMS.
-        """
-        return current_app.config['LTI_CONSUMER_KEY_SECRETS'][self.key]
-
-    @property
-    def secrets(self) -> t.List[str]:
-        """The OAuth consumer secret for this LTIProvider.
-
-        :getter: Get the OAuth secret.
-        :setter: Impossible as all secrets are fixed during startup of
-            codegra.de
-        """
-        return self._lms_and_secrets[1]
-
-    @property
     def lti_class(self) -> t.Type['psef.lti.v1_1.LTI']:
         """The name of the LTI class to be used for this LTIProvider.
 
@@ -658,30 +724,6 @@ class LTI1p3Provider(LTIProviderBase):
 
     _crypto_key = db.Column('crypto_key', db.LargeBinary)
 
-    _finalized = db.Column(
-        'finalized',
-        db.Boolean,
-        nullable=False,
-        default=False,
-        server_default='true'
-    )
-
-    _intended_use = db.Column(
-        'intended_use',
-        db.Unicode,
-        nullable=False,
-        default='',
-        server_default='',
-    )
-
-    _edit_secret = db.Column(
-        'edit_secret',
-        UUIDType,
-        default=uuid.uuid4,
-        server_default=sqlalchemy.func.uuid_generate_v4(),
-        nullable=False
-    )
-
     _updates_lti1p1 = db.relationship(
         LTI1p1Provider,
         foreign_keys=LTIProviderBase._updates_lti1p1_id,
@@ -700,12 +742,6 @@ class LTI1p3Provider(LTIProviderBase):
         return self._updates_lti1p1
 
     @property
-    def edit_secret(self) -> uuid.UUID:
-        """The secret which you can use to edit this provider.
-        """
-        return self._edit_secret
-
-    @property
     def member_sourcedid_required(self) -> bool:
         """Passback works using user ids, so no sourcedids required.
         """
@@ -717,12 +753,6 @@ class LTI1p3Provider(LTIProviderBase):
         """
         assert self._lms_name is not None
         return self._lms_name
-
-    @property
-    def is_finalized(self) -> bool:
-        """Is this provider finalized and ready for use.
-        """
-        return self._finalized
 
     @property
     def key_set_url(self) -> t.Optional[str]:
@@ -1396,16 +1426,12 @@ class LTI1p3Provider(LTIProviderBase):
 
         res = {
             **base,
-            'finalized': self._finalized,
-            'intended_use': self._intended_use,
             'capabilities': self.lms_capabilities,
             'edit_secret': None,
             'iss': self.iss,
         }
 
         if not self._finalized:
-            if auth.LTI1p3ProviderPermissions(self).ensure_may_edit.as_bool():
-                res['edit_secret'] = self.edit_secret
             res = {
                 **res,
                 'auth_login_url': self._auth_login_url,
