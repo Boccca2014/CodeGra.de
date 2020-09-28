@@ -1,5 +1,6 @@
 import { Search } from '@/utils/search';
 import { range } from '@/utils';
+import fastcheck from 'fast-check';
 
 describe('Search', () => {
     describe('search', () => {
@@ -149,6 +150,33 @@ describe('Search', () => {
 
             expect(result).toEqual([]);
         });
+
+        it('$x should always find $x', () => {
+            const searcher = new Search(['text']);
+            fastcheck.assert(fastcheck.property(
+                fastcheck.string(),
+                text => searcher.search(text, [{ text }]).length === 1,
+            ));
+        });
+
+        it('$x should always find $x plus extra', () => {
+            const searcher = new Search(['text']);
+            fastcheck.assert(fastcheck.property(
+                fastcheck.string(),
+                text => searcher.search(text, [{ text: `${text} extra` }]).length === 1,
+            ));
+        });
+
+        it('$x + extra should never find $x', () => {
+            const searcher = new Search(['text']);
+            fastcheck.assert(fastcheck.property(
+                // Property is not valid for strings only containing
+                // whitespace.
+                fastcheck.string(),
+                text => searcher.search(`${text} extra`, [{ text }]).length === 0,
+            ));
+        });
+
     });
 
     describe('options', () => {
@@ -174,6 +202,16 @@ describe('Search', () => {
 
                 expect(result).toEqual(items);
             });
+        });
+    });
+
+    describe('regex escaping', () => {
+        it.each(
+            ['()', '(!!)', '[^2]', ']'],
+        )('should work for %s', (input) => {
+            const searcher = new Search(['text']);
+            const obj = [{ text: input }, { text: 'wrong' }];
+            expect(searcher.search(input, obj)).toEqual([obj[0]]);
         });
     });
 });

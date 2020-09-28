@@ -231,14 +231,13 @@ export class Assignment extends AssignmentData {
         return this.course.ltiProvider;
     }
 
-    getReminderTimeOrDefault(): moment.Moment {
+    getReminderTimeOrDefault(now: moment.Moment): moment.Moment {
         if (this.reminderTime.isValid()) {
             return this.reminderTime.clone();
         }
 
         const deadline = this.deadline;
         let baseTime = deadline;
-        const now = moment();
 
         if ((deadline.isValid() && deadline.isBefore(now)) || !deadline.isValid()) {
             baseTime = now;
@@ -273,15 +272,36 @@ export class Assignment extends AssignmentData {
         return null;
     }
 
+    getFormattedAvailableAt(): string | null {
+        const availableAt = this.availableAt;
+        if (availableAt && availableAt.isValid()) {
+            return utils.readableFormatDate(availableAt);
+        }
+        return null;
+    }
+
     getFormattedCreatedAt(): string {
         return utils.readableFormatDate(this.createdAt);
     }
 
-    deadlinePassed(now: moment.Moment = moment(), dflt: boolean = false): boolean {
+    deadlinePassed(now: moment.Moment, dflt: boolean = false): boolean {
         if (this.deadline == null) {
             return dflt;
         }
         return now.isAfter(this.deadline);
+    }
+
+    @utils.nonenumerable
+    get isExam(): boolean {
+        return this.kind === AssignmentKind.exam;
+    }
+
+    isNotStartedExam(now: moment.Moment): boolean {
+        const availableAt = this.availableAt;
+        if (availableAt) {
+            return this.isExam && availableAt.isAfter(now);
+        }
+        return false;
     }
 
     @utils.nonenumerable
@@ -292,7 +312,7 @@ export class Assignment extends AssignmentData {
         return this.deadline.clone().add(this.peer_feedback_settings.time, 'seconds');
     }
 
-    peerFeedbackDeadlinePassed(now: moment.Moment = moment(), dflt: boolean = true): boolean {
+    peerFeedbackDeadlinePassed(now: moment.Moment, dflt: boolean = true): boolean {
         const deadline = this.peerFeedbackDeadline;
         if (deadline == null) {
             return dflt;
@@ -300,7 +320,7 @@ export class Assignment extends AssignmentData {
         return now.isAfter(deadline);
     }
 
-    getSubmitDisabledReasons({ now = moment() }: { now?: moment.Moment } = {}): string[] {
+    getSubmitDisabledReasons(now: moment.Moment): string[] {
         const res = [];
 
         if (
@@ -323,8 +343,8 @@ export class Assignment extends AssignmentData {
         return res;
     }
 
-    canSubmitWork(now: moment.Moment = moment()): boolean {
-        return this.getSubmitDisabledReasons({ now }).length === 0;
+    canSubmitWork(now: moment.Moment): boolean {
+        return this.getSubmitDisabledReasons(now).length === 0;
     }
 
     @utils.nonenumerable

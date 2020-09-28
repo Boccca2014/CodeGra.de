@@ -371,7 +371,7 @@ export class FeedbackLine {
         );
     }
 
-    static canAddReply(submission: Submission) {
+    static canAddReply(submission: Submission, now: moment.Moment) {
         const assignment: Assignment = submission.assignment;
 
         const currentUser: Maybe<NormalUser> = store.getters['user/currentUser'];
@@ -413,10 +413,10 @@ export class FeedbackLine {
                 return false;
             }
 
-            if (!assignment.deadlinePassed()) {
+            if (!assignment.deadlinePassed(now)) {
                 return false;
             }
-            if (assignment.peerFeedbackDeadlinePassed()) {
+            if (assignment.peerFeedbackDeadlinePassed(now)) {
                 return false;
             }
 
