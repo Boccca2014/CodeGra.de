@@ -1,24 +1,13 @@
 <!-- SPDX-License-Identifier: AGPL-3.0-only -->
 <template>
-<div class="rubric-editor-row continuous"
-     @mouseenter="lockPopoverVisible = true"
-     @mouseleave="lockPopoverVisible = false">
+<div class="rubric-editor-row continuous">
     <template v-if="editable">
         <b-form-group label="Category name">
-            <b-input-group>
-                <input class="category-name form-control"
-                       placeholder="Category name"
-                       :value="value.header"
-                       @input="updateProp($event, 'header')"
-                       @keydown.ctrl.enter="submitRubric" />
-
-                <b-input-group-append v-if="value.locked"
-                                      class="cursor-help"
-                                      is-text
-                                      v-b-popover.top.hover="lockPopover">
-                    <fa-icon class="lock-icon" name="lock" />
-                </b-input-group-append>
-            </b-input-group>
+            <input class="category-name form-control"
+                   placeholder="Category name"
+                   :value="value.header"
+                   @input="updateProp($event, 'header')"
+                   @keydown.ctrl.enter="submitRubric" />
         </b-form-group>
 
         <b-form-group label="Category description">
@@ -47,31 +36,15 @@
     </template>
 
     <template v-else>
-        <h4 class="mb-3">
-            <!-- Put the lock before the header text so that the header text
-                 wraps around it rather than pushing the lock to a new line. -->
-            <template v-if="value.locked">
-                <b-popover :show="lockPopoverVisible"
-                           :target="`rubric-lock-${id}`"
-                           :content="lockPopover"
-                           triggers=""
-                           placement="top" />
-
-                <fa-icon name="lock"
-                         class="mt-1 float-right"
-                         :id="`rubric-lock-${id}`" />
-            </template>
-
-            {{ value.header }}
-        </h4>
-
-        <template v-if="value.description">
-            <inner-markdown-viewer
-                v-if="value.isMarkdown"
-                :markdown="value.description" />
-            <p v-else class="mb-3 text-wrap-pre"
-               >{{ value.description }}</p>
-        </template>
+        <p v-if="!value.description"
+           class="text-muted font-italic">
+            This category has no description.
+        </p>
+        <inner-markdown-viewer
+            v-else-if="value.isMarkdown"
+            :markdown="value.description" />
+        <p v-else class="mb-3 text-wrap-pre"
+            >{{ value.description }}</p>
 
         <hr />
 
@@ -85,8 +58,6 @@
 </template>
 
 <script>
-import 'vue-awesome/icons/lock';
-
 import InnerMarkdownViewer from './InnerMarkdownViewer';
 import PreviewableMarkdownEditor from './PreviewableMarkdownEditor';
 
@@ -115,7 +86,6 @@ export default {
     data() {
         return {
             id: this.$utils.getUniqueId(),
-            lockPopoverVisible: false,
         };
     },
 
@@ -123,10 +93,6 @@ export default {
         onlyItem() {
             // The only item in a continuous row.
             return this.value.items[0];
-        },
-
-        lockPopover() {
-            return this.value.lockMessage(this.autoTest, null, null);
         },
     },
 

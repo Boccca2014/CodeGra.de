@@ -21,7 +21,7 @@
         </b-button-toolbar>
 
 
-        <advanced-collapse start-open class="html-viewer-opts">
+        <advanced-collapse start-open class="html-viewer-opts mt-3">
             <b-form-group horizontal
                           label-for="allow-scripts-iframe"
                           label="Allow JavaScript execution">

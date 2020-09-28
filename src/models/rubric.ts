@@ -120,7 +120,9 @@ interface IRubricRow<T, Y = T> {
     items: RubricItem<T>[];
 }
 
-export interface RubricRow<T> extends IRubricRow<T> {}
+export interface RubricRow<T> extends IRubricRow<T> {
+    trackingId: number;
+}
 
 export class RubricRow<T extends number | undefined | null> {
     static fromServerData(data: RubricRowServerData) {
@@ -153,6 +155,9 @@ export class RubricRow<T extends number | undefined | null> {
         if (row.type && !(this instanceof RubricRowsTypes[row.type])) {
             throw new Error('You cannot make a base row with a non empty type.');
         }
+
+        this.trackingId = getUniqueId();
+
         Object.assign(this, row);
         Object.freeze(this.items);
 

@@ -1,7 +1,7 @@
 <!-- SPDX-License-Identifier: AGPL-3.0-only -->
 <template>
 <div class="advanced-collapse">
-    <div class="mt-3 mb-2 d-flex flex-row justify-content-between">
+    <div class="d-flex flex-row justify-content-between">
         <div v-b-toggle="id"
              class="collapse-toggle align-self-center text-muted font-italic">
             <icon name="caret-down" class="mr-2" />
@@ -14,7 +14,9 @@
     <b-collapse :id="id"
                 class="advanced-collapse"
                 v-model="state">
-        <slot />
+        <div class="pt-2">
+            <slot />
+        </div>
     </b-collapse>
 </div>
 </template>
