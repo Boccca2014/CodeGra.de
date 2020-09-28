@@ -250,7 +250,7 @@ class Archive(t.Generic[TT]):  # pylint: disable=unsubscriptable-object
 
         return base
 
-    def get_members(self) -> t.Iterable[ArchiveMemberInfo[TT]]:
+    def get_members(self) -> t.Sequence[ArchiveMemberInfo[TT]]:
         """Get the members of this archive.
 
         This function also makes sure the archive doesn't contain too many
