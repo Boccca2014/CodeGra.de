@@ -75,6 +75,8 @@ class ArchiveMemberInfo(t.Generic[TT]):  # pylint: disable=unsubscriptable-objec
 
     @property
     def name_list(self) -> t.List[str]:
+        """The name of the member as a list.
+        """
         return [p for p in self.name.split('/') if p and p != '.']
 
 
