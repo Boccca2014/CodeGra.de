@@ -226,12 +226,11 @@ def get_file_url(file: models.FileMixin[object]) -> str:
     with app.mirror_file_storage.putter() as putter, file.open() as src:
         result = putter.from_stream(src, max_size=app.max_single_file_size)
 
-    if result.is_nothing:
-        raise helpers.make_file_too_big_exception(
+    return result.try_extract(
+        lambda: helpers.make_file_too_big_exception(
             app.max_single_file_size, single_file=True
         )
-
-    return result.value.name
+    ).name
 
 
 def get_feedback(file: models.File, linter: bool = False) -> _FeedbackMapping:
@@ -284,11 +283,6 @@ def delete_code(file_id: int) -> EmptyResponse:
 
     .. :quickref: Code; Delete the given file.
 
-    If a student does this request before the deadline, the file will be
-    completely deleted. If the request is done after the deadline the user
-    doing the delete will be removed from the ownership of the file and if
-    there are no owners left the file is deleted.
-
     If the file owner of the given file is the same as that of the user doing
     the request (so the file will be completely deleted) the given file should
     not have any comments (Linter or normal) associated with it. If it still
@@ -296,8 +290,8 @@ def delete_code(file_id: int) -> EmptyResponse:
 
     :returns: Nothing.
 
-    :raises APIException: If the request will result in wrong
-        state. (INVALID_STATE)
+    :raises APIException: If the request will result in wrong state.
+        (INVALID_STATE)
     :raises APIException: If there is not file with the given id.
         (OBJECT_ID_NOT_FOUND)
     :raises APIException: If you do not have permission to delete the given
@@ -316,10 +310,7 @@ def delete_code(file_id: int) -> EmptyResponse:
             APICodes.INCORRECT_PERMISSION, 403
         )
 
-    if code.work.user_id == current_user.id:
-        current, other = models.FileOwner.student, models.FileOwner.teacher
-    else:
-        current, other = models.FileOwner.teacher, models.FileOwner.student
+    current, other = models.FileOwner.teacher, models.FileOwner.student
 
     # We already know that the Work exists, so we can safely use
     # child.self_deleted.
@@ -511,11 +502,6 @@ def update_code(file_id: int) -> JSONResponse[models.File]:
 
     auth.CodePermisisons(code).ensure_may_edit()
 
-    if (request.content_length or 0) > app.max_single_file_size:
-        raise helpers.make_file_too_big_exception(
-            app.max_file_size, single_file=True
-        )
-
     def _update_file(
         code: models.File, putter: cg_object_storage.Putter
     ) -> None:
@@ -536,9 +522,10 @@ def update_code(file_id: int) -> JSONResponse[models.File]:
         ensure_keys_in_dict(request.args, [('new_path', str)])
         new_path = t.cast(str, request.args['new_path'])
         path_arr, _ = files.split_path(new_path)
-        new_name = path_arr[-1]
+        new_name = path_arr.pop()
         new_parent = code.work.search_file(
-            '/'.join(path_arr[:-1]) + '/', models.FileOwner.student
+            '/'.join(path_arr) + '/',
+            exclude=models.FileOwner.student,
         )
 
     if code.fileowner == models.FileOwner.teacher:

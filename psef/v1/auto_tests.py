@@ -107,7 +107,9 @@ def _update_auto_test(
                 backing_file = putter.from_stream(
                     new_fixture.stream, max_size=max_size
                 )
-                if backing_file.is_nothing:
+                # This is already checked when getting the files from the
+                # request.
+                if backing_file.is_nothing:  # pragma: no cover
                     raise helpers.make_file_too_big_exception(
                         app.max_single_file_size, single_file=True
                     )

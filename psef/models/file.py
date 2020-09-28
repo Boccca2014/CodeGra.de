@@ -130,20 +130,12 @@ class FileMixin(t.Generic[T]):
         :raises APIException: If the ``backing_file`` is ``Nothing`` or if it
             no longer exists.
         """
-        if self.is_directory:
+        backing_file = self.backing_file
+        if backing_file.is_nothing:
             raise APIException(
                 'Cannot display this file as it is a directory.',
                 f'The selected file with id {self.get_id()} is a directory.',
                 APICodes.OBJECT_WRONG_TYPE, 400
-            )
-
-        backing_file = self.backing_file
-
-        if backing_file.is_nothing or not backing_file.value.exists:
-            raise APIException(
-                'This file could not be found or is a symlink.',
-                f'The file {self.get_id()} could not be found',
-                APICodes.INVALID_STATE, 410
             )
 
         return backing_file.value

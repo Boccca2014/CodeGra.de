@@ -210,11 +210,12 @@ def get_zip(work: models.Work,
         with app.mirror_file_storage.putter() as putter:
             result = putter.from_stream(stream=zip_file, max_size=max_size)
 
-    if result.is_nothing:
-        raise helpers.make_file_too_big_exception(max_size, True)
+    name = result.try_extract(
+        lambda: helpers.make_file_too_big_exception(max_size, True)
+    ).name
 
     return {
-        'name': result.value.name,
+        'name': name,
         'output_name':
             f'{work.assignment.name}-{work.user.name}-archive.zip'.replace(
                 '/', '_'
@@ -882,25 +883,13 @@ def create_new_file(submission_id: int) -> JSONResponse[t.Mapping[str, t.Any]]:
     )
 
     auth.WorkPermissions(work).ensure_may_edit()
-    if exclude_owner == FileOwner.teacher:  # we are a student
-        assig = work.assignment
-        new_owner = FileOwner.both if assig.is_open else FileOwner.student
-    else:
-        new_owner = FileOwner.teacher
+    new_owner = FileOwner.teacher
 
     ensure_keys_in_dict(request.args, [('path', str)])
 
     pathname: str = request.args.get('path', '')
     # `create_dir` means that the last file should be a dir or not.
     patharr, create_dir = psef.files.split_path(pathname)
-
-    if (
-        not create_dir and request.content_length and
-        request.content_length > app.max_single_file_size
-    ):
-        raise helpers.make_file_too_big_exception(
-            app.max_single_file_size, single_file=True
-        )
 
     if len(patharr) < 2:
         raise APIException(

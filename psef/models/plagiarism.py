@@ -756,7 +756,7 @@ class PlagiarismRun(Base):
                 try:
                     f.delete()
                 # pylint: disable=broad-except
-                except Exception:  # pragma: ignore
+                except Exception:  # pragma: no cover
                     pass
 
         cg_flask_helpers.callback_after_this_request(do_delete)

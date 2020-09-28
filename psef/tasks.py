@@ -469,7 +469,9 @@ def _delete_mirror_file_at_time_1(name: str, deletion_time: str) -> None:
 @celery.task
 def _delete_file_at_time_1(
     filename: str, in_mirror_dir: bool, deletion_time: str
-) -> None:
+) -> None:  # pragma: no cover
+    # This tasks only still exists as it might be scheduled before the
+    # update. It should be removed in version M.3.
     if current_task.maybe_delay_task(
         DatetimeWithTimezone.fromisoformat(deletion_time)
     ):

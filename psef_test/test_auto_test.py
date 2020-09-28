@@ -3035,6 +3035,7 @@ def test_update_step_attachment(
     with describe('previous attachment should be deleted from disk'):
         step_result = res.step_results[0]
         old_attachment = step_result.attachment
+        assert step_result.has_attachment
         assert old_attachment.is_just
         assert old_attachment.value.exists
 
@@ -3048,6 +3049,7 @@ def test_update_step_attachment(
         step_result = res.step_results[0]
         new_attachment = step_result.attachment
 
+        assert step_result.has_attachment
         assert new_attachment.is_just
         assert new_attachment.value.exists
         assert not old_attachment.value.exists

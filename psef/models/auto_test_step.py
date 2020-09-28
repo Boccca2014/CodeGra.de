@@ -1100,7 +1100,7 @@ class AutoTestStepResult(Base, TimestampMixin, IdMixin):
         max_size = current_app.max_single_file_size
         with current_app.file_storage.putter() as putter:
             new_file = putter.from_stream(stream.stream, max_size=max_size)
-        if new_file.is_nothing:
+        if new_file.is_nothing:  # pragma: no cover
             raise helpers.make_file_too_big_exception(max_size, True)
 
         self._attachment_filename = new_file.value.name

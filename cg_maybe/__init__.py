@@ -76,6 +76,21 @@ class Just(t.Generic[_T]):
         """
         callback(self.value)
 
+    def try_extract(
+        self, _make_exception: t.Callable[[], Exception]
+    ) -> _T:
+        """Try to extract the value, raising an exception created by the given
+        argument if the value is ``Nothing``.
+
+        >>> Just(5).try_extract(Exception) is None
+        True
+        >>> Nothing.try_extract(Exception)
+        Traceback (most recent call last):
+        ...
+        Exception
+        """
+        return self.value
+
 
 class _Nothing(t.Generic[_T]):
     """Singleton class to represent the ``Nothing`` part of a ``Maybe``.
@@ -100,6 +115,11 @@ class _Nothing(t.Generic[_T]):
 
     def if_just(self, callback: t.Callable[[_T], None]) -> None:
         pass
+
+    def try_extract(
+        self, make_exception: t.Callable[[], Exception]
+    ) -> t.NoReturn:
+        raise make_exception()
 
     def __repr__(self) -> str:
         return 'Nothing'

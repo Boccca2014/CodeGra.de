@@ -191,6 +191,7 @@ class Archive(t.Generic[TT]):  # pylint: disable=unsubscriptable-object
         total_size = FileSize(0)
         base = ExtractFileTree(name=self.__filename)
         symlinks = []
+        max_single = app.max_single_file_size
 
         def raise_archive_too_large() -> t.NoReturn:
             logger.warning(
@@ -198,27 +199,14 @@ class Archive(t.Generic[TT]):  # pylint: disable=unsubscriptable-object
             )
             raise ArchiveTooLarge(max_size)
 
-        def maybe_raise_too_large(extra: int = 0) -> None:
-            if total_size + extra > max_size:
-                raise_archive_too_large()
-
-        def maybe_single_too_large(size: FileSize) -> None:
-            if size > app.max_single_file_size:
-                logger.warning(
-                    'File exceeded size limit',
-                    max_size=max_size,
-                )
-                raise FileTooLarge(FileSize(app.max_single_file_size))
-
         for member in self.get_members():
             if member.is_dir:
                 base.insert_dir(member.name)
             else:
-                maybe_raise_too_large(member.size)
-                maybe_single_too_large(member.size)
-
                 new_file = self.__archive.extract_member(
-                    member, FileSize(max_size - total_size), putter
+                    member,
+                    min(max_single, FileSize(max_size - total_size)),
+                    putter,
                 )
                 if new_file.is_nothing:
                     raise_archive_too_large()
@@ -242,7 +230,6 @@ class Archive(t.Generic[TT]):  # pylint: disable=unsubscriptable-object
                     backing_file = new_file.value
 
                 total_size = FileSize(total_size + backing_file.size)
-                maybe_raise_too_large()
                 base.insert_file(member.name, backing_file)
 
         if symlinks:

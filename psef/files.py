@@ -699,9 +699,7 @@ def process_blackboard_zip(
         )
         submissions = []
         for info_file in info_files:
-            if not isinstance(info_file, ExtractFileTreeFile):
-                continue
-
+            assert isinstance(info_file, ExtractFileTreeFile)
             with info_file.backing_file.open() as info_fileobj:
                 info = blackboard.parse_info_file(info_fileobj)
 
@@ -739,7 +737,7 @@ def process_blackboard_zip(
     return submissions
 
 
-def split_path(path: str) -> t.Tuple[t.Sequence[str], bool]:
+def split_path(path: str) -> t.Tuple[t.List[str], bool]:
     """Split a path into an array of parts of a path.
 
     This functions splits a forward slash separated path into an sequence of

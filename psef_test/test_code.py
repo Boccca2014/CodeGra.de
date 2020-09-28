@@ -941,8 +941,8 @@ def test_rename_code(
         original_tree = copy.deepcopy(files)
         assert files['name'] == f'multiple_dir_archive{extension}'
         assert len(files['entries']) == 2
-        assert 'dir' == files['entries'][0]['name']
-        assert 'dir2' == files['entries'][1]['name']
+        assert files['entries'][0]['name'] == 'dir'
+        assert files['entries'][1]['name'] == 'dir2'
         old_data0 = get_code_data(files['entries'][0]['entries'][0]['id'])
         code_id = files['entries'][0]['entries'][0]['id']
 
@@ -1002,3 +1002,104 @@ def test_rename_code(
         assert len(files['entries']) == 2
         assert files['entries'][-1]['name'] == 'dir4'
         assert len(files['entries'][-1]['entries']) == 1
+
+
+@pytest.mark.parametrize(
+    'filename', [
+        ('../test_submissions/deep_nested_dirs.tar.gz'),
+    ],
+    indirect=['filename']
+)
+def test_rename_nested_dir(
+    assignment_real_works, test_client, student_user, error_template, ta_user,
+    logged_in, session, describe, assert_similar
+):
+    with describe('setup'):
+        assignment, work = assignment_real_works
+        work_id = work['id']
+
+        def rename(code_id, new_name):
+            return test_client.req(
+                'patch',
+                f'/api/v1/code/{code_id}?operation=rename&new_path={new_name}',
+                200,
+            )['id']
+
+        def find_file(files, name):
+            if isinstance(name, str):
+                return find_file(files, list(reversed(name.split('/'))))
+            cur_name = name.pop()
+            res, = [f for f in files['entries'] if f['name'] == cur_name]
+            if name:
+                return find_file(res, name)
+            return res
+
+        def get_file_tree(owner='auto'):
+            return test_client.req(
+                'get',
+                f'/api/v1/submissions/{work_id}/files/?owner={owner}',
+                200,
+                result={
+                    'entries': list,
+                    'id': str,
+                    'name': str,
+                }
+            )
+
+        m.Assignment.query.filter_by(id=assignment.id).update({
+            'state': m.AssignmentStateEnum.done
+        })
+        session.commit()
+        with logged_in(ta_user):
+            orig_tree = get_file_tree()
+
+    with describe('rename dir with mixed ownership'), logged_in(ta_user):
+        dir3 = find_file(get_file_tree(), 'dir1/dir2/dir3')['id']
+        dir3_id = rename(
+            dir3, '/deep_nested_dirs.tar.gz/dir1/dir2/dir3_new'
+        )
+        dir2 = find_file(get_file_tree(), 'dir1/dir2')['id']
+        dir2_id = rename(
+            dir2, '/deep_nested_dirs.tar.gz/dir1/dir2_new'
+        )
+
+    with describe('dir should have expected shape'), logged_in(ta_user):
+        new_ta_tree = get_file_tree()
+        assert_similar(
+            new_ta_tree,
+            {
+                'name': 'deep_nested_dirs.tar.gz',
+                'id': orig_tree['id'],
+                'entries': [
+                    {'id': find_file(orig_tree, 'a')['id'], 'name': 'a'},
+                    {
+                        'id': find_file(orig_tree, 'dir1')['id'],
+                        'name': 'dir1',
+                        'entries': [
+                            {'name': 'b', 'id': str},
+                            {
+                                'name': 'dir2_new',
+                                'id': dir2_id,
+                                'entries': [
+                                    {'name': 'b', 'id': str},
+                                    {
+                                        'name': 'dir3_new',
+                                        'id': dir3_id,
+                                        'entries': [],
+                                    },
+                                ],
+                            },
+                        ],
+                    },
+                ],
+            },
+        )
+        # The ``b`` file should also have a new id
+        assert (
+            find_file(new_ta_tree, 'dir1/dir2_new/b')['id'] !=
+            find_file(orig_tree, 'dir1/dir2/b')['id']
+        )
+
+    with describe('student tree should not be altered'
+                  ), logged_in(student_user):
+        assert get_file_tree() == orig_tree
