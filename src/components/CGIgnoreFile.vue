@@ -494,7 +494,7 @@ export default {
                     key: 'allow_override',
                     value: false,
                     description:
-                    'If this option is enabled, this will allow students to press an override button to hand in a submission, even if it does contains files that are denied by the hand-in requirements. Students will, however, get a warning that their submission does not follow the hand-in requirements. Enabling this option will enable students to hand in files you deny in your hand-in requirements.',
+                    'If this option is enabled, this will allow students to press an override button to hand in a submission, even if it contains files that are denied by the hand-in requirements. Students will, however, get a warning that their submission does not follow the hand-in requirements. Enabling this option will enable students to hand in files you deny in your hand-in requirements.',
                     name: 'Allow overrides by students',
                     options: onOff,
                     id: getOptionId(),
