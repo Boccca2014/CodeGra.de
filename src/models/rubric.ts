@@ -85,6 +85,26 @@ export class RubricItem<T = number | undefined> {
     get nonEmptyHeader() {
         return this.header || '[No name]';
     }
+
+    equals(other: RubricItem<T>): boolean {
+        if (!(other instanceof RubricItem)) {
+            return false;
+        }
+
+        if (this.trackingId !== other.trackingId) {
+            return false;
+        }
+
+        if (this.id != null && this.id !== other.id) {
+            return false;
+        }
+
+        return (
+            this.points === other.points &&
+            this.header === other.header &&
+            this.description === other.description
+        );
+    }
 }
 
 interface BaseRubricRowServerData {
@@ -381,6 +401,28 @@ export class RubricRow<T extends number | undefined | null> {
 
         return errors;
     }
+
+    equals(other: RubricRow<T>): boolean {
+        if (!(other instanceof this.constructor)) {
+            return false;
+        }
+
+        if (this.trackingId !== other.trackingId) {
+            return false;
+        }
+
+        if (this.id != null && this.id !== other.id) {
+            return false;
+        }
+
+        return (
+            this.type === other.type &&
+            this.header === other.header &&
+            this.description === other.description &&
+            this.locked === other.locked &&
+            this.items.every((item, i) => item.equals(other.items[i]))
+        );
+    }
 }
 
 export class NormalRubricRow<T extends number | undefined | null> extends RubricRow<T> {
@@ -570,6 +612,14 @@ export class Rubric<T extends number | undefined | null> {
     // eslint-disable-next-line class-methods-use-this
     setRows(rows: ReadonlyArray<RubricRow<T>>) {
         return new Rubric(rows);
+    }
+
+    equals(other: Rubric<T>): boolean {
+        if (!(other instanceof Rubric)) {
+            return false;
+        }
+
+        return this.rows.every((row, i) => row.equals(other.rows[i]));
     }
 }
 

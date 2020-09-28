@@ -77,7 +77,7 @@
     <template v-if="rubricRows.length === 0">
         <h4 v-if="editable"
             slot="empty"
-            class="no-categories flex-grow-1 p-5 border rounded text-center text-muted">
+            class="no-categories flex-grow-1 mb-3 p-5 border rounded text-center text-muted">
             Click
             <b-button size="lg"
                       class="add-row mx-2"
@@ -126,7 +126,7 @@
                             <template v-if="row.header">
                                 {{ row.header }}
                             </template>
-                            <span v-else class="text-muted">
+                            <span v-else class="text-muted font-italic">
                                 Unnamed
                             </span>
 
@@ -150,8 +150,8 @@
                                 class="delete-category"
                                 :wait-at-least="0"
                                 :submit="() => {}"
+                                @after-success="() => deleteRow(i)"
                                 :disabled="!!row.locked"
-                                @after-success="deleteRow(i)"
                                 confirm="Do you really want to delete this category?">
                                 <fa-icon v-if="row.locked" name="lock" />
                                 <fa-icon v-else name="times" />
@@ -194,8 +194,7 @@
         </slick-item>
 
         <b-button-toolbar v-if="editable" class="justify-content-center mb-3">
-            <b-button class="add-row border"
-                      @click="createRow">
+            <b-button class="add-row" @click="createRow">
                 <fa-icon name="plus" /> Category
             </b-button>
         </b-button-toolbar>
@@ -278,155 +277,161 @@
                     <fa-icon name="times"/> Delete
                 </cg-submit-button>
 
-                <cg-submit-button class="reset-rubric border-left rounded-left-0"
-                                  variant="danger"
-                                  v-b-popover.top.hover="'Reset rubric'"
-                                  :submit="resetRubric"
-                                  confirm="Are you sure you want to revert your changes?"
-                                  :disabled="serverData != null && rubricRows.length === 0">
-                    <fa-icon name="reply"/> Reset
-                </cg-submit-button>
+                <div v-b-popover.top.hover="rubricChangedPopover('Reset rubric.')">
+                    <cg-submit-button class="reset-rubric border-left rounded-left-0"
+                                      variant="danger"
+                                      :submit="resetRubric"
+                                      confirm="Are you sure you want to revert your changes?"
+                                      :disabled="(serverData != null && rubricRows.length === 0) || !rubricChanged">
+                        <fa-icon name="reply"/> Reset
+                    </cg-submit-button>
+                </div>
             </div>
 
-            <cg-submit-button class="submit-rubric"
-                              ref="submitButton"
-                              :confirm="shouldConfirm ? 'yes' : ''"
-                              :submit="submit"
-                              @after-success="afterSubmit">
-                <div slot="confirm" class="text-justify">
-                    <template v-if="rowsWithSingleItem.length > 0">
-                        <b>Rows with only a single item</b>
+            <div v-b-popover.top.hover="rubricChangedPopover()">
+                <cg-submit-button class="submit-rubric"
+                                  ref="submitButton"
+                                  :disabled="!rubricChanged"
+                                  :confirm="shouldConfirm ? 'yes' : ''"
+                                  :submit="submit"
+                                  @after-success="afterSubmit">
+                    <div slot="confirm" class="text-justify">
+                        <template v-if="rowsWithSingleItem.length > 0">
+                            <b>Rows with only a single item</b>
 
-                        <p class="mb-2">
-                            The following categories contain only a single
-                            item, which means it is only possible to select
-                            this item, and an AutoTest will always select it:
-                        </p>
-
-                        <ul>
-                            <li v-for="row in rowsWithSingleItem">
-                                {{ row.nonEmptyHeader }} - {{ row.items[0].nonEmptyHeader }}
-                            </li>
-                        </ul>
-                    </template>
-
-                    <template v-if="rowsWithEqualItems.length > 0">
-                        <b>Rows with items with equal points</b>
-
-                        <p class="mb-2">
-                            The following categories contain items with an
-                            equal number of points, which can lead to
-                            unpredictable behavior when filled by an AutoTest:
-                        </p>
-
-                        <ul>
-                            <li v-for="row in rowsWithEqualItems">
-                                {{ row }}
-                            </li>
-                        </ul>
-                    </template>
-
-                    <template v-if="rowsWithoutZeroItem.length > 0">
-                        <b>Rows without items with 0 points</b>
-
-                        <p class="mb-2">
-                            There are categories without an item with zero
-                            points, without which it may be unclear if the
-                            category is yet to be filled in or was
-                            intentionally left blank. The following categories
-                            do not contain an item with 0 points:
-                        </p>
-
-                        <ul>
-                            <li v-for="row in rowsWithoutZeroItem">
-                                {{ row.nonEmptyHeader }}
-                            </li>
-                        </ul>
-                    </template>
-
-                    <template v-if="deletedItems.length > 0">
-                        <b>Deleted item{{ deletedItems.length > 1 ? 's' : ''}}</b>
-
-                        <p class="mb-2">
-                            The following
-                            item{{ deletedItems.length > 1 ? 's were' : ' was'}}
-                            removed from the rubric:
-                        </p>
-
-                        <ul class="mb-2">
-                            <li v-for="item in deletedItems">{{ item }}</li>
-                        </ul>
-                    </template>
-
-                    <p class="mb-2">
-                        Are you sure you want to save this rubric?
-                    </p>
-                </div>
-
-                <div slot="error"
-                     slot-scope="scope"
-                     class="submit-popover text-justify">
-                    <template v-if="scope.error instanceof ValidationError">
-                        <p v-if="scope.error.unnamed" class="mb-2">
-                            There are unnamed categories.
-                        </p>
-
-                        <p v-if="scope.error.categories.length > 0" class="mb-2">
-                            The following categor{{ scope.error.categories.length >= 2 ? 'ies have' : 'y has' }}
-                            no items.
+                            <p class="mb-2">
+                                The following categories contain only a single
+                                item, which means it is only possible to select
+                                this item, and an AutoTest will always select it:
+                            </p>
 
                             <ul>
-                                <li v-for="msg in scope.error.categories">
-                                    {{ msg }}
+                                <li v-for="row in rowsWithSingleItem">
+                                    {{ row.nonEmptyHeader }} - {{ row.items[0].nonEmptyHeader }}
                                 </li>
                             </ul>
-                        </p>
+                        </template>
 
-                        <p v-if="scope.error.continuous.length > 0" class="mb-2">
-                            The following continuous
-                            categor{{ scope.error.categories.length >= 2 ? 'ies have' : 'y has' }}
-                            a score less than 0 which is not supported.
+                        <template v-if="rowsWithEqualItems.length > 0">
+                            <b>Rows with items with equal points</b>
+
+                            <p class="mb-2">
+                                The following categories contain items with an
+                                equal number of points, which can lead to
+                                unpredictable behavior when filled by an AutoTest:
+                            </p>
 
                             <ul>
-                                <li v-for="msg in scope.error.continuous">
-                                    {{ msg }}
+                                <li v-for="row in rowsWithEqualItems">
+                                    {{ row }}
                                 </li>
                             </ul>
-                        </p>
+                        </template>
 
-                        <p v-if="scope.error.itemHeader.length > 0" class="mb-2">
-                            The following
-                            categor{{ scope.error.itemHeader.length >= 2 ? 'ies have' : 'y has' }}
-                            items without a name:
+                        <template v-if="rowsWithoutZeroItem.length > 0">
+                            <b>Rows without items with 0 points</b>
+
+                            <p class="mb-2">
+                                There are categories without an item with zero
+                                points, without which it may be unclear if the
+                                category is yet to be filled in or was
+                                intentionally left blank. The following categories
+                                do not contain an item with 0 points:
+                            </p>
 
                             <ul>
-                                <li v-for="msg in scope.error.itemHeader">
-                                    {{ msg }}
+                                <li v-for="row in rowsWithoutZeroItem">
+                                    {{ row.nonEmptyHeader }}
                                 </li>
                             </ul>
-                        </p>
+                        </template>
 
-                        <p v-if="scope.error.itemPoints.length > 0" class="mb-2">
-                            Make sure "points" is a number for the following
-                            item{{ scope.error.itemPoints.length >= 2 ? 's' : '' }}:
+                        <template v-if="deletedItems.length > 0">
+                            <b>Deleted item{{ deletedItems.length > 1 ? 's' : ''}}</b>
 
-                            <ul>
-                                <li v-for="msg in scope.error.itemPoints">
-                                    {{ msg }}
-                                </li>
+                            <p class="mb-2">
+                                The following
+                                item{{ deletedItems.length > 1 ? 's were' : ' was'}}
+                                removed from the rubric:
+                            </p>
+
+                            <ul class="mb-2">
+                                <li v-for="item in deletedItems">{{ item }}</li>
                             </ul>
-                        </p>
+                        </template>
 
-                        <p v-if="scope.error.maxPoints" class="mb-2">
-                            The given max points {{ this.internalFixedMaxPoints }} is not a number.
+                        <p class="mb-2">
+                            Are you sure you want to save this rubric?
                         </p>
-                    </template>
+                    </div>
 
-                    <p v-else>
-                        {{ $utils.getErrorMessage(scope.error) }}
-                    </p>
-                </div>
-            </cg-submit-button>
+                    <div slot="error"
+                         slot-scope="scope"
+                         class="submit-popover text-justify">
+                        <template v-if="scope.error instanceof ValidationError">
+                            <p v-if="scope.error.unnamed" class="mb-2">
+                                There are unnamed categories.
+                            </p>
+
+                            <p v-if="scope.error.categories.length > 0" class="mb-2">
+                                The following
+                                categor{{ scope.error.categories.length >= 2 ? 'ies have' : 'y has' }}
+                                no items.
+
+                                <ul>
+                                    <li v-for="msg in scope.error.categories">
+                                        {{ msg }}
+                                    </li>
+                                </ul>
+                            </p>
+
+                            <p v-if="scope.error.continuous.length > 0" class="mb-2">
+                                The following continuous
+                                categor{{ scope.error.categories.length >= 2 ? 'ies have' : 'y has' }}
+                                a score less than 0 which is not supported.
+
+                                <ul>
+                                    <li v-for="msg in scope.error.continuous">
+                                        {{ msg }}
+                                    </li>
+                                </ul>
+                            </p>
+
+                            <p v-if="scope.error.itemHeader.length > 0" class="mb-2">
+                                The following
+                                categor{{ scope.error.itemHeader.length >= 2 ? 'ies have' : 'y has' }} items without a name:
+
+                                <ul>
+                                    <li v-for="msg in scope.error.itemHeader">
+                                        {{ msg }}
+                                    </li>
+                                </ul>
+                            </p>
+
+                            <p v-if="scope.error.itemPoints.length > 0" class="mb-2">
+                                Make sure "points" is a number for the following
+                                item{{ scope.error.itemPoints.length >= 2 ? 's' : '' }}:
+
+                                <ul>
+                                    <li v-for="msg in scope.error.itemPoints">
+                                        {{ msg }}
+                                    </li>
+                                </ul>
+                            </p>
+
+                            <p v-if="scope.error.maxPoints" class="mb-2">
+                                The given max points
+                                {{ this.internalFixedMaxPoints }} is not a
+                                number.
+                            </p>
+                        </template>
+
+                        <p v-else>
+                            {{ $utils.getErrorMessage(scope.error) }}
+                        </p>
+                    </div>
+                </cg-submit-button>
+            </div>
         </b-button-toolbar>
     </template>
 
@@ -526,16 +531,23 @@ export default {
         },
 
         rubric(newVal, oldVal) {
+            if (newVal == null) {
+                this.collapsedCategories = {};
+                return;
+            }
+
             const newRows = newVal.rows;
-            const oldRows = oldVal.rows;
+            const oldRows = oldVal && oldVal.rows;
 
             this.collapsedCategories = this.$utils.mapToObject(
                 newRows,
                 newRow => {
                     let collapse = this.collapsedCategories[newRow.trackingId];
-                    if (collapse == null) {
+                    if (collapse == null && oldRows != null) {
                         const oldRow = oldRows.find(r => r.id === newRow.id);
-                        collapse = this.collapsedCategories[oldRow.trackingId];
+                        if (oldRow != null) {
+                            collapse = this.collapsedCategories[oldRow.trackingId];
+                        }
                     }
                     if (collapse == null) {
                         collapse = newRow.id != null;
@@ -669,6 +681,16 @@ export default {
                 acc.add(assigLike.courseId);
                 return acc;
             }, new Set());
+        },
+
+        rubricChanged() {
+            const { rubric, serverData } = this;
+
+            if (rubric == null) {
+                return serverData != null;
+            } else {
+                return !rubric.equals(serverData);
+            }
         },
     },
 
@@ -869,6 +891,8 @@ export default {
             }
 
             this.rubric = this.rubric.deleteRow(idx);
+
+            return Promise.resolve();
         },
 
         rowChanged(idx, rowData) {
@@ -902,6 +926,14 @@ export default {
 
         onSortEnd() {
             this.slickItemMoving = false;
+        },
+
+        rubricChangedPopover(ifChanged = '') {
+            if (this.rubricChanged) {
+                return ifChanged;
+            } else {
+                return 'You have not made any modifications to the rubric.';
+            }
         },
     },
 
