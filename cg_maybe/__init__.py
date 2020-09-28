@@ -80,8 +80,8 @@ class Just(t.Generic[_T]):
         """Try to extract the value, raising an exception created by the given
         argument if the value is ``Nothing``.
 
-        >>> Just(5).try_extract(Exception) is None
-        True
+        >>> Just(5).try_extract(Exception)
+        5
         >>> Nothing.try_extract(Exception)
         Traceback (most recent call last):
         ...
