@@ -32,7 +32,7 @@
             This category has no description.
         </p>
         <inner-markdown-viewer
-            v-else-if="value.isMarkdown"
+            v-if="value.isMarkdown"
             :markdown="value.description"
             class="mb-3" />
         <p v-else class="text-wrap-pre"

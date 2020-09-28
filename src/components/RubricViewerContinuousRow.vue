@@ -6,14 +6,17 @@
      @mouseleave="lockPopoverVisible = false">
     <div class="rubric-row-header">
         <div class="row-description d-flex border-bottom">
-            <p class="flex-grow-1 my-2 px-3">
-                <b>{{ rubricRow.header }}</b>
-
+            <p class="flex-grow-1 mb-0 pt-2 px-3">
+                <span v-if="!rubricRow.description"
+                    class="d-block mb-2 text-muted font-italic">
+                    This category has no description.
+                </span>
                 <inner-markdown-viewer
-                    v-if="rubricRow.isMarkdown"
-                    :markdown="rubricRow.description" />
+                    v-else-if="rubricRow.isMarkdown"
+                    :markdown="rubricRow.description"
+                    class="mb-2" />
                 <span v-else
-                   class="text-wrap-pre"
+                   class="d-block mb-2 text-wrap-pre"
                    >{{ rubricRow.description }}</span>
             </p>
 

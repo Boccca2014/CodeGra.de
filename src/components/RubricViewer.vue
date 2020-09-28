@@ -271,8 +271,6 @@ export default {
 @import '~mixins.less';
 
 .rubric-viewer {
-    font-size: 90%;
-
     .nav-link {
         display: block;
         padding: 0.25rem 0.5rem;
@@ -372,6 +370,6 @@ export default {
 
 <style lang="less">
 .rubric-viewer .inner-markdown-viewer > :last-child {
-    margin-bottom: 0.5rem;
+    margin-bottom: 0;
 }
 </style>
