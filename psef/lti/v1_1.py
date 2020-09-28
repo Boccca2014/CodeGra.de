@@ -1264,9 +1264,18 @@ class OpenEdX(_BareRolesLTIProvider):
                     "We couldn't find the assignment name. Please make sure"
                     " you set the 'Display Name' option."
                 ), (
-                    'The custom_component_display_name property was missing from'
-                    ' launch_params'
+                    'The custom_component_display_name property was missing'
+                    ' from launch_params'
                 ), APICodes.INVALID_STATE, 400
+            )
+        elif not self.has_outcome_service_url():
+            raise APIException(
+                (
+                    'We do not have the option to passback the grade. This is'
+                    ' probably because you forgot to enable the "Scored"'
+                    ' option when configuring the assignment.'
+                ), 'The outcome service url is missing',
+                APICodes.INVALID_PARAM, 400
             )
         elif not urlparse(self.outcome_service_url).netloc:
             raise APIException(

@@ -278,7 +278,7 @@ export default {
                 !this.nonEditable &&
                 this.showInlineFeedback &&
                 this.submission &&
-                FeedbackLine.canAddReply(this.submission)
+                FeedbackLine.canAddReply(this.submission, this.$root.$now)
             );
         },
 
