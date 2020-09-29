@@ -1,12 +1,18 @@
 import { VNode, CreateElement } from 'vue';
 import * as tsx from 'vue-tsx-support';
+import { TextareaHTMLAttributes } from 'vue-tsx-support/types/dom';
 import { modifiers as m } from 'vue-tsx-support';
 import p from 'vue-strict-prop';
 
 // @ts-ignore
 import InnerMarkdownViewer from './InnerMarkdownViewer';
 
-const PreviewableMarkdownEditor = tsx.component({
+type Events = {
+    input: string,
+    submit: undefined,
+}
+
+const PreviewableMarkdownEditor = tsx.componentFactoryOf<Events, {}>().create({
     props: {
         value: p(String).required,
         rows: p(Number).default(0),
@@ -41,8 +47,23 @@ const PreviewableMarkdownEditor = tsx.component({
                 placeholder={`${this.placeholder} (this field supports markdown)`}
                 tabindex={this.tabindex}
                 disabled={this.disabled}
-                onInput={$event => this.$emit('input', $event)}
-                onKeyup={m.ctrl.enter(() => this.$emit('submit'))} />;
+                onInput={this.emitValue}
+                onKeyup={m.ctrl.enter(this.submit)} />;
+        },
+
+        emitValue(event: { target: TextareaHTMLAttributes }) {
+            const value = event.target.value;
+            let joined = '';
+            if (value instanceof Array) {
+                joined = value.join('\n');
+            } else if (typeof value === 'string') {
+                joined = value;
+            }
+            tsx.emitOn(this, 'input', joined);
+        },
+
+        submit() {
+            tsx.emitOn(this, 'submit', undefined);
         },
     },
 
