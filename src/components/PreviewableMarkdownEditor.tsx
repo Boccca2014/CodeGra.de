@@ -1,6 +1,5 @@
 import { VNode, CreateElement } from 'vue';
 import * as tsx from 'vue-tsx-support';
-import { TextareaHTMLAttributes } from 'vue-tsx-support/types/dom';
 import { modifiers as m } from 'vue-tsx-support';
 import p from 'vue-strict-prop';
 
@@ -47,19 +46,15 @@ const PreviewableMarkdownEditor = tsx.componentFactoryOf<Events, {}>().create({
                 placeholder={`${this.placeholder} (this field supports markdown)`}
                 tabindex={this.tabindex}
                 disabled={this.disabled}
-                onInput={this.emitValue}
+                // In Vue the input event on a <textarea> emits a string but
+                // tsx-vue-support says it is
+                // a SyntheticEvent<TextareaHTMLAttributes, Event>.
+                onInput={event => this.emitValue((event as unknown) as string)}
                 onKeyup={m.ctrl.enter(this.submit)} />;
         },
 
-        emitValue(event: { target: TextareaHTMLAttributes }) {
-            const value = event.target.value;
-            let joined = '';
-            if (value instanceof Array) {
-                joined = value.join('\n');
-            } else if (typeof value === 'string') {
-                joined = value;
-            }
-            tsx.emitOn(this, 'input', joined);
+        emitValue(value: string) {
+            tsx.emitOn(this, 'input', value);
         },
 
         submit() {
