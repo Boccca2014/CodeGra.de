@@ -3,12 +3,11 @@
 <div class="submission-list d-flex flex-column">
     <b-form-fieldset>
         <b-input-group class="search-wrapper">
-            <input v-model="filter"
+            <input :value="filter"
+                   v-debounce="newFilter => { filter = newFilter }"
                    class="form-control"
                    name="submissions-filter"
-                   placeholder="Type to Search"
-                   @keyup.enter="submit"
-                   @keyup="submitDelayed"/>
+                   placeholder="Type to Search" />
 
             <b-input-group-append is-text
                                   class="assigned-to-me-option"
@@ -274,13 +273,31 @@ export default {
         filteredSubmissions: {
             immediate: true,
             handler(newVal, oldVal) {
+                // Move back to the first page if the list of submissions
+                // hasn't changed, i.e. the length stayed the same and the
+                // order of the students stayed the same.
+
                 this.$emit('filter', {
                     submissions: this.filteredSubmissions.map(s => s.sub),
                 });
 
                 // This is null on the immediate call of this wachter.
-                if (oldVal != null) {
+                if (oldVal == null) {
+                    return;
+                }
+
+                // Obviously the lists aren't the same if their lengths differ.
+                if (newVal.length !== oldVal.length) {
                     this.currentPage = 1;
+                    return;
+                }
+
+                // Do nothing if the order of submission ids haven't unchanged.
+                for (let i = 0, l = newVal.length; i < l; i++) {
+                    if (oldVal[i].id !== newVal[i].id) {
+                        this.currentPage = 1;
+                        break;
+                    }
                 }
             },
         },
@@ -301,8 +318,12 @@ export default {
             },
         },
 
+        filter() {
+            this.submit();
+        },
+
         currentPage() {
-            this.submitDelayed();
+            this.submit();
         },
     },
 
@@ -371,17 +392,6 @@ export default {
         gotoSubmission({ sub: submission }) {
             this.submit();
             this.$router.push(this.submissionRoute(submission));
-        },
-
-        submitDelayed() {
-            if (this.submitTimeout != null) {
-                clearTimeout(this.submitTimeout);
-            }
-
-            this.submitTimeout = setTimeout(() => {
-                this.submitTimeout = null;
-                this.submit();
-            }, 200);
         },
 
         async submit() {
