@@ -1062,7 +1062,7 @@ class AutoTestStepResult(Base, TimestampMixin, IdMixin):
     def attachment(self) -> Maybe[cg_object_storage.File]:
         """Maybe the attachment of this step.
 
-        The step might not have an attachment in which case ``None`` is
+        The step might not have an attachment in which case ``Nothing`` is
         returned.
         """
         if self._attachment_filename is None:
