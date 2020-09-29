@@ -143,7 +143,6 @@ export default tsx.component({
         },
 
         afterFinalize(): void {
-            console.log('AFTER');
             this.finalized = true;
         },
     },
