@@ -76,6 +76,7 @@ timeout -k 900 900 \
         --cov cg_cache \
         --cov cg_enum \
         --cov cg_sqlalchemy_helpers \
+        --cov cg_register \
         --cov-append -x \
         --postgresql="GENERATE" \
         --cov-report term-missing \
