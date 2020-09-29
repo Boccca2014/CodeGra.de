@@ -24,7 +24,8 @@
             :editable="canEditState"
             size="sm"/>
 
-        <template #extra>
+        <template #extra
+                  v-if="assignment">
             <category-selector
                 default="general"
                 v-model="selectedCat"
