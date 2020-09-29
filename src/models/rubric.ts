@@ -8,6 +8,7 @@ import {
     setXor,
     hasAttr,
     filterMap,
+    pickKeys,
     Maybe,
     Nothing,
     Just,
@@ -55,21 +56,23 @@ export class RubricItem<T = number | undefined> {
             points: data.points,
             header: data.header,
             description: data.description,
-            trackingId: undefined,
         });
     }
 
     static createEmpty(): RubricItem<undefined> {
-        return new RubricItem({
-            id: undefined,
-            points: '',
-            header: '',
-            description: '',
-            trackingId: getUniqueId(),
-        });
+        return new RubricItem(
+            {
+                id: undefined,
+                points: '',
+                header: '',
+                description: '',
+            },
+            getUniqueId(),
+        );
     }
 
-    constructor(item: IRubricItem<T>) {
+    constructor(item: IRubricItem<T>, trackingId?: number) {
+        this.trackingId = trackingId;
         Object.assign(this, item);
         Object.freeze(this);
     }
@@ -79,7 +82,14 @@ export class RubricItem<T = number | undefined> {
     update(props: Partial<IRubricItem<T>>): RubricItem<T>;
 
     update<Y>(props: Partial<IRubricItem<Y>> = {}): RubricItem<Y | T> {
-        return new RubricItem(Object.assign({}, this, props));
+        return new RubricItem(
+            Object.assign(
+                {},
+                this,
+                pickKeys(props, ['id', 'points', 'header', 'description'], false),
+            ),
+            this.trackingId,
+        );
     }
 
     get nonEmptyHeader() {
@@ -162,13 +172,13 @@ export class RubricRow<T extends number | undefined | null> {
     @nonenumerable
     protected _cache = makeCache('maxPoints', 'minPoints');
 
-    constructor(row: IRubricRow<T, T>) {
+    constructor(row: IRubricRow<T, T>, trackingId?: number) {
         // eslint-disable-next-line @typescript-eslint/no-use-before-define
         if (row.type && !(this instanceof RubricRowsTypes[row.type])) {
             throw new Error('You cannot make a base row with a non empty type.');
         }
 
-        this.trackingId = getUniqueId();
+        this.trackingId = trackingId ?? getUniqueId();
 
         Object.assign(this, row);
         Object.freeze(this.items);
@@ -217,8 +227,22 @@ export class RubricRow<T extends number | undefined | null> {
         });
     }
 
-    private update(this: RubricRow<T>, props = {}): RubricRow<T | undefined> {
-        return new (this.constructor as any)(Object.assign({}, this, props));
+    private update(
+        this: RubricRow<T>,
+        props: Partial<RubricRow<T | null | undefined>> = {},
+    ): RubricRow<T | null | undefined> {
+        return new (this.constructor as any)(
+            Object.assign(
+                {},
+                this,
+                pickKeys(
+                    props,
+                    ['id', 'type', 'header', 'description', 'descriptionType', 'locked', 'items'],
+                    false,
+                ),
+            ),
+            this.trackingId,
+        );
     }
 
     updateItem(
@@ -227,7 +251,7 @@ export class RubricRow<T extends number | undefined | null> {
         prop: Exclude<keyof RubricItem, 'id'>,
         // eslint-disable-next-line no-undef
         value: RubricItem[typeof prop],
-    ): NormalRubricRow<T | undefined>;
+    ): NormalRubricRow<T | null | undefined>;
 
     updateItem(
         this: ContinuousRubricRow<T>,
@@ -235,7 +259,7 @@ export class RubricRow<T extends number | undefined | null> {
         prop: Exclude<keyof RubricItem, 'id'>,
         // eslint-disable-next-line no-undef
         value: RubricItem[typeof prop],
-    ): ContinuousRubricRow<T | undefined>;
+    ): ContinuousRubricRow<T | null | undefined>;
 
     updateItem(
         this: RubricRow<T>,
@@ -243,8 +267,8 @@ export class RubricRow<T extends number | undefined | null> {
         prop: Exclude<keyof RubricItem, 'id'>,
         // eslint-disable-next-line no-undef
         value: RubricItem[typeof prop],
-    ): RubricRow<T | undefined> {
-        const items: RubricItem<undefined | null | number>[] = this.items.slice();
+    ): RubricRow<T | null | undefined> {
+        const items: RubricItem<undefined | null | T>[] = this.items.slice();
         if (idx < 0 || idx >= items.length) {
             throw new ReferenceError('Invalid index');
         }

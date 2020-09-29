@@ -13,7 +13,7 @@
         <b-form-group label="Category description">
             <previewable-markdown-editor
                 class="category-description"
-                :rows="5"
+                :rows="3"
                 placeholder="Description"
                 :value="value.description"
                 @input="updateProp($event, 'description')"

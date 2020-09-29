@@ -74,6 +74,13 @@
 <div v-else
      class="rubric-editor"
      :class="{ grow, editable }">
+    <b-alert v-if="showMaxPointsWarning"
+             class="max-points-warning"
+             variant="warning"
+             show>
+        {{ maximumPointsWarningText }}
+    </b-alert>
+
     <template v-if="rubricRows.length === 0">
         <h4 v-if="editable"
             slot="empty"
@@ -206,7 +213,7 @@
                             :editable="editable"
                             :grow="grow"
                             @input="rowChanged(i, $event)"
-                            @submit="() => $refs.submitButton.onClick()"
+                            @submit="() => submitWithModal()"
                             @mouseenter.native="visibleLockPopover = editable ? null : i"
                             @mouseleave.native="visibleLockPopover = null"
                             class="mx-3 mt-3"/>
@@ -223,10 +230,10 @@
     </slick-list>
 
     <template v-if="editable">
-        <advanced-collapse class="border rounded mb-3 px-3 py-2"
+        <advanced-collapse v-if="rubric"
+                           class="border rounded mb-3 px-3 py-2"
                            :start-open="showMaxPointsWarning">
-            <b-form-group v-if="rubric"
-                          label="Points needed for a 10"
+            <b-form-group label="Points needed for a 10"
                           class="mb-0">
                 <template #description>
                     The number of points a student must achieve in this rubric to
@@ -256,7 +263,7 @@
                         min="0"
                         step="1"
                         class="max-points form-control"
-                        @keydown.ctrl.enter="() => $refs.submitButton.onClick()"
+                        @keydown.ctrl.enter="() => submitWithModal()"
                         v-model="internalFixedMaxPoints"
                         :placeholder="rubricMaxPoints" />
 
@@ -265,13 +272,6 @@
                     </b-input-group-append>
                 </b-input-group>
             </b-form-group>
-
-            <b-alert v-if="showMaxPointsWarning"
-                    class="max-points-warning mt-3 mb-2"
-                    variant="warning"
-                    show>
-                {{ maximumPointsWarningText }}
-            </b-alert>
         </advanced-collapse>
 
         <b-button-toolbar justify>
@@ -304,7 +304,7 @@
                                       variant="danger"
                                       :submit="resetRubric"
                                       confirm="Are you sure you want to revert your changes?"
-                                      :disabled="(serverData != null && rubricRows.length === 0) || submitDisabled">
+                                      :disabled="resetDisabled">
                         <fa-icon name="reply"/> Reset
                     </cg-submit-button>
                 </div>
@@ -315,7 +315,7 @@
                                   ref="submitButton"
                                   :disabled="submitDisabled"
                                   :confirm="shouldConfirm ? 'yes' : ''"
-                                  confirm-in-modal
+                                  :confirm-in-modal="confirmInModal"
                                   :submit="submit"
                                   @after-success="afterSubmit">
                     <div slot="confirm" class="text-justify">
@@ -523,6 +523,7 @@ export default {
 
             collapsedCategories: {},
 
+            confirmInModal: false,
             slickItemMoving: false,
             visibleLockPopover: null,
 
@@ -590,7 +591,11 @@ export default {
                     // Added but not yet submitted rows have no id and should
                     // start expanded.
                     if (collapse == null) {
-                        collapse = newRow.id != null;
+                        if (newRow.id == null) {
+                            collapse = false;
+                        } else {
+                            collapse = this.collapseByDefault;
+                        }
                     }
 
                     return [newRow.trackingId, collapse || false];
@@ -659,13 +664,12 @@ export default {
         maximumPointsWarningText() {
             const num = Number(this.internalFixedMaxPoints);
             if (num < this.rubricMaxPoints) {
-                return `This means that a 10 will already be achieved with ${num} out of ${
-                    this.rubricMaxPoints
-                } rubric points.`;
+                return `To achieve a 10 students need to score ${num} out of
+                    ${this.rubricMaxPoints} rubric points.`;
             } else if (num > this.rubricMaxPoints) {
-                return `This means that it will not be possible to achieve a 10; a ${formatGrade(
-                    this.rubricMaxPoints / num * 10,
-                )} will be the maximum achievable grade.`;
+                return `It is not possible to achieve a 10 for this rubric; a
+                    ${formatGrade(this.rubricMaxPoints / num * 10)} is the
+                    maximum grade that can be achieved.`;
             } else {
                 return null;
             }
@@ -673,7 +677,7 @@ export default {
 
         showMaxPointsWarning() {
             const num = parseFloat(this.internalFixedMaxPoints);
-            return !Number.isNaN(num) && num !== this.rubricMaxPoints;
+            return this.editable && !Number.isNaN(num) && num !== this.rubricMaxPoints;
         },
 
         rowsWithEqualItems() {
@@ -746,6 +750,18 @@ export default {
 
         submitDisabled() {
             return !this.rubricChanged && !this.maxPointsChanged;
+        },
+
+        resetDisabled() {
+            if (this.submitDisabled) {
+                return true;
+            } else {
+                return this.serverData != null && this.rubricRows.length === 0;
+            }
+        },
+
+        collapseByDefault() {
+            return this.editable || this.rubricRows.length > 1;
         },
     },
 
@@ -914,6 +930,7 @@ export default {
         },
 
         afterSubmit() {
+            this.confirmInModal = false;
             this.forceLoadSubmissions({ assignmentId: this.assignmentId });
         },
 
@@ -996,6 +1013,11 @@ export default {
                 return true;
             }
             return false;
+        },
+
+        submitWithModal() {
+            this.confirmInModal = true;
+            this.$refs.submitButton.onClick();
         },
     },
 

@@ -14,7 +14,7 @@ type Events = {
 const PreviewableMarkdownEditor = tsx.componentFactoryOf<Events, {}>().create({
     props: {
         value: p(String).required,
-        rows: p(Number).default(0),
+        rows: p.ofType<number | undefined>().default(undefined),
         placeholder: p(String).default(''),
         disabled: p(Boolean).default(false),
         tabindex: p.ofType<number | undefined>().default(undefined),

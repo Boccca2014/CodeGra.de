@@ -920,11 +920,25 @@ export function getPropMaybe(obj: any, prop: any): any {
     }
 }
 
-export function pickKeys<T, K extends keyof T>(obj: T, keys: readonly K[]): Pick<T, K> {
+export function pickKeys<T, K extends keyof T>(
+    obj: T,
+    keys: readonly K[],
+    strict: false,
+): Partial<Pick<T, K>>;
+
+export function pickKeys<T, K extends keyof T>(obj: T, keys: readonly K[]): Pick<T, K>;
+
+export function pickKeys<T, K extends keyof T>(
+    obj: T,
+    keys: readonly K[],
+    strict = true,
+) {
     return keys.reduce((acc, key) => {
-        acc[key] = obj[key];
+        if (strict || hasAttr(obj, key)) {
+            acc[key] = obj[key];
+        }
         return acc;
-    }, {} as Pick<T, K>);
+    }, {} as Partial<Pick<T, K>>);
 }
 
 type EmptyVNode = { isRootInsert: false, isComment: true };
