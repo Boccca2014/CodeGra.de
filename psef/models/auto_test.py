@@ -31,6 +31,7 @@ from ..helpers import NotEqualMixin
 from ..registry import auto_test_handlers, auto_test_grade_calculators
 from ..exceptions import APICodes, APIException, InvalidStateException
 from ..permissions import CoursePermission as CPerm
+from .admin_settings import AdminSetting
 
 logger = structlog.get_logger()
 
@@ -878,9 +879,8 @@ class AutoTestRun(Base, TimestampMixin, IdMixin):
         """Get the amount of runners this run needs.
         """
         amount_not_done = self.get_results_to_run().count()
-        return math.ceil(
-            amount_not_done / psef.app.config['AUTO_TEST_MAX_JOBS_PER_RUNNER']
-        )
+        max_per = AdminSetting.get_option('AUTO_TEST_MAX_JOBS_PER_RUNNER')
+        return math.ceil(amount_not_done / max_per)
 
     @classmethod
     def get_runs_that_need_runners(cls) -> t.List['AutoTestRun']:
@@ -914,7 +914,7 @@ class AutoTestRun(Base, TimestampMixin, IdMixin):
                 amount_runners == 0,
                 (
                     amount_results / amount_runners >
-                    psef.app.config['AUTO_TEST_MAX_JOBS_PER_RUNNER']
+                    AdminSetting.get_option('AUTO_TEST_MAX_JOBS_PER_RUNNER')
                 ),
             )
         ).group_by(cls.id).order_by(
@@ -994,6 +994,10 @@ class AutoTestRun(Base, TimestampMixin, IdMixin):
         """Get the instructions to run this AutoTestRun.
         """
         results = self.get_results_to_run().all()
+        heartbeat_interval = round(
+            AdminSetting.get_option('AUTO_TEST_HEARTBEAT_INTERVAL'
+                                    ).total_seconds()
+        )
 
         return {
             'runner_id': str(for_runner.id),
@@ -1006,8 +1010,7 @@ class AutoTestRun(Base, TimestampMixin, IdMixin):
             'sets': [s.get_instructions(self) for s in self.auto_test.sets],
             'fixtures': [(f.name, f.id) for f in self.auto_test.fixtures],
             'setup_script': self.auto_test.setup_script,
-            'heartbeat_interval':
-                psef.app.config['AUTO_TEST_HEARTBEAT_INTERVAL'],
+            'heartbeat_interval': heartbeat_interval,
             'run_setup_script': self.auto_test.run_setup_script,
             # TODO: Set this in a more intelligent way
             'poll_after_done': True,

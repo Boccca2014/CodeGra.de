@@ -104,7 +104,9 @@ class PsefFlask(Flask):
     def max_single_file_size(self) -> 'psef.archive.FileSize':
         """The maximum allowed size for a single file.
         """
-        return archive.FileSize(self.config['MAX_FILE_SIZE'])
+        return archive.FileSize(
+            psef.models.AdminSetting.get_option('MAX_FILE_SIZE')
+        )
 
     @property
     def max_file_size(self) -> 'psef.archive.FileSize':
@@ -112,7 +114,9 @@ class PsefFlask(Flask):
 
         .. note:: An individual file has a different limit!
         """
-        return archive.FileSize(self.config['MAX_NORMAL_UPLOAD_SIZE'])
+        return archive.FileSize(
+            psef.models.AdminSetting.get_option('MAX_NORMAL_UPLOAD_SIZE')
+        )
 
     @property
     def max_large_file_size(self) -> 'psef.archive.FileSize':
@@ -120,7 +124,9 @@ class PsefFlask(Flask):
 
         .. note:: An individual file has a different limit!
         """
-        return archive.FileSize(self.config['MAX_LARGE_UPLOAD_SIZE'])
+        return archive.FileSize(
+            psef.models.AdminSetting.get_option('MAX_LARGE_UPLOAD_SIZE')
+        )
 
     @property
     def do_sanity_checks(self) -> bool:

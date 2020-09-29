@@ -210,6 +210,7 @@ if True:  # pylint: disable=using-constant-test
         NotificationSettingJSON
     )
     from .saml_provider import Saml2Provider, UserSamlProvider
+    from .admin_settings import AdminSetting, AdminSettingHistory
     from .auto_test_step import (
         AutoTestStepBase, AutoTestStepResult, AutoTestStepResultState
     )

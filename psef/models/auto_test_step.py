@@ -207,7 +207,8 @@ class AutoTestStepBase(Base, TimestampMixin, IdMixin):
         """
         return (
             self.suite.command_time_limit or
-            psef.app.config['AUTO_TEST_MAX_TIME_COMMAND']
+            psef.models.AdminSetting.get_option('AUTO_TEST_MAX_TIME_COMMAND'
+                                                ).total_seconds()
         )
 
     def get_instructions(self) -> 'auto_test_module.StepInstructions':

@@ -98,7 +98,7 @@ class WebhookBase(Base, UUIDMixin, TimestampMixin):
         super().__init__()
         self.assignment_id = assignment_id
         self.user_id = user_id
-        self._ssh_username = psef.app.config['SITE_EMAIL']
+        self._ssh_username = psef.models.AdminSetting.get_option('SITE_EMAIL')
 
         key = rsa.generate_private_key(
             public_exponent=65537,

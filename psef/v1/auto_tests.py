@@ -477,7 +477,9 @@ def update_or_create_auto_test_suite(auto_test_id: int, auto_test_set_id: int
     if suite_id is None:
         # Make sure the time_limit is always set when creating a new suite
         if time_limit is None:
-            time_limit = app.config['AUTO_TEST_MAX_TIME_COMMAND']
+            time_limit = models.AdminSetting.get_option(
+                'AUTO_TEST_MAX_TIME_COMMAND'
+            ).total_seconds()
         suite = models.AutoTestSuite(auto_test_set=auto_test_set)
     else:
         suite = get_or_404(models.AutoTestSuite, suite_id)

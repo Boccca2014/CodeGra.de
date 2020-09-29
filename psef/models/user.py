@@ -10,7 +10,6 @@ from collections import defaultdict
 
 import structlog
 import flask_jwt_extended
-from flask import current_app
 from itsdangerous import BadSignature, URLSafeTimedSerializer
 from werkzeug.local import LocalProxy
 from sqlalchemy_utils import PasswordType
@@ -22,9 +21,9 @@ import psef
 from cg_dt_utils import DatetimeWithTimezone
 from cg_sqlalchemy_helpers import CIText, hybrid_property
 
-from . import UUID_LENGTH, Base, DbColumn, db
+from . import UUID_LENGTH, Base, DbColumn, AdminSetting, db
 from . import course as course_models
-from .. import auth, signals, db_locks
+from .. import auth, signals, db_locks, current_app
 from .role import Role, CourseRole
 from ..helpers import (
     NotEqualMixin, validate, handle_none, jsonify_options, maybe_unwrap_proxy,
@@ -723,9 +722,10 @@ class User(NotEqualMixin, Base):
             current_app.config['SECRET_KEY']
         )
         try:
+            max_age = AdminSetting.get_option('RESET_TOKEN_TIME')
             username = timed_serializer.loads(
                 token,
-                max_age=current_app.config['RESET_TOKEN_TIME'],
+                max_age=round(max_age.total_seconds()),
                 salt=self.reset_token
             )
         except BadSignature as exc:

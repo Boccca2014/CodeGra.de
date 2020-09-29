@@ -41,7 +41,7 @@ import py7zlib
 import structlog
 from typing_extensions import Protocol
 
-from . import app
+from . import app, models
 from .helpers import register, add_warning
 from .exceptions import APIWarnings
 
@@ -367,7 +367,7 @@ class Archive(t.Generic[TT]):  # pylint: disable=unsubscriptable-object
 
         :returns: The members of the archive.
         """
-        max_amount = app.config['MAX_NUMBER_OF_FILES']
+        max_amount = models.AdminSetting.get_option('MAX_NUMBER_OF_FILES')
         if not self.__max_items_check_done:
             if not self.__archive.has_less_items_than(max_amount):
                 raise UnsafeArchive(

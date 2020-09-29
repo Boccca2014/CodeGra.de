@@ -70,12 +70,13 @@ class SettingBase(TimestampMixin, IdMixin):
         :returns: The user for which this token can change settings.
         """
         try:
+            max_age = psef.models.AdminSetting.get_option('SETTING_TOKEN_TIME')
+            secret = psef.current_app.config['SECRET_KEY']
             user_id: int = URLSafeTimedSerializer(
-                psef.current_app.config['SECRET_KEY'],
-                salt=cls._get_salt(),
+                secret, salt=cls._get_salt()
             ).loads(
                 token,
-                max_age=round(psef.current_app.config['SETTING_TOKEN_TIME']),
+                max_age=round(max_age.total_seconds()),
             )
         except SignatureExpired as exc:
             logger.warning(

@@ -60,6 +60,7 @@ from ..exceptions import (
 )
 from .link_tables import user_course, users_groups, course_permissions
 from ..permissions import CoursePermission as CPerm
+from .admin_settings import AdminSetting
 
 if t.TYPE_CHECKING:  # pragma: no cover
     # pylint: disable=unused-import
@@ -1421,7 +1422,7 @@ class Assignment(helpers.NotEqualMixin, Base):  # pylint: disable=too-many-publi
                 APICodes.INVALID_STATE, 409
             )
 
-        max_time = psef.current_app.config['EXAM_LOGIN_MAX_LENGTH']
+        max_time = AdminSetting.get_option('EXAM_LOGIN_MAX_LENGTH')
         if (self.deadline - self.available_at) > max_time:
             raise APIException(
                 (
@@ -1762,7 +1763,8 @@ class Assignment(helpers.NotEqualMixin, Base):  # pylint: disable=too-many-publi
         assig_id = self.id
 
         tasks = []
-        for offset in psef.current_app.config['LOGIN_TOKEN_BEFORE_TIME']:
+        offsets = AdminSetting.get_option('LOGIN_TOKEN_BEFORE_TIME')
+        for offset in sorted(offsets, reverse=True):
             task = task_result_models.TaskResult(user=None)
             db.session.add(task)
             tasks.append((offset, task))

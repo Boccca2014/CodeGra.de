@@ -1,0 +1,161 @@
+---
+- tag: AUTO_TEST_MAX_TIME_COMMAND
+  type: duration
+  default: 5m
+  frontend: true
+  doc:
+    The default amount of time a step/substep in AutoTest can run. This can be
+    overridden by the teacher.
+  minimum: 1s
+
+- tag: AUTO_TEST_HEARTBEAT_INTERVAL
+  type: duration
+  default: 10s
+  doc:
+    The amount of time there can be between two heartbeats of a runner.
+    Changing this to a lower value might cause some runners to crash.
+  minimum: 1s
+
+- tag: AUTO_TEST_HEARTBEAT_MAX_MISSED
+  type: integer
+  default: 6
+  doc:
+    The max amount of heartbeats that we may miss from a runner before we kill
+    it and start a new one.
+  minimum: 1
+
+- tag: AUTO_TEST_MAX_JOBS_PER_RUNNER
+  type: integer
+  default: 10
+  doc:
+    This value determines the amount of runners we request for a single
+    assignment. The amount of runners requested is equal to the amount of
+    students not yet started divided by this value.
+  minimum: 2
+
+- tag: AUTO_TEST_MAX_CONCURRENT_BATCH_RUNS
+  type: integer
+  default: 3
+  doc:
+    The maximum amount of batch AutoTest runs we will do at a time. AutoTest
+    batch runs are runs that are done after the deadline for configurations that
+    have hidden tests. Increasing this variable might cause heavy server load.
+  minimum: 1
+
+- tag: EXAM_LOGIN_MAX_LENGTH
+  security: true
+  frontend: true
+  type: duration
+  default: 12h
+  doc:
+    The maximum duration an exam may take. Increasing this value also increases
+    the maximum amount of time the login tokens send via email are
+    valid. Therefore, you should make this too long.
+  minimum: 1h
+
+
+- tag: LOGIN_TOKEN_BEFORE_TIME
+  type: duration[]
+  frontend: true
+  default: '2d,30m'
+  doc:
+    This determines how long before the exam we will send the login emails to
+    the students (only when enabled of course).
+  minimum: 5m
+
+- tag: MIN_PASSWORD_SCORE
+  type: integer
+  default: 3
+  doc:
+    The minimum strength passwords by users should have. The higher this value
+    the stronger the password should be. When increasing the strength all users
+    with too weak passwords will be shown a warning on the next login.
+  minimum: 1
+  maximum: 4
+
+- tag: RESET_TOKEN_TIME
+  type: duration
+  security: true
+  default: 1d
+  doc:
+    The amount of time a reset token is valid. You should not increase this
+    value too much as users might be not be too careful with these
+    tokens. Increasing this value will allow **all** existing tokens to live
+    longer.
+  minimum: 1h
+
+- tag: SETTING_TOKEN_TIME
+  type: duration
+  default: 1d
+  doc:
+    The amount of time the link send in notification emails to change the
+    notification preferences works to actually change the notifications.
+  minimum: 1h
+
+- tag: SITE_EMAIL
+  type: string
+  default: info@codegrade.com
+  frontend: true
+  doc: The email shown to users as the email of CodeGrade.
+
+- tag: MAX_NUMBER_OF_FILES
+  type: integer
+  default: 16384
+  doc:
+    The maximum amount of files and directories allowed in a single archive.
+  minimum: 1024
+
+- tag: MAX_LARGE_UPLOAD_SIZE
+  type: size
+  default: 128mb
+  doc:
+    The maximum size of uploaded files that are mostly uploaded by "trusted"
+    users. Examples of these kind of files include AutoTest fixtures and
+    plagiarism base code.
+  minimum: 1mb
+
+- tag: MAX_NORMAL_UPLOAD_SIZE
+  type: size
+  default: 64mb
+  doc:
+    The maximum total size of uploaded files that are uploaded by normal
+    users. This is also the maximum total size of submissions. Increasing this
+    size might cause a hosting costs to increase.
+  minimum: 1mb
+
+- tag: MAX_FILE_SIZE
+  type: size
+  default: 50mb
+  doc:
+    The maximum size of a single file uploaded by normal users. This limit is
+    really here to prevent users from uploading extremely large files which
+    can't really be downloaded/shown anyway.
+  minimum: 1mb
+
+- tag: JWT_ACCESS_TOKEN_EXPIRES
+  type: duration
+  default: 30d
+  doc:
+    The time a login session is valid. After this amount of time a user will
+    always need to re-authenticate.
+  minimum: 2d
+
+- tag: MAX_LINES
+  type: integer
+  default: 2500
+  frontend: true
+  doc:
+    The maximum amount of lines that we should in render in one go. If a file
+    contains more lines than this we will show a warning asking the user what to
+    do.
+  minimum: 100
+
+- tag: NOTIFICATION_POLL_TIME
+  type: duration
+  default: 30s
+  frontend: true
+  doc:
+    The amount of time to wait between two consecutive polls to see if a user
+    has new notifications. Setting this value too low will cause unnecessary
+    stres on the server.
+  minimum: 10s

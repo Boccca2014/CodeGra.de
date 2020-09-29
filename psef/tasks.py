@@ -291,7 +291,9 @@ def _run_autotest_batch_runs_1() -> None:
     now = DatetimeWithTimezone.utcnow()
     # Limit the amount of runs, this way we never accidentally overload the
     # server by doing a large amount of batch run.
-    max_runs = p.app.config['AUTO_TEST_MAX_CONCURRENT_BATCH_RUNS']
+    max_runs = p.models.AdminSetting.get_option(
+        'AUTO_TEST_MAX_CONCURRENT_BATCH_RUNS'
+    )
 
     runs = p.models.AutoTestRun.query.join(
         p.models.AutoTestRun.auto_test
@@ -410,9 +412,11 @@ def _check_heartbeat_stop_test_runner_1(auto_test_runner_id: str) -> None:
         logger.info('Runner already reset', runner=runner)
         return
 
-    interval = p.app.config['AUTO_TEST_HEARTBEAT_INTERVAL']
-    max_missed = p.app.config['AUTO_TEST_HEARTBEAT_MAX_MISSED']
-    max_interval = datetime.timedelta(seconds=interval * max_missed)
+    interval = p.models.AdminSetting.get_option('AUTO_TEST_HEARTBEAT_INTERVAL')
+    max_missed = p.models.AdminSetting.get_option(
+        'AUTO_TEST_HEARTBEAT_MAX_MISSED'
+    )
+    max_interval: datetime.timedelta = interval * max_missed
     needed_time = DatetimeWithTimezone.utcnow() - max_interval
     expired = runner.last_heartbeat < needed_time
 
