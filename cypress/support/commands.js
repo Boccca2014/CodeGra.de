@@ -701,10 +701,8 @@ Cypress.Commands.add('shouldReload', fn => {
 
 Cypress.Commands.add('dragTo', { prevSubject: 'optional' }, (subject, target, selector) => {
     if (subject) {
-        cy.log('with subject', subject);
         subject = cy.wrap(subject);
     } else {
-        cy.log('without subject', selector);
         subject = cy.get(selector);
     }
 
