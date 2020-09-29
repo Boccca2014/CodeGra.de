@@ -2581,3 +2581,100 @@ def test_list_providers(
                 test_client.req('get', url, 200, prov)
             with logged_in(teacher_user):
                 test_client.req('get', url, 403)
+
+
+def test_create_and_launch_lti1p1_provider(
+    describe, logged_in, admin_user, teacher_user, test_client, app
+):
+    with describe('setup'):
+
+        def do_launch(message, key):
+            with app.app_context():
+                lti_id = 'LTI_ID'
+                email = 'email@example.com'
+                name = 'My name'
+                data = {
+                    'roles': 'urn:lti:role:ims/lis/Instructor',
+                    'user_id': lti_id,
+                    'lis_person_sourcedid': lti_id,
+                    'lis_person_contact_email_primary': email,
+                    'lis_person_name_full': name,
+                    'context_id': 'NO_CONTEXT',
+                    'context_title': 'WRONG_TITLE',
+                    'resource_link_id': 'My link id',
+                    'resource_link_title': 'MY_ASSIG_TITLE',
+                    'oauth_consumer_key': key,
+                    'lis_outcome_service_url': '',
+                }
+
+                res = test_client.post('/api/v1/lti/launch/1', data=data)
+                assert res.status_code in {302, 303}
+                url = urllib.parse.urlparse(res.headers['Location'])
+                blob_id = urllib.parse.parse_qs(url.query)['blob_id'][0]
+
+                status = 200 if message is None else 400
+                test_client.req(
+                    'post',
+                    '/api/v1/lti/launch/2',
+                    status,
+                    data={'blob_id': blob_id},
+                    result={
+                        '__allow_extra__': True,
+                        'message': message,
+                    } if status != 200 else dict,
+                )
+
+    with describe('teachers cannot create providers'), logged_in(teacher_user):
+        test_client.req(
+            'post',
+            '/api/v1/lti/providers/',
+            403,
+            data={
+                'lms': 'Canvas',
+                'intended_use': 'Nothing',
+                'lti_version': 'lti1.1',
+            }
+        )
+
+    with describe('Cannot create with empty intended_use'
+                  ), logged_in(admin_user):
+        test_client.req(
+            'post',
+            '/api/v1/lti/providers/',
+            400,
+            data={
+                'lms': 'Canvas',
+                'intended_use': '',
+                'lti_version': 'lti1.1',
+            }
+        )
+        new_prov = test_client.req(
+            'post',
+            '/api/v1/lti/providers/',
+            200,
+            data={
+                'lms': 'Sakai',
+                'intended_use': 'NEW',
+                'lti_version': 'lti1.1',
+            },
+            result={
+                'id': str,
+                'finalized': False,
+                '__allow_extra__': True,
+            }
+        )
+        key = new_prov['lms_consumer_key']
+
+    with describe('cannot launch to non finalized'):
+        do_launch(
+            re.compile('This LTI connection is not yet finalized.*'), key
+        )
+
+    with describe('Can launch when finalized'):
+        with logged_in(admin_user):
+            test_client.req(
+                'post', f'/api/v1/lti1.1/providers/{new_prov["id"]}/finalize',
+                200
+            )
+
+        do_launch(None, key)
