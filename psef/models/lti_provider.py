@@ -336,6 +336,7 @@ class LTIProviderBase(Base, TimestampMixin):
             'created_at': self.created_at.isoformat(),
             'intended_use': self._intended_use,
             'finalized': self._finalized,
+            'edit_secret': None,
         }
 
         if (
@@ -369,7 +370,7 @@ class LTI1p1Provider(LTIProviderBase):
         db.Enum(*lti_1_1_providers.keys(), name='lti1p1lmsnames'),
     )
 
-    _lms_secret = db.Column(
+    _lms_secrets = db.Column(
         'lms_1p1_secret',
         ARRAY(db.Unicode, as_tuple=True, dimensions=1),
         nullable=True,
@@ -384,13 +385,14 @@ class LTI1p1Provider(LTIProviderBase):
         )
         super().__init__(
             key=key,
-            _lms_secret=(secrets.token_hex(32), ),
+            _lms_secrets=(secrets.token_hex(32), ),
             _intended_use=intended_use,
             _finalized=False,
+            _lms_name=lms,
         )
-        self._lms_name = lms
 
     def finalize(self) -> None:
+        assert self._lms_name is not None
         self._finalized = True
 
     def find_course(self,
@@ -420,15 +422,24 @@ class LTI1p1Provider(LTIProviderBase):
     def lms_name(self) -> str:
         """The name of the lms connected to this provider.
         """
+        assert self._lms_name is not None
         return self._lms_name
 
     def __to_json__(self) -> t.Mapping[str, object]:
         base = super().__to_json__()
-        if not self.is_finalized:
-            base['lms_consumer_secret'] = self._lms_secret[-1]
-            base['lms_consumer_key'] = self.key
+        if self.is_finalized:
+            return base
+        else:
+            return {
+                **base,
+                'lms_consumer_secret': self.secrets[-1],
+                'lms_consumer_key': self.key,
+            }
 
-        return base
+    @property
+    def secrets(self) -> t.Sequence[str]:
+        assert self._lms_secrets is not None
+        return self._lms_secrets
 
     # The next methods all are handlers for signals we setup in `setup_signals`
     # at the end of the class
@@ -1422,12 +1433,9 @@ class LTI1p3Provider(LTIProviderBase):
         }
 
     def __to_json__(self) -> t.Mapping[str, object]:
-        base = super().__to_json__()
-
-        res = {
-            **base,
+        res: t.Mapping[str, object] = {
+            **super().__to_json__(),
             'capabilities': self.lms_capabilities,
-            'edit_secret': None,
             'iss': self.iss,
         }
 

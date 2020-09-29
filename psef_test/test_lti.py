@@ -2331,7 +2331,7 @@ def test_canvas_missing_required_params(
 
 
 def test_lti_multiple_providers_same_user_id(
-    test_client, app, logged_in, session, tomorrow
+    test_client, app, logged_in, session, tomorrow, canvas_lti1p1_provider
 ):
     def do_launch(lti_id, **d):
         data = {
@@ -2378,9 +2378,11 @@ def test_lti_multiple_providers_same_user_id(
     user1 = do_launch('1')
     user2 = do_launch('1')
     user3 = do_launch('1', custom_canvas_user_login_id='new!')
-    user4 = do_launch('1', oauth_consumer_key='canvas2')
+    user4 = do_launch('1', oauth_consumer_key=canvas_lti1p1_provider.key)
     user5 = do_launch(
-        '1', oauth_consumer_key='canvas2', custom_canvas_user_login_id='new!'
+        '1',
+        oauth_consumer_key=canvas_lti1p1_provider.key,
+        custom_canvas_user_login_id='new!'
     )
     user6 = do_launch(
         '1',

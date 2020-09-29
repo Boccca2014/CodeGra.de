@@ -550,7 +550,7 @@ class LTI(AbstractLTIConnector):  # pylint: disable=too-many-public-methods
             optionally the updated email of the user as a string, this is
             ``None`` if the email was not updated.
         """
-        user, token = 'models.UserLTIProvider'.get_or_create_user(
+        user, token = models.UserLTIProvider.get_or_create_user(
             lti_user_id=self.user_id,
             lti_provider=self.lti_provider,
             wanted_username=self.username,

@@ -594,6 +594,7 @@ def create_lti_provider() -> helpers.JSONResponse[models.LTIProviderBase]:
             exceptions.APICodes.INVALID_PARAM, 400
         )
 
+    lti_provider: models.LTIProviderBase
     if lti_version == 'lti1.3':
         lti_provider = _create_lti1p3_provider(intended_use)
     elif lti_version == 'lti1.1':
@@ -621,8 +622,10 @@ def get_lti_provider(lti_provider_id: str
 
     :returns: The requested LTI 1.3 provider.
     """
-    lti_provider = helpers.filter_single_or_404(
-        models.LTIProviderBase, models.LTIProviderBase.id == lti_provider_id
+    lti_provider: models.LTIProviderBase = helpers.filter_single_or_404(
+        # We may only provide concrete classes when a type is expected.
+        models.LTIProviderBase,  # type: ignore[misc]
+        models.LTIProviderBase.id == lti_provider_id,
     )
     secret = flask.request.args.get('secret')
     auth.LTIProviderPermissions(lti_provider, secret=secret).ensure_may_see()

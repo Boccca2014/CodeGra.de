@@ -98,16 +98,6 @@ def make_app_settings(request):
             'MAX_FILE_SIZE': 2 ** 20,  # 1mb
             'MAX_NORMAL_UPLOAD_SIZE': 4 * 2 ** 20,  # 4 mb
             'MAX_LARGE_UPLOAD_SIZE': 100 * 2 ** 20,  # 100mb
-            'LTI_CONSUMER_KEY_SECRETS': {
-                'my_lti': ('Canvas', ['12345678']),
-                'canvas2': ('Canvas', ['123456789']),
-                'unknown_lms': ('unknown', ['12345678']),
-                'blackboard_lti': ('Blackboard', ['12345678']),
-                'moodle_lti': ('Moodle', ['12345678']),
-                'sakai_lti': ('Sakai', ['12345678']),
-                'brightspace_lti': ('BrightSpace', ['12345678']),
-                'open_edx_lti': ('Open edX', ['12345678']),
-            },
             'LTI_SECRET_KEY': 'hunter123',
             'SECRET_KEY': 'hunter321',
             'HEALTH_KEY': 'uuyahdsdsdiufhaiwueyrriu2h3',
@@ -1022,10 +1012,34 @@ def yesterday():
 
 @pytest.fixture
 def canvas_lti1p1_provider(session):
-    prov = m.LTI1p1Provider(key='canvas2')
+    prov = m.LTI1p1Provider(lms='Canvas', intended_use='Testing')
     session.add(prov)
+    prov.finalize()
     session.commit()
     yield prov
+
+
+@pytest.fixture(autouse=True)
+def _lti1p1_providers(session):
+    for key, (lms, lms_secrets) in {
+        'my_lti': ('Canvas', ['12345678']),
+        'canvas2': ('Canvas', ['123456789']),
+        'blackboard_lti': ('Blackboard', ['12345678']),
+        'moodle_lti': ('Moodle', ['12345678']),
+        'sakai_lti': ('Sakai', ['12345678']),
+        'brightspace_lti': ('BrightSpace', ['12345678']),
+        'open_edx_lti': ('Open edX', ['12345678']),
+    }.items():
+        if not session.query(
+            m.LTI1p1Provider.query.filter_by(key=key).exists()
+        ).scalar():
+            p = m.LTI1p1Provider(lms=lms, intended_use='Testing')
+            p.key = key
+            p._lms_secret = lms_secrets
+            p.finalize()
+            session.add(p)
+
+    session.commit()
 
 
 @pytest.fixture
