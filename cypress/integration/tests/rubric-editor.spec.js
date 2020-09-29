@@ -539,6 +539,58 @@ context('Rubric Editor', () => {
             getRow('Continuous Row').should('exist');
         });
 
+        it('should be possible to reorder rows', () => {
+            cy.get('.rubric-editor').within(() => {
+                cy.get('.category-item:nth(0) .drag-handle')
+                    .dragTo('.category-item:nth(1) .drag-handle');
+
+                cy.get('.category-item:nth(0)')
+                    .find('.category-name')
+                    .should('have.value', 'rubric row 1');
+
+                cy.get('.category-item:nth(1)')
+                    .find('.category-name')
+                    .should('have.value', 'rubric row 0');
+            });
+
+            submit('success');
+            loadPage(true);
+
+            cy.get('.rubric-editor').within(() => {
+                cy.get('.category-item:nth(0)')
+                    .find('.category-name')
+                    .should('have.value', 'rubric row 1');
+
+                cy.get('.category-item:nth(1)')
+                    .find('.category-name')
+                    .should('have.value', 'rubric row 0');
+            });
+        });
+
+        it('should not be possible to reorder rows by dragging anything else than the drag handle', () => {
+            function checkNoDrag(selector) {
+                cy.get('.rubric-editor').within(() => {
+                    cy.get('.category-item:nth(0)')
+                        .find(selector)
+                        .dragTo('.category-item:nth(1) .drag-handle');
+
+                    cy.get('.category-item:nth(0)')
+                        .find('.category-name')
+                        .should('have.value', 'rubric row 0');
+
+                    cy.get('.category-item:nth(1)')
+                        .find('.category-name')
+                        .should('have.value', 'rubric row 1');
+                });
+            }
+
+            cy.get('.category-item:nth(0)').click();
+
+            checkNoDrag('.card-header');
+            checkNoDrag('textarea:first');
+            checkNoDrag('input:first');
+        });
+
         it('should not be possible to submit a category without a name',  () => {
             addRow();
 

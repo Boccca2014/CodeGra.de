@@ -92,6 +92,7 @@
     <slick-list v-else
                 :value="rubricRows"
                 lock-axis="y"
+                lock-to-container-edges
                 :should-cancel-start="shouldCancelDrag"
                 @input="reorderRows"
                 @sort-start="onSortStart"
@@ -101,7 +102,7 @@
             <slick-item v-for="row, i in rubricRows"
                         :key="`rubric-editor-${id}-row-${i}`"
                         :index="i"
-                        class="category-item d-flex flex-row mb-3 default-background"
+                        class="category-item d-flex flex-row mb-3"
                         :class="{
                             grab: editable,
                             grabbing: slickItemMoving,
