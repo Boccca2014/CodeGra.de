@@ -6,12 +6,12 @@ Revises: 3a74e01ebcbf9099d761
 Create Date: 2020-09-21 14:56:37.847194
 
 """
-from alembic import op
+from collections import defaultdict
+
 import sqlalchemy as sa
 import sqlalchemy_utils
+from alembic import op
 from sqlalchemy.sql import text
-
-from collections import defaultdict
 
 # revision identifiers, used by Alembic.
 revision = 'cd3c64fb78d7'
@@ -26,10 +26,12 @@ def upgrade():
     op.add_column('RubricRow', sa.Column('position', sa.Integer()))
 
     existing_rows = bind.execute(
-        text('''
+        text(
+            '''
         SELECT id, created_at, "Assignment_id" FROM "RubricRow"
         ORDER BY created_at
-        ''')
+        '''
+        )
     ).fetchall()
 
     rows_per_assig = defaultdict(list)
@@ -49,9 +51,9 @@ def upgrade():
                 text(
                     '''UPDATE "RubricRow" SET position = :position
                     WHERE id = :row_id''',
-                    position=i,
-                    row_id=row['id'],
                 ),
+                position=i,
+                row_id=row['id'],
             )
 
     op.alter_column('RubricRow', 'position', nullable=False)
