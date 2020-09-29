@@ -1,10 +1,10 @@
 <!-- SPDX-License-Identifier: AGPL-3.0-only -->
 <template>
 <div class="advanced-collapse">
-    <div class="d-flex flex-row justify-content-between">
-        <div v-b-toggle="id"
-             class="collapse-toggle align-self-center text-muted font-italic">
-            <icon name="caret-down" class="mr-2" />
+    <div class="collapse-toggle d-flex flex-row justify-content-between"
+         v-b-toggle="id">
+        <div class="align-self-center text-muted font-italic">
+            <icon name="caret-down" class="caret mr-2" />
             {{ name }}
         </div>
 
@@ -12,7 +12,7 @@
     </div>
 
     <b-collapse :id="id"
-                class="advanced-collapse"
+                class="advanced-collapse-inner"
                 v-model="state">
         <div class="pt-2">
             <slot />
@@ -57,14 +57,14 @@ export default {
 .collapse-toggle {
     cursor: pointer;
 
-    .fa-icon {
+    .fa-icon.caret {
         transform: translateY(-2px);
         transition: transform 250ms linear;
     }
 
-    .x-collapsing .handle .fa-icon,
-    .x-collapsed .handle .fa-icon,
-    &.collapsed .fa-icon {
+    .x-collapsing .handle .fa-icon.caret,
+    .x-collapsed .handle .fa-icon.caret,
+    &.collapsed .fa-icon.caret {
         transform: translateY(-2px) rotate(-90deg);
     }
 }

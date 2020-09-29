@@ -91,14 +91,6 @@ export class RubricItem<T = number | undefined> {
             return false;
         }
 
-        if (this.trackingId !== other.trackingId) {
-            return false;
-        }
-
-        if (this.id != null && this.id !== other.id) {
-            return false;
-        }
-
         return (
             this.points === other.points &&
             this.header === other.header &&
@@ -407,11 +399,7 @@ export class RubricRow<T extends number | undefined | null> {
             return false;
         }
 
-        if (this.trackingId !== other.trackingId) {
-            return false;
-        }
-
-        if (this.id != null && this.id !== other.id) {
+        if (this.items.length !== other.items.length) {
             return false;
         }
 
@@ -419,6 +407,7 @@ export class RubricRow<T extends number | undefined | null> {
             this.type === other.type &&
             this.header === other.header &&
             this.description === other.description &&
+            this.descriptionType === other.descriptionType &&
             this.locked === other.locked &&
             this.items.every((item, i) => item.equals(other.items[i]))
         );
@@ -616,6 +605,10 @@ export class Rubric<T extends number | undefined | null> {
 
     equals(other: Rubric<T>): boolean {
         if (!(other instanceof Rubric)) {
+            return false;
+        }
+
+        if (this.rows.length !== other.rows.length) {
             return false;
         }
 

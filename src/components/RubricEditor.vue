@@ -130,7 +130,8 @@
                                     Unnamed
                                 </span>
 
-                                <small v-if="row.minPoints || row.maxPoints">
+                                <small v-if="row.minPoints || row.maxPoints"
+                                       :title="`You can score between ${row.minPoints} and ${row.maxPoints} in this category.`">
                                     ({{ row.minPoints }} &ndash; {{ row.maxPoints }} pts.)
                                 </small>
 
@@ -142,10 +143,23 @@
                                 </b-badge>
                             </div>
 
-                            <div v-if="editable"
-                                 v-b-popover.top.hover="row.locked ? `You cannot remove locked categories.` : 'Remove category.'"
+                            <b-popover v-if="row.locked"
+                                       :show="visibleLockPopover === i"
+                                       :target="`rubric-lock-${id}-${i}`"
+                                       triggers="hover"
+                                       placement="top">
+                                {{ row.lockMessage(autoTestConfig, null, null) }}
+
+                                <template v-if="editable">
+                                    You cannot remove locked categories.
+                                </template>
+                            </b-popover>
+
+                            <div :id="`rubric-lock-${id}-${i}`"
                                  class="flex-grow-0">
                                 <cg-submit-button
+                                    v-if="editable"
+                                    v-b-popover.top.hover="'Remove category'"
                                     variant="danger"
                                     class="delete-category"
                                     :wait-at-least="0"
@@ -153,9 +167,13 @@
                                     @after-success="() => deleteRow(i)"
                                     :disabled="!!row.locked"
                                     confirm="Do you really want to delete this category?">
-                                    <fa-icon v-if="row.locked" name="lock" />
+                                    <fa-icon v-if="row.locked" name="lock" class="lock" />
                                     <fa-icon v-else name="times" />
                                 </cg-submit-button>
+
+                                <fa-icon v-else-if="row.locked"
+                                         name="lock"
+                                         class="lock" />
                             </div>
                         </b-card-header>
 
@@ -188,6 +206,8 @@
                             :grow="grow"
                             @input="rowChanged(i, $event)"
                             @submit="() => $refs.submitButton.onClick()"
+                            @mouseenter.native="visibleLockPopover = editable ? null : i"
+                            @mouseleave.native="visibleLockPopover = null"
                             class="mx-3 mt-3"/>
                     </collapse>
                 </b-card>
@@ -283,7 +303,7 @@
                                       variant="danger"
                                       :submit="resetRubric"
                                       confirm="Are you sure you want to revert your changes?"
-                                      :disabled="(serverData != null && rubricRows.length === 0) || !rubricChanged">
+                                      :disabled="(serverData != null && rubricRows.length === 0) || submitDisabled">
                         <fa-icon name="reply"/> Reset
                     </cg-submit-button>
                 </div>
@@ -292,7 +312,7 @@
             <div v-b-popover.top.hover="rubricChangedPopover()">
                 <cg-submit-button class="submit-rubric"
                                   ref="submitButton"
-                                  :disabled="!rubricChanged"
+                                  :disabled="submitDisabled"
                                   :confirm="shouldConfirm ? 'yes' : ''"
                                   confirm-in-modal
                                   :submit="submit"
@@ -503,6 +523,7 @@ export default {
             collapsedCategories: {},
 
             slickItemMoving: false,
+            visibleLockPopover: null,
 
             ValidationError,
         };
@@ -533,6 +554,12 @@ export default {
         },
 
         rubric(newVal, oldVal) {
+            // We may need to recalculate which categories should be collapsed
+            // when the rubric changes because we either
+            // * may reload the rubric, causing the tracking ids of rows to
+            //   change
+            // * add new rows to the rubric when submitting, in which case the
+            //   tracking ids change
             if (newVal == null) {
                 this.collapsedCategories = {};
                 return;
@@ -545,16 +572,27 @@ export default {
                 newRows,
                 newRow => {
                     let collapse = this.collapsedCategories[newRow.trackingId];
+
+                    // The tracking id may have changed, so check if we can
+                    // find a row with the same id, or otherwise a row with the
+                    // same content because newly added rows previously had no
+                    // id but now do have an id.
                     if (collapse == null && oldRows != null) {
-                        const oldRow = oldRows.find(r => r.id === newRow.id);
+                        const oldRow = oldRows.find(r =>
+                            r.id === newRow.id || r.equals(newRow),
+                        );
                         if (oldRow != null) {
                             collapse = this.collapsedCategories[oldRow.trackingId];
                         }
                     }
+
+                    // Added but not yet submitted rows have no id and should
+                    // start expanded.
                     if (collapse == null) {
                         collapse = newRow.id != null;
                     }
-                    return [newRow.trackingId, collapse];
+
+                    return [newRow.trackingId, collapse || false];
                 },
             );
         },
@@ -694,6 +732,20 @@ export default {
                 return !rubric.equals(serverData);
             }
         },
+
+        maxPointsChanged() {
+            const serverValue = this.assignment.fixed_max_rubric_points;
+            const ourValue = this.internalFixedMaxPoints;
+            if (ourValue == null) {
+                return serverValue != null;
+            } else {
+                return parseFloat(ourValue) !== serverValue;
+            }
+        },
+
+        submitDisabled() {
+            return !this.rubricChanged && !this.maxPointsChanged;
+        },
     },
 
     methods: {
@@ -807,11 +859,8 @@ export default {
         },
 
         resetRubric() {
-            if (this.serverData == null) {
-                this.rubric = null;
-            } else {
-                this.rubric = this.serverData;
-            }
+            this.rubric = this.serverData;
+            this.internalFixedMaxPoints = this.assignment.fixed_max_rubric_points;
         },
 
         deleteRubric() {
@@ -931,10 +980,10 @@ export default {
         },
 
         rubricChangedPopover(ifChanged = '') {
-            if (this.rubricChanged) {
-                return ifChanged;
-            } else {
+            if (this.submitDisabled) {
                 return 'You have not made any modifications to the rubric.';
+            } else {
+                return ifChanged;
             }
         },
 
