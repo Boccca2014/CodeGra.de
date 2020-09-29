@@ -1134,7 +1134,7 @@ def test_archive_with_symlinks(
             m.File
         ).filter(m.File.id == tree['entries'][0]['id']).first()
 
-        file.backing_file.is_just
+        assert file.backing_file.unsafe_extract().exists
         assert not any(
             os.path.islink(f) for f in os.listdir(app.config['UPLOAD_DIR'])
         )

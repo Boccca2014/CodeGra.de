@@ -374,8 +374,10 @@ def delete_code(file_id: int) -> EmptyResponse:
 
 
 def split_code(
-    code: models.File, new_owner: FileOwner, old_owner: FileOwner,
-    putter: cg_object_storage.Putter
+    code: models.File,
+    new_owner: FileOwner,
+    old_owner: FileOwner,
+    putter: cg_object_storage.Putter,
 ) -> models.File:
     """Split the given ``code`` into multiple code objects.
 

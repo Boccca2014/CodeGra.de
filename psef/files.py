@@ -377,6 +377,8 @@ def rename_directory_structure(
     rootdir.
 
     :param str rootdir: The root directory to rename, files will not be removed
+
+    :returns: An extract filetree that where ``rootdir`` is the root directory.
     """
     directory: t.MutableMapping[str, t.Any] = {}
 
