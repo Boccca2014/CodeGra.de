@@ -148,9 +148,9 @@
                                         Unnamed
                                     </span>
 
-                                    <small v-if="row.minPoints || row.maxPoints"
-                                           :title="`You can score between ${row.minPoints} and ${row.maxPoints} in this category.`">
-                                        ({{ row.minPoints }} &ndash; {{ row.maxPoints }} pts.)
+                                    <small v-if="achievablePointsPerRow[row.id]"
+                                           :title="achievablePointsPerRow[row.id].title">
+                                        {{ achievablePointsPerRow[row.id].header }}
                                     </small>
 
                                     <b-badge v-if="row.locked === 'auto_test'"
@@ -799,6 +799,42 @@ export default {
 
         collapseAllPopover() {
             return `${this.canCollapseAll ? 'Collapse' : 'Expand'} all categories.`;
+        },
+
+        achievablePointsPerRow() {
+            return this.rubricRows.reduce((acc, row) => {
+                // Used in row header.
+                let header;
+                // Used in hover title.
+                let title;
+
+                switch (row.type) {
+                case 'normal': {
+                    const points = this.$utils.filterMap(
+                        row.items,
+                        item => this.$utils.Maybe.fromNullable(item.points),
+                    ).sort();
+                    if (points.length) {
+                        header = points.join(' / ');
+                        title = this.$utils.readableJoin(points, 'or');
+                    }
+                    break;
+                }
+                case 'continuous':
+                    header = `${row.minPoints} - ${row.maxPoints}`;
+                    title = `anywhere between ${row.minPoints} and ${row.maxPoints}`;
+                    break;
+                default:
+                    break;
+                }
+                if (header && title) {
+                    acc[row.id] = {
+                        header: `(${header} pts.)`,
+                        title: `You can score ${title} points in this category.`,
+                    };
+                }
+                return acc;
+            }, {});
         },
     },
 

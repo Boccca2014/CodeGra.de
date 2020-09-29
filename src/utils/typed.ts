@@ -637,13 +637,13 @@ export function cmpNoCaseMany(...opts: [string, string][]) {
     return res;
 }
 
-export function readableJoin(arr: readonly string[]): string {
+export function readableJoin(arr: readonly string[], sep: string = 'and'): string {
     if (arr.length === 0) {
         return '';
     } else if (arr.length === 1) {
         return arr[0];
     }
-    return `${arr.slice(0, -1).join(', ')}, and ${arr[arr.length - 1]}`;
+    return `${arr.slice(0, -1).join(', ')}, ${sep} ${arr[arr.length - 1]}`;
 }
 
 export function numberToTimes(number: number): string {
