@@ -27,14 +27,14 @@ from cg_dt_utils import DatetimeWithTimezone
 
 from .. import app, auth, models, helpers, features
 from ..models import db
-from ..helpers import register, try_for_every
+from ..helpers import try_for_every
 from .abstract import AbstractLTIConnector
 from ..registry import lti_1_1_providers
 from ..exceptions import APICodes, APIWarnings, APIException
 
 logger = structlog.get_logger()
 
-_T_LTI = t.TypeVar('_T_LTI', bound='LTI')
+_T_LTI = t.TypeVar('_T_LTI', bound='LTI')  # pylint: disable=invalid-name
 
 
 def _register_provider(cls: t.Type[_T_LTI]) -> t.Type[_T_LTI]:

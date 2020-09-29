@@ -656,6 +656,14 @@ def get_lti1p3_provider(lti_provider_id: str
 @api.route('/lti1.1/providers/<lti_provider_id>/finalize', methods=['POST'])
 def finalize_lti1p1_provider(lti_provider_id: str
                              ) -> helpers.JSONResponse[models.LTI1p1Provider]:
+    """Finalize the given LTI 1.1 provider.
+
+    .. :quickref: LTI; Finalize a LTI 1.1 provider.
+
+    This route is part of the public api.
+
+    :param lti_provider_id: The id of the provider you want to finalize.
+    """
     lti_provider = helpers.filter_single_or_404(
         models.LTI1p1Provider,
         models.LTI1p1Provider.id == lti_provider_id,

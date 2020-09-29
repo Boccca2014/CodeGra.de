@@ -391,6 +391,8 @@ class LTI1p1Provider(LTIProviderBase):
         )
 
     def finalize(self) -> None:
+        """Finalize this LTI provider.
+        """
         assert self._lti_provider is not None
         self._finalized = True
 
@@ -437,6 +439,8 @@ class LTI1p1Provider(LTIProviderBase):
 
     @property
     def secrets(self) -> t.Sequence[str]:
+        """The shared secrets connected to this provider.
+        """
         assert self._lms_secrets is not None
         return self._lms_secrets
 
