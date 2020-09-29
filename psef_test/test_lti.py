@@ -16,7 +16,7 @@ import psef.models as m
 import psef.features as feats
 from helpers import (
     create_group, create_marker, create_group_set, create_submission,
-    create_user_with_perms
+    create_lti1p3_provider, create_user_with_perms
 )
 from psef.lti import v1_1 as lti
 from cg_dt_utils import DatetimeWithTimezone
@@ -1092,7 +1092,7 @@ def test_lti_assignment_update(
         with app.app_context():
             assig, token = do_lti_launch()
             url = f'/api/v1/assignments/{assig["id"]}'
-            lti_class = lti.lti_classes.get(lms)
+            lti_class = lti.lti_1_1_providers.get(lms)
             headers = {'Authorization': f'Bearer {token}'}
             assert assig['lms_name'] == lms
             assert lti_class is not None
@@ -2547,3 +2547,37 @@ def test_open_edx_launches(test_client, app, describe, tomorrow):
             lis_outcome_service_url='https://example.com/wow/url',
             status=200,
         )
+
+
+def test_list_providers(
+    describe, logged_in, admin_user, teacher_user, test_client
+):
+    with describe('teachers cannot see providers'), logged_in(teacher_user):
+        test_client.req('get', '/api/v1/lti/providers/', 200, result=[])
+
+    with describe('admin can see providers'), logged_in(admin_user):
+        result = test_client.req(
+            'get', '/api/v1/lti/providers/', 200, result=list
+        )
+        assert len(result) > 0
+        assert all(r['version'] == 'lti1.1' for r in result)
+        assert all(r['finalized'] for r in result)
+        assert all(r['edit_secret'] is None for r in result)
+
+    with describe('admin can see 1.3 providers when avail'
+                  ), logged_in(admin_user):
+        prov1p3 = create_lti1p3_provider(test_client, lms='Blackboard')
+        new_result = test_client.req(
+            'get', '/api/v1/lti/providers/', 200, result=list
+        )
+        assert len(new_result) == len(result) + 1
+        assert result == new_result[:-1]
+        assert new_result[-1] == prov1p3
+
+    with describe('can get single provider'):
+        for prov in new_result:
+            url = f'/api/v1/lti/providers/{prov["id"]}'
+            with logged_in(admin_user):
+                test_client.req('get', url, 200, prov)
+            with logged_in(teacher_user):
+                test_client.req('get', url, 403)

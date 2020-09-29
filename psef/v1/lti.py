@@ -570,16 +570,21 @@ def _create_lti1p1_provider(intended_use: str) -> models.LTI1p1Provider:
 @api.route('/lti/providers/', methods=['POST'])
 @auth.login_required
 def create_lti_provider() -> helpers.JSONResponse[models.LTIProviderBase]:
-    """Create a new LTI 1.3 provider.
+    """Create a new LTI 1.1 or 1.3 provider.
 
-    .. :quickref: LTI; Create a new LTI 1.3 provider.
+    .. :quickref: LTI; Create a new LTI 1.1 or 1.3 provider.
 
     This route is part of the public API.
 
-    :<json str iss: The iss of the new provider.
-    :<json str lms: The LMS of the new provider, this should be known LMS.
+    :<json lti_version: The LTI version of the new provider, defaults to
+        ``lti1.3``. Allowed values: ``lti1.1``, ``lti1.3``.
+    :<json str lms: The LMS of the new provider, this should be a known LMS.
     :<json str indented_use: The intended use of the provider. Like which
-        organization will be using the provider, this can be any string.
+        organization will be using the provider, this can be any string, but
+        cannot be empty.
+    :<json str iss: The iss of the new provider, only required when
+        ``lti_version`` is not given or is ``lti1.3``. When required this
+        cannot be empty.
 
     :returns: The just created provider.
     """
@@ -612,15 +617,15 @@ def create_lti_provider() -> helpers.JSONResponse[models.LTIProviderBase]:
 @api.route('/lti/providers/<lti_provider_id>', methods=['GET'])
 def get_lti_provider(lti_provider_id: str
                      ) -> helpers.JSONResponse[models.LTIProviderBase]:
-    """Get a LTI 1.3 provider.
+    """Get a LTI provider.
 
-    .. :quickref: LTI; Get a LTI 1.3 provider by id.
+    .. :quickref: LTI; Get a LTI 1.1 or 1.3 provider by id.
 
     This route is part of the public API.
 
     :param lti_provider_id: The id of the provider you want to get.
 
-    :returns: The requested LTI 1.3 provider.
+    :returns: The requested LTI 1.1 or 1.3 provider.
     """
     lti_provider: models.LTIProviderBase = helpers.filter_single_or_404(
         # We may only provide concrete classes when a type is expected.

@@ -1011,11 +1011,28 @@ def yesterday():
 
 
 @pytest.fixture
-def canvas_lti1p1_provider(session):
-    prov = m.LTI1p1Provider(lms='Canvas', intended_use='Testing')
-    session.add(prov)
-    prov.finalize()
-    session.commit()
+def canvas_lti1p1_provider(test_client, admin_user, logged_in):
+    with logged_in(admin_user):
+        prov_id = test_client.req(
+            'post',
+            '/api/v1/lti/providers/',
+            200,
+            data={
+                'lti_version': 'lti1.1',
+                'intended_use': 'Testing',
+                'lms': 'Canvas',
+            },
+            result={
+                'id': str,
+                'edit_secret': str,
+                '__allow_extra__': True,
+            }
+        )['id']
+        test_client.req(
+            'post', f'/api/v1/lti1.1/providers/{prov_id}/finalize', 200
+        )
+        prov = m.LTI1p1Provider.query.get(prov_id)
+        assert prov is not None
     yield prov
 
 

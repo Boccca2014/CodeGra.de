@@ -238,7 +238,10 @@ class MyDb:  # pragma: no cover
 
     @t.overload
     def Enum(
-        self, typ: cg_register.Register[T, Y], name: str, native_enum: bool = True
+        self,
+        typ: cg_register.Register[T, Y],
+        name: str,
+        native_enum: bool = True
     ) -> DbEnum[Y]:
         ...
 
