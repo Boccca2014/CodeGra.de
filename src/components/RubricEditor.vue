@@ -96,138 +96,159 @@
         </h4>
     </template>
 
-    <slick-list v-else
-                :value="rubricRows"
-                lock-axis="y"
-                lock-to-container-edges
-                :should-cancel-start="shouldCancelDrag"
-                @input="reorderRows"
-                @sort-start="onSortStart"
-                @sort-end="onSortEnd"
-                class="category-list">
-        <transition-group name="rubric-row">
-            <slick-item v-for="row, i in rubricRows"
-                        :key="`rubric-editor-${id}-row-${i}`"
-                        :index="i"
-                        class="category-item d-flex flex-row mb-3"
-                        :class="{
-                            grab: editable,
-                            grabbing: slickItemMoving,
-                        }">
-                <div v-handle
-                     v-if="editable"
-                     class="drag-handle d-flex pr-3 text-muted flex-grow-0">
-                    <fa-icon class="align-self-center" name="bars"/>
-                </div>
+    <template v-else>
+        <h5 class="text-center mb-3">
+            <fa-icon class="float-left text-muted cursor-pointer mt-1"
+                     :class="{ 'ml-3': !editable }"
+                     :name="collapseAllIcon"
+                     @click.native="toggleAllCategories"
+                     v-b-popover.hover.top="collapseAllPopover" />
 
-                <b-card no-body
-                        class="rubric-category flex-grow-1 mb-0">
-                    <collapse :collapsed="collapsedCategories[row.trackingId]"
-                              @change="collapsedCategories[row.trackingId] = $event"
-                              :key="row.trackingId">
-                        <b-card-header slot="handle"
-                                       class="d-flex flex-row align-items-center pl-3"
-                                       :class="{ 'pr-1 py-1': editable }">
-                            <fa-icon class="chevron" name="chevron-down" :scale="0.75" />
+            Categories
+        </h5>
 
-                            <div class="flex-grow-1 px-2">
-                                <template v-if="row.header">
-                                    {{ row.header }}
-                                </template>
-                                <span v-else class="text-muted font-italic">
-                                    Unnamed
-                                </span>
+        <slick-list :value="rubricRows"
+                    lock-axis="y"
+                    lock-to-container-edges
+                    :should-cancel-start="shouldCancelDrag"
+                    @input="reorderRows"
+                    @sort-start="onSortStart"
+                    @sort-end="onSortEnd"
+                    class="category-list">
+            <transition-group name="rubric-row">
+                <slick-item v-for="row, i in rubricRows"
+                            :key="`rubric-editor-${id}-row-${i}`"
+                            :index="i"
+                            class="category-item d-flex flex-row mb-3"
+                            :class="{
+                                grab: editable,
+                                grabbing: slickItemMoving,
+                            }">
+                    <div v-handle
+                         v-if="editable"
+                         class="drag-handle d-flex pr-3 text-muted flex-grow-0">
+                        <fa-icon class="align-self-center" name="bars"/>
+                    </div>
 
-                                <small v-if="row.minPoints || row.maxPoints"
-                                       :title="`You can score between ${row.minPoints} and ${row.maxPoints} in this category.`">
-                                    ({{ row.minPoints }} &ndash; {{ row.maxPoints }} pts.)
-                                </small>
+                    <b-card no-body
+                            class="rubric-category flex-grow-1 mb-0">
+                        <collapse :collapsed="collapsedCategories[row.trackingId]"
+                                  @change="collapsedCategories[row.trackingId] = $event"
+                                  :key="row.trackingId">
+                            <b-card-header slot="handle"
+                                           class="d-flex flex-row align-items-center pl-3"
+                                           :class="{ 'pr-1 py-1': editable }">
+                                <fa-icon class="chevron" name="chevron-down" :scale="0.75" />
 
-                                <b-badge v-if="row.locked === 'auto_test'"
-                                         variant="primary"
-                                         class="ml-1"
-                                         :title="row.lockMessage(autoTestConfig, null, null)">
-                                    AT
-                                </b-badge>
+                                <div class="flex-grow-1 px-2">
+                                    <template v-if="row.header">
+                                        {{ row.header }}
+                                    </template>
+                                    <span v-else class="text-muted font-italic">
+                                        Unnamed
+                                    </span>
+
+                                    <small v-if="row.minPoints || row.maxPoints"
+                                           :title="`You can score between ${row.minPoints} and ${row.maxPoints} in this category.`">
+                                        ({{ row.minPoints }} &ndash; {{ row.maxPoints }} pts.)
+                                    </small>
+
+                                    <b-badge v-if="row.locked === 'auto_test'"
+                                             variant="primary"
+                                             class="ml-1"
+                                             :title="row.lockMessage(autoTestConfig, null, null)">
+                                        AT
+                                    </b-badge>
+                                </div>
+
+                                <b-popover v-if="row.locked"
+                                           :show="visibleLockPopover === i"
+                                           :target="`rubric-lock-${id}-${i}`"
+                                           triggers="hover"
+                                           placement="top">
+                                    {{ row.lockMessage(autoTestConfig, null, null) }}
+
+                                    <template v-if="editable">
+                                        You cannot remove locked categories.
+                                    </template>
+                                </b-popover>
+
+                                <div :id="`rubric-lock-${id}-${i}`"
+                                     class="flex-grow-0">
+                                    <cg-submit-button
+                                        v-if="editable"
+                                        v-b-popover.top.hover="'Remove category'"
+                                        variant="danger"
+                                        class="delete-category"
+                                        :wait-at-least="0"
+                                        :submit="() => {}"
+                                        @after-success="() => deleteRow(i)"
+                                        :disabled="!!row.locked"
+                                        confirm="Do you really want to delete this category?">
+                                        <fa-icon v-if="row.locked" name="lock" class="lock" />
+                                        <fa-icon v-else name="times" />
+                                    </cg-submit-button>
+
+                                    <fa-icon v-else-if="row.locked"
+                                             name="lock"
+                                             class="lock" />
+                                </div>
+                            </b-card-header>
+
+                            <div v-if="row.type == '' && editable"
+                                 class="flex-grow-1 d-flex flex-column align-items-center p-3">
+                                <h4 class="mb-3">Select the type of category</h4>
+
+                                <div class="d-flex flex-row">
+                                    <cg-wizard-button
+                                        label="Discrete"
+                                        icon="ellipsis-h"
+                                        size="medium"
+                                        @click="setRowType(i, 'normal')"/>
+
+                                    <cg-wizard-button
+                                        label="Continuous"
+                                        icon="progress"
+                                        size="medium"
+                                        @click="setRowType(i, 'continuous')" />
+                                </div>
                             </div>
 
-                            <b-popover v-if="row.locked"
-                                       :show="visibleLockPopover === i"
-                                       :target="`rubric-lock-${id}-${i}`"
-                                       triggers="hover"
-                                       placement="top">
-                                {{ row.lockMessage(autoTestConfig, null, null) }}
+                            <component
+                                v-else
+                                :is="`rubric-editor-${row.type}-row`"
+                                :value="row"
+                                :assignment="assignment"
+                                :auto-test="autoTestConfig"
+                                :editable="editable"
+                                :grow="grow"
+                                @input="rowChanged(i, $event)"
+                                @submit="() => submitWithModal()"
+                                @mouseenter.native="visibleLockPopover = editable ? null : i"
+                                @mouseleave.native="visibleLockPopover = null"
+                                class="mx-3 mt-3"/>
+                        </collapse>
+                    </b-card>
+                </slick-item>
+            </transition-group>
 
-                                <template v-if="editable">
-                                    You cannot remove locked categories.
-                                </template>
-                            </b-popover>
+            <div class="text-center mb-3 clearfix">
+                <fa-icon class="float-left text-muted cursor-pointer"
+                         :class="{ 'ml-3 mt-n2': !editable, 'mt-2': editable }"
+                         :name="collapseAllIcon"
+                         @click.native="toggleAllCategories"
+                         v-b-popover.hover.top="collapseAllPopover" />
 
-                            <div :id="`rubric-lock-${id}-${i}`"
-                                 class="flex-grow-0">
-                                <cg-submit-button
-                                    v-if="editable"
-                                    v-b-popover.top.hover="'Remove category'"
-                                    variant="danger"
-                                    class="delete-category"
-                                    :wait-at-least="0"
-                                    :submit="() => {}"
-                                    @after-success="() => deleteRow(i)"
-                                    :disabled="!!row.locked"
-                                    confirm="Do you really want to delete this category?">
-                                    <fa-icon v-if="row.locked" name="lock" class="lock" />
-                                    <fa-icon v-else name="times" />
-                                </cg-submit-button>
+                <hr v-if="!editable" class="my-4 ml-3" />
 
-                                <fa-icon v-else-if="row.locked"
-                                         name="lock"
-                                         class="lock" />
-                            </div>
-                        </b-card-header>
-
-                        <div v-if="row.type == '' && editable"
-                             class="flex-grow-1 d-flex flex-column align-items-center p-3">
-                            <h4 class="mb-3">Select the type of category</h4>
-
-                            <div class="d-flex flex-row">
-                                <cg-wizard-button
-                                    label="Discrete"
-                                    icon="ellipsis-h"
-                                    size="medium"
-                                    @click="setRowType(i, 'normal')"/>
-
-                                <cg-wizard-button
-                                    label="Continuous"
-                                    icon="progress"
-                                    size="medium"
-                                    @click="setRowType(i, 'continuous')" />
-                            </div>
-                        </div>
-
-                        <component
-                            v-else
-                            :is="`rubric-editor-${row.type}-row`"
-                            :value="row"
-                            :assignment="assignment"
-                            :auto-test="autoTestConfig"
-                            :editable="editable"
-                            :grow="grow"
-                            @input="rowChanged(i, $event)"
-                            @submit="() => submitWithModal()"
-                            @mouseenter.native="visibleLockPopover = editable ? null : i"
-                            @mouseleave.native="visibleLockPopover = null"
-                            class="mx-3 mt-3"/>
-                    </collapse>
-                </b-card>
-            </slick-item>
-        </transition-group>
-
-        <b-button-toolbar v-if="editable" class="justify-content-center mb-3">
-            <b-button class="add-row" @click="createRow">
-                <fa-icon name="plus" /> Category
-            </b-button>
-        </b-button-toolbar>
-    </slick-list>
+                <b-button v-if="editable"
+                          class="add-row"
+                          @click="createRow">
+                    <fa-icon name="plus" /> Category
+                </b-button>
+            </div>
+        </slick-list>
+    </template>
 
     <template v-if="editable">
         <advanced-collapse v-if="rubric"
@@ -478,6 +499,8 @@ import 'vue-awesome/icons/plus';
 import 'vue-awesome/icons/times';
 import 'vue-awesome/icons/reply';
 import 'vue-awesome/icons/ellipsis-h';
+import 'vue-awesome/icons/minus-square';
+import 'vue-awesome/icons/plus-square';
 
 import { NONEXISTENT, INITIAL_COURSES_AMOUNT } from '@/constants';
 import { Rubric } from '@/models';
@@ -763,6 +786,20 @@ export default {
         collapseByDefault() {
             return this.editable || this.rubricRows.length > 1;
         },
+
+        canCollapseAll() {
+            return Object.values(this.collapsedCategories).some(
+                collapsed => !collapsed,
+            );
+        },
+
+        collapseAllIcon() {
+            return this.canCollapseAll ? 'minus-square' : 'plus-square';
+        },
+
+        collapseAllPopover() {
+            return `${this.canCollapseAll ? 'Collapse' : 'Expand'} all categories.`;
+        },
     },
 
     methods: {
@@ -1018,6 +1055,13 @@ export default {
         submitWithModal() {
             this.confirmInModal = true;
             this.$refs.submitButton.onClick();
+        },
+
+        toggleAllCategories() {
+            const value = this.canCollapseAll;
+            this.rubricRows.forEach(row => {
+                this.collapsedCategories[row.trackingId] = value;
+            });
         },
     },
 
