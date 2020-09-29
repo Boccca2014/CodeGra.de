@@ -29,10 +29,17 @@ from .. import app, auth, models, helpers, features
 from ..models import db
 from ..helpers import register, try_for_every
 from .abstract import AbstractLTIConnector
-from ..registry import lti_1_1_providers as lti_classes
+from ..registry import lti_1_1_providers
 from ..exceptions import APICodes, APIWarnings, APIException
 
 logger = structlog.get_logger()
+
+_T_LTI = t.TypeVar('_T_LTI', bound='LTI')
+
+
+def _register_provider(cls: t.Type[_T_LTI]) -> t.Type[_T_LTI]:
+    lti_1_1_providers.register(cls.get_lms_name())(cls)
+    return cls
 
 
 def init_app(_: t.Any) -> None:
@@ -233,8 +240,10 @@ class LTI(AbstractLTIConnector):  # pylint: disable=too-many-public-methods
     """The base LTI class.
     """
 
-    def get_lms_name(self) -> str:
-        return self.lti_provider.lms_name
+    @classmethod
+    @abc.abstractmethod
+    def get_lms_name(cls) -> str:
+        raise NotImplementedError
 
     @staticmethod
     def supports_lti_launch_as_result() -> bool:  # pragma: no cover
@@ -341,8 +350,7 @@ class LTI(AbstractLTIConnector):  # pylint: disable=too-many-public-methods
         :returns: A fresh LTI instance.
         """
         lms = params['custom_lms_name']
-        cls = lti_classes.get(lms)
-        assert cls is not None
+        cls = lti_1_1_providers[lms]
         res = cls(params)
         res.ensure_lti_data_correct()
         return res
@@ -877,10 +885,14 @@ class LTI(AbstractLTIConnector):  # pylint: disable=too-many-public-methods
         ).post_outcome_request()
 
 
-@lti_classes.register('Canvas')
+@_register_provider
 class CanvasLTI(LTI):
     """The LTI class used for the Canvas LMS.
     """
+
+    @classmethod
+    def get_lms_name(cls) -> str:
+        return 'Canvas'
 
     @staticmethod
     def get_custom_extensions() -> str:
@@ -1211,10 +1223,14 @@ class BareBonesLTIProvider(LTI):
         )
 
 
-@lti_classes.register('Blackboard')
+@_register_provider
 class BlackboardLTI(BareBonesLTIProvider):
     """The LTI class used for the Blackboard LMS.
     """
+
+    @classmethod
+    def get_lms_name(cls) -> str:
+        return 'Blackboard'
 
 
 class _BareRolesLTIProvider(BareBonesLTIProvider):
@@ -1241,16 +1257,24 @@ class _BareRolesLTIProvider(BareBonesLTIProvider):
         return roles
 
 
-@lti_classes.register('Sakai')
+@_register_provider
 class SakaiLTI(_BareRolesLTIProvider):
     """The LTI class used for the Sakai LMS.
     """
 
+    @classmethod
+    def get_lms_name(cls) -> str:
+        return 'Sakai'
 
-@lti_classes.register('Open edX')
+
+@_register_provider
 class OpenEdX(_BareRolesLTIProvider):
     """The LTI class used for the Open edX LMS.
     """
+
+    @classmethod
+    def get_lms_name(cls) -> str:
+        return 'Open edX'
 
     def __init__(
         self,
@@ -1297,10 +1321,14 @@ class OpenEdX(_BareRolesLTIProvider):
         return self.launch_params['custom_component_display_name']
 
 
-@lti_classes.register('Moodle')
+@_register_provider
 class MoodleLTI(_BareRolesLTIProvider):
     """The LTI class used for the Moodle LMS.
     """
+
+    @classmethod
+    def get_lms_name(cls) -> str:
+        return 'Moodle'
 
     @property
     def username(self) -> str:
@@ -1357,10 +1385,14 @@ class MoodleLTI(_BareRolesLTIProvider):
         )
 
 
-@lti_classes.register('BrightSpace')
+@_register_provider
 class BrightSpaceLTI(BareBonesLTIProvider):
     """The LTI class used for the BrightSpace LMS.
     """
+
+    @classmethod
+    def get_lms_name(cls) -> str:
+        return 'BrightSpace'
 
     @property
     def username(self) -> str:

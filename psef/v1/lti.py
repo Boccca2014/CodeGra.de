@@ -148,7 +148,7 @@ def get_lti_config() -> werkzeug.wrappers.Response:
     """
     helpers.ensure_keys_in_dict(flask.request.args, [('lms', str)])
     lms: str = flask.request.args.get('lms', '')
-    cls = lti_v1_1.lti_classes.get(lms)
+    cls = registry.lti_1_1_providers.get(lms)
     if cls is None:
         raise errors.APIException(
             f'The given LMS "{lms}" was not found',

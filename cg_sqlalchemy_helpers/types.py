@@ -16,6 +16,7 @@ from typing_extensions import Literal, Protocol
 
 import cg_enum
 import cg_dt_utils
+import cg_register
 
 T = t.TypeVar('T')
 ZZ = t.TypeVar('ZZ')
@@ -233,6 +234,12 @@ class MyDb:  # pragma: no cover
     @t.overload
     def Enum(self, typ: t.Type[E], name: str = None,
              native_enum: bool = True) -> DbEnum[E]:
+        ...
+
+    @t.overload
+    def Enum(
+        self, typ: cg_register.Register[T, Y], name: str, native_enum: bool = True
+    ) -> DbEnum[Y]:
         ...
 
     @t.overload

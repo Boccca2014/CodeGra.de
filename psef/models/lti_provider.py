@@ -39,7 +39,6 @@ from . import work as work_models
 from . import course as course_models
 from . import assignment as assignment_models
 from .. import auth, signals, current_app
-from ..lti import v1_1 as lti_v1_1
 from ..lti import v1_3 as lti_v1_3
 from ..lti.v1_3 import claims as ltiv1_3_claims
 from ..registry import (
@@ -365,9 +364,9 @@ class LTI1p1Provider(LTIProviderBase):
         lazy='select',
     )
 
-    _lms_name = db.Column(
+    _lti_provider = db.Column(
         'lms_1p1_name',
-        db.Enum(*lti_1_1_providers.keys(), name='lti1p1lmsnames'),
+        db.Enum(lti_1_1_providers, name='lti1p1lmsnames'),
     )
 
     _lms_secrets = db.Column(
@@ -388,11 +387,11 @@ class LTI1p1Provider(LTIProviderBase):
             _lms_secrets=(secrets.token_hex(32), ),
             _intended_use=intended_use,
             _finalized=False,
-            _lms_name=lms,
+            _lti_provider=lti_1_1_providers[lms],
         )
 
     def finalize(self) -> None:
-        assert self._lms_name is not None
+        assert self._lti_provider is not None
         self._finalized = True
 
     def find_course(self,
@@ -422,8 +421,8 @@ class LTI1p1Provider(LTIProviderBase):
     def lms_name(self) -> str:
         """The name of the lms connected to this provider.
         """
-        assert self._lms_name is not None
-        return self._lms_name
+        assert self._lti_provider is not None
+        return self._lti_provider.get_lms_name()
 
     def __to_json__(self) -> t.Mapping[str, object]:
         base = super().__to_json__()
@@ -595,15 +594,8 @@ class LTI1p1Provider(LTIProviderBase):
         :getter: Get the LTI class name.
         :setter: Impossible as this is fixed during startup of CodeGrade.
         """
-        lms = self.lms_name
-        cls = psef.lti.v1_1.lti_classes.get(lms)
-        if cls is None:
-            raise psef.errors.APIException(
-                'The requested LMS is not supported',
-                f'The LMS "{lms}" is not supported',
-                psef.errors.APICodes.INVALID_PARAM, 400
-            )
-        return cls
+        assert self._lti_provider is not None
+        return self._lti_provider
 
     def supports_setting_deadline(self) -> bool:
         """Only some LMSes pass the deadline in LTI launches.

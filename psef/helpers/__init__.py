@@ -37,6 +37,7 @@ from werkzeug.datastructures import FileStorage
 from sqlalchemy.sql.expression import or_
 
 import psef
+import cg_register as register
 from cg_json import (
     JSONResponse, ExtendedJSONResponse, jsonify, extended_jsonify
 )
@@ -49,7 +50,7 @@ from cg_flask_helpers import (
 from cg_helpers.humanize import size as human_readable_size
 from cg_sqlalchemy_helpers.types import Base, MyQuery, DbColumn
 
-from . import register, validate, jsonify_options
+from . import validate, jsonify_options
 from .. import errors, current_tester
 
 if t.TYPE_CHECKING and not getattr(t, 'SPHINX', False):  # pragma: no cover

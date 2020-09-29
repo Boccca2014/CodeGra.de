@@ -1781,6 +1781,7 @@ class TaskResultPermissions(GlobalPermissionChecker):
                 ), APICodes.INCORRECT_PERMISSION, 403
             )
 
+
 class LTIProviderPermissions(GlobalPermissionChecker):
     """The permission checker for :class:`psef.models.LTI1p3Provider`.
     """
