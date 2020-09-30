@@ -155,6 +155,8 @@ supported, or does a script not work as you need it to? Please send an email to
 `support@codegrade.com <mailto:support@codegrade.com>`__ so we can discuss the
 possibilities!
 
+.. _auto-test-supported-frameworks:
+
 Supported frameworks
 ^^^^^^^^^^^^^^^^^^^^
 
