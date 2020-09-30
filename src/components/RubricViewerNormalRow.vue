@@ -213,19 +213,19 @@ export default {
         cursor: pointer;
 
         &:hover {
-            background-color: rgba(0, 0, 0, 0.09375);
+            background-color: darken(@card-header-background, 5%);
 
             @{dark-mode} {
-                background-color: rgba(0, 0, 0, 0.125);
+                background-color: darken(@dark-card-header-background, 5%);
             }
         }
     }
 
     &.selected {
-        background-color: rgba(0, 0, 0, 0.0625);
+        background-color: @card-header-background;
 
         @{dark-mode} {
-            background-color: rgba(0, 0, 0, 0.09375);
+            background-color: @dark-card-header-background;
         }
     }
 

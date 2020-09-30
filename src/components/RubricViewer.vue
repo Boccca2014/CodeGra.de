@@ -276,17 +276,14 @@ export default {
         padding: 0.25rem 0.5rem;
 
         &.active {
-            background-color: rgba(0, 0, 0, 0.0625) !important;
-            border-bottom-width: 0;
+            background-color: @card-header-background;
+            border-bottom-color: @card-header-background;
 
             @{dark-mode} {
-                background-color: rgba(0, 0, 0, 0.09375) !important;
+                border-bottom-color: @dark-card-header-background !important;
+                background-color: @dark-card-header-background !important;
             }
         }
-    }
-
-    .tab-content {
-        padding-left: 0;
     }
 }
 
@@ -296,10 +293,10 @@ export default {
         max-height: 6.66rem;
         overflow: auto;
         line-height: 1.3;
-        background-color: rgba(0, 0, 0, 0.0625);
+        background-color: @card-header-background;
 
         @{dark-mode} {
-            background-color: rgba(0, 0, 0, 0.09375);
+            background-color: @dark-card-header-background;
         }
 
         .rubric-lock {
