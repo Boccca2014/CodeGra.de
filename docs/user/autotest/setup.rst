@@ -59,6 +59,14 @@ updated to the latest version shipped by Ubuntu:
 Read the following sections to find out about extending this environment with
 other required software.
 
+Unit testing wrapper scripts
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+In addition to the software listed above, CodeGrade provides custom wrapper
+scripts for popular unit testing frameworks to make integration with Autotest
+a breeze. See :ref:`the Tests chapter <auto-test-supported-frameworks>`
+for a list of supported unit testing frameworks.
+
 .. _at-result-visibility:
 
 Result visibility
@@ -67,8 +75,8 @@ Result visibility
 When a student uploads, AutoTest immediately runs on the handed in submission.
 You can choose whether you want the student to directly be able to view the
 AutoTest result (known as :ref:`Continuous Feedback <cont-feedback>`)
-or that the student can only view the result when the assignment is set to "Done" (just like with any other
-feedback).
+or that the student can only view the result when the assignment is set to
+"Done" (just like with any other feedback).
 
 The AutoTest rubric categories will be filled in automatically and directly in
 either case if you have not created any hidden steps.
