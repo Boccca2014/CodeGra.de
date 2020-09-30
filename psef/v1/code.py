@@ -310,24 +310,25 @@ def delete_code(file_id: int) -> EmptyResponse:
             APICodes.INCORRECT_PERMISSION, 403
         )
 
-    current, other = models.FileOwner.teacher, models.FileOwner.student
+    teacher = models.FileOwner.teacher
+    student = models.FileOwner.student
 
     # We already know that the Work exists, so we can safely use
     # child.self_deleted.
     if db.session.query(
         code.children.filter(
-            ~models.File.self_deleted, models.File.fileowner != other
+            ~models.File.self_deleted, models.File.fileowner != student
         ).exists(),
     ).scalar():
         raise APIException(
             'You cannot delete this directory as it has children',
-            f'The file "{file_id}" has children with fileowner "{current}"',
+            f'The file "{file_id}" has children with fileowner "{teacher}"',
             APICodes.INVALID_STATE, 400
         )
 
-    if code.fileowner == other:
+    if code.fileowner == student:
         _raise_invalid()
-    elif code.fileowner == current:
+    elif code.fileowner == teacher:
         if db.session.query(
             sql.or_(
                 models.CommentBase.query.filter(
@@ -366,7 +367,7 @@ def delete_code(file_id: int) -> EmptyResponse:
 
         code.delete()
     elif code.fileowner == models.FileOwner.both:
-        code.fileowner = other
+        code.fileowner = student
 
     db.session.commit()
 
