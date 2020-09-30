@@ -688,3 +688,59 @@ hr {
 .text-small-uppercase {
     font-variant: small-caps;
 }
+
+.ansi-color-bold {
+    font-weight: bold;
+}
+
+.ansi-color-underline {
+    text-decoration: underline;
+}
+
+.ansi-color(@name, @color) {
+    .ansi-color-@{name} {
+        &-fg {
+            color: @color;
+        }
+        &-intense-fg {
+            color: saturate(@color, 10);
+        }
+        &-bg {
+            background-color: @color;
+        }
+        &-intense-bg {
+            background-color: saturate(@color, 10);
+        }
+    }
+}
+
+.ansi-color-default-inverse-fg {
+    color: @background-color;
+}
+
+.ansi-color-default-inverse-bg {
+    background-color: @text-color-dark;
+}
+
+.ansi-color(black, @text-color);
+.ansi-color(red, @color-danger);
+.ansi-color(green, @color-success);
+.ansi-color(yellow, @color-warning);
+.ansi-color(blue, @color-secondary);
+.ansi-color(magenta, #D160C4);
+.ansi-color(cyan, #60C6C8);
+.ansi-color(white, @background-color);
+
+@{dark-mode} {
+    .ansi-color-default-inverse-fg {
+        color: @color-primary;
+    }
+
+    .ansi-color-default-inverse-bg {
+        background-color: @text-color;
+    }
+
+    // Swap black and white in dark mode.
+    .ansi-color(black, @background-color);
+    .ansi-color(white, @text-color);
+}

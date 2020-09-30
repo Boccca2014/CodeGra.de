@@ -2,9 +2,9 @@
 <template>
 <div class="inner-ipython-viewer p-3">
     <div v-for="(cell, i) in outputCells"
-        :key="`output-cell-${i}`"
-        :style="{ fontSize: `${fontSize}px` }"
-        class="output-cell">
+         :key="`output-cell-${i}`"
+         :style="{ fontSize: `${fontSize}px` }"
+         class="output-cell">
         <hr v-if="i > 0"/>
 
         <span class="input-data-prompt"
@@ -51,7 +51,7 @@
                      :key="`cell-output-${out.feedback_offset}`"
                      class="result-cell">
                     <span class="output-data-prompt">
-                        Out [{{ cell.execution_count || 1}}]:
+                        Out [{{ getExecutionCount(out, cell) }}]:
                     </span>
                     <floating-feedback-button
                         :disabled="withoutFeedback"
@@ -65,26 +65,9 @@
                         no-resize
                         :can-use-snippets="canUseSnippets">
                         <div class="inner-result-cell">
-                            <span v-if="out.output_type === 'execute_result' || out.output_type === 'display_data'"
-                                  class="mime-output">
-                                <img v-if="outputData(out, ['png', 'image/png'])" :src="'data:image/png;base64,' + outputData(out, ['png', 'image/png'])"/>
-                                <img v-else-if="outputData(out, ['jpeg', 'image/jpeg'])" :src="'data:image/jpeg;base64,' + outputData(out, ['jpeg', 'image/jpeg'])"/>
-                                <span v-else-if="outputData(out, ['text/markdown'])">
-                                    <inner-markdown-viewer :markdown="outputData(out, ['text/markdown'])"
-                                                           :show-code-whitespace="showWhitespace"/>
-                                </span>
-                                <span v-else-if="outputData(out, ['text', 'text/plain'])">
-                                    <pre>{{ outputData(out, ['text', 'text/plain']) }}</pre>
-                                </span>
-                                <span v-else>
-                                    <b style="color: red;">Unsupported output</b>
-                                </span>
-                            </span>
-                            <pre v-else-if="out.output_type === 'stream'">{{ maybeJoinArray(out.text) }}</pre>
-                            <pre v-else-if="out.output_type === 'error'">{{ maybeJoinArray(out.traceback) }}</pre>
-                            <span v-else style="color: red;">
-                                <b>Unknown output type:</b> {{ out.output_type }}
-                            </span>
+                            <inner-ipython-output-cell
+                                :cell="out"
+                                :show-code-whitespace="showWhitespace" />
                         </div>
                     </floating-feedback-button>
                 </div>
@@ -97,6 +80,7 @@
 <script>
 import { mapGetters } from 'vuex';
 
+import InnerIpythonOutputCell from './InnerIpythonOutputCell';
 import InnerMarkdownViewer from './InnerMarkdownViewer';
 import InnerCodeViewer from './InnerCodeViewer';
 import FloatingFeedbackButton from './FloatingFeedbackButton';
@@ -160,11 +144,22 @@ export default {
             return null;
         },
 
-        maybeJoinArray(txt) {
+        maybeJoinArray(txt, joiner = '') {
             if (Array.isArray(txt)) {
-                return txt.join('');
+                return txt.join(joiner);
             }
             return txt;
+        },
+
+        getExecutionCount(outputCell, mainCell) {
+            const opts = [
+                outputCell.execution_count,
+                outputCell.prompt_number,
+                mainCell.execution_count,
+                mainCell.prompt_number,
+            ];
+            const res = opts.find(x => x != null);
+            return res != null ? res : 1;
         },
     },
 
@@ -172,6 +167,7 @@ export default {
         InnerCodeViewer,
         InnerMarkdownViewer,
         FloatingFeedbackButton,
+        InnerIpythonOutputCell,
     },
 };
 </script>
