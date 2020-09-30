@@ -23,7 +23,7 @@
                 <small>
                     Latest: {{ sub.formattedCreatedAt }}
                 </small>
-                <small v-if="sub.assignee.name">
+                <small v-if="sub.assignee.id != null">
                     Assignee: {{ sub.assignee.name }}
                 </small>
                 <small>
