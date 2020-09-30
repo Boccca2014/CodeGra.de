@@ -283,26 +283,6 @@ export class RubricRow<T extends number | undefined | null> {
         return this.update({ items });
     }
 
-    setType(type: 'continuous'): ContinuousRubricRow<undefined>;
-
-    setType(type: 'normal'): NormalRubricRow<undefined>;
-
-    // eslint-disable-next-line @typescript-eslint/no-use-before-define
-    setType<Y extends keyof typeof RubricRowsTypes>(
-        type: Y,
-    ): ContinuousRubricRow<undefined> | NormalRubricRow<undefined> {
-        if (this.type != null && this.type !== '') {
-            throw new Error(`Row type was already set and was ${this.type}`);
-        }
-
-        // eslint-disable-next-line @typescript-eslint/no-use-before-define
-        const cls = RubricRowsTypes[type];
-        if (cls == null) {
-            throw new TypeError(`Invalid row type: ${type}`);
-        }
-        return cls.createEmpty();
-    }
-
     createItem<T extends number | null | undefined>(
         this: NormalRubricRow<T>,
     ): NormalRubricRow<T | undefined>;
@@ -549,6 +529,8 @@ const RubricRowsTypes = <const>{
     [ContinuousRubricRow.tag]: ContinuousRubricRow,
 };
 
+type RubricRowType = keyof typeof RubricRowsTypes;
+
 type RubricServerData = RubricRowServerData[];
 
 export class Rubric<T extends number | undefined | null> {
@@ -598,8 +580,15 @@ export class Rubric<T extends number | undefined | null> {
         }, {});
     }
 
-    createRow() {
-        const rows = [...this.rows, RubricRow.createEmpty()];
+    createRow(type: RubricRowType) {
+        // eslint-disable-next-line @typescript-eslint/no-use-before-define
+        const cls = RubricRowsTypes[type];
+        if (cls == null) {
+            throw new TypeError(`Invalid row type: ${type}`);
+        }
+
+        const newRow = cls.createEmpty();
+        const rows = [...this.rows, newRow];
         return new Rubric(rows);
     }
 

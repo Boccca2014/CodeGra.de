@@ -89,14 +89,11 @@ context('Rubric Editor', () => {
             cy.get('.rubric-editor')
                 .contains('.btn', 'Go back')
                 .should('be.visible');
-            cy.get('.rubric-editor .btn.add-row')
+            cy.get('.rubric-editor .btn.add-row.normal')
                 .click();
             cy.get('.rubric-editor')
                 .contains('.btn', 'Go back')
                 .should('not.exist');
-            cy.get('.rubric-editor')
-                .contains('.wizard-button', 'Discrete')
-                .click();
             cy.get('.rubric-editor')
                 .find('.submit-button.delete-category')
                 .submit('success', {
@@ -120,7 +117,8 @@ context('Rubric Editor', () => {
             cy.get('.rubric-editor .category-item')
                 .should('not.exist');
             cy.get('.rubric-editor .btn.add-row')
-                .should('be.visible');
+                .should('be.visible')
+                .should('have.length', 2);
             cy.get('.rubric-editor .no-categories')
                 .should('be.visible');
             cy.get('.rubric-editor input.max-points')
@@ -269,8 +267,8 @@ context('Rubric Editor', () => {
         const rubricPoints = [[1], [0, 1, 2, 3], [2], [0, 4, 5, 6]];
         const rubric = new Rubric(...rubricPoints);
 
-        function addRow() {
-            cy.get('.rubric-editor .btn.add-row')
+        function addRow(type) {
+            cy.get(`.rubric-editor .btn.add-row.${type}`)
                 .click();
             cy.get('.rubric-editor .category-item:last')
                 .should('contain', 'Unnamed')
@@ -278,11 +276,7 @@ context('Rubric Editor', () => {
         }
 
         function addNormalRow(header, description) {
-            addRow();
-
-            cy.get('.rubric-editor')
-                .contains('.wizard-button', 'Discrete')
-                .click();
+            addRow('normal');
 
             if (header != null) {
                 cy.get('.rubric-editor-row:last .category-name')
@@ -296,11 +290,7 @@ context('Rubric Editor', () => {
         }
 
         function addContinuousRow(header, description, points) {
-            addRow();
-
-            cy.get('.rubric-editor')
-                .contains('.wizard-button', 'Continuous')
-                .click();
+            addRow('continuous');
 
             if (header != null) {
                 cy.get('.rubric-editor-row:last .category-name')
@@ -416,7 +406,6 @@ context('Rubric Editor', () => {
             getRow('Normal Row').should('not.exist');
             submit('success', {
                 hasConfirm: true,
-                confirmInModal: true,
             });
             loadPage(true);
 
@@ -486,7 +475,6 @@ context('Rubric Editor', () => {
             });
             submit('success', {
                 hasConfirm: true,
-                confirmInModal: true,
             });
             loadPage(true);
 
@@ -520,7 +508,6 @@ context('Rubric Editor', () => {
             getRow('Continuous Row').should('not.exist');
             submit('success', {
                 hasConfirm: true,
-                confirmInModal: true,
             });
             loadPage(true);
 
@@ -592,7 +579,7 @@ context('Rubric Editor', () => {
         });
 
         it('should not be possible to submit a category without a name',  () => {
-            addRow();
+            addRow('continuous');
 
             submit('error', {
                 popoverMsg: 'There are unnamed categories',
@@ -604,7 +591,6 @@ context('Rubric Editor', () => {
 
             submit('error', {
                 hasConfirm: true,
-                confirmInModal: true,
                 confirmMsg: [
                     'Rows without items with 0 points',
                     'Category Without Items',
@@ -662,7 +648,6 @@ context('Rubric Editor', () => {
             submit('success', {
                 waitForState: false,
                 hasConfirm: true,
-                confirmInModal: true,
                 confirmMsg: [
                     'Rows with only a single item',
                     'Single Item',
@@ -679,7 +664,6 @@ context('Rubric Editor', () => {
             submit('success', {
                 waitForState: false,
                 hasConfirm: true,
-                confirmInModal: true,
                 confirmMsg: [
                     'Rows without items with 0 points',
                     'No 0 Item',
@@ -696,7 +680,6 @@ context('Rubric Editor', () => {
             submit('success', {
                 waitForState: false,
                 hasConfirm: true,
-                confirmInModal: true,
                 confirmMsg: [
                     'Rows with items with equal points',
                     'Multiple Items With Same Points',
@@ -720,7 +703,6 @@ context('Rubric Editor', () => {
             submit('success', {
                 waitForState: false,
                 hasConfirm: true,
-                confirmInModal: true,
                 confirmMsg: [
                     'The following item was removed from the rubric',
                     'Row With Deleted Items - First Item',
@@ -735,7 +717,8 @@ context('Rubric Editor', () => {
                     confirmInModal: true,
                     waitForDefault: false,
                 });
-            cy.get('.rubric-editor .wizard-button')
+            cy.get('.rubric-editor')
+                .contains('.wizard-button', 'Create new rubric')
                 .should('be.visible');
         });
 
@@ -759,7 +742,7 @@ context('Rubric Editor', () => {
 
             deleteRow('rubric row 3');
 
-            addRow();
+            addNormalRow('Normal row X');
 
             cy.get('.rubric-editor .category-item')
                 .should('have.length', 3);
@@ -862,17 +845,15 @@ context('Rubric Editor', () => {
                 .clear()
                 .type('1');
             cy.get('.rubric-editor .max-points-warning')
-                .should('contain', `This means that a 10 will already be achieved with 1 out of ${
-                    maxPoints
-                } rubric points`);
+                .text()
+                .should('contain', `To achieve a 10 students need to score 1 out of ${maxPoints} rubric points.`);
 
             cy.get('.rubric-editor .max-points')
                 .clear()
                 .type('100');
             cy.get('.rubric-editor .max-points-warning')
-                .should('contain', `This means that it will not be possible to achieve a 10; a ${
-                    (maxPoints / 10).toFixed(2)
-                } will be the maximum achievable grade`);
+                .text()
+                .should('contain', `It is not possible to achieve a 10 for this rubric; a ${(maxPoints / 10).toFixed(2)} is the maximum grade that can be achieved.`);
         });
 
         it('should expand the advanced options when "max points" is set', () => {

@@ -9,13 +9,13 @@
 </b-alert>
 
 <div v-else-if="!editable && rubric == null"
-     class="rubric-editor text-muted font-italic">
+     class="rubric-editor border rounded p-3 text-muted font-italic">
     There is no rubric for this assignment.
 </div>
 
 <div v-else-if="editable && rubric === null && !showRubricImporter"
      class="rubric-editor d-flex flex-row justify-content-center"
-     :class="{ grow, editable }">
+     :class="{ editable }">
     <cg-wizard-button
         label="Create new rubric"
         icon="plus"
@@ -73,7 +73,7 @@
 
 <div v-else
      class="rubric-editor"
-     :class="{ grow, editable }">
+     :class="{ editable }">
     <b-alert v-if="showMaxPointsWarning"
              class="max-points-warning"
              variant="warning"
@@ -81,25 +81,18 @@
         {{ maximumPointsWarningText }}
     </b-alert>
 
-    <template v-if="rubricRows.length === 0">
-        <h4 v-if="editable"
-            slot="empty"
-            class="no-categories flex-grow-1 mb-3 p-5 border rounded text-center text-muted">
-            Click
-            <b-button size="lg"
-                      class="add-row mx-2"
-                      style="font-size: 1em"
-                      @click="createRow">
-                <fa-icon name="plus" /> Category
-            </b-button>
-            to add a category.
-        </h4>
-    </template>
+    <div v-if="rubricRows.length === 0"
+         class="no-categories border rounded mb-3 p-3 text-muted font-italic">
+        The rubric has no categories yet.
+
+        <template v-if="editable">
+            Click the buttons below to create a new category.
+        </template>
+    </div>
 
     <template v-else>
-        <h5 class="text-center mb-3">
-            <fa-icon class="float-left text-muted cursor-pointer mt-1"
-                     :class="{ 'ml-3': !editable }"
+        <h5 class="position-relative text-center mb-3">
+            <fa-icon class="collapse-all-btn text-muted mt-1"
                      :name="collapseAllIcon"
                      @click.native="toggleAllCategories"
                      v-b-popover.hover.top="collapseAllPopover" />
@@ -148,9 +141,9 @@
                                         Unnamed
                                     </span>
 
-                                    <small v-if="achievablePointsPerRow[row.id]"
-                                           :title="achievablePointsPerRow[row.id].title">
-                                        {{ achievablePointsPerRow[row.id].header }}
+                                    <small v-if="achievablePointsPerRow[row.trackingId]"
+                                           :title="achievablePointsPerRow[row.trackingId].title">
+                                        {{ achievablePointsPerRow[row.trackingId].header }}
                                     </small>
 
                                     <b-badge v-if="row.locked === 'auto_test'"
@@ -195,33 +188,12 @@
                                 </div>
                             </b-card-header>
 
-                            <div v-if="row.type == '' && editable"
-                                 class="flex-grow-1 d-flex flex-column align-items-center p-3">
-                                <h4 class="mb-3">Select the type of category</h4>
-
-                                <div class="d-flex flex-row">
-                                    <cg-wizard-button
-                                        label="Discrete"
-                                        icon="ellipsis-h"
-                                        size="medium"
-                                        @click="setRowType(i, 'normal')"/>
-
-                                    <cg-wizard-button
-                                        label="Continuous"
-                                        icon="progress"
-                                        size="medium"
-                                        @click="setRowType(i, 'continuous')" />
-                                </div>
-                            </div>
-
                             <component
-                                v-else
                                 :is="`rubric-editor-${row.type}-row`"
                                 :value="row"
                                 :assignment="assignment"
                                 :auto-test="autoTestConfig"
                                 :editable="editable"
-                                :grow="grow"
                                 @input="rowChanged(i, $event)"
                                 @submit="() => submitWithModal()"
                                 @mouseenter.native="visibleLockPopover = editable ? null : i"
@@ -231,24 +203,32 @@
                     </b-card>
                 </slick-item>
             </transition-group>
-
-            <div class="text-center mb-3 clearfix">
-                <fa-icon class="float-left text-muted cursor-pointer"
-                         :class="{ 'ml-3 mt-n2': !editable, 'mt-2': editable }"
-                         :name="collapseAllIcon"
-                         @click.native="toggleAllCategories"
-                         v-b-popover.hover.top="collapseAllPopover" />
-
-                <hr v-if="!editable" class="my-4 ml-3" />
-
-                <b-button v-if="editable"
-                          class="add-row"
-                          @click="createRow">
-                    <fa-icon name="plus" /> Category
-                </b-button>
-            </div>
         </slick-list>
     </template>
+
+    <div class="position-relative text-center mb-3">
+        <fa-icon v-if="rubricRows.length > 0"
+                 class="collapse-all-btn text-muted"
+                 :class="{ 'mt-2': editable, 'mt-n2': !editable }"
+                 :name="collapseAllIcon"
+                 @click.native="toggleAllCategories"
+                 v-b-popover.hover.top="collapseAllPopover" />
+
+        <b-button-toolbar v-if="editable"
+                          class="justify-content-center">
+            <b-button class="add-row normal"
+                      @click="createRow('normal')">
+                <fa-icon name="ellipsis-h" /> Discrete
+            </b-button>
+
+            <b-button class="add-row continuous"
+                      @click="createRow('continuous')">
+                <fa-icon name="progress" /> Continuous
+            </b-button>
+        </b-button-toolbar>
+
+        <hr v-else class="my-4 ml-5" />
+    </div>
 
     <template v-if="editable">
         <advanced-collapse v-if="rubric"
@@ -521,10 +501,6 @@ export default {
             required: true,
         },
         editable: {
-            type: Boolean,
-            default: false,
-        },
-        grow: {
             type: Boolean,
             default: false,
         },
@@ -812,7 +788,13 @@ export default {
                 case 'normal': {
                     const points = this.$utils.filterMap(
                         row.items,
-                        item => this.$utils.Maybe.fromNullable(item.points),
+                            item => {
+                                if (Number.isFinite(item.points)) {
+                                    return this.$utils.Just(item.points);
+                                } else {
+                                    return this.$utils.Nothing;
+                                }
+                            },
                     ).sort();
                     if (points.length) {
                         header = points.join(' / ');
@@ -820,15 +802,18 @@ export default {
                     }
                     break;
                 }
-                case 'continuous':
-                    header = `${row.minPoints} - ${row.maxPoints}`;
-                    title = `anywhere between ${row.minPoints} and ${row.maxPoints}`;
+                case 'continuous': {
+                    if (row.maxPoints) {
+                        header = `${row.minPoints} - ${row.maxPoints}`;
+                        title = `anywhere between ${row.minPoints} and ${row.maxPoints}`;
+                    }
                     break;
+                }
                 default:
                     break;
                 }
                 if (header && title) {
-                    acc[row.id] = {
+                    acc[row.trackingId] = {
                         header: `(${header} pts.)`,
                         title: `You can score ${title} points in this category.`,
                     };
@@ -1013,9 +998,9 @@ export default {
             }
         },
 
-        createRow() {
+        createRow(type) {
             this.ensureEditable();
-            this.rubric = this.rubric.createRow();
+            this.rubric = this.rubric.createRow(type);
 
             const newRow = this.rubric.rows[this.rubric.rows.length - 1];
             this.collapsedCategories[newRow.trackingId] = false;
@@ -1039,14 +1024,6 @@ export default {
 
         rowChanged(idx, rowData) {
             this.rubric = this.rubric.updateRow(idx, rowData);
-        },
-
-        setRowType(idx, type) {
-            const oldRow = this.rubric.rows[idx];
-            const newRow = oldRow.setType(type);
-            this.rubric = this.rubric.updateRow(idx, newRow);
-            this.collapsedCategories[newRow.trackingId] =
-                this.collapsedCategories[oldRow.trackingId];
         },
 
         getImportLabel(assigLike) {
@@ -1120,12 +1097,6 @@ export default {
 <style lang="less" scoped>
 @import '~mixins.less';
 
-.rubric-editor.grow {
-    min-height: 100%;
-    display: flex;
-    flex-direction: column;
-}
-
 .wizard-button-container:not(:last-child) {
     margin-right: 1rem;
 }
@@ -1177,6 +1148,28 @@ input.max-points {
 .rubric-row-leave {
     max-height: 15rem;
     opacity: 1;
+}
+
+.collapse-all-btn {
+    position: absolute;
+    top: 0;
+    left: 1rem;
+    cursor: pointer;
+    opacity: 0.8;
+
+    &:hover {
+        opacity: 1;
+    }
+
+    .rubric-editor.editable & {
+        left: 0;
+    }
+}
+
+.btn.add-row {
+    &:not(:last-child) {
+        margin-right: 0.5rem;
+    }
 }
 </style>
 
