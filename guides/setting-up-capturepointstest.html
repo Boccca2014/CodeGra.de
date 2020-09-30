@@ -234,10 +234,17 @@ default this captures a single float. This number is multiplied by the
 </ol>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
-<p>You can easily use existing unit test scripts and frameworks with the Capture
-Points Test, simply write a simple wrapper script around the unit test script
-that parses the output and outputs a number between 0.0 and 1.0 (e.g. the
-amount of passed tests divided by the total amount of tests).</p>
+<p>You can easily use existing linters or unit test scripts and frameworks with
+the Capture Points Test, simply write a simple wrapper script around the
+unit test script that parses the output and outputs a number between 0.0 and
+1.0 (e.g. the amount of passed tests divided by the total amount of tests).</p>
+<p>We recommend you run your program with our utility program
+<code class="docutils literal notranslate"><span class="pre">normalize_floats</span></code> to ensure that the score you write can be read
+correctly by CodeGrade. For example, if the command to run your tests is
+<code class="docutils literal notranslate"><span class="pre">run_tests</span></code>, you would run <code class="docutils literal notranslate"><span class="pre">normalize_floats</span> <span class="pre">2</span> <span class="pre">run_tests</span></code> to output the
+score with 2 decimals precision.</p>
+<p>For unit testing frameworks the <a class="reference internal" href="setting-up-unittest.html#setting-up-unit-tests"><span class="std std-ref">Unit Test</span></a>
+may be more appropriate, though.</p>
 </div>
 </div>
 

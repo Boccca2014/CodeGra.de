@@ -108,7 +108,6 @@
 <li class="toctree-l2"><a class="reference internal" href="setting-up-checkpoints.html">Add Checkpoints</a></li>
 <li class="toctree-l2 current"><a class="current reference internal" href="#">Add Unit Tests</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#compatibility-scripts">Compatibility scripts</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="#initial-setup">Initial setup</a></li>
 <li class="toctree-l4"><a class="reference internal" href="#installing-dependencies">Installing dependencies</a></li>
 <li class="toctree-l4"><a class="reference internal" href="#compiling-code-and-tests">Compiling code and tests</a></li>
 <li class="toctree-l4"><a class="reference internal" href="#running-tests">Running tests</a></li>
@@ -223,7 +222,7 @@
            <div itemprop="articleBody">
             
   <div class="section" id="setting-up-unit-tests">
-<h1>Setting up Unit Tests<a class="headerlink" href="#setting-up-unit-tests" title="Permalink to this headline">¶</a></h1>
+<span id="id1"></span><h1>Setting up Unit Tests<a class="headerlink" href="#setting-up-unit-tests" title="Permalink to this headline">¶</a></h1>
 <p>The Unit Test runs a unit testing framework that produces a <a class="reference external" href="https://www.ibm.com/support/knowledgecenter/SSQ2R2_14.2.0/com.ibm.rsar.analysis.codereview.cobol.doc/topics/cac_useresults_junit.html">JUnit XML</a>
 file with the results of the tests at a location stored in the
 <code class="docutils literal notranslate"><span class="pre">$CG_JUNIT_XML_LOCATION</span></code> environment variable.</p>
@@ -241,21 +240,12 @@ environment variable.</p></li>
 <h2>Compatibility scripts<a class="headerlink" href="#compatibility-scripts" title="Permalink to this headline">¶</a></h2>
 <p>For most unit testing frameworks it is necessary to install additional software
 and to figure out how to make the framework output its results to the correct
-location. We provide wrapper scripts for a growing list of frameworks at our
-<a class="reference external" href="https://github.com/CodeGra-de/AutoTest-examples">AutoTest Examples</a> GitHub
-repository that handle all of this for you. Is your preferred testing framework
-not listed or does a script not work as you need it to? Please send an email
-to <a class="reference external" href="mailto:support&#37;&#52;&#48;codegrade&#46;com">support<span>&#64;</span>codegrade<span>&#46;</span>com</a> so we can discuss the
-possibilities!</p>
-<p>All wrapper scripts have a similar interface and procedure for running tests.
-To see the options and commands provided by a script run it with the <code class="docutils literal notranslate"><span class="pre">--help</span></code>
-flag.</p>
-<div class="section" id="initial-setup">
-<h3>Initial setup<a class="headerlink" href="#initial-setup" title="Permalink to this headline">¶</a></h3>
-<p>Upload the wrapper script and the other files in the <code class="docutils literal notranslate"><span class="pre">fixtures</span></code> subdirectory
-of the testing framework as fixtures to your AutoTest setup.  Also upload the
-test files that you want to execute as fixtures.</p>
-</div>
+location. We provide wrapper scripts for a growing list of frameworks that
+handle all of this for you. Check out the <a class="reference internal" href="../user/autotest/tests.html#autotest-tests-unit-test"><span class="std std-ref">Unit Test documentation</span></a> for a list of frameworks that are already
+supported, or contact us at <a class="reference external" href="mailto:support&#37;&#52;&#48;codegrade&#46;com">support<span>&#64;</span>codegrade<span>&#46;</span>com</a> if your preferred framework is not listed
+there so we can discuss the possibilities!</p>
+<p>All wrapper scripts share a similar interface and procedure for running tests,
+which we describe below.</p>
 <div class="section" id="installing-dependencies">
 <h3>Installing dependencies<a class="headerlink" href="#installing-dependencies" title="Permalink to this headline">¶</a></h3>
 <p>If extra software needs to be installed to run the testing framework the
@@ -263,20 +253,20 @@ wrapper script provides an <code class="docutils literal notranslate"><span clas
 dependencies. This should be run in the “Global setup script” section of your AutoTest
 configuration.</p>
 <p>For example, to install JUnit 4 and its dependencies you would run</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nv">$FIXTURES</span>/cg-junit install
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>cg-junit4 install
 </pre></div>
 </div>
 </div>
 <div class="section" id="compiling-code-and-tests">
 <h3>Compiling code and tests<a class="headerlink" href="#compiling-code-and-tests" title="Permalink to this headline">¶</a></h3>
 <p>For compiled languages it can be tricky to get the compiler to find all
-libraries needed to compile the students’ code and your tests. For these
-languages the wrapper scripts provide a <code class="docutils literal notranslate"><span class="pre">compile</span></code> command that configures the
-compiler to be able to find the required libraries. The <code class="docutils literal notranslate"><span class="pre">compile</span></code> command
-takes file names as arguments and compiles those files.</p>
+libraries and other dependencies needed to compile the students’ code and your
+tests. For these languages the wrapper scripts provide a <code class="docutils literal notranslate"><span class="pre">compile</span></code> command
+that configures the compiler to be able to find the required libraries. The
+<code class="docutils literal notranslate"><span class="pre">compile</span></code> command takes file names as arguments and compiles those files.</p>
 <p>For example, to compile all <code class="docutils literal notranslate"><span class="pre">.java</span></code> files in the current directory, including
 a JUnit version 4 test class, you would run</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nv">$FIXTURES</span>/cg-junit compile *.java
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>cg-junit4 compile *.java
 </pre></div>
 </div>
 </div>
@@ -286,20 +276,18 @@ a JUnit version 4 test class, you would run</p>
 certain locations of libraries it depends on, but also because you need to
 figure out how you can make the framework output its results in the correct
 format, or in the correct location. The wrapper scripts handle this in their
-<code class="docutils literal notranslate"><span class="pre">`run</span></code> command.</p>
+<code class="docutils literal notranslate"><span class="pre">run</span></code> command.</p>
 <p>The scripts extract the output location from <code class="docutils literal notranslate"><span class="pre">$CG_JUNIT_XML_LOCATION</span></code> and
-then unset it before running the tests. This way students have no access to
-this information when their code is running. The testing framework is then
+then unset it before running the tests. The testing framework is then
 configured to output its results at that location and the tests are executed.</p>
-<p>For example, to run a JUnit 4 test class named <code class="docutils literal notranslate"><span class="pre">MyClass</span></code> you would run</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>$FIXTURES/cg-junit run MyClass
+<p>For example, to run a JUnit 4 test class named <code class="docutils literal notranslate"><span class="pre">MyTestClass</span></code> you would run</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">cg</span><span class="o">-</span><span class="n">junit4</span> <span class="n">run</span> <span class="n">MyTestClass</span>
 </pre></div>
 </div>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
-<p>The exact arguments to the <code class="docutils literal notranslate"><span class="pre">run</span></code> command of each script may differ from
-script to script. They are described in more detail in the readme files
-accompanying each script.</p>
+<p>The exact arguments to the <code class="docutils literal notranslate"><span class="pre">run</span></code> command of each script may differ
+between scripts.</p>
 </div>
 </div>
 </div>

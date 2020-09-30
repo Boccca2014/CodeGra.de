@@ -129,7 +129,10 @@
 <li class="toctree-l1"><a class="reference internal" href="../lms.html">LMS Integration</a></li>
 <li class="toctree-l1 current"><a class="reference internal" href="overview.html">AutoTest</a><ul class="current">
 <li class="toctree-l2 current"><a class="current reference internal" href="#">Setup</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="#default-installed-software">Default Installed Software</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#default-installed-software">Default Installed Software</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#unit-testing-wrapper-scripts">Unit testing wrapper scripts</a></li>
+</ul>
+</li>
 <li class="toctree-l3"><a class="reference internal" href="#result-visibility">Result visibility</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#rubric-calculation">Rubric calculation</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="#discrete-categories">Discrete Categories</a></li>
@@ -285,14 +288,21 @@ updated to the latest version shipped by Ubuntu:</p>
 </ul>
 <p>Read the following sections to find out about extending this environment with
 other required software.</p>
+<div class="section" id="unit-testing-wrapper-scripts">
+<h3>Unit testing wrapper scripts<a class="headerlink" href="#unit-testing-wrapper-scripts" title="Permalink to this headline">¶</a></h3>
+<p>In addition to the software listed above, CodeGrade provides custom wrapper
+scripts for popular unit testing frameworks to make integration with Autotest
+a breeze. See <a class="reference internal" href="tests.html#auto-test-supported-frameworks"><span class="std std-ref">the Tests chapter</span></a>
+for a list of supported unit testing frameworks.</p>
+</div>
 </div>
 <div class="section" id="result-visibility">
 <span id="at-result-visibility"></span><h2>Result visibility<a class="headerlink" href="#result-visibility" title="Permalink to this headline">¶</a></h2>
 <p>When a student uploads, AutoTest immediately runs on the handed in submission.
 You can choose whether you want the student to directly be able to view the
 AutoTest result (known as <a class="reference internal" href="continuous-feedback.html#cont-feedback"><span class="std std-ref">Continuous Feedback</span></a>)
-or that the student can only view the result when the assignment is set to “Done” (just like with any other
-feedback).</p>
+or that the student can only view the result when the assignment is set to
+“Done” (just like with any other feedback).</p>
 <p>The AutoTest rubric categories will be filled in automatically and directly in
 either case if you have not created any hidden steps.</p>
 <div class="admonition warning">

@@ -338,6 +338,9 @@ between 0 and 1.</p>
 <p>If you have trouble writing these wrapper scripts or using the Capture
 Points Test with your own frameworks, contact us and we’re happy to help
 you!</p>
+<p>See also the <a class="reference internal" href="../../guides/setting-up-unittest.html#setting-up-unit-tests"><span class="std std-ref">Unit Test</span></a> documentation for
+achieving something similar while displaying the results in a more
+user-friendly way.</p>
 </div>
 </div>
 </div>
@@ -356,7 +359,7 @@ test succeeded.</p>
 </div>
 </div>
 <div class="section" id="unit-test">
-<h2>Unit Test<a class="headerlink" href="#unit-test" title="Permalink to this headline">¶</a></h2>
+<span id="autotest-tests-unit-test"></span><h2>Unit Test<a class="headerlink" href="#unit-test" title="Permalink to this headline">¶</a></h2>
 <p>The Unit Test provides integration with unit testing frameworks that support
 <a class="reference external" href="https://www.ibm.com/support/knowledgecenter/SSQ2R2_14.2.0/com.ibm.rsar.analysis.codereview.cobol.doc/topics/cac_useresults_junit.html">JUnit XML</a>
 output.  The only input for this type of test is a command to be run, which
@@ -375,12 +378,73 @@ individual AutoTest tests.</p>
 <h3>Compatibility scripts<a class="headerlink" href="#compatibility-scripts" title="Permalink to this headline">¶</a></h3>
 <p>For most unit testing frameworks it is necessary to install additional software
 and to figure out how to make the framework output its results to the correct
-location. We provide wrapper scripts for a growing list of frameworks at our
-<a class="reference external" href="https://github.com/CodeGra-de/AutoTest-examples">AutoTest Examples</a> GitHub
-repository that handle all of this for you. Is your preferred testing framework
-not listed or does a script not work as you need it to? Please send an email
-to <a class="reference external" href="mailto:support&#37;&#52;&#48;codegrade&#46;com">support<span>&#64;</span>codegrade<span>&#46;</span>com</a> so we can discuss
-the possibilities!</p>
+location. We provide wrapper scripts for a growing list of frameworks that
+handle all of this for you. Want to know if your preferred testing framework is
+supported, or does a script not work as you need it to? Please send an email to
+<a class="reference external" href="mailto:support&#37;&#52;&#48;codegrade&#46;com">support<span>&#64;</span>codegrade<span>&#46;</span>com</a> so we can discuss the
+possibilities!</p>
+<div class="section" id="supported-frameworks">
+<span id="auto-test-supported-frameworks"></span><h4>Supported frameworks<a class="headerlink" href="#supported-frameworks" title="Permalink to this headline">¶</a></h4>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 35%" />
+<col style="width: 32%" />
+<col style="width: 33%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Framework</p></th>
+<th class="head"><p>Language(s)</p></th>
+<th class="head"><p>Script name</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>Check</p></td>
+<td><p>C/C++</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">cg-check</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p>xUnit</p></td>
+<td><p>C#</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">cg-xunit</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p>Tasty (Quickcheck)</p></td>
+<td><p>Haskell</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">cg-quickcheck</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p>Junit 4</p></td>
+<td><p>Java</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">cg-junit4</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p>Junit 5</p></td>
+<td><p>Java</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">cg-junit5</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p>Jest</p></td>
+<td><p>Javascript</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">cg-jest</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p>Mocha</p></td>
+<td><p>Javascript</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">cg-mocha</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p>MOxUnit</p></td>
+<td><p>Matlab/Octave</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">cg-moxunit</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p>Nbgrader</p></td>
+<td><p>Jupyter Notebook</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">cg-nbgrader</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p>PHPUnit</p></td>
+<td><p>PHP</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">cg-phpunit</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p>Pytest</p></td>
+<td><p>Python 2+3</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">cg-pytest</span></code></p></td>
+</tr>
+</tbody>
+</table>
+</div>
 </div>
 </div>
 </div>
