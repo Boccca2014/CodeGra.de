@@ -110,7 +110,8 @@ import Icon from 'vue-awesome/components/Icon';
 import 'vue-awesome/icons/exclamation-triangle';
 import 'vue-awesome/icons/times';
 
-import { waitAtLeast } from '@/utils';
+import { Just, Nothing, waitAtLeast } from '@/utils';
+import { Search } from '@/utils/search';
 import { CoursePermission, GlobalPermission } from '@/permissions';
 
 import DescriptionPopover from './DescriptionPopover';
@@ -175,17 +176,21 @@ export default {
             return res;
         },
 
+        itemsWithIndex() {
+            return this.items.map((item, index) => Object.assign({ index }, item));
+        },
+
         filteredIndices() {
-            const filter = (this.filter || '').toLocaleLowerCase();
-            return this.items.reduce((acc, perm, i) => {
-                if (
-                    perm.value.toLocaleLowerCase().indexOf(filter) >= 0 ||
-                    perm.name.toLocaleLowerCase().indexOf(filter) >= 0 ||
-                    perm.description.toLocaleLowerCase().indexOf(filter) >= 0 ||
-                    (perm.warning && perm.warning.toLocaleLowerCase().indexOf(filter) >= 0)
-                ) {
-                    acc.add(i);
-                }
+            const searcher = new Search(
+                ['value', 'name', 'description', 'warning'].concat(
+                    this.fields.map(f => f.key),
+                ),
+            );
+
+            return searcher.search(
+                this.filter || '', this.itemsWithIndex,
+            ).reduce((acc, perm) => {
+                acc.add(perm.index);
                 return acc;
             }, new Set());
         },
@@ -228,31 +233,40 @@ export default {
 
         getAllPermissions() {
             return this.$http.get(this.getRetrieveUrl(this.courseId)).then(({ data }) => {
-                const fields = [];
+                if (data.length === 0) {
+                    this.fields = [];
+                    this.items = [];
+                    return;
+                }
 
-                this.items = [];
+                const fields = data.map(roleData => ({
+                    key: roleData.name,
+                    label: roleData.name,
+                    id: roleData.id,
+                    own: roleData.own,
+                }));
 
-                data.forEach(item => {
-                    fields.push({
-                        key: item.name,
-                        label: item.name,
-                        id: item.id,
-                        own: item.own,
-                    });
-
-                    let i = 0;
-                    Object.entries(item.perms).forEach(([name, value]) => {
-                        if (!this.items[i]) {
-                            this.items[i] = Object.assign(
-                                { name },
-                                this.permissionLookup[name]);
+                const items = this.$utils.filterMap(
+                    Object.entries(data[0].perms),
+                    ([name]) => {
+                        if (!this.$utils.hasAttr(this.permissionLookup, name)) {
+                            return Nothing;
                         }
-                        this.items[i][item.name] = value;
-                        i += 1;
+                        return Just(Object.assign(
+                            { name },
+                            this.permissionLookup[name],
+                        ));
+                    },
+                );
+
+                data.forEach(roleData => {
+                    items.forEach(item => {
+                        item[roleData.name] = roleData.perms[item.value];
                     });
                 });
 
                 this.fields = fields;
+                this.items = this.$utils.sortBy(items, item => [item.name]);
             });
         },
 
