@@ -23,6 +23,7 @@
         <table class="table mb-0">
             <thead>
                 <tr>
+                    <th>Version</th>
                     <th>For who</th>
                     <th>LMS</th>
                     <th>Finalized</th>
@@ -32,11 +33,17 @@
             <tbody>
                 <tr v-for="ltiProvider in ltiProviders"
                     :key="ltiProvider.id">
+                    <td class="text-small-uppercase">{{ ltiProvider.version }}</td>
                     <td>
                         <span v-if="ltiProvider.intended_use">{{ ltiProvider.intended_use }}</span>
                         <span v-else class="text-muted">Unknown</span>
                     </td>
-                    <td>{{ ltiProvider.lms }} (<code>{{ ltiProvider.iss }}</code>)</td>
+                    <td>
+                        {{ ltiProvider.lms }}
+                        <template v-if="ltiProvider.version === 'lti1.3'">
+                            (<code>{{ ltiProvider.iss }}</code>)
+                        </template>
+                    </td>
                     <td>{{ ltiProvider.finalized ? 'Yes' : 'No' }}</td>
                     <td class="shrink">
                         <template v-if="!ltiProvider.finalized">
@@ -50,7 +57,7 @@
                                 finalized. Please only distribute to one person!
                             </cg-description-popover>
 
-                            <template v-if="ltiProvider.lms === 'Blackboard'">
+                            <template v-if="ltiProvider.version === 'lti1.3' && ltiProvider.lms === 'Blackboard'">
                                 <a href="#" class="inline-link"
                                    @click.prevent="initialSetupBlackboardProvider(ltiProvider)">
                                     Setup blackboard
@@ -63,10 +70,28 @@
         </table>
 
         <div class="mt-3">
-            <h6>Create a new LTI 1.3 provider</h6>
-            <b-form-group label="LMS name">
+            <h6>Create a new LTI provider</h6>
+            <b-form-group label="LTI version">
                 <b-form-select
-                    :value="newLMSName"
+                    :value="newLMS && newLMS.version"
+                    placeholder="LTI version"
+                    @input="createNewLMS">
+                    <template v-slot:first>
+                        <b-form-select-option :value="null" disabled>Please select the LTI version</b-form-select-option>
+                    </template>
+
+                    <b-form-select-option value="lti1.1">
+                        lti1.1
+                    </b-form-select-option>
+                    <b-form-select-option value="lti1.3">
+                        lti1.3
+                    </b-form-select-option>
+                </b-form-select>
+            </b-form-group>
+
+            <b-form-group label="LMS name" v-if="newLMS">
+                <b-form-select
+                    :value="newLMS.name"
                     placeholder="LMS"
                     @input="setProviderName">
                     <template v-slot:first>
@@ -81,30 +106,39 @@
                 </b-form-select>
             </b-form-group>
 
-            <template v-if="newLMSName != null">
+            <template v-if="newLMS && newLMS.name">
                 <b-form-group>
                     <label>
                         For which institution is this connection?
                         <cg-description-popover hug-text>
-                            This value is not used internally by CodeGrade, it
-                            is just for easier accounting of all providers.
+                            <p>
+                                This value is not used internally by CodeGrade, it
+                                is just for easier accounting of all providers.
+                            </p>
+                            <p v-if="newLMS.version === 'lti1.1'">
+                                It <b>is</b> communicated to customers!
+                            </p>
                         </cg-description-popover>
                     </label>
                     <input class="form-control"
                            placeholder="e.g. Universiteit van Amsterdam"
-                           v-model="newForWho"/>
+                           v-model="newLMS.forWho"/>
                 </b-form-group>
+            </template>
 
+            <template v-if="newLMS && newLMS.version === 'lti1.3' && newLMS.name">
                 <b-form-group>
                     <label>
                         The ISS of the new integration
                     </label>
                     <input class="form-control"
-                           v-model="newIss"
+                           v-model="newLMS.iss"
                            :disabled="issDisabled"
                            :placeholder="issPlaceholder"/>
                 </b-form-group>
+            </template>
 
+            <template v-if="newLMS && newLMS.name">
                 <cg-submit-button :submit="submitNewProvider"
                                   @after-success="afterSubmitNewProvider"
                                   class="float-right"
@@ -121,25 +155,34 @@
 </template>
 
 <script lang="ts">
-    import { Vue, Component, Ref } from 'vue-property-decorator';
-import { LTI1p3ProviderNames, LTI1p3ProviderName } from '@/lti_providers';
+import { Vue, Component, Ref } from 'vue-property-decorator';
+import { LTI1p1ProviderNames, LTI1p1ProviderName, LTI1p3ProviderNames, LTI1p3ProviderName } from '@/lti_providers';
 import { BModal } from 'bootstrap-vue';
 
 import * as api from '@/api/v1';
 
 import BlackboardSetup from './LtiProviderSetup/BlackboardSetup';
 
+type NewLTI1p1 = {
+    version: 'lti1.1';
+    name: LTI1p1ProviderName | null;
+    forWho: string | null;
+};
+
+type NewLTI1p3 = {
+    version: 'lti1.3';
+    name: LTI1p3ProviderName | null;
+    forWho: string | null;
+    iss: string | null;
+};
+
 @Component({ components: { BlackboardSetup } })
 export default class LtiProviders extends Vue {
     error: Error | null = null;
 
-    ltiProviders: api.lti.LTI1p3ProviderServerData[] | null = null;
+    ltiProviders: api.lti.LTIProviderServerData[] | null = null;
 
-    newLMSName: LTI1p3ProviderName | null = null;
-
-    newIss: string | null = null;
-
-    newForWho: string = '';
+    newLMS: NewLTI1p1 | NewLTI1p3 | null = null;
 
     newBlackboardProvider: api.lti.LTI1p3ProviderServerData | null = null;
 
@@ -154,7 +197,7 @@ export default class LtiProviders extends Vue {
         this.error = null;
 
         try {
-            this.ltiProviders = (await api.lti.getAllLti1p3Provider()).data;
+            this.ltiProviders = (await api.lti.getAllLtiProviders()).data;
         } catch (e) {
             this.error = e;
         }
@@ -162,83 +205,171 @@ export default class LtiProviders extends Vue {
 
     // eslint-disable-next-line class-methods-use-this
     get lmsOptions() {
-        return LTI1p3ProviderNames.map(cur => ({ value: cur, text: cur }));
+        if (this.newLMS == null) {
+            return [];
+        }
+        switch (this.newLMS.version) {
+        case 'lti1.1':
+            return LTI1p1ProviderNames.map(cur => ({ value: cur, text: cur }));
+        case 'lti1.3':
+            return LTI1p3ProviderNames.map(cur => ({ value: cur, text: cur }));
+        default:
+            return this.$utils.AssertionError.assertNever(this.newLMS);
+        }
     }
 
     get issDisabled(): boolean {
-        switch (this.newLMSName) {
-            case 'Brightspace':
-            case 'Moodle':
-            case 'Canvas':
-            case null:
-                return false;
-            case 'Blackboard':
-                return true;
-            default:
-                return this.$utils.AssertionError.assertNever(this.newLMSName);
+        if (this.newLMS == null || this.newLMS.version === 'lti1.1') {
+            return true;
+        }
+
+        const name = this.newLMS.name;
+        switch (name) {
+        case 'Brightspace':
+        case 'Moodle':
+        case 'Canvas':
+        case null:
+            return false;
+        case 'Blackboard':
+            return true;
+        default:
+            return this.$utils.AssertionError.assertNever(name);
         }
     }
 
     get issPlaceholder(): string {
-        switch (this.newLMSName) {
-            case 'Brightspace':
-            case 'Moodle':
-            case 'Blackboard':
-                return 'The ISS for the new provider, this is the url on which the LMS is hosted.';
-            case null:
-            case 'Canvas':
-                return '';
-            default:
-                return this.$utils.AssertionError.assertNever(this.newLMSName);
+        if (this.newLMS == null || this.newLMS.version === 'lti1.1') {
+            return '';
+        }
+
+        const name = this.newLMS.name;
+        switch (name) {
+        case 'Brightspace':
+        case 'Moodle':
+        case 'Blackboard':
+            return 'The ISS for the new provider, this is the url on which the LMS is hosted.';
+        case null:
+        case 'Canvas':
+            return '';
+        default:
+            return this.$utils.AssertionError.assertNever(name);
         }
     }
 
-    setProviderName(name: LTI1p3ProviderName | null): void {
-        this.newLMSName = name;
+    createNewLMS(version: 'lti1.1' | 'lti1.3') {
+        switch (version) {
+            case 'lti1.1': {
+                this.newLMS = {
+                    version,
+                    forWho: null,
+                    name: null,
+                };
+                break;
+            }
+            case 'lti1.3': {
+                this.newLMS = {
+                    version,
+                    forWho: null,
+                    name: null,
+                    iss: null,
+                };
+                break;
+            }
+            default: this.$utils.AssertionError.assertNever(version);
+        }
+    }
 
-        switch (name) {
-            case 'Canvas':
-                this.newIss = 'https://canvas.instructure.com';
+    setProviderName(name: LTI1p3ProviderName | LTI1p1ProviderName | null): void {
+        this.$utils.AssertionError.assert(this.newLMS != null);
+
+        switch (this.newLMS.version) {
+            case 'lti1.1': {
+                this.$utils.AssertionError.assert(
+                    name == null || LTI1p1ProviderNames.find(k => k === name) === name,
+                );
+                this.newLMS.name = name;
                 break;
-            case 'Blackboard':
-                this.newIss = 'https://blackboard.com';
+            }
+
+            case 'lti1.3': {
+                this.$utils.AssertionError.assert(
+                    name == null || LTI1p3ProviderNames.find(k => k === name) === name,
+                );
+                this.newLMS.name = name;
+
+                switch (name) {
+                    case 'Canvas':
+                        this.newLMS.iss = 'https://canvas.instructure.com';
+                        break;
+                    case 'Blackboard':
+                        this.newLMS.iss = 'https://blackboard.com';
+                        break;
+                    case null:
+                    case 'Moodle':
+                    case 'Brightspace':
+                        this.newLMS.iss = null;
+                        break;
+                    default:
+                        this.$utils.AssertionError.assertNever(name);
+                    }
+
                 break;
-            case null:
-            case 'Moodle':
-            case 'Brightspace':
-                this.newIss = null;
-                break;
-            default:
-                this.$utils.AssertionError.assertNever(name);
+            }
+
+            default: this.$utils.AssertionError.assertNever(this.newLMS);
         }
     }
 
     submitNewProvider() {
         // This can never happen because of the template structure.
-        this.$utils.AssertionError.assert(this.newLMSName != null);
+        this.$utils.AssertionError.assert(this.newLMS != null);
 
-        if (!this.newIss || !this.newForWho) {
-            throw new Error('Please make sure that no fields are empty.');
+        switch (this.newLMS.version) {
+            case 'lti1.1': {
+                if (!this.newLMS.name || !this.newLMS.forWho) {
+                    throw new Error('Please make sure that no fields are empty.');
+                }
+
+                return this.$http.post('/api/v1/lti/providers/', {
+                    lti_version: 'lti1.1',
+                    lms: this.newLMS.name,
+                    intended_use: this.newLMS.forWho,
+                });
+            }
+
+            case 'lti1.3': {
+                if (!this.newLMS.iss || !this.newLMS.name || !this.newLMS.forWho) {
+                    throw new Error('Please make sure that no fields are empty.');
+                }
+
+                return this.$http.post('/api/v1/lti/providers/', {
+                    lti_version: 'lti1.3',
+                    iss: this.newLMS.iss,
+                    lms: this.newLMS.name,
+                    intended_use: this.newLMS.forWho,
+                });
+            }
+
+            default: return this.$utils.AssertionError.assertNever(this.newLMS);
         }
-
-        return this.$http.post('/api/v1/lti1.3/providers/', {
-            iss: this.newIss,
-            lms: this.newLMSName,
-            intended_use: this.newForWho,
-        });
     }
 
-    async afterSubmitNewProvider({ data }: { data: api.lti.NonFinalizedLTI1p3ProviderServerData }) {
-        this.newIss = null;
-        this.newLMSName = null;
-        this.newForWho = '';
+    async afterSubmitNewProvider(
+        { data }: {
+            data:
+                | api.lti.NonFinalizedLTI1p3ProviderServerData
+                | api.lti.NonFinalizedLTI1p1ProviderServerData,
+        },
+    ) {
+        this.newLMS = null;
+
         if (this.ltiProviders == null) {
             await this.load();
         } else {
             this.ltiProviders.push(data);
         }
 
-        if (data.lms === 'Blackboard') {
+        if (data.version === 'lti1.3' && data.lms === 'Blackboard') {
             this.initialSetupBlackboardProvider(data);
         }
     }
@@ -249,7 +380,7 @@ export default class LtiProviders extends Vue {
         this.blackboardModal.show();
     }
 
-    copyEditLink(ltiProvider: api.lti.LTI1p3ProviderServerData) {
+    copyEditLink(ltiProvider: api.lti.LTIProviderServerData) {
         this.$utils.AssertionError.assert(!ltiProvider.finalized);
 
         this.$copyText(this.$utils.buildUrl(
