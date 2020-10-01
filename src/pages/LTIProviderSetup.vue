@@ -3,7 +3,7 @@
 <div class="lti-provider-setup">
     <b-alert v-if="error"
              variant="danger"
-             class="m-3"
+             class="my-3"
              show>
         {{ $utils.getErrorMessage(error) }}
     </b-alert>
