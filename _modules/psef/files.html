@@ -214,28 +214,27 @@
 <span class="kn">import</span> <span class="nn">re</span>
 <span class="kn">import</span> <span class="nn">sys</span>
 <span class="kn">import</span> <span class="nn">copy</span>
-<span class="kn">import</span> <span class="nn">uuid</span>
-<span class="kn">import</span> <span class="nn">shutil</span>
 <span class="kn">import</span> <span class="nn">typing</span> <span class="k">as</span> <span class="nn">t</span>
 <span class="kn">import</span> <span class="nn">tarfile</span>
 <span class="kn">import</span> <span class="nn">zipfile</span>
-<span class="kn">import</span> <span class="nn">tempfile</span>
 <span class="kn">import</span> <span class="nn">dataclasses</span>
-<span class="kn">from</span> <span class="nn">collections</span> <span class="kn">import</span> <span class="n">defaultdict</span>
+<span class="kn">from</span> <span class="nn">collections</span> <span class="kn">import</span> <span class="n">Counter</span><span class="p">,</span> <span class="n">defaultdict</span>
 
 <span class="kn">import</span> <span class="nn">structlog</span>
-<span class="kn">from</span> <span class="nn">werkzeug.utils</span> <span class="kn">import</span> <span class="n">secure_filename</span>
 <span class="kn">from</span> <span class="nn">typing_extensions</span> <span class="kn">import</span> <span class="n">Protocol</span>
 <span class="kn">from</span> <span class="nn">werkzeug.datastructures</span> <span class="kn">import</span> <span class="n">FileStorage</span>
 
+<span class="kn">import</span> <span class="nn">psef</span>
+<span class="kn">import</span> <span class="nn">cg_helpers</span>
 <span class="kn">import</span> <span class="nn">psef.models</span> <span class="k">as</span> <span class="nn">models</span>
+<span class="kn">import</span> <span class="nn">cg_object_storage</span>
+<span class="kn">from</span> <span class="nn">cg_object_storage</span> <span class="kn">import</span> <span class="n">FileSize</span>
 
 <span class="kn">from</span> <span class="nn">.</span> <span class="kn">import</span> <span class="n">app</span><span class="p">,</span> <span class="n">archive</span><span class="p">,</span> <span class="n">helpers</span><span class="p">,</span> <span class="n">blackboard</span>
 <span class="kn">from</span> <span class="nn">.ignore</span> <span class="kn">import</span> <span class="p">(</span>
     <span class="n">DeletionType</span><span class="p">,</span> <span class="n">FileDeletion</span><span class="p">,</span> <span class="n">IgnoreHandling</span><span class="p">,</span> <span class="n">SubmissionFilter</span><span class="p">,</span>
     <span class="n">EmptySubmissionFilter</span>
 <span class="p">)</span>
-<span class="kn">from</span> <span class="nn">.archive</span> <span class="kn">import</span> <span class="n">limited_copy</span>  <span class="c1"># pylint: disable=unused-import</span>
 <span class="kn">from</span> <span class="nn">.exceptions</span> <span class="kn">import</span> <span class="n">APICodes</span><span class="p">,</span> <span class="n">APIWarnings</span><span class="p">,</span> <span class="n">APIException</span>
 <span class="kn">from</span> <span class="nn">.extract_tree</span> <span class="kn">import</span> <span class="p">(</span>
     <span class="n">ExtractFileTree</span><span class="p">,</span> <span class="n">ExtractFileTreeBase</span><span class="p">,</span> <span class="n">ExtractFileTreeFile</span><span class="p">,</span>
@@ -289,8 +288,8 @@
     <span class="k">pass</span></div>
 
 
-<div class="viewcode-block" id="get_file_size"><a class="viewcode-back" href="../../psef_api/psef.html#psef.files.get_file_size">[docs]</a><span class="k">def</span> <span class="nf">get_file_size</span><span class="p">(</span><span class="n">f</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">archive</span><span class="o">.</span><span class="n">FileSize</span><span class="p">:</span>
-    <span class="k">return</span> <span class="n">archive</span><span class="o">.</span><span class="n">FileSize</span><span class="p">(</span><span class="nb">max</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">getsize</span><span class="p">(</span><span class="n">f</span><span class="p">)))</span></div>
+<div class="viewcode-block" id="get_file_size"><a class="viewcode-back" href="../../psef_api/psef.html#psef.files.get_file_size">[docs]</a><span class="k">def</span> <span class="nf">get_file_size</span><span class="p">(</span><span class="n">f</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">FileSize</span><span class="p">:</span>
+    <span class="k">return</span> <span class="n">FileSize</span><span class="p">(</span><span class="nb">max</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">getsize</span><span class="p">(</span><span class="n">f</span><span class="p">)))</span></div>
 
 
 <div class="viewcode-block" id="safe_join"><a class="viewcode-back" href="../../psef_api/psef.html#psef.files.safe_join">[docs]</a><span class="k">def</span> <span class="nf">safe_join</span><span class="p">(</span><span class="n">parent</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="o">*</span><span class="n">children</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
@@ -492,12 +491,7 @@
 <span class="sd">    :returns: The information as described above.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">mod_date</span> <span class="o">=</span> <span class="n">file</span><span class="o">.</span><span class="n">modification_date</span>
-
-    <span class="k">if</span> <span class="n">file</span><span class="o">.</span><span class="n">is_directory</span><span class="p">:</span>
-        <span class="n">size</span> <span class="o">=</span> <span class="mi">0</span>
-    <span class="k">else</span><span class="p">:</span>
-        <span class="n">filename</span> <span class="o">=</span> <span class="n">file</span><span class="o">.</span><span class="n">get_diskname</span><span class="p">()</span>
-        <span class="n">size</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">stat</span><span class="p">(</span><span class="n">filename</span><span class="p">)</span><span class="o">.</span><span class="n">st_size</span>
+    <span class="n">size</span> <span class="o">=</span> <span class="n">file</span><span class="o">.</span><span class="n">backing_file</span><span class="o">.</span><span class="n">map</span><span class="p">(</span><span class="k">lambda</span> <span class="n">f</span><span class="p">:</span> <span class="n">f</span><span class="o">.</span><span class="n">size</span><span class="p">)</span><span class="o">.</span><span class="n">or_default</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
 
     <span class="k">return</span> <span class="p">{</span>
         <span class="s1">&#39;is_directory&#39;</span><span class="p">:</span> <span class="n">file</span><span class="o">.</span><span class="n">is_directory</span><span class="p">,</span>
@@ -579,121 +573,17 @@
     <span class="k">return</span> <span class="n">cur</span><span class="o">.</span><span class="n">id</span></div>
 
 
-<div class="viewcode-block" id="restore_directory_structure"><a class="viewcode-back" href="../../psef_api/psef.html#psef.files.restore_directory_structure">[docs]</a><span class="k">def</span> <span class="nf">restore_directory_structure</span><span class="p">(</span>
-    <span class="n">work</span><span class="p">:</span> <span class="n">models</span><span class="o">.</span><span class="n">Work</span><span class="p">,</span>
-    <span class="n">parent</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
-    <span class="n">exclude</span><span class="p">:</span> <span class="n">models</span><span class="o">.</span><span class="n">FileOwner</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">FileOwner</span><span class="o">.</span><span class="n">teacher</span>
-<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">FileTree</span><span class="p">[</span><span class="nb">int</span><span class="p">]:</span>
-    <span class="sd">&quot;&quot;&quot;Restores the directory structure recursively for a submission</span>
-<span class="sd">    (a :class:`.models.Work`).</span>
-
-<span class="sd">    The directory structure is returned like this:</span>
-
-<span class="sd">    .. code:: python</span>
-
-<span class="sd">       {</span>
-<span class="sd">           &quot;id&quot;: 1,</span>
-<span class="sd">           &quot;name&quot;: &quot;rootdir&quot;</span>
-<span class="sd">           &quot;entries&quot;: [</span>
-<span class="sd">               {</span>
-<span class="sd">                   &quot;id&quot;: 2,</span>
-<span class="sd">                   &quot;name&quot;: &quot;file1.txt&quot;</span>
-<span class="sd">               },</span>
-<span class="sd">               {</span>
-<span class="sd">                   &quot;id&quot;: 3,</span>
-<span class="sd">                   &quot;name&quot;: &quot;subdir&quot;</span>
-<span class="sd">                   &quot;entries&quot;: [</span>
-<span class="sd">                       {</span>
-<span class="sd">                           &quot;id&quot;: 4,</span>
-<span class="sd">                           &quot;name&quot;: &quot;file2.txt.&quot;</span>
-<span class="sd">                       },</span>
-<span class="sd">                       {</span>
-<span class="sd">                           &quot;id&quot;: 5,</span>
-<span class="sd">                           &quot;name&quot;: &quot;file3.txt&quot;</span>
-<span class="sd">                       }</span>
-<span class="sd">                   ],</span>
-<span class="sd">               },</span>
-<span class="sd">           ],</span>
-<span class="sd">       }</span>
-
-<span class="sd">    :param work: A submissions.</span>
-<span class="sd">    :param parent: Path to parent directory.</span>
-<span class="sd">    :param exclude: The file owner to exclude.</span>
-<span class="sd">    :returns: A tree as described.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
-    <span class="n">code</span> <span class="o">=</span> <span class="n">helpers</span><span class="o">.</span><span class="n">filter_single_or_404</span><span class="p">(</span>
-        <span class="n">models</span><span class="o">.</span><span class="n">File</span><span class="p">,</span>
-        <span class="n">models</span><span class="o">.</span><span class="n">File</span><span class="o">.</span><span class="n">work_id</span> <span class="o">==</span> <span class="n">work</span><span class="o">.</span><span class="n">id</span><span class="p">,</span>
-        <span class="n">models</span><span class="o">.</span><span class="n">File</span><span class="o">.</span><span class="n">parent_id</span><span class="o">.</span><span class="n">is_</span><span class="p">(</span><span class="kc">None</span><span class="p">),</span>
-        <span class="n">models</span><span class="o">.</span><span class="n">File</span><span class="o">.</span><span class="n">fileowner</span> <span class="o">!=</span> <span class="n">exclude</span><span class="p">,</span>
-        <span class="o">~</span><span class="n">models</span><span class="o">.</span><span class="n">File</span><span class="o">.</span><span class="n">self_deleted</span><span class="p">,</span>
-    <span class="p">)</span>
-    <span class="n">cache</span> <span class="o">=</span> <span class="n">work</span><span class="o">.</span><span class="n">get_file_children_mapping</span><span class="p">(</span><span class="n">exclude</span><span class="p">)</span>
-    <span class="k">return</span> <span class="n">_restore_directory_structure</span><span class="p">(</span><span class="n">code</span><span class="p">,</span> <span class="n">parent</span><span class="p">,</span> <span class="n">cache</span><span class="p">)</span></div>
-
-
-<span class="k">def</span> <span class="nf">_restore_directory_structure</span><span class="p">(</span>
-    <span class="n">code</span><span class="p">:</span> <span class="n">models</span><span class="o">.</span><span class="n">FileMixin</span><span class="p">[</span><span class="n">T</span><span class="p">],</span>
-    <span class="n">parent</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
-    <span class="n">cache</span><span class="p">:</span> <span class="n">t</span><span class="o">.</span><span class="n">Mapping</span><span class="p">[</span><span class="n">t</span><span class="o">.</span><span class="n">Optional</span><span class="p">[</span><span class="n">T</span><span class="p">],</span> <span class="n">t</span><span class="o">.</span><span class="n">Sequence</span><span class="p">[</span><span class="n">models</span><span class="o">.</span><span class="n">FileMixin</span><span class="p">[</span><span class="n">T</span><span class="p">]]],</span>
-<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">FileTree</span><span class="p">[</span><span class="n">T</span><span class="p">]:</span>
-    <span class="sd">&quot;&quot;&quot;Worker function for :py:func:`.restore_directory_structure`</span>
-
-<span class="sd">    :param code: A file</span>
-<span class="sd">    :param parent: Path to parent directory</span>
-<span class="sd">    :param cache: The cache to use to get file children.</span>
-<span class="sd">    :returns: A tree as described in :py:func:`.restore_directory_structure`</span>
-<span class="sd">    &quot;&quot;&quot;</span>
-    <span class="n">out</span> <span class="o">=</span> <span class="n">safe_join</span><span class="p">(</span><span class="n">parent</span><span class="p">,</span> <span class="n">code</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
-    <span class="k">if</span> <span class="n">code</span><span class="o">.</span><span class="n">is_directory</span><span class="p">:</span>
-        <span class="n">os</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="n">out</span><span class="p">)</span>
-
-        <span class="n">subtree</span><span class="p">:</span> <span class="n">t</span><span class="o">.</span><span class="n">List</span><span class="p">[</span><span class="n">FileTree</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span>
-            <span class="n">_restore_directory_structure</span><span class="p">(</span><span class="n">child</span><span class="p">,</span> <span class="n">out</span><span class="p">,</span> <span class="n">cache</span><span class="p">)</span>
-            <span class="k">for</span> <span class="n">child</span> <span class="ow">in</span> <span class="n">cache</span><span class="p">[</span><span class="n">code</span><span class="o">.</span><span class="n">get_id</span><span class="p">()]</span>
-        <span class="p">]</span>
-        <span class="k">return</span> <span class="n">FileTree</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="n">code</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="nb">id</span><span class="o">=</span><span class="n">code</span><span class="o">.</span><span class="n">get_id</span><span class="p">(),</span> <span class="n">entries</span><span class="o">=</span><span class="n">subtree</span><span class="p">)</span>
-    <span class="k">else</span><span class="p">:</span>  <span class="c1"># this is a file</span>
-        <span class="n">shutil</span><span class="o">.</span><span class="n">copyfile</span><span class="p">(</span><span class="n">code</span><span class="o">.</span><span class="n">get_diskname</span><span class="p">(),</span> <span class="n">out</span><span class="p">,</span> <span class="n">follow_symlinks</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
-        <span class="k">return</span> <span class="n">FileTree</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="n">code</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="nb">id</span><span class="o">=</span><span class="n">code</span><span class="o">.</span><span class="n">get_id</span><span class="p">(),</span> <span class="n">entries</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
-
-
 <div class="viewcode-block" id="rename_directory_structure"><a class="viewcode-back" href="../../psef_api/psef.html#psef.files.rename_directory_structure">[docs]</a><span class="k">def</span> <span class="nf">rename_directory_structure</span><span class="p">(</span>
-    <span class="n">rootdir</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">disk_limit</span><span class="p">:</span> <span class="n">t</span><span class="o">.</span><span class="n">Optional</span><span class="p">[</span><span class="n">archive</span><span class="o">.</span><span class="n">FileSize</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">rootdir</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">putter</span><span class="p">:</span> <span class="n">cg_object_storage</span><span class="o">.</span><span class="n">Putter</span><span class="p">,</span>
+    <span class="n">disk_limit</span><span class="p">:</span> <span class="n">t</span><span class="o">.</span><span class="n">Optional</span><span class="p">[</span><span class="n">FileSize</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ExtractFileTreeDirectory</span><span class="p">:</span>
     <span class="sd">&quot;&quot;&quot;Creates a nested dictionary that represents the folder structure of</span>
 <span class="sd">    rootdir.</span>
 
-<span class="sd">    A tree like:</span>
-
-<span class="sd">    - dir1</span>
-<span class="sd">        - dir 2</span>
-<span class="sd">            - file 1</span>
-<span class="sd">            - file 2</span>
-<span class="sd">        - file 3</span>
-
-<span class="sd">    will be moved to files given by :py:func:`random_file_path` and the object</span>
-<span class="sd">    returned will represent the file structure, which will be something like</span>
-<span class="sd">    this:</span>
-
-<span class="sd">    .. code:: python</span>
-
-<span class="sd">      {</span>
-<span class="sd">          &#39;dir1&#39;: {</span>
-<span class="sd">              [</span>
-<span class="sd">                  &#39;dir 2&#39;:{</span>
-<span class="sd">                      [</span>
-<span class="sd">                          (&#39;file 1&#39;, &#39;new_name&#39;),</span>
-<span class="sd">                          (&#39;file 2&#39;, &#39;new_name2&#39;)</span>
-<span class="sd">                      ]</span>
-<span class="sd">                  },</span>
-<span class="sd">                  (&#39;file 3&#39;, &#39;new_name3&#39;)</span>
-<span class="sd">              ]</span>
-<span class="sd">          }</span>
-<span class="sd">      }</span>
-
 <span class="sd">    :param str rootdir: The root directory to rename, files will not be removed</span>
-<span class="sd">    :returns: The tree as described above</span>
+
+<span class="sd">    :returns: An extract filetree that where ``rootdir`` is the root directory.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">directory</span><span class="p">:</span> <span class="n">t</span><span class="o">.</span><span class="n">MutableMapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">t</span><span class="o">.</span><span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
 
@@ -733,20 +623,12 @@
                     <span class="p">)</span>
                     <span class="k">break</span>
 
-                <span class="n">new_name</span><span class="p">,</span> <span class="n">filename</span> <span class="o">=</span> <span class="n">random_file_path</span><span class="p">()</span>
-                <span class="n">shutil</span><span class="o">.</span><span class="n">move</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">new_name</span><span class="p">)</span>
+                <span class="n">copied_file</span> <span class="o">=</span> <span class="n">putter</span><span class="o">.</span><span class="n">from_file</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">move</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
                 <span class="n">res</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
-                    <span class="n">ExtractFileTreeFile</span><span class="p">(</span>
-                        <span class="n">name</span><span class="o">=</span><span class="n">key</span><span class="p">,</span>
-                        <span class="n">disk_name</span><span class="o">=</span><span class="n">filename</span><span class="p">,</span>
-                        <span class="n">parent</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-                        <span class="n">size</span><span class="o">=</span><span class="n">size</span><span class="p">,</span>
-                    <span class="p">)</span>
+                    <span class="n">ExtractFileTreeFile</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="n">key</span><span class="p">,</span> <span class="n">backing_file</span><span class="o">=</span><span class="n">copied_file</span><span class="p">)</span>
                 <span class="p">)</span>
             <span class="k">else</span><span class="p">:</span>
-                <span class="n">new_dir</span> <span class="o">=</span> <span class="n">ExtractFileTreeDirectory</span><span class="p">(</span>
-                    <span class="n">name</span><span class="o">=</span><span class="n">key</span><span class="p">,</span> <span class="n">values</span><span class="o">=</span><span class="p">[],</span> <span class="n">parent</span><span class="o">=</span><span class="kc">None</span>
-                <span class="p">)</span>
+                <span class="n">new_dir</span> <span class="o">=</span> <span class="n">ExtractFileTreeDirectory</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="n">key</span><span class="p">)</span>
                 <span class="k">for</span> <span class="n">child</span> <span class="ow">in</span> <span class="n">__to_lists</span><span class="p">(</span><span class="n">safe_join</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">key</span><span class="p">),</span> <span class="n">value</span><span class="p">):</span>
                     <span class="n">new_dir</span><span class="o">.</span><span class="n">add_child</span><span class="p">(</span><span class="n">child</span><span class="p">)</span>
                 <span class="n">res</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">new_dir</span><span class="p">)</span>
@@ -759,84 +641,20 @@
     <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">result_lists</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span>
     <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">result_lists</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">ExtractFileTreeDirectory</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">size_left</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">:</span>
-        <span class="n">new_name</span><span class="p">,</span> <span class="n">filename</span> <span class="o">=</span> <span class="n">random_file_path</span><span class="p">()</span>
-        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">new_name</span><span class="p">,</span> <span class="s1">&#39;w&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
-            <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s1">&#39;Size limit was exceeded, so some files were not copied</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">)</span>
+        <span class="n">exceeded_file</span> <span class="o">=</span> <span class="n">putter</span><span class="o">.</span><span class="n">from_string</span><span class="p">(</span>
+            <span class="s1">&#39;Size limit was exceeded, so some files were not copied</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">,</span>
+        <span class="p">)</span>
         <span class="n">result_lists</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">add_child</span><span class="p">(</span>
             <span class="n">ExtractFileTreeSpecialFile</span><span class="p">(</span>
-                <span class="n">name</span><span class="o">=</span><span class="s1">&#39;cg-size-limit-exceeded&#39;</span><span class="p">,</span>
-                <span class="n">disk_name</span><span class="o">=</span><span class="n">filename</span><span class="p">,</span>
-                <span class="n">parent</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-                <span class="n">size</span><span class="o">=</span><span class="n">get_file_size</span><span class="p">(</span><span class="n">new_name</span><span class="p">),</span>
+                <span class="n">name</span><span class="o">=</span><span class="s1">&#39;cg-size-limit-exceeded&#39;</span><span class="p">,</span> <span class="n">backing_file</span><span class="o">=</span><span class="n">exceeded_file</span>
             <span class="p">)</span>
         <span class="p">)</span>
     <span class="k">return</span> <span class="n">result_lists</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span></div>
 
 
-<div class="viewcode-block" id="extract_to_temp"><a class="viewcode-back" href="../../psef_api/psef.html#psef.files.extract_to_temp">[docs]</a><span class="k">def</span> <span class="nf">extract_to_temp</span><span class="p">(</span>
-    <span class="n">file</span><span class="p">:</span> <span class="n">FileStorage</span><span class="p">,</span>
-    <span class="n">max_size</span><span class="p">:</span> <span class="n">archive</span><span class="o">.</span><span class="n">FileSize</span><span class="p">,</span>
-    <span class="n">archive_name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">&#39;archive&#39;</span><span class="p">,</span>
-    <span class="n">parent_result_dir</span><span class="p">:</span> <span class="n">t</span><span class="o">.</span><span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">t</span><span class="o">.</span><span class="n">Tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">archive</span><span class="o">.</span><span class="n">FileSize</span><span class="p">]:</span>
-    <span class="sd">&quot;&quot;&quot;Extracts the contents of file into a temporary directory.</span>
-
-<span class="sd">    :param file: The archive to extract.</span>
-<span class="sd">    :param max_size: The maximum size the extracted archive may be.</span>
-<span class="sd">    :param archive_name: The name used for the archive in error messages.</span>
-<span class="sd">    :param parent_result_dir: The location the resulting directory should be</span>
-<span class="sd">        placed in.</span>
-<span class="sd">    :returns: The pathname of the new temporary directory.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
-    <span class="n">tmpfd</span><span class="p">,</span> <span class="n">tmparchive</span> <span class="o">=</span> <span class="n">tempfile</span><span class="o">.</span><span class="n">mkstemp</span><span class="p">()</span>
-    <span class="n">size</span><span class="p">:</span> <span class="n">archive</span><span class="o">.</span><span class="n">FileSize</span>
-    <span class="n">tmpdir</span> <span class="o">=</span> <span class="kc">None</span>
-    <span class="n">remove_tmpdir</span> <span class="o">=</span> <span class="kc">True</span>
-
-    <span class="k">try</span><span class="p">:</span>
-        <span class="n">os</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="n">tmparchive</span><span class="p">)</span>
-        <span class="n">tmparchive</span> <span class="o">+=</span> <span class="s1">&#39;_archive_</span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
-            <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">basename</span><span class="p">(</span><span class="n">secure_filename</span><span class="p">(</span><span class="n">file</span><span class="o">.</span><span class="n">filename</span><span class="p">))</span>
-        <span class="p">)</span>
-        <span class="n">tmpdir</span> <span class="o">=</span> <span class="n">tempfile</span><span class="o">.</span><span class="n">mkdtemp</span><span class="p">(</span><span class="nb">dir</span><span class="o">=</span><span class="n">parent_result_dir</span><span class="p">)</span>
-        <span class="n">file</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="n">tmparchive</span><span class="p">)</span>
-
-        <span class="k">with</span> <span class="n">archive</span><span class="o">.</span><span class="n">Archive</span><span class="o">.</span><span class="n">create_from_file</span><span class="p">(</span><span class="n">tmparchive</span><span class="p">)</span> <span class="k">as</span> <span class="n">arch</span><span class="p">:</span>
-            <span class="n">size</span> <span class="o">=</span> <span class="n">arch</span><span class="o">.</span><span class="n">extract</span><span class="p">(</span><span class="n">to_path</span><span class="o">=</span><span class="n">tmpdir</span><span class="p">,</span> <span class="n">max_size</span><span class="o">=</span><span class="n">max_size</span><span class="p">)</span>
-    <span class="k">except</span> <span class="p">(</span>
-        <span class="n">tarfile</span><span class="o">.</span><span class="n">ReadError</span><span class="p">,</span> <span class="n">zipfile</span><span class="o">.</span><span class="n">BadZipFile</span><span class="p">,</span>
-        <span class="n">archive</span><span class="o">.</span><span class="n">UnrecognizedArchiveFormat</span>
-    <span class="p">)</span> <span class="k">as</span> <span class="n">exc</span><span class="p">:</span>
-        <span class="k">raise</span> <span class="n">APIException</span><span class="p">(</span>
-            <span class="sa">f</span><span class="s1">&#39;The given </span><span class="si">{</span><span class="n">archive_name</span><span class="si">}</span><span class="s1"> could not be extracted&#39;</span><span class="p">,</span>
-            <span class="s2">&quot;The given archive doesn&#39;t seem to be an archive&quot;</span><span class="p">,</span>
-            <span class="n">APICodes</span><span class="o">.</span><span class="n">INVALID_ARCHIVE</span><span class="p">,</span>
-            <span class="mi">400</span><span class="p">,</span>
-        <span class="p">)</span> <span class="kn">from</span> <span class="nn">exc</span>
-    <span class="k">except</span> <span class="p">(</span><span class="n">archive</span><span class="o">.</span><span class="n">ArchiveTooLarge</span><span class="p">,</span> <span class="n">archive</span><span class="o">.</span><span class="n">FileTooLarge</span><span class="p">)</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
-        <span class="n">helpers</span><span class="o">.</span><span class="n">raise_file_too_big_exception</span><span class="p">(</span>
-            <span class="n">max_size</span><span class="p">,</span> <span class="n">single_file</span><span class="o">=</span><span class="nb">isinstance</span><span class="p">(</span><span class="n">e</span><span class="p">,</span> <span class="n">archive</span><span class="o">.</span><span class="n">FileTooLarge</span><span class="p">)</span>
-        <span class="p">)</span>
-    <span class="k">except</span> <span class="n">archive</span><span class="o">.</span><span class="n">UnsafeArchive</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
-        <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;Unsafe archive submitted&#39;</span><span class="p">,</span> <span class="n">exc_info</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-        <span class="k">raise</span> <span class="n">APIException</span><span class="p">(</span>
-            <span class="sa">f</span><span class="s1">&#39;The given </span><span class="si">{</span><span class="n">archive_name</span><span class="si">}</span><span class="s1"> contains invalid or too many files&#39;</span><span class="p">,</span>
-            <span class="nb">str</span><span class="p">(</span><span class="n">e</span><span class="p">),</span> <span class="n">APICodes</span><span class="o">.</span><span class="n">UNSAFE_ARCHIVE</span><span class="p">,</span> <span class="mi">400</span>
-        <span class="p">)</span> <span class="kn">from</span> <span class="nn">e</span>
-    <span class="k">else</span><span class="p">:</span>
-        <span class="n">remove_tmpdir</span> <span class="o">=</span> <span class="kc">False</span>
-    <span class="k">finally</span><span class="p">:</span>
-        <span class="n">os</span><span class="o">.</span><span class="n">close</span><span class="p">(</span><span class="n">tmpfd</span><span class="p">)</span>
-        <span class="n">os</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="n">tmparchive</span><span class="p">)</span>
-        <span class="k">if</span> <span class="n">remove_tmpdir</span> <span class="ow">and</span> <span class="n">tmpdir</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="n">shutil</span><span class="o">.</span><span class="n">rmtree</span><span class="p">(</span><span class="n">tmpdir</span><span class="p">)</span>
-
-    <span class="k">return</span> <span class="n">tmpdir</span><span class="p">,</span> <span class="n">size</span></div>
-
-
 <div class="viewcode-block" id="extract"><a class="viewcode-back" href="../../psef_api/psef.html#psef.files.extract">[docs]</a><span class="k">def</span> <span class="nf">extract</span><span class="p">(</span>
-    <span class="n">file</span><span class="p">:</span> <span class="n">FileStorage</span><span class="p">,</span>
-    <span class="n">max_size</span><span class="p">:</span> <span class="n">archive</span><span class="o">.</span><span class="n">FileSize</span><span class="p">,</span>
+    <span class="n">fileobj</span><span class="p">:</span> <span class="n">FileStorage</span><span class="p">,</span> <span class="n">filename</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">max_size</span><span class="p">:</span> <span class="n">FileSize</span><span class="p">,</span>
+    <span class="n">putter</span><span class="p">:</span> <span class="n">cg_object_storage</span><span class="o">.</span><span class="n">Putter</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ExtractFileTree</span><span class="p">:</span>
     <span class="sd">&quot;&quot;&quot;Extracts all files in archive with random name to uploads folder.</span>
 
@@ -850,73 +668,44 @@
 <span class="sd">    :returns: A file tree as generated by</span>
 <span class="sd">        :py:func:`rename_directory_structure`.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="n">tmpdir</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">extract_to_temp</span><span class="p">(</span>
-        <span class="n">file</span><span class="o">=</span><span class="n">file</span><span class="p">,</span>
-        <span class="n">max_size</span><span class="o">=</span><span class="n">max_size</span><span class="p">,</span>
-    <span class="p">)</span>
-
     <span class="k">try</span><span class="p">:</span>
-        <span class="n">res</span> <span class="o">=</span> <span class="n">rename_directory_structure</span><span class="p">(</span><span class="n">tmpdir</span><span class="p">)</span><span class="o">.</span><span class="n">values</span>
-        <span class="k">for</span> <span class="n">val</span> <span class="ow">in</span> <span class="n">res</span><span class="p">:</span>
-            <span class="n">val</span><span class="o">.</span><span class="n">forget_parent</span><span class="p">()</span>
-
-        <span class="k">assert</span> <span class="n">file</span><span class="o">.</span><span class="n">filename</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
-        <span class="n">new_parent</span> <span class="o">=</span> <span class="n">ExtractFileTree</span><span class="p">(</span>
-            <span class="n">name</span><span class="o">=</span><span class="n">file</span><span class="o">.</span><span class="n">filename</span><span class="p">,</span>
-            <span class="n">values</span><span class="o">=</span><span class="p">[],</span>
-            <span class="n">parent</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-        <span class="p">)</span>
-        <span class="k">for</span> <span class="n">val</span> <span class="ow">in</span> <span class="n">res</span><span class="p">:</span>
-            <span class="n">new_parent</span><span class="o">.</span><span class="n">add_child</span><span class="p">(</span><span class="n">val</span><span class="p">)</span>
-        <span class="k">return</span> <span class="n">new_parent</span>
-    <span class="k">finally</span><span class="p">:</span>
-        <span class="n">shutil</span><span class="o">.</span><span class="n">rmtree</span><span class="p">(</span><span class="n">tmpdir</span><span class="p">)</span></div>
-
-
-<div class="viewcode-block" id="random_file_path"><a class="viewcode-back" href="../../psef_api/psef.html#psef.files.random_file_path">[docs]</a><span class="k">def</span> <span class="nf">random_file_path</span><span class="p">(</span><span class="n">use_mirror_dir</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">t</span><span class="o">.</span><span class="n">Tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]:</span>
-    <span class="sd">&quot;&quot;&quot;Generates a new random file path in the upload directory.</span>
-
-<span class="sd">    :param use_mirror_dir: Use the mirror directory as the basedir of the</span>
-<span class="sd">        random file path.</span>
-<span class="sd">    :returns: The path to the new file and the name of the file.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
-    <span class="k">if</span> <span class="n">use_mirror_dir</span><span class="p">:</span>
-        <span class="n">root</span> <span class="o">=</span> <span class="n">app</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s1">&#39;MIRROR_UPLOAD_DIR&#39;</span><span class="p">]</span>
-    <span class="k">else</span><span class="p">:</span>
-        <span class="n">root</span> <span class="o">=</span> <span class="n">app</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s1">&#39;UPLOAD_DIR&#39;</span><span class="p">]</span>
-
-    <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
-        <span class="n">name</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">uuid</span><span class="o">.</span><span class="n">uuid4</span><span class="p">())</span>
-        <span class="n">candidate</span> <span class="o">=</span> <span class="n">safe_join</span><span class="p">(</span><span class="n">root</span><span class="p">,</span> <span class="n">name</span><span class="p">)</span>
-        <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">candidate</span><span class="p">):</span>  <span class="c1"># pragma: no cover</span>
-            <span class="k">break</span>
-    <span class="k">return</span> <span class="n">candidate</span><span class="p">,</span> <span class="n">name</span></div>
-
-
-<div class="viewcode-block" id="save_stream"><a class="viewcode-back" href="../../psef_api/psef.html#psef.files.save_stream">[docs]</a><span class="k">def</span> <span class="nf">save_stream</span><span class="p">(</span><span class="n">stream</span><span class="p">:</span> <span class="n">FileStorage</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
-    <span class="sd">&quot;&quot;&quot;Save the data from a stream to a new random filepath in the upload</span>
-<span class="sd">    directory.</span>
-
-<span class="sd">    :param stream: The stream to be saved.</span>
-<span class="sd">    :returns: The filename where the data is stored relative to the UPLOADS</span>
-<span class="sd">        directory..</span>
-<span class="sd">    &quot;&quot;&quot;</span>
-    <span class="n">new_file_name</span><span class="p">,</span> <span class="n">filename</span> <span class="o">=</span> <span class="n">random_file_path</span><span class="p">()</span>
-    <span class="n">stream</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="n">new_file_name</span><span class="p">)</span>
-    <span class="k">if</span> <span class="n">get_file_size</span><span class="p">(</span><span class="n">new_file_name</span><span class="p">)</span> <span class="o">&gt;</span> <span class="n">app</span><span class="o">.</span><span class="n">max_single_file_size</span><span class="p">:</span>
-        <span class="n">os</span><span class="o">.</span><span class="n">unlink</span><span class="p">(</span><span class="n">new_file_name</span><span class="p">)</span>
-        <span class="n">helpers</span><span class="o">.</span><span class="n">raise_file_too_big_exception</span><span class="p">(</span>
-            <span class="n">app</span><span class="o">.</span><span class="n">max_single_file_size</span><span class="p">,</span> <span class="n">single_file</span><span class="o">=</span><span class="kc">True</span>
-        <span class="p">)</span>
-    <span class="k">return</span> <span class="n">filename</span></div>
+        <span class="c1"># Werkzeug implements a fix for</span>
+        <span class="c1"># https://github.com/python/cpython/pull/3249 which we need.</span>
+        <span class="k">with</span> <span class="n">archive</span><span class="o">.</span><span class="n">Archive</span><span class="o">.</span><span class="n">create_from_fileobj</span><span class="p">(</span>
+            <span class="n">escape_logical_filename</span><span class="p">(</span><span class="n">filename</span><span class="p">),</span> <span class="n">t</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">t</span><span class="o">.</span><span class="n">IO</span><span class="p">[</span><span class="nb">bytes</span><span class="p">],</span> <span class="n">fileobj</span><span class="p">)</span>
+        <span class="p">)</span> <span class="k">as</span> <span class="n">arch</span><span class="p">:</span>
+            <span class="n">result</span> <span class="o">=</span> <span class="n">arch</span><span class="o">.</span><span class="n">extract</span><span class="p">(</span><span class="n">max_size</span><span class="o">=</span><span class="n">max_size</span><span class="p">,</span> <span class="n">putter</span><span class="o">=</span><span class="n">putter</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">result</span>
+    <span class="k">except</span> <span class="p">(</span>
+        <span class="n">tarfile</span><span class="o">.</span><span class="n">ReadError</span><span class="p">,</span> <span class="n">zipfile</span><span class="o">.</span><span class="n">BadZipFile</span><span class="p">,</span>
+        <span class="n">archive</span><span class="o">.</span><span class="n">UnrecognizedArchiveFormat</span>
+    <span class="p">)</span> <span class="k">as</span> <span class="n">exc</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="n">APIException</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s1">&#39;The given </span><span class="si">{</span><span class="n">filename</span><span class="si">}</span><span class="s1"> could not be extracted&#39;</span><span class="p">,</span>
+            <span class="s2">&quot;The given archive doesn&#39;t seem to be an archive&quot;</span><span class="p">,</span>
+            <span class="n">APICodes</span><span class="o">.</span><span class="n">INVALID_ARCHIVE</span><span class="p">,</span>
+            <span class="mi">400</span><span class="p">,</span>
+        <span class="p">)</span> <span class="kn">from</span> <span class="nn">exc</span>
+    <span class="k">except</span> <span class="p">(</span><span class="n">archive</span><span class="o">.</span><span class="n">ArchiveTooLarge</span><span class="p">,</span> <span class="n">archive</span><span class="o">.</span><span class="n">FileTooLarge</span><span class="p">)</span> <span class="k">as</span> <span class="n">exc</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="n">psef</span><span class="o">.</span><span class="n">helpers</span><span class="o">.</span><span class="n">make_file_too_big_exception</span><span class="p">(</span>
+            <span class="n">max_size</span><span class="p">,</span>
+            <span class="n">single_file</span><span class="o">=</span><span class="nb">isinstance</span><span class="p">(</span><span class="n">exc</span><span class="p">,</span> <span class="n">archive</span><span class="o">.</span><span class="n">FileTooLarge</span><span class="p">),</span>
+        <span class="p">)</span> <span class="kn">from</span> <span class="nn">exc</span>
+    <span class="k">except</span> <span class="n">archive</span><span class="o">.</span><span class="n">UnsafeArchive</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;Unsafe archive submitted&#39;</span><span class="p">,</span> <span class="n">exc_info</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="k">raise</span> <span class="n">APIException</span><span class="p">(</span>
+            <span class="s1">&#39;The given archive contains invalid or too many files&#39;</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="n">e</span><span class="p">),</span>
+            <span class="n">APICodes</span><span class="o">.</span><span class="n">UNSAFE_ARCHIVE</span><span class="p">,</span> <span class="mi">400</span>
+        <span class="p">)</span> <span class="kn">from</span> <span class="nn">e</span></div>
 
 
 <div class="viewcode-block" id="process_files"><a class="viewcode-back" href="../../psef_api/psef.html#psef.files.process_files">[docs]</a><span class="k">def</span> <span class="nf">process_files</span><span class="p">(</span>
-    <span class="n">files</span><span class="p">:</span> <span class="n">t</span><span class="o">.</span><span class="n">MutableSequence</span><span class="p">[</span><span class="n">FileStorage</span><span class="p">],</span>
-    <span class="n">max_size</span><span class="p">:</span> <span class="n">archive</span><span class="o">.</span><span class="n">FileSize</span><span class="p">,</span>
+    <span class="n">files</span><span class="p">:</span> <span class="n">t</span><span class="o">.</span><span class="n">Sequence</span><span class="p">[</span><span class="n">FileStorage</span><span class="p">],</span>
+    <span class="n">max_size</span><span class="p">:</span> <span class="n">FileSize</span><span class="p">,</span>
     <span class="n">force_txt</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
     <span class="n">ignore_filter</span><span class="p">:</span> <span class="n">t</span><span class="o">.</span><span class="n">Optional</span><span class="p">[</span><span class="n">SubmissionFilter</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">handle_ignore</span><span class="p">:</span> <span class="n">IgnoreHandling</span> <span class="o">=</span> <span class="n">IgnoreHandling</span><span class="o">.</span><span class="n">keep</span><span class="p">,</span>
+    <span class="n">putter</span><span class="p">:</span> <span class="n">cg_object_storage</span><span class="o">.</span><span class="n">Putter</span> <span class="o">=</span> <span class="kc">None</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ExtractFileTree</span><span class="p">:</span>
     <span class="sd">&quot;&quot;&quot;Process the given files by extracting, moving and saving their tree</span>
 <span class="sd">    structure.</span>
@@ -930,6 +719,32 @@
 <span class="sd">    :returns: The tree of the files as is described by</span>
 <span class="sd">        :py:func:`rename_directory_structure`</span>
 <span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">cont</span><span class="p">(</span><span class="n">_putter</span><span class="p">:</span> <span class="n">cg_object_storage</span><span class="o">.</span><span class="n">Putter</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ExtractFileTree</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">_process_files</span><span class="p">(</span>
+            <span class="n">files</span><span class="o">=</span><span class="n">files</span><span class="p">,</span>
+            <span class="n">max_size</span><span class="o">=</span><span class="n">max_size</span><span class="p">,</span>
+            <span class="n">force_txt</span><span class="o">=</span><span class="n">force_txt</span><span class="p">,</span>
+            <span class="n">ignore_filter</span><span class="o">=</span><span class="n">ignore_filter</span><span class="p">,</span>
+            <span class="n">handle_ignore</span><span class="o">=</span><span class="n">handle_ignore</span><span class="p">,</span>
+            <span class="n">putter</span><span class="o">=</span><span class="n">_putter</span><span class="p">,</span>
+        <span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">putter</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">with</span> <span class="n">app</span><span class="o">.</span><span class="n">file_storage</span><span class="o">.</span><span class="n">putter</span><span class="p">()</span> <span class="k">as</span> <span class="n">_putter</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">cont</span><span class="p">(</span><span class="n">_putter</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">cont</span><span class="p">(</span><span class="n">putter</span><span class="p">)</span></div>
+
+
+<span class="k">def</span> <span class="nf">_process_files</span><span class="p">(</span>
+    <span class="n">files</span><span class="p">:</span> <span class="n">t</span><span class="o">.</span><span class="n">Sequence</span><span class="p">[</span><span class="n">FileStorage</span><span class="p">],</span>
+    <span class="n">max_size</span><span class="p">:</span> <span class="n">FileSize</span><span class="p">,</span>
+    <span class="n">force_txt</span><span class="p">:</span> <span class="nb">bool</span><span class="p">,</span>
+    <span class="n">ignore_filter</span><span class="p">:</span> <span class="n">t</span><span class="o">.</span><span class="n">Optional</span><span class="p">[</span><span class="n">SubmissionFilter</span><span class="p">],</span>
+    <span class="n">handle_ignore</span><span class="p">:</span> <span class="n">IgnoreHandling</span><span class="p">,</span>
+    <span class="n">putter</span><span class="p">:</span> <span class="n">cg_object_storage</span><span class="o">.</span><span class="n">Putter</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ExtractFileTree</span><span class="p">:</span>
     <span class="k">if</span> <span class="n">ignore_filter</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
         <span class="n">ignore_filter</span> <span class="o">=</span> <span class="n">EmptySubmissionFilter</span><span class="p">()</span>
 
@@ -947,35 +762,51 @@
         <span class="k">return</span> <span class="ow">not</span> <span class="n">force_txt</span> <span class="ow">and</span> <span class="n">archive</span><span class="o">.</span><span class="n">Archive</span><span class="o">.</span><span class="n">is_archive</span><span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">filename</span><span class="p">)</span>
 
     <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">files</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span> <span class="ow">or</span> <span class="ow">not</span> <span class="n">consider_archive</span><span class="p">(</span><span class="n">files</span><span class="p">[</span><span class="mi">0</span><span class="p">]):</span>
-        <span class="n">tree</span> <span class="o">=</span> <span class="n">ExtractFileTree</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s1">&#39;top&#39;</span><span class="p">,</span> <span class="n">values</span><span class="o">=</span><span class="p">[],</span> <span class="n">parent</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
-        <span class="k">for</span> <span class="n">file</span> <span class="ow">in</span> <span class="n">files</span><span class="p">:</span>
+        <span class="n">tree</span> <span class="o">=</span> <span class="n">ExtractFileTree</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s1">&#39;top&#39;</span><span class="p">)</span>
+        <span class="n">filename_counter</span><span class="p">:</span> <span class="n">t</span><span class="o">.</span><span class="n">Counter</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="n">Counter</span><span class="p">()</span>
+        <span class="c1"># We reverse sort on length so that in the case we have two files named</span>
+        <span class="c1"># `a` and one name `a (1)` the resulting file `a (1)` will be the</span>
+        <span class="c1"># origin `a (1)`.</span>
+        <span class="k">for</span> <span class="n">file</span> <span class="ow">in</span> <span class="nb">sorted</span><span class="p">(</span>
+            <span class="n">files</span><span class="p">,</span>
+            <span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">f</span><span class="p">:</span> <span class="nb">len</span><span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">filename</span> <span class="ow">or</span> <span class="s1">&#39;&#39;</span><span class="p">),</span>
+            <span class="n">reverse</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="p">):</span>
             <span class="k">assert</span> <span class="n">file</span><span class="o">.</span><span class="n">filename</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+            <span class="n">filename</span> <span class="o">=</span> <span class="n">file</span><span class="o">.</span><span class="n">filename</span>
+
+            <span class="n">idx</span> <span class="o">=</span> <span class="mi">0</span>
+            <span class="k">while</span> <span class="n">filename_counter</span><span class="p">[</span><span class="n">filename</span><span class="p">]</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">idx</span> <span class="o">+=</span> <span class="mi">1</span>
+                <span class="n">parts</span> <span class="o">=</span> <span class="n">file</span><span class="o">.</span><span class="n">filename</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;.&#39;</span><span class="p">)</span>
+                <span class="n">parts</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">+=</span> <span class="sa">f</span><span class="s1">&#39; (</span><span class="si">{</span><span class="n">idx</span><span class="si">}</span><span class="s1">)&#39;</span>
+                <span class="n">filename</span> <span class="o">=</span> <span class="s1">&#39;.&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">parts</span><span class="p">)</span>
+            <span class="n">filename_counter</span><span class="p">[</span><span class="n">filename</span><span class="p">]</span> <span class="o">+=</span> <span class="mi">1</span>
 
             <span class="k">if</span> <span class="n">consider_archive</span><span class="p">(</span><span class="n">file</span><span class="p">):</span>
-                <span class="n">tree</span><span class="o">.</span><span class="n">add_child</span><span class="p">(</span><span class="n">extract</span><span class="p">(</span>
-                    <span class="n">file</span><span class="p">,</span>
-                    <span class="n">max_size</span><span class="o">=</span><span class="n">max_size</span><span class="p">,</span>
-                <span class="p">))</span>
-            <span class="k">else</span><span class="p">:</span>
-                <span class="n">new_file_name</span><span class="p">,</span> <span class="n">filename</span> <span class="o">=</span> <span class="n">random_file_path</span><span class="p">()</span>
-                <span class="n">file</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="n">new_file_name</span><span class="p">)</span>
                 <span class="n">tree</span><span class="o">.</span><span class="n">add_child</span><span class="p">(</span>
-                    <span class="n">ExtractFileTreeFile</span><span class="p">(</span>
-                        <span class="n">name</span><span class="o">=</span><span class="n">file</span><span class="o">.</span><span class="n">filename</span><span class="p">,</span>
-                        <span class="n">disk_name</span><span class="o">=</span><span class="n">filename</span><span class="p">,</span>
-                        <span class="n">parent</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-                        <span class="n">size</span><span class="o">=</span><span class="n">get_file_size</span><span class="p">(</span><span class="n">new_file_name</span><span class="p">),</span>
-                    <span class="p">)</span>
+                    <span class="n">extract</span><span class="p">(</span><span class="n">file</span><span class="p">,</span> <span class="n">filename</span><span class="p">,</span> <span class="n">max_size</span><span class="o">=</span><span class="n">max_size</span><span class="p">,</span> <span class="n">putter</span><span class="o">=</span><span class="n">putter</span><span class="p">)</span>
                 <span class="p">)</span>
-                <span class="k">if</span> <span class="n">tree</span><span class="o">.</span><span class="n">get_size</span><span class="p">()</span> <span class="o">&gt;</span> <span class="n">app</span><span class="o">.</span><span class="n">max_single_file_size</span><span class="p">:</span>
-                    <span class="n">helpers</span><span class="o">.</span><span class="n">raise_file_too_big_exception</span><span class="p">(</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">saved_file</span> <span class="o">=</span> <span class="n">putter</span><span class="o">.</span><span class="n">from_stream</span><span class="p">(</span>
+                    <span class="n">file</span><span class="o">.</span><span class="n">stream</span><span class="p">,</span> <span class="n">max_size</span><span class="o">=</span><span class="n">app</span><span class="o">.</span><span class="n">max_single_file_size</span>
+                <span class="p">)</span>
+                <span class="k">if</span> <span class="n">saved_file</span><span class="o">.</span><span class="n">is_nothing</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="n">helpers</span><span class="o">.</span><span class="n">make_file_too_big_exception</span><span class="p">(</span>
                         <span class="n">app</span><span class="o">.</span><span class="n">max_single_file_size</span><span class="p">,</span> <span class="n">single_file</span><span class="o">=</span><span class="kc">True</span>
                     <span class="p">)</span>
+                <span class="n">tree</span><span class="o">.</span><span class="n">add_child</span><span class="p">(</span>
+                    <span class="n">ExtractFileTreeFile</span><span class="p">(</span>
+                        <span class="n">name</span><span class="o">=</span><span class="n">filename</span><span class="p">,</span> <span class="n">backing_file</span><span class="o">=</span><span class="n">saved_file</span><span class="o">.</span><span class="n">value</span>
+                    <span class="p">)</span>
+                <span class="p">)</span>
 
     <span class="k">else</span><span class="p">:</span>
         <span class="n">tree</span> <span class="o">=</span> <span class="n">extract</span><span class="p">(</span>
             <span class="n">files</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+            <span class="n">cg_helpers</span><span class="o">.</span><span class="n">handle_none</span><span class="p">(</span><span class="n">files</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">filename</span><span class="p">,</span> <span class="s1">&#39;archive&#39;</span><span class="p">),</span>
             <span class="n">max_size</span><span class="o">=</span><span class="n">max_size</span><span class="p">,</span>
+            <span class="n">putter</span><span class="o">=</span><span class="n">putter</span><span class="p">,</span>
         <span class="p">)</span>
 
     <span class="k">if</span> <span class="ow">not</span> <span class="n">tree</span><span class="o">.</span><span class="n">contains_file</span><span class="p">:</span>
@@ -986,7 +817,6 @@
             <span class="mi">400</span><span class="p">,</span>
         <span class="p">)</span>
 
-    <span class="n">tree</span><span class="o">.</span><span class="n">fix_duplicate_filenames</span><span class="p">()</span>
     <span class="n">original_tree</span> <span class="o">=</span> <span class="n">copy</span><span class="o">.</span><span class="n">deepcopy</span><span class="p">(</span><span class="n">tree</span><span class="p">)</span>
     <span class="n">tree</span><span class="p">,</span> <span class="n">total_changes</span><span class="p">,</span> <span class="n">missing_files</span> <span class="o">=</span> <span class="n">ignore_filter</span><span class="o">.</span><span class="n">process_submission</span><span class="p">(</span>
         <span class="n">tree</span><span class="p">,</span> <span class="n">handle_ignore</span>
@@ -1007,11 +837,6 @@
 
     <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Removing files&#39;</span><span class="p">,</span> <span class="n">removed_files</span><span class="o">=</span><span class="n">total_changes</span><span class="p">)</span>
 
-    <span class="k">if</span> <span class="n">actual_file_changes</span><span class="p">:</span>
-        <span class="c1"># We need to do this again as moving files might have caused duplicate</span>
-        <span class="c1"># filenames</span>
-        <span class="n">tree</span><span class="o">.</span><span class="n">fix_duplicate_filenames</span><span class="p">()</span>
-
     <span class="c1"># It did contain files before deleting, so the deletion caused the tree to</span>
     <span class="c1"># be empty.</span>
     <span class="k">if</span> <span class="ow">not</span> <span class="n">tree</span><span class="o">.</span><span class="n">contains_file</span><span class="p">:</span>
@@ -1028,15 +853,15 @@
     <span class="n">tree_size</span> <span class="o">=</span> <span class="n">tree</span><span class="o">.</span><span class="n">get_size</span><span class="p">()</span>
     <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Total size&#39;</span><span class="p">,</span> <span class="n">total_size</span><span class="o">=</span><span class="n">tree_size</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="n">max_size</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">tree_size</span> <span class="o">&gt;</span> <span class="n">max_size</span><span class="p">:</span>
-        <span class="n">tree</span><span class="o">.</span><span class="n">delete</span><span class="p">(</span><span class="n">app</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s1">&#39;UPLOAD_DIR&#39;</span><span class="p">])</span>
-        <span class="n">helpers</span><span class="o">.</span><span class="n">raise_file_too_big_exception</span><span class="p">(</span><span class="n">max_size</span><span class="p">,</span> <span class="n">single_file</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+        <span class="n">tree</span><span class="o">.</span><span class="n">delete</span><span class="p">()</span>
+        <span class="k">raise</span> <span class="n">helpers</span><span class="o">.</span><span class="n">make_file_too_big_exception</span><span class="p">(</span><span class="n">max_size</span><span class="p">,</span> <span class="n">single_file</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
 
-    <span class="k">return</span> <span class="n">tree</span></div>
+    <span class="k">return</span> <span class="n">tree</span>
 
 
 <div class="viewcode-block" id="process_blackboard_zip"><a class="viewcode-back" href="../../psef_api/psef.html#psef.files.process_blackboard_zip">[docs]</a><span class="k">def</span> <span class="nf">process_blackboard_zip</span><span class="p">(</span>
     <span class="n">blackboard_zip</span><span class="p">:</span> <span class="n">FileStorage</span><span class="p">,</span>
-    <span class="n">max_size</span><span class="p">:</span> <span class="n">archive</span><span class="o">.</span><span class="n">FileSize</span><span class="p">,</span>
+    <span class="n">max_size</span><span class="p">:</span> <span class="n">FileSize</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">t</span><span class="o">.</span><span class="n">MutableSequence</span><span class="p">[</span><span class="n">t</span><span class="o">.</span><span class="n">Tuple</span><span class="p">[</span><span class="n">blackboard</span><span class="o">.</span><span class="n">SubmissionInfo</span><span class="p">,</span> <span class="n">ExtractFileTree</span><span class="p">]]:</span>
     <span class="sd">&quot;&quot;&quot;Process the given :py:mod:`.blackboard` zip file.</span>
 
@@ -1052,9 +877,14 @@
         <span class="k">for</span> <span class="n">blackboard_file</span> <span class="ow">in</span> <span class="n">info</span><span class="o">.</span><span class="n">files</span><span class="p">:</span>
             <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">blackboard_file</span><span class="p">,</span> <span class="n">blackboard</span><span class="o">.</span><span class="n">FileInfo</span><span class="p">):</span>
                 <span class="n">name</span> <span class="o">=</span> <span class="n">blackboard_file</span><span class="o">.</span><span class="n">original_name</span>
-                <span class="n">stream</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span>
-                    <span class="n">safe_join</span><span class="p">(</span><span class="n">tmpdir</span><span class="p">,</span> <span class="n">blackboard_file</span><span class="o">.</span><span class="n">name</span><span class="p">),</span> <span class="n">mode</span><span class="o">=</span><span class="s1">&#39;rb&#39;</span>
-                <span class="p">)</span>
+                <span class="n">bb_file</span> <span class="o">=</span> <span class="n">bb_tree</span><span class="o">.</span><span class="n">lookup_direct_child</span><span class="p">(</span><span class="n">blackboard_file</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
+                <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">bb_file</span><span class="p">,</span> <span class="n">ExtractFileTreeFile</span><span class="p">):</span>
+                    <span class="k">raise</span> <span class="ne">AssertionError</span><span class="p">(</span>
+                        <span class="s1">&#39;File </span><span class="si">{}</span><span class="s1"> was not a file but instead was </span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                            <span class="n">blackboard_file</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">bb_file</span>
+                        <span class="p">)</span>
+                    <span class="p">)</span>
+                <span class="n">stream</span> <span class="o">=</span> <span class="n">bb_file</span><span class="o">.</span><span class="n">backing_file</span><span class="o">.</span><span class="n">open</span><span class="p">()</span>
             <span class="k">else</span><span class="p">:</span>
                 <span class="n">name</span> <span class="o">=</span> <span class="n">blackboard_file</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
                 <span class="n">stream</span> <span class="o">=</span> <span class="n">io</span><span class="o">.</span><span class="n">BytesIO</span><span class="p">(</span><span class="n">blackboard_file</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
@@ -1065,27 +895,33 @@
             <span class="n">files</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">FileStorage</span><span class="p">(</span><span class="n">stream</span><span class="o">=</span><span class="n">stream</span><span class="p">,</span> <span class="n">filename</span><span class="o">=</span><span class="n">name</span><span class="p">))</span>
         <span class="k">return</span> <span class="n">files</span>
 
-    <span class="n">tmpdir</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">extract_to_temp</span><span class="p">(</span>
-        <span class="n">blackboard_zip</span><span class="p">,</span>
-        <span class="n">max_size</span><span class="o">=</span><span class="n">max_size</span><span class="p">,</span>
-    <span class="p">)</span>
-    <span class="k">try</span><span class="p">:</span>
-        <span class="n">info_files</span> <span class="o">=</span> <span class="nb">filter</span><span class="p">(</span>
-            <span class="kc">None</span><span class="p">,</span> <span class="p">(</span><span class="n">_BB_TXT_FORMAT</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="n">f</span><span class="p">)</span> <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="n">os</span><span class="o">.</span><span class="n">listdir</span><span class="p">(</span><span class="n">tmpdir</span><span class="p">))</span>
+    <span class="k">with</span> <span class="n">app</span><span class="o">.</span><span class="n">file_storage</span><span class="o">.</span><span class="n">putter</span><span class="p">()</span> <span class="k">as</span> <span class="n">putter</span><span class="p">:</span>
+        <span class="n">bb_tree</span> <span class="o">=</span> <span class="n">extract</span><span class="p">(</span>
+            <span class="n">blackboard_zip</span><span class="p">,</span>
+            <span class="n">cg_helpers</span><span class="o">.</span><span class="n">handle_none</span><span class="p">(</span><span class="n">blackboard_zip</span><span class="o">.</span><span class="n">filename</span><span class="p">,</span> <span class="s1">&#39;bb_zip&#39;</span><span class="p">),</span>
+            <span class="n">max_size</span><span class="o">=</span><span class="n">app</span><span class="o">.</span><span class="n">max_large_file_size</span><span class="p">,</span>
+            <span class="n">putter</span><span class="o">=</span><span class="n">putter</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">info_files</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">f</span> <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="n">bb_tree</span><span class="o">.</span><span class="n">values</span> <span class="k">if</span> <span class="n">_BB_TXT_FORMAT</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
         <span class="p">)</span>
         <span class="n">submissions</span> <span class="o">=</span> <span class="p">[]</span>
         <span class="k">for</span> <span class="n">info_file</span> <span class="ow">in</span> <span class="n">info_files</span><span class="p">:</span>
-            <span class="n">info</span> <span class="o">=</span> <span class="n">blackboard</span><span class="o">.</span><span class="n">parse_info_file</span><span class="p">(</span>
-                <span class="n">safe_join</span><span class="p">(</span><span class="n">tmpdir</span><span class="p">,</span> <span class="n">info_file</span><span class="o">.</span><span class="n">string</span><span class="p">)</span>
-            <span class="p">)</span>
+            <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">info_file</span><span class="p">,</span> <span class="n">ExtractFileTreeFile</span><span class="p">)</span>
+            <span class="k">with</span> <span class="n">info_file</span><span class="o">.</span><span class="n">backing_file</span><span class="o">.</span><span class="n">open</span><span class="p">()</span> <span class="k">as</span> <span class="n">info_fileobj</span><span class="p">:</span>
+                <span class="n">info</span> <span class="o">=</span> <span class="n">blackboard</span><span class="o">.</span><span class="n">parse_info_file</span><span class="p">(</span><span class="n">info_fileobj</span><span class="p">)</span>
 
             <span class="k">try</span><span class="p">:</span>
                 <span class="n">tree</span> <span class="o">=</span> <span class="n">process_files</span><span class="p">(</span>
-                    <span class="n">files</span><span class="o">=</span><span class="n">__get_files</span><span class="p">(</span><span class="n">info</span><span class="p">),</span> <span class="n">max_size</span><span class="o">=</span><span class="n">max_size</span>
+                    <span class="n">files</span><span class="o">=</span><span class="n">__get_files</span><span class="p">(</span><span class="n">info</span><span class="p">),</span>
+                    <span class="n">max_size</span><span class="o">=</span><span class="n">max_size</span><span class="p">,</span>
+                    <span class="n">putter</span><span class="o">=</span><span class="n">putter</span><span class="p">,</span>
                 <span class="p">)</span>
-            <span class="c1"># TODO: We catch all exceptions, this should probably be narrowed</span>
-            <span class="c1"># down, however finding all exception types is difficult.</span>
+            <span class="c1"># TODO: We catch all exceptions, this should probably be</span>
+            <span class="c1"># narrowed down, however finding all exception types is</span>
+            <span class="c1"># difficult.</span>
             <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>  <span class="c1"># pylint: disable=broad-except</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Could not extract files&#39;</span><span class="p">,</span> <span class="n">exc_info</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
                 <span class="n">files</span> <span class="o">=</span> <span class="n">__get_files</span><span class="p">(</span><span class="n">info</span><span class="p">)</span>
                 <span class="n">files</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
                     <span class="n">FileStorage</span><span class="p">(</span>
@@ -1096,18 +932,21 @@
                     <span class="p">)</span>
                 <span class="p">)</span>
                 <span class="n">tree</span> <span class="o">=</span> <span class="n">process_files</span><span class="p">(</span>
-                    <span class="n">files</span><span class="o">=</span><span class="n">files</span><span class="p">,</span> <span class="n">max_size</span><span class="o">=</span><span class="n">max_size</span><span class="p">,</span> <span class="n">force_txt</span><span class="o">=</span><span class="kc">True</span>
+                    <span class="n">files</span><span class="o">=</span><span class="n">files</span><span class="p">,</span>
+                    <span class="n">max_size</span><span class="o">=</span><span class="n">max_size</span><span class="p">,</span>
+                    <span class="n">force_txt</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                    <span class="n">putter</span><span class="o">=</span><span class="n">putter</span>
                 <span class="p">)</span>
 
             <span class="n">submissions</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">info</span><span class="p">,</span> <span class="n">tree</span><span class="p">))</span>
+
         <span class="k">if</span> <span class="ow">not</span> <span class="n">submissions</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">ValueError</span>
-    <span class="k">finally</span><span class="p">:</span>
-        <span class="n">shutil</span><span class="o">.</span><span class="n">rmtree</span><span class="p">(</span><span class="n">tmpdir</span><span class="p">)</span>
+
     <span class="k">return</span> <span class="n">submissions</span></div>
 
 
-<div class="viewcode-block" id="split_path"><a class="viewcode-back" href="../../psef_api/psef.html#psef.files.split_path">[docs]</a><span class="k">def</span> <span class="nf">split_path</span><span class="p">(</span><span class="n">path</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">t</span><span class="o">.</span><span class="n">Tuple</span><span class="p">[</span><span class="n">t</span><span class="o">.</span><span class="n">Sequence</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span> <span class="nb">bool</span><span class="p">]:</span>
+<div class="viewcode-block" id="split_path"><a class="viewcode-back" href="../../psef_api/psef.html#psef.files.split_path">[docs]</a><span class="k">def</span> <span class="nf">split_path</span><span class="p">(</span><span class="n">path</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">t</span><span class="o">.</span><span class="n">Tuple</span><span class="p">[</span><span class="n">t</span><span class="o">.</span><span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span> <span class="nb">bool</span><span class="p">]:</span>
     <span class="sd">&quot;&quot;&quot;Split a path into an array of parts of a path.</span>
 
 <span class="sd">    This functions splits a forward slash separated path into an sequence of</span>
@@ -1130,24 +969,41 @@
     <span class="k">return</span> <span class="n">patharr</span><span class="p">,</span> <span class="n">is_dir</span></div>
 
 
-<div class="viewcode-block" id="check_dir"><a class="viewcode-back" href="../../psef_api/psef.html#psef.files.check_dir">[docs]</a><span class="k">def</span> <span class="nf">check_dir</span><span class="p">(</span><span class="n">path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">check_size</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
-    <span class="sd">&quot;&quot;&quot;Check if the path is a directory that is readable, writable, and</span>
-<span class="sd">    executable for the current user.</span>
+<div class="viewcode-block" id="replace_symlinks"><a class="viewcode-back" href="../../psef_api/psef.html#psef.files.replace_symlinks">[docs]</a><span class="k">def</span> <span class="nf">replace_symlinks</span><span class="p">(</span><span class="n">to_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;Replace symlinks in the given directory with regular files</span>
+<span class="sd">    containing a notice that the symlink was replaced.</span>
 
-<span class="sd">    :param path: Path to check.</span>
-<span class="sd">    :param check_size: Also check if there is enough free space in the given</span>
-<span class="sd">        directory.</span>
-<span class="sd">    :returns: ``True`` if path has the properties described above, ``False``</span>
-<span class="sd">        otherwise.</span>
+<span class="sd">    :param to_path: Directory to scan for symlinks.</span>
+<span class="sd">    :returns: Nothing</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="n">mode</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">R_OK</span> <span class="o">|</span> <span class="n">os</span><span class="o">.</span><span class="n">W_OK</span> <span class="o">|</span> <span class="n">os</span><span class="o">.</span><span class="n">X_OK</span>
-    <span class="n">res</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">access</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">mode</span><span class="p">)</span> <span class="ow">and</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isdir</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">parent</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">files</span> <span class="ow">in</span> <span class="n">os</span><span class="o">.</span><span class="n">walk</span><span class="p">(</span><span class="n">to_path</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="n">files</span><span class="p">:</span>
+            <span class="n">file_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">parent</span><span class="p">,</span> <span class="n">f</span><span class="p">)</span>
 
-    <span class="k">if</span> <span class="n">res</span> <span class="ow">and</span> <span class="n">check_size</span><span class="p">:</span>
-        <span class="n">free_space</span> <span class="o">=</span> <span class="n">shutil</span><span class="o">.</span><span class="n">disk_usage</span><span class="p">(</span><span class="n">path</span><span class="p">)</span><span class="o">.</span><span class="n">free</span>
-        <span class="n">res</span> <span class="o">=</span> <span class="n">free_space</span> <span class="o">&gt;</span> <span class="n">app</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s1">&#39;MIN_FREE_DISK_SPACE&#39;</span><span class="p">]</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">islink</span><span class="p">(</span><span class="n">file_path</span><span class="p">):</span>
+                <span class="k">assert</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isfile</span><span class="p">(</span><span class="n">file_path</span><span class="p">)</span> <span class="ow">or</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isdir</span><span class="p">(</span><span class="n">file_path</span><span class="p">)</span>
+                <span class="c1"># This cannot be covered, see:</span>
+                <span class="c1"># https://bitbucket.org/ned/coveragepy/issues/198/continue-marked-as-not-covered</span>
+                <span class="k">continue</span>  <span class="c1"># pragma: no cover</span>
 
-    <span class="k">return</span> <span class="n">res</span></div>
+            <span class="n">rel_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">relpath</span><span class="p">(</span><span class="n">file_path</span><span class="p">,</span> <span class="n">to_path</span><span class="p">)</span>
+            <span class="n">link_target</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">readlink</span><span class="p">(</span><span class="n">file_path</span><span class="p">)</span>
+            <span class="n">os</span><span class="o">.</span><span class="n">unlink</span><span class="p">(</span><span class="n">file_path</span><span class="p">)</span>
+
+            <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">file_path</span><span class="p">,</span> <span class="s1">&#39;w&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">new_file</span><span class="p">:</span>
+                <span class="n">new_file</span><span class="o">.</span><span class="n">write</span><span class="p">(</span>
+                    <span class="p">(</span>
+                        <span class="s1">&#39;This file was a symbolic link to &quot;</span><span class="si">{}</span><span class="s1">&quot; when it &#39;</span>
+                        <span class="s1">&#39;was submitted, but CodeGrade does not support &#39;</span>
+                        <span class="s1">&#39;symbolic links.</span><span class="se">\n</span><span class="s1">&#39;</span>
+                    <span class="p">)</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">link_target</span><span class="p">),</span>
+                <span class="p">)</span>
+
+            <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
+                <span class="s1">&#39;Symlink detected in archive&#39;</span><span class="p">,</span>
+                <span class="n">filename</span><span class="o">=</span><span class="n">rel_path</span><span class="p">,</span>
+                <span class="n">link_target</span><span class="o">=</span><span class="n">link_target</span><span class="p">,</span>
+            <span class="p">)</span></div>
 </pre></div>
 
            </div>

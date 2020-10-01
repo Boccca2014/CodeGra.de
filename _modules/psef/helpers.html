@@ -1367,9 +1367,10 @@
     <span class="p">)</span></div>
 
 
-<div class="viewcode-block" id="raise_file_too_big_exception"><a class="viewcode-back" href="../../psef_api/psef.html#psef.helpers.raise_file_too_big_exception">[docs]</a><span class="k">def</span> <span class="nf">raise_file_too_big_exception</span><span class="p">(</span>
-    <span class="n">max_size</span><span class="p">:</span> <span class="s1">&#39;psef.archive.FileSize&#39;</span><span class="p">,</span> <span class="n">single_file</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
-<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">mypy_extensions</span><span class="o">.</span><span class="n">NoReturn</span><span class="p">:</span>
+<div class="viewcode-block" id="make_file_too_big_exception"><a class="viewcode-back" href="../../psef_api/psef.html#psef.helpers.make_file_too_big_exception">[docs]</a><span class="k">def</span> <span class="nf">make_file_too_big_exception</span><span class="p">(</span>
+    <span class="n">max_size</span><span class="p">:</span> <span class="s1">&#39;psef.archive.FileSize&#39;</span><span class="p">,</span>
+    <span class="n">single_file</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="s1">&#39;psef.errors.APIException&#39;</span><span class="p">:</span>
     <span class="sd">&quot;&quot;&quot;Get an exception that should be thrown when uploade file is too big.</span>
 
 <span class="sd">    :param max_size: The maximum size that was overwritten.</span>
@@ -1386,7 +1387,7 @@
             <span class="sa">f</span><span class="s1">&#39;The maximum is (extracted) size is &#39;</span>
             <span class="sa">f</span><span class="s1">&#39;</span><span class="si">{</span><span class="n">human_readable_size</span><span class="p">(</span><span class="n">max_size</span><span class="p">)</span><span class="si">}</span><span class="s1">.&#39;</span>
         <span class="p">)</span>
-    <span class="k">raise</span> <span class="n">psef</span><span class="o">.</span><span class="n">errors</span><span class="o">.</span><span class="n">APIException</span><span class="p">(</span>
+    <span class="k">return</span> <span class="n">psef</span><span class="o">.</span><span class="n">errors</span><span class="o">.</span><span class="n">APIException</span><span class="p">(</span>
         <span class="n">msg</span><span class="p">,</span> <span class="s1">&#39;Request is bigger than maximum upload size of max_size bytes.&#39;</span><span class="p">,</span>
         <span class="n">psef</span><span class="o">.</span><span class="n">errors</span><span class="o">.</span><span class="n">APICodes</span><span class="o">.</span><span class="n">REQUEST_TOO_LARGE</span><span class="p">,</span> <span class="mi">400</span>
     <span class="p">)</span></div>
@@ -1656,7 +1657,7 @@
     <span class="n">res</span> <span class="o">=</span> <span class="p">[]</span>
 
     <span class="k">if</span> <span class="p">(</span><span class="n">request</span><span class="o">.</span><span class="n">content_length</span> <span class="ow">or</span> <span class="mi">0</span><span class="p">)</span> <span class="o">&gt;</span> <span class="n">max_size</span><span class="p">:</span>
-        <span class="n">raise_file_too_big_exception</span><span class="p">(</span><span class="n">max_size</span><span class="p">)</span>
+        <span class="k">raise</span> <span class="n">make_file_too_big_exception</span><span class="p">(</span><span class="n">max_size</span><span class="p">)</span>
 
     <span class="k">if</span> <span class="ow">not</span> <span class="n">flask</span><span class="o">.</span><span class="n">request</span><span class="o">.</span><span class="n">files</span><span class="p">:</span>
         <span class="k">raise</span> <span class="n">errors</span><span class="o">.</span><span class="n">APIException</span><span class="p">(</span>

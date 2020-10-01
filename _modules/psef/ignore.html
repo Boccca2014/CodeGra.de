@@ -221,7 +221,7 @@
 
 <span class="kn">import</span> <span class="nn">structlog</span>
 
-<span class="kn">from</span> <span class="nn">.</span> <span class="kn">import</span> <span class="n">app</span><span class="p">,</span> <span class="n">helpers</span>
+<span class="kn">from</span> <span class="nn">.</span> <span class="kn">import</span> <span class="n">helpers</span>
 <span class="kn">from</span> <span class="nn">.helpers</span> <span class="kn">import</span> <span class="n">register</span>
 <span class="kn">from</span> <span class="nn">.exceptions</span> <span class="kn">import</span> <span class="n">APICodes</span><span class="p">,</span> <span class="n">APIException</span>
 <span class="kn">from</span> <span class="nn">.extract_tree</span> <span class="kn">import</span> <span class="p">(</span>
@@ -343,12 +343,15 @@
 <span class="sd">        :returns: The modified tree, and a list of files that were deleted.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="c1"># pylint: disable=no-self-use</span>
-
         <span class="n">changes</span> <span class="o">=</span> <span class="p">[]</span>
-        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">tree</span><span class="o">.</span><span class="n">values</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span> <span class="ow">and</span> <span class="n">tree</span><span class="o">.</span><span class="n">values</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">is_dir</span><span class="p">:</span>
+
+        <span class="k">def</span> <span class="nf">is_dir</span><span class="p">(</span><span class="n">f</span><span class="p">:</span> <span class="n">ExtractFileTreeBase</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">f</span><span class="o">.</span><span class="n">is_dir</span>
+
+        <span class="k">if</span> <span class="n">tree</span><span class="o">.</span><span class="n">only_child</span><span class="o">.</span><span class="n">map</span><span class="p">(</span><span class="n">is_dir</span><span class="p">)</span><span class="o">.</span><span class="n">or_default</span><span class="p">(</span><span class="kc">False</span><span class="p">):</span>
             <span class="n">tree</span> <span class="o">=</span> <span class="n">copy</span><span class="o">.</span><span class="n">deepcopy</span><span class="p">(</span><span class="n">tree</span><span class="p">)</span>
 
-        <span class="k">while</span> <span class="nb">len</span><span class="p">(</span><span class="n">tree</span><span class="o">.</span><span class="n">values</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span> <span class="ow">and</span> <span class="n">tree</span><span class="o">.</span><span class="n">values</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">is_dir</span><span class="p">:</span>
+        <span class="k">while</span> <span class="n">tree</span><span class="o">.</span><span class="n">only_child</span><span class="o">.</span><span class="n">map</span><span class="p">(</span><span class="n">is_dir</span><span class="p">)</span><span class="o">.</span><span class="n">or_default</span><span class="p">(</span><span class="kc">False</span><span class="p">):</span>
             <span class="n">changes</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
                 <span class="n">FileDeletion</span><span class="p">(</span>
                     <span class="n">deletion_type</span><span class="o">=</span><span class="n">DeletionType</span><span class="o">.</span><span class="n">leading_directory</span><span class="p">,</span>
@@ -367,21 +370,21 @@
 
             <span class="c1"># Copy is needed here as we modify values by doing a `.delete` call</span>
             <span class="c1"># on one of the children.</span>
-            <span class="k">for</span> <span class="n">child</span> <span class="ow">in</span> <span class="n">copy</span><span class="o">.</span><span class="n">copy</span><span class="p">(</span><span class="n">tree</span><span class="o">.</span><span class="n">values</span><span class="p">):</span>
+            <span class="k">for</span> <span class="n">child</span> <span class="ow">in</span> <span class="nb">list</span><span class="p">(</span><span class="n">tree</span><span class="o">.</span><span class="n">values</span><span class="p">):</span>
                 <span class="n">res</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_delete_file</span><span class="p">(</span><span class="n">child</span><span class="p">))</span>
 
-            <span class="k">if</span> <span class="ow">not</span> <span class="n">tree</span><span class="o">.</span><span class="n">values</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">tree</span><span class="o">.</span><span class="n">is_empty</span><span class="p">:</span>
                 <span class="n">deleted_tree</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">file_allowed</span><span class="p">(</span><span class="n">tree</span><span class="p">)</span>
                 <span class="k">if</span> <span class="n">deleted_tree</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
                     <span class="n">res</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">deleted_tree</span><span class="p">)</span>
-                    <span class="n">tree</span><span class="o">.</span><span class="n">delete</span><span class="p">(</span><span class="n">app</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s1">&#39;UPLOAD_DIR&#39;</span><span class="p">])</span>
+                    <span class="n">tree</span><span class="o">.</span><span class="n">delete</span><span class="p">()</span>
 
             <span class="k">return</span> <span class="n">res</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="n">deleted_file</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">file_allowed</span><span class="p">(</span><span class="n">cur</span><span class="p">)</span>
             <span class="k">if</span> <span class="n">deleted_file</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
                 <span class="k">return</span> <span class="p">[]</span>
-            <span class="n">cur</span><span class="o">.</span><span class="n">delete</span><span class="p">(</span><span class="n">app</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s1">&#39;UPLOAD_DIR&#39;</span><span class="p">])</span>
+            <span class="n">cur</span><span class="o">.</span><span class="n">delete</span><span class="p">()</span>
             <span class="k">return</span> <span class="p">[</span><span class="n">deleted_file</span><span class="p">]</span>
 
 <div class="viewcode-block" id="SubmissionFilter.process_submission"><a class="viewcode-back" href="../../psef_api/psef.html#psef.ignore.SubmissionFilter.process_submission">[docs]</a>    <span class="k">def</span> <span class="nf">process_submission</span><span class="p">(</span>
@@ -409,7 +412,7 @@
         <span class="k">if</span> <span class="n">handle_ignore</span> <span class="o">!=</span> <span class="n">IgnoreHandling</span><span class="o">.</span><span class="n">keep</span><span class="p">:</span>
             <span class="c1"># Copy is needed here as we modify values by doing a `.delete` call</span>
             <span class="c1"># on one of the children.</span>
-            <span class="k">for</span> <span class="n">child</span> <span class="ow">in</span> <span class="n">copy</span><span class="o">.</span><span class="n">copy</span><span class="p">(</span><span class="n">tree</span><span class="o">.</span><span class="n">values</span><span class="p">):</span>
+            <span class="k">for</span> <span class="n">child</span> <span class="ow">in</span> <span class="nb">list</span><span class="p">(</span><span class="n">tree</span><span class="o">.</span><span class="n">values</span><span class="p">):</span>
                 <span class="n">total_changes</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_delete_file</span><span class="p">(</span><span class="n">child</span><span class="p">))</span>
 
             <span class="n">tree</span><span class="p">,</span> <span class="n">removed_top_dirs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_remove_leading_directories</span><span class="p">(</span><span class="n">tree</span><span class="p">)</span>
@@ -1158,7 +1161,7 @@
 <span class="sd">        :returns: If the submission is valid.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">if</span> <span class="p">(</span>
-            <span class="n">f</span><span class="o">.</span><span class="n">is_dir</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">t</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">ExtractFileTreeDirectory</span><span class="p">,</span> <span class="n">f</span><span class="p">)</span><span class="o">.</span><span class="n">values</span> <span class="ow">and</span>
+            <span class="nb">isinstance</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="n">ExtractFileTreeDirectory</span><span class="p">)</span> <span class="ow">and</span> <span class="n">f</span><span class="o">.</span><span class="n">is_empty</span> <span class="ow">and</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">options</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">Options</span><span class="o">.</span><span class="n">OptionName</span><span class="o">.</span><span class="n">delete_empty_directories</span><span class="p">)</span>
         <span class="p">):</span>
             <span class="k">return</span> <span class="n">FileDeletion</span><span class="p">(</span>

@@ -1102,26 +1102,20 @@
         <span class="sd">&quot;&quot;&quot;Make sure the current user may edit the content of files in this</span>
 <span class="sd">        work.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">work</span><span class="o">.</span><span class="n">has_as_author</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">user</span><span class="p">):</span>
-            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">work</span><span class="o">.</span><span class="n">assignment</span><span class="o">.</span><span class="n">is_open</span><span class="p">:</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">_ensure</span><span class="p">(</span><span class="n">CPerm</span><span class="o">.</span><span class="n">can_submit_own_work</span><span class="p">)</span>
-            <span class="k">else</span><span class="p">:</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">_ensure</span><span class="p">(</span><span class="n">CPerm</span><span class="o">.</span><span class="n">can_upload_after_deadline</span><span class="p">)</span>
-        <span class="k">else</span><span class="p">:</span>
-            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">work</span><span class="o">.</span><span class="n">assignment</span><span class="o">.</span><span class="n">is_open</span><span class="p">:</span>
-                <span class="k">raise</span> <span class="n">PermissionException</span><span class="p">(</span>
-                    <span class="p">(</span>
-                        <span class="s1">&#39;You cannot edit work as teacher&#39;</span>
-                        <span class="s1">&#39; if the assignment is stil open!&#39;</span>
-                    <span class="p">),</span>
-                    <span class="p">(</span>
-                        <span class="sa">f</span><span class="s1">&#39;The assignment &quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">work</span><span class="o">.</span><span class="n">assignment</span><span class="o">.</span><span class="n">id</span><span class="si">}</span><span class="s1">&quot; is still&#39;</span>
-                        <span class="s1">&#39; open.&#39;</span>
-                    <span class="p">),</span>
-                    <span class="n">APICodes</span><span class="o">.</span><span class="n">INCORRECT_PERMISSION</span><span class="p">,</span>
-                    <span class="mi">403</span><span class="p">,</span>
-                <span class="p">)</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">_ensure</span><span class="p">(</span><span class="n">CPerm</span><span class="o">.</span><span class="n">can_edit_others_work</span><span class="p">)</span></div>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_ensure</span><span class="p">(</span><span class="n">CPerm</span><span class="o">.</span><span class="n">can_edit_others_work</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">work</span><span class="o">.</span><span class="n">assignment</span><span class="o">.</span><span class="n">is_open</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">PermissionException</span><span class="p">(</span>
+                <span class="p">(</span>
+                    <span class="s1">&#39;You cannot edit work as teacher&#39;</span>
+                    <span class="s1">&#39; if the assignment is stil open!&#39;</span>
+                <span class="p">),</span>
+                <span class="p">(</span>
+                    <span class="sa">f</span><span class="s1">&#39;The assignment &quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">work</span><span class="o">.</span><span class="n">assignment</span><span class="o">.</span><span class="n">id</span><span class="si">}</span><span class="s1">&quot; is still&#39;</span>
+                    <span class="s1">&#39; open.&#39;</span>
+                <span class="p">),</span>
+                <span class="n">APICodes</span><span class="o">.</span><span class="n">INCORRECT_PERMISSION</span><span class="p">,</span>
+                <span class="mi">403</span><span class="p">,</span>
+            <span class="p">)</span></div>
 
 <div class="viewcode-block" id="WorkPermissions.ensure_may_see"><a class="viewcode-back" href="../../psef_api/psef.html#psef.auth.WorkPermissions.ensure_may_see">[docs]</a>    <span class="nd">@CoursePermissionChecker</span><span class="o">.</span><span class="n">as_ensure_function</span>
     <span class="k">def</span> <span class="nf">ensure_may_see</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>

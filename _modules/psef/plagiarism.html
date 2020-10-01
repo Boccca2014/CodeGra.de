@@ -289,9 +289,9 @@
 
 
 <div class="viewcode-block" id="process_output_csv"><a class="viewcode-back" href="../../psef_api/psef.html#psef.plagiarism.process_output_csv">[docs]</a><span class="k">def</span> <span class="nf">process_output_csv</span><span class="p">(</span>
-    <span class="n">lookup_map</span><span class="p">:</span> <span class="n">t</span><span class="o">.</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">int</span><span class="p">],</span>
+    <span class="n">lookup_map</span><span class="p">:</span> <span class="n">t</span><span class="o">.</span><span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">int</span><span class="p">],</span>
     <span class="n">old_submissions</span><span class="p">:</span> <span class="n">t</span><span class="o">.</span><span class="n">Container</span><span class="p">[</span><span class="nb">int</span><span class="p">],</span>
-    <span class="n">file_tree_lookup</span><span class="p">:</span> <span class="n">t</span><span class="o">.</span><span class="n">Dict</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="n">files</span><span class="o">.</span><span class="n">FileTree</span><span class="p">[</span><span class="nb">int</span><span class="p">]],</span>
+    <span class="n">file_tree_lookup</span><span class="p">:</span> <span class="n">t</span><span class="o">.</span><span class="n">Mapping</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="n">files</span><span class="o">.</span><span class="n">FileTree</span><span class="p">[</span><span class="nb">int</span><span class="p">]],</span>
     <span class="n">csvfile</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
     <span class="n">delimiter</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">&#39;;&#39;</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">t</span><span class="o">.</span><span class="n">List</span><span class="p">[</span><span class="n">models</span><span class="o">.</span><span class="n">PlagiarismCase</span><span class="p">]:</span>
@@ -400,6 +400,12 @@
 <span class="sd">    done using :func:`PlagiarismProvider.transform_csv` which is called just</span>
 <span class="sd">    before the csv file is processed.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="PlagiarismProvider.get_name"><a class="viewcode-back" href="../../psef_api/psef.html#psef.plagiarism.PlagiarismProvider.get_name">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">get_name</span><span class="p">(</span><span class="bp">cls</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Get the name of this provider.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">cls</span><span class="o">.</span><span class="vm">__name__</span></div>
 
 <div class="viewcode-block" id="PlagiarismProvider.supports_base_code"><a class="viewcode-back" href="../../psef_api/psef.html#psef.plagiarism.PlagiarismProvider.supports_base_code">[docs]</a>    <span class="nd">@staticmethod</span>
     <span class="k">def</span> <span class="nf">supports_base_code</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>

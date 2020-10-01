@@ -241,6 +241,8 @@
 </li>
       <li><a href="psef_api/psef.html#psef.models.auto_test.AutoTestRun.add_active_runner">add_active_runner() (psef.models.auto_test.AutoTestRun method)</a>
 </li>
+      <li><a href="psef_api/psef.html#psef.models.plagiarism.PlagiarismRun.add_base_code">add_base_code() (psef.models.plagiarism.PlagiarismRun method)</a>
+</li>
       <li><a href="psef_api/psef.html#psef.extract_tree.ExtractFileTreeDirectory.add_child">add_child() (psef.extract_tree.ExtractFileTreeDirectory method)</a>
 </li>
       <li><a href="psef_api/psef.html#psef.models.linter.LinterInstance.add_comments">add_comments() (psef.models.linter.LinterInstance method)</a>
@@ -250,6 +252,8 @@
       <li><a href="psef_api/psef.html#psef.models.work.Work.add_file_tree">add_file_tree() (psef.models.work.Work method)</a>
 </li>
       <li><a href="psef_api/psef.html#psef.models.group.Group.add_member">add_member() (psef.models.group.Group method)</a>
+</li>
+      <li><a href="psef_api/psef.html#psef.models.plagiarism.PlagiarismRun.add_old_submissions">add_old_submissions() (psef.models.plagiarism.PlagiarismRun method)</a>
 </li>
       <li><a href="psef_api/psef.html#psef.models.comment.CommentBase.add_reply">add_reply() (psef.models.comment.CommentBase method)</a>
 </li>
@@ -425,6 +429,8 @@
 </li>
       <li><a href="psef_api/psef.html#psef.models.assignment.AssignmentVisibilityState">AssignmentVisibilityState (class in psef.models.assignment)</a>
 </li>
+      <li><a href="psef_api/psef.html#psef.models.auto_test_step.AutoTestStepResult.attachment">attachment() (psef.models.auto_test_step.AutoTestStepResult property)</a>
+</li>
       <li><a href="psef_api/psef.html#psef.auto_test.AttachTimeoutError">AttachTimeoutError</a>
 </li>
       <li><a href="psef_api/psef.html#psef.models.lti_provider.LTI1p3Provider.auth_audience">auth_audience() (psef.models.lti_provider.LTI1p3Provider property)</a>
@@ -493,16 +499,24 @@
 <h2 id="B">B</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="psef_api/psef.html#psef.extract_tree.ExtractFileTreeFile.backing_file">backing_file (psef.extract_tree.ExtractFileTreeFile attribute)</a>
+
+      <ul>
+        <li><a href="psef_api/psef.html#psef.extract_tree.ExtractFileTreeSpecialFile.backing_file">(psef.extract_tree.ExtractFileTreeSpecialFile attribute)</a>
+</li>
+      </ul></li>
+      <li><a href="psef_api/psef.html#psef.models.file.FileMixin.backing_file">backing_file() (psef.models.file.FileMixin property)</a>
+</li>
       <li><a href="psef_api/psef.html#psef.lti.v1_1.BareBonesLTIProvider">BareBonesLTIProvider (class in psef.lti.v1_1)</a>
 </li>
       <li><a href="psef_api/psef.html#psef.auth.FeedbackBasePermissions.base">base (psef.auth.FeedbackBasePermissions attribute)</a>
 </li>
       <li><a href="psef_api/psef.html#psef.models.notification.BaseNotificationJSON">BaseNotificationJSON (class in psef.models.notification)</a>
 </li>
-      <li><a href="psef_api/psef.html#psef.permissions.BasePermission">BasePermission (class in psef.permissions)</a>
-</li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="psef_api/psef.html#psef.permissions.BasePermission">BasePermission (class in psef.permissions)</a>
+</li>
       <li><a href="psef_api/psef.html#psef.helpers.between">between() (in module psef.helpers)</a>
 </li>
       <li><a href="psef_api/psef.html#psef.lti.v1_1.BlackboardLTI">BlackboardLTI (class in psef.lti.v1_1)</a>
@@ -717,13 +731,11 @@
       </ul></li>
       <li><a href="psef_api/psef.html#psef.lti.v1_3.CGRegistration">CGRegistration (class in psef.lti.v1_3)</a>
 </li>
-      <li><a href="psef_api/psef.html#psef.lti.v1_3.CGServiceConnector">CGServiceConnector (class in psef.lti.v1_3)</a>
-</li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="psef_api/psef.html#psef.models.assignment.Assignment.change_notifications">change_notifications() (psef.models.assignment.Assignment method)</a>
+      <li><a href="psef_api/psef.html#psef.lti.v1_3.CGServiceConnector">CGServiceConnector (class in psef.lti.v1_3)</a>
 </li>
-      <li><a href="psef_api/psef.html#psef.files.check_dir">check_dir() (in module psef.files)</a>
+      <li><a href="psef_api/psef.html#psef.models.assignment.Assignment.change_notifications">change_notifications() (psef.models.assignment.Assignment method)</a>
 </li>
       <li><a href="psef_api/psef.html#psef.lti.v1_3.LTIConfig.check_iss_has_one_client">check_iss_has_one_client() (psef.lti.v1_3.LTIConfig method)</a>
 </li>
@@ -1075,12 +1087,6 @@
 </li>
       <li><a href="psef_api/psef.html#psef.exceptions.APICodes.DISABLED_FEATURE">DISABLED_FEATURE (psef.exceptions.APICodes attribute)</a>
 </li>
-      <li><a href="psef_api/psef.html#psef.extract_tree.ExtractFileTreeFile.disk_name">disk_name (psef.extract_tree.ExtractFileTreeFile attribute)</a>
-
-      <ul>
-        <li><a href="psef_api/psef.html#psef.extract_tree.ExtractFileTreeSpecialFile.disk_name">(psef.extract_tree.ExtractFileTreeSpecialFile attribute)</a>
-</li>
-      </ul></li>
       <li><a href="psef_api/psef.html#psef.helpers.Dividable">Dividable (class in psef.helpers)</a>
 </li>
       <li><a href="psef_api/psef.html#psef.models.work.Work.divide_new_work">divide_new_work() (psef.models.work.Work method)</a>
@@ -1090,6 +1096,8 @@
       <li><a href="psef_api/psef.html#psef.models.assignment.AssignmentJSON.division_parent_id">division_parent_id (psef.models.assignment.AssignmentJSON attribute)</a>
 </li>
       <li><a href="psef_api/psef.html#psef.models.auto_test.AutoTestRun.do_batch_run">do_batch_run() (psef.models.auto_test.AutoTestRun method)</a>
+</li>
+      <li><a href="psef_api/psef.html#psef.models.plagiarism.PlagiarismRun.do_run">do_run() (psef.models.plagiarism.PlagiarismRun method)</a>
 </li>
       <li><a href="psef_api/psef.html#psef.PsefFlask.do_sanity_checks">do_sanity_checks() (psef.PsefFlask property)</a>
 </li>
@@ -1365,8 +1373,6 @@
 </li>
       <li><a href="psef_api/psef.html#psef.files.extract">extract() (in module psef.files)</a>
 </li>
-      <li><a href="psef_api/psef.html#psef.files.extract_to_temp">extract_to_temp() (in module psef.files)</a>
-</li>
       <li><a href="psef_api/psef.html#psef.extract_tree.ExtractFileTree">ExtractFileTree (class in psef.extract_tree)</a>
 </li>
       <li><a href="psef_api/psef.html#psef.extract_tree.ExtractFileTreeBase">ExtractFileTreeBase (class in psef.extract_tree)</a>
@@ -1482,11 +1488,7 @@
       <li><a href="psef_api/psef.html#psef.models.comment.CommentBase.first_reply">first_reply() (psef.models.comment.CommentBase property)</a>
 </li>
       <li><a href="psef_api/psef.html#psef.files.fix_duplicate_filenames">fix_duplicate_filenames() (in module psef.files)</a>
-
-      <ul>
-        <li><a href="psef_api/psef.html#psef.extract_tree.ExtractFileTreeDirectory.fix_duplicate_filenames">(psef.extract_tree.ExtractFileTreeDirectory method)</a>
 </li>
-      </ul></li>
       <li><a href="psef_api/psef.html#psef.models.assignment.AssignmentJSON.fixed_max_rubric_points">fixed_max_rubric_points (psef.models.assignment.AssignmentJSON attribute)</a>
 </li>
       <li><a href="psef_api/psef.html#psef.auth.AutoTestFixturePermissions.fixture">fixture (psef.auth.AutoTestFixturePermissions attribute)</a>
@@ -1643,19 +1645,11 @@
 </li>
       <li><a href="psef_api/psef.html#psef.models.role.CourseRole.get_default_course_roles">get_default_course_roles() (psef.models.role.CourseRole static method)</a>
 </li>
-      <li><a href="psef_api/psef.html#psef.models.file.File.get_diskname">get_diskname() (psef.models.file.File method)</a>
-
-      <ul>
-        <li><a href="psef_api/psef.html#psef.models.file.FileMixin.get_diskname">(psef.models.file.FileMixin method)</a>
-</li>
-      </ul></li>
       <li><a href="psef_api/psef.html#psef.models.assignment.Assignment.get_divided_amount_missing">get_divided_amount_missing() (psef.models.assignment.Assignment method)</a>
 </li>
       <li><a href="psef_api/psef.html#psef.lti.v1_3.get_email_for_user">get_email_for_user() (in module psef.lti.v1_3)</a>
 </li>
       <li><a href="psef_api/psef.html#psef.models.file.File.get_exclude_owner">get_exclude_owner() (psef.models.file.File static method)</a>
-</li>
-      <li><a href="psef_api/psef.html#psef.models.work.Work.get_file_children_mapping">get_file_children_mapping() (psef.models.work.Work method)</a>
 </li>
       <li><a href="psef_api/psef.html#psef.files.get_file_contents">get_file_contents() (in module psef.files)</a>
 </li>
@@ -1684,6 +1678,8 @@
 </li>
         <li><a href="psef_api/psef.html#psef.models.file.NestedFileMixin.get_id">(psef.models.file.NestedFileMixin method)</a>
 </li>
+        <li><a href="psef_api/psef.html#psef.models.file.PlagiarismBaseCodeFile.get_id">(psef.models.file.PlagiarismBaseCodeFile method)</a>
+</li>
       </ul></li>
       <li><a href="psef_api/psef.html#psef.helpers.get_in_or_error">get_in_or_error() (in module psef.helpers)</a>
 </li>
@@ -1705,12 +1701,12 @@
 </li>
       <li><a href="psef_api/psef.html#psef.models.assignment.Assignment.get_latest_submission_for_user">get_latest_submission_for_user() (psef.models.assignment.Assignment method)</a>
 </li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="psef_api/psef.html#psef.models.lti_provider.LTI1p3Provider.get_launch_url">get_launch_url() (psef.models.lti_provider.LTI1p3Provider method)</a>
 </li>
       <li><a href="psef_api/psef.html#psef.linters.get_linter_by_name">get_linter_by_name() (in module psef.linters)</a>
 </li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="psef_api/psef.html#psef.models.work.Work.get_linter_feedback">get_linter_feedback() (psef.models.work.Work method)</a>
 </li>
       <li><a href="psef_api/psef.html#psef.lti.v1_1.LTI.get_lms_name">get_lms_name() (psef.lti.v1_1.LTI method)</a>
@@ -1737,6 +1733,8 @@
         <li><a href="psef_api/psef.html#psef.ignore.SubmissionValidator.get_missing_files">(psef.ignore.SubmissionValidator method)</a>
 </li>
       </ul></li>
+      <li><a href="psef_api/psef.html#psef.plagiarism.PlagiarismProvider.get_name">get_name() (psef.plagiarism.PlagiarismProvider class method)</a>
+</li>
       <li><a href="psef_api/psef.html#psef.models.permission.Permission.get_name_column">get_name_column() (psef.models.permission.Permission class method)</a>
 </li>
       <li><a href="psef_api/psef.html#psef.extract_tree.ExtractFileTreeBase.get_name_list">get_name_list() (psef.extract_tree.ExtractFileTreeBase method)</a>
@@ -1903,6 +1901,8 @@
 </li>
       <li><a href="psef_api/psef.html#psef.models.group.Group.has_as_member">has_as_member() (psef.models.group.Group method)</a>
 </li>
+      <li><a href="psef_api/psef.html#psef.models.auto_test_step.AutoTestStepResult.has_attachment">has_attachment (psef.models.auto_test_step.AutoTestStepResult attribute)</a>
+</li>
       <li><a href="psef_api/psef.html#psef.models.user.User.has_course_permission_once">has_course_permission_once() (psef.models.user.User method)</a>
 </li>
       <li><a href="psef_api/psef.html#psef.models.assignment.Assignment.has_group_submissions">has_group_submissions() (psef.models.assignment.Assignment method)</a>
@@ -2015,6 +2015,10 @@
         <li><a href="psef_api/psef.html#psef.tasks.init_app">(in module psef.tasks)</a>
 </li>
       </ul></li>
+      <li><a href="psef_api/psef.html#psef.extract_tree.ExtractFileTree.insert_dir">insert_dir() (psef.extract_tree.ExtractFileTree method)</a>
+</li>
+      <li><a href="psef_api/psef.html#psef.extract_tree.ExtractFileTree.insert_file">insert_file() (psef.extract_tree.ExtractFileTree method)</a>
+</li>
       <li><a href="psef_api/psef.html#psef.exceptions.APICodes.INSUFFICIENT_GROUP_SIZE">INSUFFICIENT_GROUP_SIZE (psef.exceptions.APICodes attribute)</a>
 </li>
       <li><a href="psef_api/psef.html#psef.PsefFlask.inter_request_cache">inter_request_cache() (psef.PsefFlask property)</a>
@@ -2025,10 +2029,10 @@
 </li>
       <li><a href="psef_api/psef.html#psef.exceptions.APICodes.INVALID_ARCHIVE">INVALID_ARCHIVE (psef.exceptions.APICodes attribute)</a>
 </li>
-      <li><a href="psef_api/psef.html#psef.exceptions.APICodes.INVALID_CREDENTIALS">INVALID_CREDENTIALS (psef.exceptions.APICodes attribute)</a>
-</li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="psef_api/psef.html#psef.exceptions.APICodes.INVALID_CREDENTIALS">INVALID_CREDENTIALS (psef.exceptions.APICodes attribute)</a>
+</li>
       <li><a href="psef_api/psef.html#psef.exceptions.APICodes.INVALID_FILE_IN_ARCHIVE">INVALID_FILE_IN_ARCHIVE (psef.exceptions.APICodes attribute)</a>
 </li>
       <li><a href="psef_api/psef.html#psef.exceptions.APIWarnings.INVALID_FILENAME">INVALID_FILENAME (psef.exceptions.APIWarnings attribute)</a>
@@ -2067,8 +2071,12 @@
 </li>
       <li><a href="psef_api/psef.html#psef.models.assignment.Assignment.is_done">is_done() (psef.models.assignment.Assignment property)</a>
 </li>
-      <li><a href="psef_api/psef.html#psef.models.group.Group.is_empty">is_empty() (psef.models.group.Group property)</a>
+      <li><a href="psef_api/psef.html#psef.extract_tree.ExtractFileTreeDirectory.is_empty">is_empty() (psef.extract_tree.ExtractFileTreeDirectory property)</a>
+
+      <ul>
+        <li><a href="psef_api/psef.html#psef.models.group.Group.is_empty">(psef.models.group.Group property)</a>
 </li>
+      </ul></li>
       <li><a href="psef_api/psef.html#psef.models.user.User.is_enrolled">is_enrolled() (psef.models.user.User method)</a>
 </li>
       <li><a href="psef_api/psef.html#psef.lti.v1_1.OutcomeResponse.is_failure">is_failure() (psef.lti.v1_1.OutcomeResponse property)</a>
@@ -2219,6 +2227,8 @@
 </li>
       <li><a href="psef_api/psef.html#psef.auth.login_required">login_required() (in module psef.auth)</a>
 </li>
+      <li><a href="psef_api/psef.html#psef.extract_tree.ExtractFileTreeDirectory.lookup_direct_child">lookup_direct_child() (psef.extract_tree.ExtractFileTreeDirectory method)</a>
+</li>
       <li><a href="psef_api/psef.html#psef.lti.v1_1.LTI">LTI (class in psef.lti.v1_1)</a>
 </li>
       <li><a href="psef_api/psef.html#psef.exceptions.APICodes.LTI1_1_ERROR">LTI1_1_ERROR (psef.exceptions.APICodes attribute)</a>
@@ -2290,6 +2300,14 @@
       <li><a href="psef_api/psef.html#psef.lti.v1_3.CGDeepLinkResource.make">make() (psef.lti.v1_3.CGDeepLinkResource class method)</a>
 </li>
       <li><a href="psef_api/psef.html#psef.models.user.User.make_access_token">make_access_token() (psef.models.user.User method)</a>
+</li>
+      <li><a href="psef_api/psef.html#psef.models.file.File.make_cache">make_cache() (psef.models.file.File class method)</a>
+
+      <ul>
+        <li><a href="psef_api/psef.html#psef.models.file.PlagiarismBaseCodeFile.make_cache">(psef.models.file.PlagiarismBaseCodeFile class method)</a>
+</li>
+      </ul></li>
+      <li><a href="psef_api/psef.html#psef.helpers.make_file_too_big_exception">make_file_too_big_exception() (in module psef.helpers)</a>
 </li>
       <li><a href="psef_api/psef.html#psef.models.auto_test.AutoTestRun.make_result">make_result() (psef.models.auto_test.AutoTestRun method)</a>
 </li>
@@ -2391,10 +2409,10 @@
 </li>
       <li><a href="psef_api/psef.html#psef.models.assignment.Assignment.min_grade">min_grade (psef.models.assignment.Assignment attribute)</a>
 </li>
-      <li><a href="psef_api/psef.html#psef.models.group.GroupSet.AsJSON.minimum_size">minimum_size (psef.models.group.GroupSet.AsJSON attribute)</a>
-</li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="psef_api/psef.html#psef.models.group.GroupSet.AsJSON.minimum_size">minimum_size (psef.models.group.GroupSet.AsJSON attribute)</a>
+</li>
       <li><a href="psef_api/psef.html#psef.exceptions.APICodes.MISSING_REQUIRED_PARAM">MISSING_REQUIRED_PARAM (psef.exceptions.APICodes attribute)</a>
 </li>
       <li><a href="psef_api/psef.html#psef.lti.v1_3.MissingCookieError">MissingCookieError</a>
@@ -2582,6 +2600,8 @@
 </li>
       <li><a href="psef_api/psef.html#psef.exceptions.APICodes.OBJECT_WRONG_TYPE">OBJECT_WRONG_TYPE (psef.exceptions.APICodes attribute)</a>
 </li>
+      <li><a href="psef_api/psef.html#psef.extract_tree.ExtractFileTreeDirectory.only_child">only_child() (psef.extract_tree.ExtractFileTreeDirectory property)</a>
+</li>
       <li><a href="psef_api/psef.html#psef.models.file.FileMixin.open">open() (psef.models.file.FileMixin method)</a>
 </li>
       <li><a href="psef_api/psef.html#psef.lti.v1_1.OpenEdX">OpenEdX (class in psef.lti.v1_1)</a>
@@ -2598,7 +2618,7 @@
 </li>
       <li><a href="psef_api/psef.html#psef.models.user_setting.EmailNotificationTypes.ordered_options">ordered_options() (psef.models.user_setting.EmailNotificationTypes class method)</a>
 </li>
-      <li><a href="psef_api/psef.html#psef.models.plagiarism.PlagiarismWorks.other_work">other_work() (psef.models.plagiarism.PlagiarismWorks property)</a>
+      <li><a href="psef_api/psef.html#psef.models.plagiarism.PlagiarismWorks.other_work">other_work (psef.models.plagiarism.PlagiarismWorks attribute)</a>
 </li>
       <li><a href="psef_api/psef.html#psef.lti.v1_1.BareBonesLTIProvider.outcome_service_url">outcome_service_url() (psef.lti.v1_1.BareBonesLTIProvider property)</a>
 
@@ -2616,7 +2636,7 @@
 </li>
       <li><a href="psef_api/psef.html#psef.auto_test.OutputTail">OutputTail (class in psef.auto_test)</a>
 </li>
-      <li><a href="psef_api/psef.html#psef.models.plagiarism.PlagiarismWorks.own_work">own_work() (psef.models.plagiarism.PlagiarismWorks property)</a>
+      <li><a href="psef_api/psef.html#psef.models.plagiarism.PlagiarismWorks.own_work">own_work (psef.models.plagiarism.PlagiarismWorks attribute)</a>
 </li>
   </ul></td>
 </tr></table>
@@ -2698,7 +2718,7 @@
 </li>
       <li><a href="psef_api/psef.html#psef.plagiarism.Option.placeholder">placeholder (psef.plagiarism.Option attribute)</a>
 </li>
-      <li><a href="psef_api/psef.html#psef.models.plagiarism.PlagiarismRun.plagiarism_cls">plagiarism_cls() (psef.models.plagiarism.PlagiarismRun property)</a>
+      <li><a href="psef_api/psef.html#psef.models.file.PlagiarismBaseCodeFile">PlagiarismBaseCodeFile (class in psef.models.file)</a>
 </li>
       <li><a href="psef_api/psef.html#psef.models.plagiarism.PlagiarismCase">PlagiarismCase (class in psef.models.plagiarism)</a>
 </li>
@@ -2740,9 +2760,9 @@
 </li>
       <li><a href="psef_api/psef.html#psef.ignore.SubmissionFilter.process_submission">process_submission() (psef.ignore.SubmissionFilter method)</a>
 </li>
-      <li><a href="psef_api/psef.html#psef.models.plagiarism.PlagiarismRun.AsJSON.provider_name">provider_name (psef.models.plagiarism.PlagiarismRun.AsJSON attribute)</a>
+      <li><a href="psef_api/psef.html#psef.models.plagiarism.PlagiarismRun.provider">provider (psef.models.plagiarism.PlagiarismRun attribute)</a>
 </li>
-      <li><a href="psef_api/psef.html#psef.models.plagiarism.PlagiarismRun.provider_name">provider_name() (psef.models.plagiarism.PlagiarismRun property)</a>
+      <li><a href="psef_api/psef.html#psef.models.plagiarism.PlagiarismRun.AsJSON.provider_name">provider_name (psef.models.plagiarism.PlagiarismRun.AsJSON attribute)</a>
 </li>
       <li>
     psef
@@ -3058,10 +3078,6 @@
 <h2 id="R">R</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="psef_api/psef.html#psef.helpers.raise_file_too_big_exception">raise_file_too_big_exception() (in module psef.helpers)</a>
-</li>
-      <li><a href="psef_api/psef.html#psef.files.random_file_path">random_file_path() (in module psef.files)</a>
-</li>
       <li><a href="psef_api/psef.html#psef.exceptions.APICodes.RATE_LIMIT_EXCEEDED">RATE_LIMIT_EXCEEDED (psef.exceptions.APICodes attribute)</a>
 </li>
       <li><a href="psef_api/psef.html#psef.helpers.LockType.read">read (psef.helpers.LockType attribute)</a>
@@ -3101,6 +3117,8 @@
       <li><a href="psef_api/psef.html#psef.exceptions.APIWarnings.RENAMED_FIXTURE">RENAMED_FIXTURE (psef.exceptions.APIWarnings attribute)</a>
 </li>
       <li><a href="psef_api/psef.html#psef.helpers.RepeatedTimer">RepeatedTimer (class in psef.helpers)</a>
+</li>
+      <li><a href="psef_api/psef.html#psef.files.replace_symlinks">replace_symlinks() (in module psef.files)</a>
 </li>
       <li><a href="psef_api/psef.html#psef.models.comment.CommentBaseJSON.replies">replies (psef.models.comment.CommentBaseJSON attribute)</a>
 </li>
@@ -3162,7 +3180,7 @@
       </ul></li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="psef_api/psef.html#psef.files.restore_directory_structure">restore_directory_structure() (in module psef.files)</a>
+      <li><a href="psef_api/psef.html#psef.models.file.NestedFileMixin.restore_directory_structure">restore_directory_structure() (psef.models.file.NestedFileMixin class method)</a>
 </li>
       <li><a href="psef_api/psef.html#psef.auth.AutoTestResultPermissions.result">result (psef.auth.AutoTestResultPermissions attribute)</a>
 </li>
@@ -3250,9 +3268,9 @@
 </li>
       <li><a href="psef_api/psef.html#psef.lti.v1_3.FlaskMessageLaunch.save_launch_data">save_launch_data() (psef.lti.v1_3.FlaskMessageLaunch method)</a>
 </li>
-      <li><a href="psef_api/psef.html#psef.files.save_stream">save_stream() (in module psef.files)</a>
-</li>
       <li><a href="psef_api/psef.html#psef.models.auto_test_step.AutoTestStepResult.schedule_attachment_deletion">schedule_attachment_deletion() (psef.models.auto_test_step.AutoTestStepResult method)</a>
+</li>
+      <li><a href="psef_api/psef.html#psef.models.plagiarism.PlagiarismRun.schedule_delete_base_code">schedule_delete_base_code() (psef.models.plagiarism.PlagiarismRun method)</a>
 </li>
       <li><a href="psef_api/psef.html#psef.models.work.Work.search_file">search_file() (psef.models.work.Work method)</a>
 </li>
@@ -3338,12 +3356,6 @@
 </li>
       <li><a href="psef_api/psef.html#psef.plagiarism.OptionTypes.singleselect">singleselect (psef.plagiarism.OptionTypes attribute)</a>
 </li>
-      <li><a href="psef_api/psef.html#psef.extract_tree.ExtractFileTreeFile.size">size (psef.extract_tree.ExtractFileTreeFile attribute)</a>
-
-      <ul>
-        <li><a href="psef_api/psef.html#psef.extract_tree.ExtractFileTreeSpecialFile.size">(psef.extract_tree.ExtractFileTreeSpecialFile attribute)</a>
-</li>
-      </ul></li>
       <li><a href="psef_api/psef.html#psef.models.group.GroupSet.smallest_group_size">smallest_group_size (psef.models.group.GroupSet attribute)</a>
 </li>
       <li><a href="psef_api/psef.html#psef.models.snippet.Snippet">Snippet (class in psef.models.snippet)</a>
@@ -3376,10 +3388,10 @@
         <li><a href="psef_api/psef.html#psef.models.plagiarism.PlagiarismRun.AsJSON.state">(psef.models.plagiarism.PlagiarismRun.AsJSON attribute)</a>
 </li>
       </ul></li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="psef_api/psef.html#psef.models.auto_test_step.AutoTestStepResult.state">state() (psef.models.auto_test_step.AutoTestStepResult property)</a>
 </li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="psef_api/psef.html#psef.models.assignment.Assignment.state_name">state_name() (psef.models.assignment.Assignment property)</a>
 </li>
       <li><a href="psef_api/psef.html#psef.exceptions.APIException.status_code">status_code (psef.exceptions.APIException attribute)</a>
@@ -3594,9 +3606,13 @@
 </li>
       <li><a href="psef_api/psef.html#psef.exceptions.APICodes.UNSUPPORTED">UNSUPPORTED (psef.exceptions.APICodes attribute)</a>
 </li>
+      <li><a href="psef_api/psef.html#psef.models.file.FileMixin.unwrapped_backing_file">unwrapped_backing_file() (psef.models.file.FileMixin property)</a>
+</li>
       <li><a href="psef_api/psef.html#psef.models.comment.CommentReply.update">update() (psef.models.comment.CommentReply method)</a>
 </li>
       <li><a href="psef_api/psef.html#psef.models.auto_test_step.AutoTestStepResult.update_attachment">update_attachment() (psef.models.auto_test_step.AutoTestStepResult method)</a>
+</li>
+      <li><a href="psef_api/psef.html#psef.models.file.FileMixin.update_backing_file">update_backing_file() (psef.models.file.FileMixin method)</a>
 </li>
       <li><a href="psef_api/psef.html#psef.models.assignment.Assignment.update_cgignore">update_cgignore() (psef.models.assignment.Assignment method)</a>
 </li>
@@ -3626,10 +3642,10 @@
 </li>
       <li><a href="psef_api/psef.html#psef.exceptions.APICodes.UPLOAD_TYPE_DISABLED">UPLOAD_TYPE_DISABLED (psef.exceptions.APICodes attribute)</a>
 </li>
-      <li><a href="psef_api/psef.html#psef.lti.v1_1.LTIResultDataType.url">url (psef.lti.v1_1.LTIResultDataType attribute)</a>
-</li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="psef_api/psef.html#psef.lti.v1_1.LTIResultDataType.url">url (psef.lti.v1_1.LTIResultDataType attribute)</a>
+</li>
       <li><a href="psef_api/psef.html#psef.models.user.User">User (class in psef.models.user)</a>
 </li>
       <li><a href="psef_api/psef.html#psef.models.assignment.AssignmentLoginLink.AsJSON.user">user (psef.models.assignment.AssignmentLoginLink.AsJSON attribute)</a>
@@ -3710,10 +3726,10 @@
 </li>
       <li><a href="psef_api/psef.html#psef.lti.v1_3.FlaskMessageLaunch.validate_deployment">validate_deployment() (psef.lti.v1_3.FlaskMessageLaunch method)</a>
 </li>
-      <li><a href="psef_api/psef.html#psef.models.assignment.Assignment.validate_group_set">validate_group_set() (psef.models.assignment.Assignment method)</a>
-</li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="psef_api/psef.html#psef.models.assignment.Assignment.validate_group_set">validate_group_set() (psef.models.assignment.Assignment method)</a>
+</li>
       <li><a href="psef_api/psef.html#psef.lti.v1_3.FlaskMessageLaunch.validate_has_needed_data">validate_has_needed_data() (psef.lti.v1_3.FlaskMessageLaunch method)</a>
 </li>
       <li><a href="psef_api/psef.html#psef.lti.v1_3.FlaskMessageLaunch.validate_jwt_signature">validate_jwt_signature() (psef.lti.v1_3.FlaskMessageLaunch method)</a>
@@ -3724,12 +3740,8 @@
 </li>
       <li><a href="psef_api/psef.html#psef.models.permission.Permission.value">value (psef.models.permission.Permission attribute)</a>
 </li>
-      <li><a href="psef_api/psef.html#psef.extract_tree.ExtractFileTree.values">values (psef.extract_tree.ExtractFileTree attribute)</a>
-
-      <ul>
-        <li><a href="psef_api/psef.html#psef.extract_tree.ExtractFileTreeDirectory.values">(psef.extract_tree.ExtractFileTreeDirectory attribute)</a>
+      <li><a href="psef_api/psef.html#psef.extract_tree.ExtractFileTreeDirectory.values">values() (psef.extract_tree.ExtractFileTreeDirectory property)</a>
 </li>
-      </ul></li>
       <li><a href="psef_api/psef.html#psef.models.user_setting.SettingBase.verify_settings_change_token">verify_settings_change_token() (psef.models.user_setting.SettingBase class method)</a>
 </li>
       <li><a href="psef_api/psef.html#psef.models.course.Course.AsJSON.virtual">virtual (psef.models.course.Course.AsJSON attribute)</a>

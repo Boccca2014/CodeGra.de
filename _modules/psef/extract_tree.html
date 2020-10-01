@@ -207,18 +207,18 @@
 
 <span class="sd">SPDX-License-Identifier: AGPL-3.0-only</span>
 <span class="sd">&quot;&quot;&quot;</span>
-<span class="kn">import</span> <span class="nn">os</span>
 <span class="kn">import</span> <span class="nn">abc</span>
 <span class="kn">import</span> <span class="nn">typing</span> <span class="k">as</span> <span class="nn">t</span>
 <span class="kn">import</span> <span class="nn">dataclasses</span>
 
 <span class="kn">import</span> <span class="nn">psef</span>
+<span class="kn">from</span> <span class="nn">cg_maybe</span> <span class="kn">import</span> <span class="n">Just</span><span class="p">,</span> <span class="n">Maybe</span><span class="p">,</span> <span class="n">Nothing</span>
+<span class="kn">from</span> <span class="nn">cg_object_storage</span> <span class="kn">import</span> <span class="n">File</span> <span class="k">as</span> <span class="n">_File</span>
+<span class="kn">from</span> <span class="nn">cg_object_storage</span> <span class="kn">import</span> <span class="n">FileSize</span>
 
 <span class="k">if</span> <span class="n">t</span><span class="o">.</span><span class="n">TYPE_CHECKING</span> <span class="ow">and</span> <span class="ow">not</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="s1">&#39;SPHINX&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">):</span>  <span class="c1"># pragma: no cover</span>
     <span class="c1"># pylint: disable=unused-import</span>
     <span class="kn">import</span> <span class="nn">psef.files</span>
-
-    <span class="kn">from</span> <span class="nn">.</span> <span class="kn">import</span> <span class="n">archive</span>
 
 
 <span class="c1"># This is a bug: https://github.com/python/mypy/issues/5374</span>
@@ -230,7 +230,9 @@
 <span class="sd">        archive that was extracted.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">name</span><span class="p">:</span> <span class="nb">str</span>
-    <span class="n">parent</span><span class="p">:</span> <span class="n">t</span><span class="o">.</span><span class="n">Optional</span><span class="p">[</span><span class="s1">&#39;ExtractFileTreeDirectory&#39;</span><span class="p">]</span>
+    <span class="n">parent</span><span class="p">:</span> <span class="n">t</span><span class="o">.</span><span class="n">Optional</span><span class="p">[</span><span class="s1">&#39;ExtractFileTreeDirectory&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">dataclasses</span><span class="o">.</span><span class="n">field</span><span class="p">(</span>
+        <span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">init</span><span class="o">=</span><span class="kc">False</span>
+    <span class="p">)</span>
 
     <span class="k">def</span> <span class="nf">__post_init__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="n">psef</span><span class="o">.</span><span class="n">files</span><span class="o">.</span><span class="n">escape_logical_filename</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
@@ -238,13 +240,12 @@
 <div class="viewcode-block" id="ExtractFileTreeBase.forget_parent"><a class="viewcode-back" href="../../psef_api/psef.html#psef.extract_tree.ExtractFileTreeBase.forget_parent">[docs]</a>    <span class="k">def</span> <span class="nf">forget_parent</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">parent</span> <span class="o">=</span> <span class="kc">None</span></div>
 
-<div class="viewcode-block" id="ExtractFileTreeBase.delete"><a class="viewcode-back" href="../../psef_api/psef.html#psef.extract_tree.ExtractFileTreeBase.delete">[docs]</a>    <span class="k">def</span> <span class="nf">delete</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">base_dir</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<div class="viewcode-block" id="ExtractFileTreeBase.delete"><a class="viewcode-back" href="../../psef_api/psef.html#psef.extract_tree.ExtractFileTreeBase.delete">[docs]</a>    <span class="k">def</span> <span class="nf">delete</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
         <span class="sd">&quot;&quot;&quot;Delete the this file and all its children.</span>
 
 <span class="sd">        :param base_dir: The base directory where the files can be found.</span>
 <span class="sd">        :returns: Nothing.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="c1"># pylint: disable=unused-argument</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">parent</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">forget_child</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span></div>
 
@@ -267,7 +268,7 @@
             <span class="k">return</span> <span class="p">[</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">get_name_list</span><span class="p">(),</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">]</span></div>
 
 <div class="viewcode-block" id="ExtractFileTreeBase.get_size"><a class="viewcode-back" href="../../psef_api/psef.html#psef.extract_tree.ExtractFileTreeBase.get_size">[docs]</a>    <span class="nd">@abc</span><span class="o">.</span><span class="n">abstractmethod</span>
-    <span class="k">def</span> <span class="nf">get_size</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s1">&#39;psef.archive.FileSize&#39;</span><span class="p">:</span>
+    <span class="k">def</span> <span class="nf">get_size</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">FileSize</span><span class="p">:</span>
         <span class="sd">&quot;&quot;&quot;Get the size of this file.</span>
 
 <span class="sd">        For a normal file this is the amount of space used on disk, and for a</span>
@@ -297,17 +298,14 @@
 <span class="sd">    :ivar ~.ExtractFileTreeFile.diskname: The name of the file saved in the</span>
 <span class="sd">        uploads directory.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="n">disk_name</span><span class="p">:</span> <span class="nb">str</span>
-    <span class="n">size</span><span class="p">:</span> <span class="s1">&#39;psef.archive.FileSize&#39;</span>
+    <span class="n">backing_file</span><span class="p">:</span> <span class="n">_File</span>
 
-<div class="viewcode-block" id="ExtractFileTreeFile.get_size"><a class="viewcode-back" href="../../psef_api/psef.html#psef.extract_tree.ExtractFileTreeFile.get_size">[docs]</a>    <span class="k">def</span> <span class="nf">get_size</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s1">&#39;psef.archive.FileSize&#39;</span><span class="p">:</span>
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">size</span></div>
+<div class="viewcode-block" id="ExtractFileTreeFile.get_size"><a class="viewcode-back" href="../../psef_api/psef.html#psef.extract_tree.ExtractFileTreeFile.get_size">[docs]</a>    <span class="k">def</span> <span class="nf">get_size</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">FileSize</span><span class="p">:</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">backing_file</span><span class="o">.</span><span class="n">size</span></div>
 
-<div class="viewcode-block" id="ExtractFileTreeFile.delete"><a class="viewcode-back" href="../../psef_api/psef.html#psef.extract_tree.ExtractFileTreeFile.delete">[docs]</a>    <span class="k">def</span> <span class="nf">delete</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">base_dir</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">delete</span><span class="p">(</span><span class="n">base_dir</span><span class="p">)</span>
-        <span class="n">path</span> <span class="o">=</span> <span class="n">psef</span><span class="o">.</span><span class="n">files</span><span class="o">.</span><span class="n">safe_join</span><span class="p">(</span><span class="n">base_dir</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">disk_name</span><span class="p">)</span>
-        <span class="k">assert</span> <span class="n">path</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="n">base_dir</span><span class="p">)</span>
-        <span class="n">os</span><span class="o">.</span><span class="n">unlink</span><span class="p">(</span><span class="n">path</span><span class="p">)</span></div>
+<div class="viewcode-block" id="ExtractFileTreeFile.delete"><a class="viewcode-back" href="../../psef_api/psef.html#psef.extract_tree.ExtractFileTreeFile.delete">[docs]</a>    <span class="k">def</span> <span class="nf">delete</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">delete</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">backing_file</span><span class="o">.</span><span class="n">delete</span><span class="p">()</span></div>
 
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">is_dir</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
@@ -341,15 +339,47 @@
 <span class="sd">    :ivar ~.ExtractFileTreeDirectory.values: The items present in this</span>
 <span class="sd">        directory.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="n">values</span><span class="p">:</span> <span class="n">t</span><span class="o">.</span><span class="n">List</span><span class="p">[</span><span class="n">ExtractFileTreeBase</span><span class="p">]</span>
+    <span class="n">_lookup</span><span class="p">:</span> <span class="n">t</span><span class="o">.</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">ExtractFileTreeBase</span><span class="p">]</span> <span class="o">=</span> <span class="n">dataclasses</span><span class="o">.</span><span class="n">field</span><span class="p">(</span><span class="n">init</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
 
-<div class="viewcode-block" id="ExtractFileTreeDirectory.get_size"><a class="viewcode-back" href="../../psef_api/psef.html#psef.extract_tree.ExtractFileTreeDirectory.get_size">[docs]</a>    <span class="k">def</span> <span class="nf">get_size</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s1">&#39;psef.archive.FileSize&#39;</span><span class="p">:</span>
-        <span class="k">return</span> <span class="n">psef</span><span class="o">.</span><span class="n">archive</span><span class="o">.</span><span class="n">FileSize</span><span class="p">(</span><span class="nb">sum</span><span class="p">(</span><span class="n">c</span><span class="o">.</span><span class="n">get_size</span><span class="p">()</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">values</span><span class="p">))</span></div>
+    <span class="k">def</span> <span class="nf">__post_init__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_lookup</span> <span class="o">=</span> <span class="p">{}</span>
 
-<div class="viewcode-block" id="ExtractFileTreeDirectory.delete"><a class="viewcode-back" href="../../psef_api/psef.html#psef.extract_tree.ExtractFileTreeDirectory.delete">[docs]</a>    <span class="k">def</span> <span class="nf">delete</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">base_dir</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">delete</span><span class="p">(</span><span class="n">base_dir</span><span class="p">)</span>
-        <span class="k">for</span> <span class="n">val</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">values</span><span class="p">:</span>
-            <span class="n">val</span><span class="o">.</span><span class="n">delete</span><span class="p">(</span><span class="n">base_dir</span><span class="p">)</span></div>
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">only_child</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Maybe</span><span class="p">[</span><span class="n">ExtractFileTreeBase</span><span class="p">]:</span>
+        <span class="sd">&quot;&quot;&quot;Maybe get the only child in this directory.</span>
+
+<span class="sd">        This will return ``Nothing`` if the directory does not have exactly one</span>
+<span class="sd">        child.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_lookup</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">Just</span><span class="p">(</span><span class="nb">next</span><span class="p">(</span><span class="nb">iter</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_lookup</span><span class="o">.</span><span class="n">values</span><span class="p">())))</span>
+        <span class="k">return</span> <span class="n">Nothing</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">values</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">t</span><span class="o">.</span><span class="n">Iterable</span><span class="p">[</span><span class="n">ExtractFileTreeBase</span><span class="p">]:</span>
+        <span class="sd">&quot;&quot;&quot;The values of this directory.</span>
+
+<span class="sd">        You are not allowed to mutate the directory (call ``add_child``,</span>
+<span class="sd">        ``forget_child`` or ``delete``) while iterating of the result.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_lookup</span><span class="o">.</span><span class="n">values</span><span class="p">()</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">is_empty</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Is this directory empty?</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_lookup</span>
+
+<div class="viewcode-block" id="ExtractFileTreeDirectory.get_size"><a class="viewcode-back" href="../../psef_api/psef.html#psef.extract_tree.ExtractFileTreeDirectory.get_size">[docs]</a>    <span class="k">def</span> <span class="nf">get_size</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">FileSize</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">FileSize</span><span class="p">(</span><span class="nb">sum</span><span class="p">(</span><span class="n">c</span><span class="o">.</span><span class="n">get_size</span><span class="p">()</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">values</span><span class="p">))</span></div>
+
+<div class="viewcode-block" id="ExtractFileTreeDirectory.delete"><a class="viewcode-back" href="../../psef_api/psef.html#psef.extract_tree.ExtractFileTreeDirectory.delete">[docs]</a>    <span class="k">def</span> <span class="nf">delete</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">delete</span><span class="p">()</span>
+        <span class="n">old_lookup</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_lookup</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_lookup</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="k">for</span> <span class="n">val</span> <span class="ow">in</span> <span class="n">old_lookup</span><span class="o">.</span><span class="n">values</span><span class="p">():</span>
+            <span class="n">val</span><span class="o">.</span><span class="n">parent</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="n">val</span><span class="o">.</span><span class="n">delete</span><span class="p">()</span></div>
 
 <div class="viewcode-block" id="ExtractFileTreeDirectory.get_all_children"><a class="viewcode-back" href="../../psef_api/psef.html#psef.extract_tree.ExtractFileTreeDirectory.get_all_children">[docs]</a>    <span class="k">def</span> <span class="nf">get_all_children</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">t</span><span class="o">.</span><span class="n">Iterable</span><span class="p">[</span><span class="s1">&#39;ExtractFileTreeBase&#39;</span><span class="p">]:</span>
         <span class="sd">&quot;&quot;&quot;Get all the children of this directory.</span>
@@ -365,6 +395,28 @@
     <span class="k">def</span> <span class="nf">is_dir</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
         <span class="k">return</span> <span class="kc">True</span>
 
+<div class="viewcode-block" id="ExtractFileTreeDirectory.add_child"><a class="viewcode-back" href="../../psef_api/psef.html#psef.extract_tree.ExtractFileTreeDirectory.add_child">[docs]</a>    <span class="k">def</span> <span class="nf">add_child</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">f</span><span class="p">:</span> <span class="n">ExtractFileTreeBase</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Add a child to this directory.</span>
+
+<span class="sd">        :param f: The file to add.</span>
+
+<span class="sd">        :raises AssertionError: When the file already has a parent or if there</span>
+<span class="sd">            is already a file with the same name in this directory.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">assert</span> <span class="n">f</span><span class="o">.</span><span class="n">parent</span> <span class="ow">is</span> <span class="kc">None</span>
+        <span class="k">assert</span> <span class="n">f</span><span class="o">.</span><span class="n">name</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_lookup</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_lookup</span><span class="p">[</span><span class="n">f</span><span class="o">.</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">f</span>
+        <span class="n">f</span><span class="o">.</span><span class="n">parent</span> <span class="o">=</span> <span class="bp">self</span></div>
+
+<div class="viewcode-block" id="ExtractFileTreeDirectory.lookup_direct_child"><a class="viewcode-back" href="../../psef_api/psef.html#psef.extract_tree.ExtractFileTreeDirectory.lookup_direct_child">[docs]</a>    <span class="k">def</span> <span class="nf">lookup_direct_child</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+                            <span class="n">name</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">t</span><span class="o">.</span><span class="n">Optional</span><span class="p">[</span><span class="n">ExtractFileTreeBase</span><span class="p">]:</span>
+        <span class="sd">&quot;&quot;&quot;Find a direct child of this directory with the given name.</span>
+
+<span class="sd">        :param name: The unescaped name that the file should have.</span>
+<span class="sd">        :returns: The found file or ``None``.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_lookup</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">psef</span><span class="o">.</span><span class="n">files</span><span class="o">.</span><span class="n">escape_logical_filename</span><span class="p">(</span><span class="n">name</span><span class="p">))</span></div>
+
 <div class="viewcode-block" id="ExtractFileTreeDirectory.forget_child"><a class="viewcode-back" href="../../psef_api/psef.html#psef.extract_tree.ExtractFileTreeDirectory.forget_child">[docs]</a>    <span class="k">def</span> <span class="nf">forget_child</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">f</span><span class="p">:</span> <span class="n">ExtractFileTreeBase</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
         <span class="sd">&quot;&quot;&quot;Remove a child as one of our children.</span>
 
@@ -373,37 +425,13 @@
 <span class="sd">        :param f: The file to forget.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">f</span><span class="o">.</span><span class="n">forget_parent</span><span class="p">()</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">values</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="n">f</span><span class="p">)</span></div>
-
-<div class="viewcode-block" id="ExtractFileTreeDirectory.add_child"><a class="viewcode-back" href="../../psef_api/psef.html#psef.extract_tree.ExtractFileTreeDirectory.add_child">[docs]</a>    <span class="k">def</span> <span class="nf">add_child</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">f</span><span class="p">:</span> <span class="n">ExtractFileTreeBase</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="sd">&quot;&quot;&quot;Add a directory as a child.</span>
-
-<span class="sd">        :param f: The file to add.</span>
-<span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">assert</span> <span class="n">f</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">self</span>
-        <span class="k">assert</span> <span class="n">f</span><span class="o">.</span><span class="n">parent</span> <span class="ow">is</span> <span class="kc">None</span>
-
-        <span class="n">f</span><span class="o">.</span><span class="n">parent</span> <span class="o">=</span> <span class="bp">self</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">values</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">f</span><span class="p">)</span></div>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_lookup</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">name</span><span class="p">)</span></div>
 
     <span class="k">def</span> <span class="nf">__to_json__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">t</span><span class="o">.</span><span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">object</span><span class="p">]:</span>
         <span class="k">return</span> <span class="p">{</span>
             <span class="s1">&#39;name&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
             <span class="s1">&#39;entries&#39;</span><span class="p">:</span> <span class="nb">sorted</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">values</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="o">.</span><span class="n">name</span><span class="o">.</span><span class="n">lower</span><span class="p">()),</span>
-        <span class="p">}</span>
-
-<div class="viewcode-block" id="ExtractFileTreeDirectory.fix_duplicate_filenames"><a class="viewcode-back" href="../../psef_api/psef.html#psef.extract_tree.ExtractFileTreeDirectory.fix_duplicate_filenames">[docs]</a>    <span class="k">def</span> <span class="nf">fix_duplicate_filenames</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="sd">&quot;&quot;&quot;Fix duplicate filenames in this directory and all its sub</span>
-<span class="sd">        directories.</span>
-
-<span class="sd">        This will rename files when duplicates are detected by adding a ``</span>
-<span class="sd">        ($number)`` suffix to the file.</span>
-<span class="sd">        &quot;&quot;&quot;</span>
-        <span class="n">psef</span><span class="o">.</span><span class="n">files</span><span class="o">.</span><span class="n">fix_duplicate_filenames</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">values</span><span class="p">)</span>
-
-        <span class="k">for</span> <span class="n">child</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">values</span><span class="p">:</span>
-            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">child</span><span class="p">,</span> <span class="n">ExtractFileTreeDirectory</span><span class="p">):</span>
-                <span class="n">child</span><span class="o">.</span><span class="n">fix_duplicate_filenames</span><span class="p">()</span></div></div>
+        <span class="p">}</span></div>
 
 
 <div class="viewcode-block" id="ExtractFileTree"><a class="viewcode-back" href="../../psef_api/psef.html#psef.extract_tree.ExtractFileTree">[docs]</a><span class="nd">@dataclasses</span><span class="o">.</span><span class="n">dataclass</span>
@@ -423,6 +451,44 @@
             <span class="nb">isinstance</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="n">ExtractFileTreeFile</span><span class="p">)</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_all_children</span><span class="p">()</span>
         <span class="p">)</span>
 
+<div class="viewcode-block" id="ExtractFileTree.insert_file"><a class="viewcode-back" href="../../psef_api/psef.html#psef.extract_tree.ExtractFileTree.insert_file">[docs]</a>    <span class="k">def</span> <span class="nf">insert_file</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">:</span> <span class="n">t</span><span class="o">.</span><span class="n">Sequence</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span> <span class="n">backing_file</span><span class="p">:</span> <span class="n">_File</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Insert a file with the name in this directory.</span>
+
+<span class="sd">        :param name: The path of the new directory, the last item of the</span>
+<span class="sd">            sequence will be the name of the new file. Missing directories will</span>
+<span class="sd">            be created.</span>
+<span class="sd">        :param backing_file: The storage that should be connected to the new</span>
+<span class="sd">            extract file.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">base</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_find_child</span><span class="p">(</span><span class="n">name</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+        <span class="n">base</span><span class="o">.</span><span class="n">add_child</span><span class="p">(</span>
+            <span class="n">ExtractFileTreeFile</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="n">backing_file</span><span class="o">=</span><span class="n">backing_file</span><span class="p">)</span>
+        <span class="p">)</span></div>
+
+<div class="viewcode-block" id="ExtractFileTree.insert_dir"><a class="viewcode-back" href="../../psef_api/psef.html#psef.extract_tree.ExtractFileTree.insert_dir">[docs]</a>    <span class="k">def</span> <span class="nf">insert_dir</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">:</span> <span class="n">t</span><span class="o">.</span><span class="n">Sequence</span><span class="p">[</span><span class="nb">str</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Insert a directory with the name in this directory.</span>
+
+<span class="sd">        :param name: The path of the new directory, the last item of the</span>
+<span class="sd">            sequence will be the name of the directory. Missing directories</span>
+<span class="sd">            will be created.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">base</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_find_child</span><span class="p">(</span><span class="n">name</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+        <span class="n">base</span><span class="o">.</span><span class="n">add_child</span><span class="p">(</span><span class="n">ExtractFileTreeDirectory</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]))</span></div>
+
+    <span class="k">def</span> <span class="nf">_find_child</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">:</span> <span class="n">t</span><span class="o">.</span><span class="n">Sequence</span><span class="p">[</span><span class="nb">str</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">ExtractFileTreeDirectory</span><span class="p">:</span>
+        <span class="n">cur</span><span class="p">:</span> <span class="n">ExtractFileTreeDirectory</span> <span class="o">=</span> <span class="bp">self</span>
+        <span class="k">for</span> <span class="n">sub</span> <span class="ow">in</span> <span class="n">name</span><span class="p">:</span>
+            <span class="n">prev</span> <span class="o">=</span> <span class="n">cur</span>
+            <span class="n">new_cur</span> <span class="o">=</span> <span class="n">cur</span><span class="o">.</span><span class="n">lookup_direct_child</span><span class="p">(</span><span class="n">sub</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">new_cur</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">cur</span> <span class="o">=</span> <span class="n">ExtractFileTreeDirectory</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="n">sub</span><span class="p">)</span>
+                <span class="n">prev</span><span class="o">.</span><span class="n">add_child</span><span class="p">(</span><span class="n">cur</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">new_cur</span><span class="p">,</span> <span class="n">ExtractFileTreeDirectory</span><span class="p">)</span>
+                <span class="n">cur</span> <span class="o">=</span> <span class="n">new_cur</span>
+
+        <span class="k">return</span> <span class="n">cur</span>
+
 <div class="viewcode-block" id="ExtractFileTree.remove_leading_self"><a class="viewcode-back" href="../../psef_api/psef.html#psef.extract_tree.ExtractFileTree.remove_leading_self">[docs]</a>    <span class="k">def</span> <span class="nf">remove_leading_self</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
         <span class="sd">&quot;&quot;&quot;Removing leading directories in this directory.</span>
 
@@ -433,15 +499,16 @@
 
 <span class="sd">        If one of the conditions don&#39;t hold a :exc:`AssertionError` is raised.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="c1"># pylint: disable=access-member-before-definition,attribute-defined-outside-init</span>
-        <span class="c1"># Pylint is too stupid to see that this property already exists.</span>
-        <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">values</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span>
-        <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">values</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">ExtractFileTreeDirectory</span><span class="p">)</span>
-        <span class="n">child</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">values</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
-        <span class="n">child</span><span class="o">.</span><span class="n">forget_parent</span><span class="p">()</span>
-        <span class="k">for</span> <span class="n">grandchild</span> <span class="ow">in</span> <span class="n">child</span><span class="o">.</span><span class="n">values</span><span class="p">:</span>
+        <span class="n">maybe_only_child</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">only_child</span>
+        <span class="k">assert</span> <span class="n">maybe_only_child</span><span class="o">.</span><span class="n">is_just</span>
+        <span class="n">only_child</span> <span class="o">=</span> <span class="n">maybe_only_child</span><span class="o">.</span><span class="n">value</span>
+        <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">only_child</span><span class="p">,</span> <span class="n">ExtractFileTreeDirectory</span><span class="p">)</span>
+
+        <span class="n">only_child</span><span class="o">.</span><span class="n">forget_parent</span><span class="p">()</span>
+        <span class="k">for</span> <span class="n">grandchild</span> <span class="ow">in</span> <span class="n">only_child</span><span class="o">.</span><span class="n">values</span><span class="p">:</span>
             <span class="n">grandchild</span><span class="o">.</span><span class="n">parent</span> <span class="o">=</span> <span class="bp">self</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">values</span> <span class="o">=</span> <span class="n">child</span><span class="o">.</span><span class="n">values</span></div></div>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_lookup</span> <span class="o">=</span> <span class="p">{</span><span class="n">c</span><span class="o">.</span><span class="n">name</span><span class="p">:</span> <span class="n">c</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">only_child</span><span class="o">.</span><span class="n">values</span><span class="p">}</span></div></div>
 </pre></div>
 
            </div>

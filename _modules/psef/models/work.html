@@ -207,12 +207,12 @@
 
 <span class="sd">SPDX-License-Identifier: AGPL-3.0-only</span>
 <span class="sd">&quot;&quot;&quot;</span>
+<span class="kn">import</span> <span class="nn">io</span>
 <span class="kn">import</span> <span class="nn">os</span>
 <span class="kn">import</span> <span class="nn">enum</span>
 <span class="kn">import</span> <span class="nn">typing</span> <span class="k">as</span> <span class="nn">t</span>
 <span class="kn">import</span> <span class="nn">zipfile</span>
 <span class="kn">import</span> <span class="nn">tempfile</span>
-<span class="kn">from</span> <span class="nn">collections</span> <span class="kn">import</span> <span class="n">defaultdict</span>
 
 <span class="kn">import</span> <span class="nn">structlog</span>
 <span class="kn">import</span> <span class="nn">sqlalchemy</span>
@@ -1026,40 +1026,6 @@
             <span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">search_file_filters</span><span class="p">(</span><span class="n">pathname</span><span class="p">,</span> <span class="n">exclude</span><span class="p">),</span>
         <span class="p">)</span></div>
 
-<div class="viewcode-block" id="Work.get_file_children_mapping"><a class="viewcode-back" href="../../../psef_api/psef.html#psef.models.work.Work.get_file_children_mapping">[docs]</a>    <span class="k">def</span> <span class="nf">get_file_children_mapping</span><span class="p">(</span>
-        <span class="bp">self</span><span class="p">,</span> <span class="n">exclude</span><span class="p">:</span> <span class="s1">&#39;file_models.FileOwner&#39;</span>
-    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">t</span><span class="o">.</span><span class="n">Mapping</span><span class="p">[</span><span class="n">t</span><span class="o">.</span><span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">],</span> <span class="n">t</span><span class="o">.</span><span class="n">Sequence</span><span class="p">[</span><span class="s1">&#39;file_models.File&#39;</span><span class="p">]]:</span>
-        <span class="sd">&quot;&quot;&quot;Get a mapping that maps a file id to all its children.</span>
-
-<span class="sd">        This implementation does a single query to the database and runs in</span>
-<span class="sd">        O(n*log(n)), so it will be quite a bit quicker than using the</span>
-<span class="sd">        `children` attribute on files if you are going to need all children or</span>
-<span class="sd">        all files.</span>
-
-<span class="sd">        The list of children is sorted on filename.</span>
-
-<span class="sd">        :param exclude: The file owners to exclude</span>
-<span class="sd">        :returns: A mapping from file id to list of all its children for this</span>
-<span class="sd">            submission.</span>
-<span class="sd">        &quot;&quot;&quot;</span>
-        <span class="n">cache</span><span class="p">:</span> <span class="n">t</span><span class="o">.</span><span class="n">Mapping</span><span class="p">[</span><span class="n">t</span><span class="o">.</span><span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">],</span> <span class="n">t</span><span class="o">.</span>
-                         <span class="n">List</span><span class="p">[</span><span class="s1">&#39;file_models.File&#39;</span><span class="p">]]</span> <span class="o">=</span> <span class="n">defaultdict</span><span class="p">(</span><span class="nb">list</span><span class="p">)</span>
-        <span class="n">files</span> <span class="o">=</span> <span class="n">file_models</span><span class="o">.</span><span class="n">File</span><span class="o">.</span><span class="n">query</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span>
-            <span class="n">file_models</span><span class="o">.</span><span class="n">File</span><span class="o">.</span><span class="n">work</span> <span class="o">==</span> <span class="bp">self</span><span class="p">,</span>
-            <span class="n">file_models</span><span class="o">.</span><span class="n">File</span><span class="o">.</span><span class="n">fileowner</span> <span class="o">!=</span> <span class="n">exclude</span><span class="p">,</span>
-            <span class="o">~</span><span class="n">file_models</span><span class="o">.</span><span class="n">File</span><span class="o">.</span><span class="n">self_deleted</span><span class="p">,</span>
-        <span class="p">)</span><span class="o">.</span><span class="n">all</span><span class="p">()</span>
-        <span class="c1"># We sort in Python as this increases consistency between different</span>
-        <span class="c1"># server platforms, Python also has better defaults.</span>
-        <span class="c1"># TODO: Investigate if sorting in the database first and sorting in</span>
-        <span class="c1"># Python after is faster, as sorting in the database should be faster</span>
-        <span class="c1"># overal and sorting an already sorted list in Python is really fast.</span>
-        <span class="n">files</span><span class="o">.</span><span class="n">sort</span><span class="p">(</span><span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">el</span><span class="p">:</span> <span class="n">el</span><span class="o">.</span><span class="n">name</span><span class="o">.</span><span class="n">lower</span><span class="p">())</span>
-        <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="n">files</span><span class="p">:</span>
-            <span class="n">cache</span><span class="p">[</span><span class="n">f</span><span class="o">.</span><span class="n">parent_id</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
-
-        <span class="k">return</span> <span class="n">cache</span></div>
-
 <div class="viewcode-block" id="Work.peer_feedback_submissions_filter"><a class="viewcode-back" href="../../../psef_api/psef.html#psef.models.work.Work.peer_feedback_submissions_filter">[docs]</a>    <span class="nd">@classmethod</span>
     <span class="k">def</span> <span class="nf">peer_feedback_submissions_filter</span><span class="p">(</span>
         <span class="bp">cls</span><span class="p">,</span>
@@ -1153,27 +1119,21 @@
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">exclude_owner</span><span class="p">:</span> <span class="s1">&#39;file_models.FileOwner&#39;</span><span class="p">,</span>
         <span class="n">create_leading_directory</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span>
-    <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
-        <span class="sd">&quot;&quot;&quot;Create zip in `MIRROR_UPLOADS` directory.</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">io</span><span class="o">.</span><span class="n">BytesIO</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Create zip from the files in this submission.</span>
 
 <span class="sd">        :param exclude_owner: Which files to exclude.</span>
-<span class="sd">        :returns: The name of the zip file in the `MIRROR_UPLOADS` dir.</span>
+<span class="sd">        :returns: The BytesIO containing the zipfile.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="n">path</span><span class="p">,</span> <span class="n">name</span> <span class="o">=</span> <span class="n">psef</span><span class="o">.</span><span class="n">files</span><span class="o">.</span><span class="n">random_file_path</span><span class="p">(</span><span class="kc">True</span><span class="p">)</span>
-
-        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span>
-            <span class="n">path</span><span class="p">,</span>
-            <span class="s1">&#39;w+b&#39;</span><span class="p">,</span>
-        <span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">,</span> <span class="n">tempfile</span><span class="o">.</span><span class="n">TemporaryDirectory</span><span class="p">(</span>
+        <span class="n">result</span> <span class="o">=</span> <span class="n">io</span><span class="o">.</span><span class="n">BytesIO</span><span class="p">()</span>
+        <span class="k">with</span> <span class="n">tempfile</span><span class="o">.</span><span class="n">TemporaryDirectory</span><span class="p">(</span>
             <span class="n">suffix</span><span class="o">=</span><span class="s1">&#39;dir&#39;</span><span class="p">,</span>
         <span class="p">)</span> <span class="k">as</span> <span class="n">tmpdir</span><span class="p">,</span> <span class="n">zipfile</span><span class="o">.</span><span class="n">ZipFile</span><span class="p">(</span>
-            <span class="n">f</span><span class="p">,</span>
-            <span class="s1">&#39;w&#39;</span><span class="p">,</span>
-            <span class="n">compression</span><span class="o">=</span><span class="n">zipfile</span><span class="o">.</span><span class="n">ZIP_DEFLATED</span><span class="p">,</span>
+            <span class="n">result</span><span class="p">,</span> <span class="s1">&#39;w&#39;</span><span class="p">,</span> <span class="n">compression</span><span class="o">=</span><span class="n">zipfile</span><span class="o">.</span><span class="n">ZIP_DEFLATED</span>
         <span class="p">)</span> <span class="k">as</span> <span class="n">zipf</span><span class="p">:</span>
-            <span class="c1"># Restore the files to tmpdir</span>
-            <span class="n">tree_root</span> <span class="o">=</span> <span class="n">psef</span><span class="o">.</span><span class="n">files</span><span class="o">.</span><span class="n">restore_directory_structure</span><span class="p">(</span>
-                <span class="bp">self</span><span class="p">,</span> <span class="n">tmpdir</span><span class="p">,</span> <span class="n">exclude_owner</span>
+            <span class="n">tree_root</span> <span class="o">=</span> <span class="n">file_models</span><span class="o">.</span><span class="n">File</span><span class="o">.</span><span class="n">restore_directory_structure</span><span class="p">(</span>
+                <span class="n">tmpdir</span><span class="p">,</span>
+                <span class="n">file_models</span><span class="o">.</span><span class="n">File</span><span class="o">.</span><span class="n">make_cache</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">exclude_owner</span><span class="p">),</span>
             <span class="p">)</span>
 
             <span class="k">if</span> <span class="n">create_leading_directory</span><span class="p">:</span>
@@ -1187,7 +1147,8 @@
                     <span class="n">path</span> <span class="o">=</span> <span class="n">psef</span><span class="o">.</span><span class="n">files</span><span class="o">.</span><span class="n">safe_join</span><span class="p">(</span><span class="n">root</span><span class="p">,</span> <span class="n">file</span><span class="p">)</span>
                     <span class="n">zipf</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">path</span><span class="p">[</span><span class="n">leading_len</span><span class="p">:])</span>
 
-        <span class="k">return</span> <span class="n">name</span></div>
+        <span class="n">result</span><span class="o">.</span><span class="n">seek</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">result</span></div>
 
 <div class="viewcode-block" id="Work.create_from_tree"><a class="viewcode-back" href="../../../psef_api/psef.html#psef.models.work.Work.create_from_tree">[docs]</a>    <span class="nd">@classmethod</span>
     <span class="k">def</span> <span class="nf">create_from_tree</span><span class="p">(</span>

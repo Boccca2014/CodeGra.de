@@ -335,17 +335,17 @@
         <span class="n">res</span> <span class="o">=</span> <span class="p">[</span>
             <span class="n">java</span><span class="p">,</span>
             <span class="s1">&#39;-jar&#39;</span><span class="p">,</span> <span class="n">jar</span><span class="p">,</span>
-            <span class="s1">&#39;{ restored_dir }&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;</span><span class="si">{restored_dir}</span><span class="s1">&#39;</span><span class="p">,</span>
             <span class="s1">&#39;-l&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">lang</span><span class="p">,</span>
             <span class="s1">&#39;-s&#39;</span><span class="p">,</span>
-            <span class="s1">&#39;-r&#39;</span><span class="p">,</span> <span class="s1">&#39;{ result_dir }&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;-r&#39;</span><span class="p">,</span> <span class="s1">&#39;</span><span class="si">{result_dir}</span><span class="s1">&#39;</span><span class="p">,</span>
             <span class="s1">&#39;-m&#39;</span><span class="p">,</span> <span class="sa">f</span><span class="s1">&#39;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">simil</span><span class="si">}</span><span class="s1">%&#39;</span><span class="p">,</span>
-            <span class="s1">&#39;-a&#39;</span><span class="p">,</span> <span class="s1">&#39;{ archive_dir }&#39;</span><span class="p">,</span>
-            <span class="s1">&#39;-progress&#39;</span><span class="p">,</span> <span class="s1">&#39;{ progress_prefix }&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;-a&#39;</span><span class="p">,</span> <span class="s1">&#39;</span><span class="si">{archive_dir}</span><span class="s1">&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;-progress&#39;</span><span class="p">,</span> <span class="s1">&#39;</span><span class="si">{progress_prefix}</span><span class="s1">&#39;</span><span class="p">,</span>
         <span class="p">]</span>
         <span class="c1"># yapf: enable</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">has_base_code</span><span class="p">:</span>
-            <span class="n">res</span><span class="o">.</span><span class="n">extend</span><span class="p">([</span><span class="s1">&#39;-bc&#39;</span><span class="p">,</span> <span class="s1">&#39;{ base_code_dir }&#39;</span><span class="p">])</span>
+            <span class="n">res</span><span class="o">.</span><span class="n">extend</span><span class="p">([</span><span class="s1">&#39;-bc&#39;</span><span class="p">,</span> <span class="s1">&#39;</span><span class="si">{base_code_dir}</span><span class="s1">&#39;</span><span class="p">])</span>
 
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">suffixes</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
             <span class="n">res</span><span class="o">.</span><span class="n">extend</span><span class="p">([</span><span class="s1">&#39;-p&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">suffixes</span><span class="p">])</span>

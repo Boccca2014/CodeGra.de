@@ -924,9 +924,8 @@
                     <span class="n">temp_res</span><span class="p">[</span><span class="n">f</span><span class="p">][</span><span class="n">line</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
                 <span class="n">temp_res</span><span class="p">[</span><span class="n">f</span><span class="p">][</span><span class="n">line</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">code</span><span class="p">,</span> <span class="n">msg</span><span class="p">))</span>
 
-            <span class="n">tree_root</span> <span class="o">=</span> <span class="n">files</span><span class="o">.</span><span class="n">restore_directory_structure</span><span class="p">(</span>
-                <span class="n">linter_instance</span><span class="o">.</span><span class="n">work</span><span class="p">,</span>
-                <span class="n">tmpdir</span><span class="p">,</span>
+            <span class="n">tree_root</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">File</span><span class="o">.</span><span class="n">restore_directory_structure</span><span class="p">(</span>
+                <span class="n">tmpdir</span><span class="p">,</span> <span class="n">models</span><span class="o">.</span><span class="n">File</span><span class="o">.</span><span class="n">make_cache</span><span class="p">(</span><span class="n">linter_instance</span><span class="o">.</span><span class="n">work</span><span class="p">)</span>
             <span class="p">)</span>
 
             <span class="bp">self</span><span class="o">.</span><span class="n">linter</span><span class="o">.</span><span class="n">run</span><span class="p">(</span>

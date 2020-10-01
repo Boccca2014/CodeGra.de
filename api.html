@@ -382,19 +382,19 @@ working.</p>
 <td></td>
 </tr>
 <tr class="row-even"><td></td>
-<td><p><a class="reference external" href="#get--api-v1-lti1.3-login-(lti_provider_id)">GET /api/v1/lti1.3/login/(lti_provider_id)</a></p></td>
-<td></td>
-</tr>
-<tr class="row-odd"><td></td>
-<td><p><a class="reference external" href="#get--api-v1-lti1.3-login">GET /api/v1/lti1.3/login</a></p></td>
-<td></td>
-</tr>
-<tr class="row-even"><td></td>
 <td><p><a class="reference external" href="#post--api-v1-lti1.3-login-(lti_provider_id)">POST /api/v1/lti1.3/login/(lti_provider_id)</a></p></td>
 <td></td>
 </tr>
 <tr class="row-odd"><td></td>
 <td><p><a class="reference external" href="#post--api-v1-lti1.3-login">POST /api/v1/lti1.3/login</a></p></td>
+<td></td>
+</tr>
+<tr class="row-even"><td></td>
+<td><p><a class="reference external" href="#get--api-v1-lti1.3-login-(lti_provider_id)">GET /api/v1/lti1.3/login/(lti_provider_id)</a></p></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td></td>
+<td><p><a class="reference external" href="#get--api-v1-lti1.3-login">GET /api/v1/lti1.3/login</a></p></td>
 <td></td>
 </tr>
 <tr class="row-even"><td></td>
@@ -2825,10 +2825,6 @@ attached course. (INCORRECT_PERMISSION)</p></li>
 <dt id="delete--api-v1-code-(int-file_id)">
 <code class="sig-name descname">DELETE </code><code class="sig-name descname">/api/v1/code/</code><span class="sig-paren">(</span><em class="property">int: </em><em class="sig-param">file_id</em><span class="sig-paren">)</span><a class="headerlink" href="#delete--api-v1-code-(int-file_id)" title="Permalink to this definition">¶</a></dt>
 <dd><p>Delete the given file.</p>
-<p>If a student does this request before the deadline, the file will be
-completely deleted. If the request is done after the deadline the user
-doing the delete will be removed from the ownership of the file and if
-there are no owners left the file is deleted.</p>
 <p>If the file owner of the given file is the same as that of the user doing
 the request (so the file will be completely deleted) the given file should
 not have any comments (Linter or normal) associated with it. If it still
@@ -2839,8 +2835,8 @@ has comments the request will fail with error code 400.</p>
 </dd>
 <dt class="field-even">Possible error responses</dt>
 <dd class="field-even"><ul class="simple">
-<li><p><a class="reference internal" href="psef_api/psef.html#psef.exceptions.APIException" title="psef.exceptions.APIException"><strong>APIException</strong></a> – If the request will result in wrong
-state. (INVALID_STATE)</p></li>
+<li><p><a class="reference internal" href="psef_api/psef.html#psef.exceptions.APIException" title="psef.exceptions.APIException"><strong>APIException</strong></a> – If the request will result in wrong state.
+(INVALID_STATE)</p></li>
 <li><p><a class="reference internal" href="psef_api/psef.html#psef.exceptions.APIException" title="psef.exceptions.APIException"><strong>APIException</strong></a> – If there is not file with the given id.
 (OBJECT_ID_NOT_FOUND)</p></li>
 <li><p><a class="reference internal" href="psef_api/psef.html#psef.exceptions.APIException" title="psef.exceptions.APIException"><strong>APIException</strong></a> – If you do not have permission to delete the given
@@ -4698,14 +4694,14 @@ required for LMSes that pass all required information.</p></li>
 <dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Union" title="(in Python v3.8)"><code class="xref py py-data docutils literal notranslate"><span class="pre">Union</span></code></a>[<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.8)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>, <code class="xref py py-class docutils literal notranslate"><span class="pre">Response</span></code>]</p>
 </dd>
 </dl>
-<dl class="http get">
-<dt id="get--api-v1-lti1.3-login-(lti_provider_id)">
-<code class="sig-name descname">GET </code><code class="sig-name descname">/api/v1/lti1.3/login/</code><span class="sig-paren">(</span><em class="sig-param">lti_provider_id</em><span class="sig-paren">)</span><a class="headerlink" href="#get--api-v1-lti1.3-login-(lti_provider_id)" title="Permalink to this definition">¶</a></dt>
+<dl class="http post">
+<dt id="post--api-v1-lti1.3-login-(lti_provider_id)">
+<code class="sig-name descname">POST </code><code class="sig-name descname">/api/v1/lti1.3/login/</code><span class="sig-paren">(</span><em class="sig-param">lti_provider_id</em><span class="sig-paren">)</span><a class="headerlink" href="#post--api-v1-lti1.3-login-(lti_provider_id)" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
-<dl class="http get">
-<dt id="get--api-v1-lti1.3-login">
-<code class="sig-name descname">GET </code><code class="sig-name descname">/api/v1/lti1.3/login</code><a class="headerlink" href="#get--api-v1-lti1.3-login" title="Permalink to this definition">¶</a></dt>
+<dl class="http post">
+<dt id="post--api-v1-lti1.3-login">
+<code class="sig-name descname">POST </code><code class="sig-name descname">/api/v1/lti1.3/login</code><a class="headerlink" href="#post--api-v1-lti1.3-login" title="Permalink to this definition">¶</a></dt>
 <dd><p>Do an LTI 1.3 OIDC login.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -4722,14 +4718,14 @@ required for LMSes that pass all required information.</p></li>
 <dd class="field-odd"><p><code class="xref py py-class docutils literal notranslate"><span class="pre">Response</span></code></p>
 </dd>
 </dl>
-<dl class="http post">
-<dt id="post--api-v1-lti1.3-login-(lti_provider_id)">
-<code class="sig-name descname">POST </code><code class="sig-name descname">/api/v1/lti1.3/login/</code><span class="sig-paren">(</span><em class="sig-param">lti_provider_id</em><span class="sig-paren">)</span><a class="headerlink" href="#post--api-v1-lti1.3-login-(lti_provider_id)" title="Permalink to this definition">¶</a></dt>
+<dl class="http get">
+<dt id="get--api-v1-lti1.3-login-(lti_provider_id)">
+<code class="sig-name descname">GET </code><code class="sig-name descname">/api/v1/lti1.3/login/</code><span class="sig-paren">(</span><em class="sig-param">lti_provider_id</em><span class="sig-paren">)</span><a class="headerlink" href="#get--api-v1-lti1.3-login-(lti_provider_id)" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
-<dl class="http post">
-<dt id="post--api-v1-lti1.3-login">
-<code class="sig-name descname">POST </code><code class="sig-name descname">/api/v1/lti1.3/login</code><a class="headerlink" href="#post--api-v1-lti1.3-login" title="Permalink to this definition">¶</a></dt>
+<dl class="http get">
+<dt id="get--api-v1-lti1.3-login">
+<code class="sig-name descname">GET </code><code class="sig-name descname">/api/v1/lti1.3/login</code><a class="headerlink" href="#get--api-v1-lti1.3-login" title="Permalink to this definition">¶</a></dt>
 <dd><p>Do an LTI 1.3 OIDC login.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>

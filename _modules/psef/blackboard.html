@@ -209,7 +209,6 @@
 <span class="sd">SPDX-License-Identifier: AGPL-3.0-only</span>
 <span class="sd">&quot;&quot;&quot;</span>
 <span class="kn">import</span> <span class="nn">re</span>
-<span class="kn">import</span> <span class="nn">mmap</span>
 <span class="kn">import</span> <span class="nn">typing</span> <span class="k">as</span> <span class="nn">t</span>
 <span class="kn">import</span> <span class="nn">datetime</span>
 
@@ -282,7 +281,7 @@
 <span class="sd">    &quot;&quot;&quot;</span></div>
 
 
-<div class="viewcode-block" id="parse_info_file"><a class="viewcode-back" href="../../psef_api/psef.html#psef.blackboard.parse_info_file">[docs]</a><span class="k">def</span> <span class="nf">parse_info_file</span><span class="p">(</span><span class="n">file</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">SubmissionInfo</span><span class="p">:</span>
+<div class="viewcode-block" id="parse_info_file"><a class="viewcode-back" href="../../psef_api/psef.html#psef.blackboard.parse_info_file">[docs]</a><span class="k">def</span> <span class="nf">parse_info_file</span><span class="p">(</span><span class="n">fileobj</span><span class="p">:</span> <span class="n">t</span><span class="o">.</span><span class="n">IO</span><span class="p">[</span><span class="nb">bytes</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">SubmissionInfo</span><span class="p">:</span>
     <span class="sd">&quot;&quot;&quot;Parses a blackboard gradebook .txt file.</span>
 
 <span class="sd">    :param file: Path to the file</span>
@@ -292,60 +291,51 @@
 
     <span class="n">grade</span><span class="p">:</span> <span class="n">t</span><span class="o">.</span><span class="n">Optional</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span>
 
-    <span class="c1"># _TXT_FMT is a object gotten from `re.compile`</span>
-    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">file</span><span class="p">,</span> <span class="s1">&#39;r+&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
-        <span class="k">with</span> <span class="n">mmap</span><span class="o">.</span><span class="n">mmap</span><span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">fileno</span><span class="p">(),</span> <span class="mi">0</span><span class="p">)</span> <span class="k">as</span> <span class="n">data</span><span class="p">:</span>
-            <span class="c1"># casting here is wrong, however see</span>
-            <span class="c1"># https://github.com/python/typeshed/issues/1467</span>
-            <span class="n">match</span> <span class="o">=</span> <span class="n">_TXT_FMT</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="n">t</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="nb">bytes</span><span class="p">,</span> <span class="n">data</span><span class="p">))</span>
+    <span class="n">data</span> <span class="o">=</span> <span class="n">fileobj</span><span class="o">.</span><span class="n">read</span><span class="p">()</span>
+    <span class="n">match</span> <span class="o">=</span> <span class="n">_TXT_FMT</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
 
-            <span class="k">if</span> <span class="n">match</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Invalid format&#39;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">match</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Invalid format&#39;</span><span class="p">)</span>
 
-            <span class="k">try</span><span class="p">:</span>
-                <span class="n">grade</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">match</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="s1">&#39;grade&#39;</span><span class="p">))</span>
-            <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
-                <span class="n">grade</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">grade</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">match</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="s1">&#39;grade&#39;</span><span class="p">))</span>
+    <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
+        <span class="n">grade</span> <span class="o">=</span> <span class="kc">None</span>
 
-            <span class="n">bb_files</span> <span class="o">=</span> <span class="n">match</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="s1">&#39;files&#39;</span><span class="p">)</span>
-            <span class="n">files</span><span class="p">:</span> <span class="n">t</span><span class="o">.</span><span class="n">List</span><span class="p">[</span><span class="n">t</span><span class="o">.</span><span class="n">Union</span><span class="p">[</span><span class="n">t</span><span class="o">.</span><span class="n">Tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">bytes</span><span class="p">],</span> <span class="n">FileInfo</span><span class="p">]]</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">bb_files</span> <span class="o">=</span> <span class="n">match</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="s1">&#39;files&#39;</span><span class="p">)</span>
+    <span class="n">files</span><span class="p">:</span> <span class="n">t</span><span class="o">.</span><span class="n">List</span><span class="p">[</span><span class="n">t</span><span class="o">.</span><span class="n">Union</span><span class="p">[</span><span class="n">t</span><span class="o">.</span><span class="n">Tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">bytes</span><span class="p">],</span> <span class="n">FileInfo</span><span class="p">]]</span> <span class="o">=</span> <span class="p">[]</span>
 
-            <span class="k">if</span> <span class="n">bb_files</span><span class="p">:</span>
-                <span class="n">files</span> <span class="o">=</span> <span class="p">[</span>
-                    <span class="n">FileInfo</span><span class="p">(</span><span class="n">org</span><span class="p">,</span> <span class="n">cur</span><span class="p">)</span> <span class="k">for</span> <span class="n">org</span><span class="p">,</span> <span class="n">cur</span> <span class="ow">in</span>
-                    <span class="n">_TXT_FILES_FMT</span><span class="o">.</span><span class="n">findall</span><span class="p">(</span><span class="n">bb_files</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="s1">&#39;utf-8&#39;</span><span class="p">))</span>
-                <span class="p">]</span>
-            <span class="k">else</span><span class="p">:</span>
-                <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span>
-                    <span class="s1">&#39;Processed blackboard without files submission&#39;</span><span class="p">,</span>
-                    <span class="n">match</span><span class="o">=</span><span class="nb">str</span><span class="p">(</span><span class="n">data</span><span class="o">.</span><span class="n">read</span><span class="p">()),</span>
-                <span class="p">)</span>
-                <span class="n">content</span> <span class="o">=</span> <span class="p">(</span>
-                    <span class="sa">b</span><span class="s1">&#39;No files were uploaded! The&#39;</span>
-                    <span class="sa">b</span><span class="s1">&#39;comments for this submission were:</span><span class="se">\n</span><span class="s1">&quot;&quot;&quot;</span><span class="se">\n</span><span class="s1">&#39;</span> <span class="o">+</span>
-                    <span class="n">match</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="s1">&#39;comment&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span> <span class="o">+</span> <span class="sa">b</span><span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&quot;&quot;&quot;&#39;</span>
-                <span class="p">)</span>
-                <span class="n">files</span> <span class="o">=</span> <span class="p">[(</span><span class="s1">&#39;Comment&#39;</span><span class="p">,</span> <span class="n">content</span><span class="p">)]</span>
+    <span class="k">if</span> <span class="n">bb_files</span><span class="p">:</span>
+        <span class="n">files</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="n">FileInfo</span><span class="p">(</span><span class="n">org</span><span class="p">,</span> <span class="n">cur</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">org</span><span class="p">,</span> <span class="n">cur</span> <span class="ow">in</span> <span class="n">_TXT_FILES_FMT</span><span class="o">.</span><span class="n">findall</span><span class="p">(</span><span class="n">bb_files</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="s1">&#39;utf-8&#39;</span><span class="p">))</span>
+        <span class="p">]</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;Processed blackboard without files submission&#39;</span><span class="p">)</span>
+        <span class="n">content</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="sa">b</span><span class="s1">&#39;No files were uploaded! The&#39;</span>
+            <span class="sa">b</span><span class="s1">&#39;comments for this submission were:</span><span class="se">\n</span><span class="s1">&quot;&quot;&quot;</span><span class="se">\n</span><span class="s1">&#39;</span> <span class="o">+</span>
+            <span class="n">match</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="s1">&#39;comment&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span> <span class="o">+</span> <span class="sa">b</span><span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&quot;&quot;&quot;&#39;</span>
+        <span class="p">)</span>
+        <span class="n">files</span> <span class="o">=</span> <span class="p">[(</span><span class="s1">&#39;Comment&#39;</span><span class="p">,</span> <span class="n">content</span><span class="p">)]</span>
 
-            <span class="n">info</span> <span class="o">=</span> <span class="n">SubmissionInfo</span><span class="p">(</span>
-                <span class="n">student_name</span><span class="o">=</span><span class="n">match</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="s1">&#39;name&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="s1">&#39;utf-8&#39;</span><span class="p">),</span>
-                <span class="n">student_id</span><span class="o">=</span><span class="n">match</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="s1">&#39;id&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="s1">&#39;utf-8&#39;</span><span class="p">),</span>
-                <span class="n">assignment_name</span><span class="o">=</span><span class="n">match</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="s1">&#39;assignment&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="s1">&#39;utf-8&#39;</span><span class="p">),</span>
-                <span class="c1"># Timezones are probably wrong here, but we are parsing a</span>
-                <span class="c1"># format that is not really documented, so who cares?</span>
-                <span class="n">created_at</span><span class="o">=</span><span class="n">dateparser</span><span class="o">.</span><span class="n">parse</span><span class="p">(</span>
-                    <span class="n">match</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="s1">&#39;datetime&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="s1">&#39;utf-8&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span>
-                        <span class="s2">&quot; o&#39;clock&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span>
-                    <span class="p">),</span>
-                    <span class="n">tzinfos</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;CET&#39;</span><span class="p">:</span> <span class="n">gettz</span><span class="p">(</span><span class="s1">&#39;Europe/Amsterdam&#39;</span><span class="p">)}</span>
-                <span class="p">),</span>
-                <span class="n">grade</span><span class="o">=</span><span class="n">grade</span><span class="p">,</span>
-                <span class="n">text</span><span class="o">=</span><span class="n">match</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="s1">&#39;text&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="s1">&#39;utf-8&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">rstrip</span><span class="p">(),</span>
-                <span class="n">comment</span><span class="o">=</span><span class="n">match</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="s1">&#39;comment&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="s1">&#39;utf-8&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">rstrip</span><span class="p">(),</span>
-                <span class="n">files</span><span class="o">=</span><span class="n">files</span><span class="p">,</span>
-            <span class="p">)</span>
+    <span class="n">info</span> <span class="o">=</span> <span class="n">SubmissionInfo</span><span class="p">(</span>
+        <span class="n">student_name</span><span class="o">=</span><span class="n">match</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="s1">&#39;name&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="s1">&#39;utf-8&#39;</span><span class="p">),</span>
+        <span class="n">student_id</span><span class="o">=</span><span class="n">match</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="s1">&#39;id&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="s1">&#39;utf-8&#39;</span><span class="p">),</span>
+        <span class="n">assignment_name</span><span class="o">=</span><span class="n">match</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="s1">&#39;assignment&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="s1">&#39;utf-8&#39;</span><span class="p">),</span>
+        <span class="c1"># Timezones are probably wrong here, but we are parsing a</span>
+        <span class="c1"># format that is not really documented, so who cares?</span>
+        <span class="n">created_at</span><span class="o">=</span><span class="n">dateparser</span><span class="o">.</span><span class="n">parse</span><span class="p">(</span>
+            <span class="n">match</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="s1">&#39;datetime&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="s1">&#39;utf-8&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot; o&#39;clock&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">),</span>
+            <span class="n">tzinfos</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;CET&#39;</span><span class="p">:</span> <span class="n">gettz</span><span class="p">(</span><span class="s1">&#39;Europe/Amsterdam&#39;</span><span class="p">)}</span>
+        <span class="p">),</span>
+        <span class="n">grade</span><span class="o">=</span><span class="n">grade</span><span class="p">,</span>
+        <span class="n">text</span><span class="o">=</span><span class="n">match</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="s1">&#39;text&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="s1">&#39;utf-8&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">rstrip</span><span class="p">(),</span>
+        <span class="n">comment</span><span class="o">=</span><span class="n">match</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="s1">&#39;comment&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="s1">&#39;utf-8&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">rstrip</span><span class="p">(),</span>
+        <span class="n">files</span><span class="o">=</span><span class="n">files</span><span class="p">,</span>
+    <span class="p">)</span>
 
-            <span class="k">return</span> <span class="n">info</span></div>
+    <span class="k">return</span> <span class="n">info</span></div>
 </pre></div>
 
            </div>

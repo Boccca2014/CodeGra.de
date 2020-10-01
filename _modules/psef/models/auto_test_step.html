@@ -227,9 +227,12 @@
 <span class="kn">import</span> <span class="nn">psef</span>
 <span class="kn">import</span> <span class="nn">cg_junit</span>
 <span class="kn">import</span> <span class="nn">cg_logger</span>
+<span class="kn">import</span> <span class="nn">cg_object_storage</span>
+<span class="kn">from</span> <span class="nn">cg_maybe</span> <span class="kn">import</span> <span class="n">Maybe</span><span class="p">,</span> <span class="n">Nothing</span>
 <span class="kn">from</span> <span class="nn">cg_dt_utils</span> <span class="kn">import</span> <span class="n">DatetimeWithTimezone</span>
 <span class="kn">from</span> <span class="nn">cg_flask_helpers</span> <span class="kn">import</span> <span class="n">callback_after_this_request</span>
-<span class="kn">from</span> <span class="nn">cg_sqlalchemy_helpers.types</span> <span class="kn">import</span> <span class="n">DbType</span><span class="p">,</span> <span class="n">ColumnProxy</span>
+<span class="kn">from</span> <span class="nn">cg_sqlalchemy_helpers</span> <span class="kn">import</span> <span class="n">hybrid_property</span><span class="p">,</span> <span class="n">hybrid_expression</span>
+<span class="kn">from</span> <span class="nn">cg_sqlalchemy_helpers.types</span> <span class="kn">import</span> <span class="n">DbType</span><span class="p">,</span> <span class="n">DbColumn</span><span class="p">,</span> <span class="n">ColumnProxy</span>
 <span class="kn">from</span> <span class="nn">cg_sqlalchemy_helpers.mixins</span> <span class="kn">import</span> <span class="n">IdMixin</span><span class="p">,</span> <span class="n">TimestampMixin</span>
 
 <span class="kn">from</span> <span class="nn">.</span> <span class="kn">import</span> <span class="n">Base</span><span class="p">,</span> <span class="n">db</span>
@@ -1218,8 +1221,22 @@
         <span class="s1">&#39;log&#39;</span><span class="p">,</span> <span class="n">JSON</span><span class="p">,</span> <span class="n">nullable</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="kc">None</span>
     <span class="p">)</span>
 
-    <span class="n">attachment_filename</span> <span class="o">=</span> <span class="n">db</span><span class="o">.</span><span class="n">Column</span><span class="p">(</span>
+    <span class="n">_attachment_filename</span> <span class="o">=</span> <span class="n">db</span><span class="o">.</span><span class="n">Column</span><span class="p">(</span>
         <span class="s1">&#39;attachment_filename&#39;</span><span class="p">,</span> <span class="n">db</span><span class="o">.</span><span class="n">Unicode</span><span class="p">,</span> <span class="n">nullable</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="kc">None</span>
+    <span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_get_has_attachment</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">attachment</span><span class="o">.</span><span class="n">is_just</span>
+
+    <span class="nd">@hybrid_expression</span>
+    <span class="k">def</span> <span class="nf">_get_has_attachment_expr</span><span class="p">(</span><span class="bp">cls</span><span class="p">:</span> <span class="n">t</span><span class="o">.</span><span class="n">Type</span><span class="p">[</span><span class="s1">&#39;AutoTestStepResult&#39;</span><span class="p">]</span>
+                                 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">DbColumn</span><span class="p">[</span><span class="nb">bool</span><span class="p">]:</span>
+        <span class="c1"># pylint: disable=no-self-argument</span>
+        <span class="k">return</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_attachment_filename</span><span class="o">.</span><span class="n">isnot</span><span class="p">(</span><span class="kc">None</span><span class="p">)</span>
+
+    <span class="c1">#: Check if this step has an attachment</span>
+    <span class="n">has_attachment</span> <span class="o">=</span> <span class="n">hybrid_property</span><span class="p">(</span>
+        <span class="n">_get_has_attachment</span><span class="p">,</span> <span class="n">expr</span><span class="o">=</span><span class="n">_get_has_attachment_expr</span>
     <span class="p">)</span>
 
     <span class="nd">@property</span>
@@ -1246,6 +1263,17 @@
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">step</span><span class="o">.</span><span class="n">get_amount_achieved_points</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
 
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">attachment</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Maybe</span><span class="p">[</span><span class="n">cg_object_storage</span><span class="o">.</span><span class="n">File</span><span class="p">]:</span>
+        <span class="sd">&quot;&quot;&quot;Maybe the attachment of this step.</span>
+
+<span class="sd">        The step might not have an attachment in which case ``Nothing`` is</span>
+<span class="sd">        returned.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_attachment_filename</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">Nothing</span>
+        <span class="k">return</span> <span class="n">current_app</span><span class="o">.</span><span class="n">file_storage</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_attachment_filename</span><span class="p">)</span>
+
 <div class="viewcode-block" id="AutoTestStepResult.schedule_attachment_deletion"><a class="viewcode-back" href="../../../psef_api/psef.html#psef.models.auto_test_step.AutoTestStepResult.schedule_attachment_deletion">[docs]</a>    <span class="k">def</span> <span class="nf">schedule_attachment_deletion</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
         <span class="sd">&quot;&quot;&quot;Delete the attachment of this result after the current request.</span>
 
@@ -1254,17 +1282,10 @@
 
 <span class="sd">        :returns: Nothing.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="n">old_filename</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">attachment_filename</span>
-        <span class="k">if</span> <span class="n">old_filename</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="n">old_path</span> <span class="o">=</span> <span class="n">psef</span><span class="o">.</span><span class="n">files</span><span class="o">.</span><span class="n">safe_join</span><span class="p">(</span>
-                <span class="n">current_app</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s1">&#39;UPLOAD_DIR&#39;</span><span class="p">],</span> <span class="n">old_filename</span>
-            <span class="p">)</span>
-
-            <span class="k">def</span> <span class="nf">after_req</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-                <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isfile</span><span class="p">(</span><span class="n">old_path</span><span class="p">):</span>
-                    <span class="n">os</span><span class="o">.</span><span class="n">unlink</span><span class="p">(</span><span class="n">old_path</span><span class="p">)</span>
-
-            <span class="n">callback_after_this_request</span><span class="p">(</span><span class="n">after_req</span><span class="p">)</span></div>
+        <span class="n">old_attachment</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">attachment</span>
+        <span class="k">if</span> <span class="n">old_attachment</span><span class="o">.</span><span class="n">is_just</span><span class="p">:</span>
+            <span class="n">deleter</span> <span class="o">=</span> <span class="n">old_attachment</span><span class="o">.</span><span class="n">value</span><span class="o">.</span><span class="n">delete</span>
+            <span class="n">callback_after_this_request</span><span class="p">(</span><span class="n">deleter</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="AutoTestStepResult.update_attachment"><a class="viewcode-back" href="../../../psef_api/psef.html#psef.models.auto_test_step.AutoTestStepResult.update_attachment">[docs]</a>    <span class="k">def</span> <span class="nf">update_attachment</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">stream</span><span class="p">:</span> <span class="n">FileStorage</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
         <span class="sd">&quot;&quot;&quot;Update the attachment of this step.</span>
@@ -1281,7 +1302,13 @@
             <span class="p">)</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">schedule_attachment_deletion</span><span class="p">()</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">attachment_filename</span> <span class="o">=</span> <span class="n">psef</span><span class="o">.</span><span class="n">files</span><span class="o">.</span><span class="n">save_stream</span><span class="p">(</span><span class="n">stream</span><span class="p">)</span></div>
+        <span class="n">max_size</span> <span class="o">=</span> <span class="n">current_app</span><span class="o">.</span><span class="n">max_single_file_size</span>
+        <span class="k">with</span> <span class="n">current_app</span><span class="o">.</span><span class="n">file_storage</span><span class="o">.</span><span class="n">putter</span><span class="p">()</span> <span class="k">as</span> <span class="n">putter</span><span class="p">:</span>
+            <span class="n">new_file</span> <span class="o">=</span> <span class="n">putter</span><span class="o">.</span><span class="n">from_stream</span><span class="p">(</span><span class="n">stream</span><span class="o">.</span><span class="n">stream</span><span class="p">,</span> <span class="n">max_size</span><span class="o">=</span><span class="n">max_size</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">new_file</span><span class="o">.</span><span class="n">is_nothing</span><span class="p">:</span>  <span class="c1"># pragma: no cover</span>
+            <span class="k">raise</span> <span class="n">helpers</span><span class="o">.</span><span class="n">make_file_too_big_exception</span><span class="p">(</span><span class="n">max_size</span><span class="p">,</span> <span class="kc">True</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_attachment_filename</span> <span class="o">=</span> <span class="n">new_file</span><span class="o">.</span><span class="n">value</span><span class="o">.</span><span class="n">name</span></div>
 
     <span class="k">def</span> <span class="nf">__to_json__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">t</span><span class="o">.</span><span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">object</span><span class="p">]:</span>
         <span class="n">res</span> <span class="o">=</span> <span class="p">{</span>
@@ -1291,7 +1318,7 @@
             <span class="s1">&#39;achieved_points&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">achieved_points</span><span class="p">,</span>
             <span class="s1">&#39;log&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="p">,</span>
             <span class="s1">&#39;started_at&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">started_at</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">started_at</span><span class="o">.</span><span class="n">isoformat</span><span class="p">(),</span>
-            <span class="s1">&#39;attachment_id&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">attachment_filename</span><span class="p">,</span>
+            <span class="s1">&#39;attachment_id&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">_attachment_filename</span><span class="p">,</span>
         <span class="p">}</span>
         <span class="k">try</span><span class="p">:</span>
             <span class="n">auth</span><span class="o">.</span><span class="n">ensure_can_view_autotest_step_details</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">step</span><span class="p">)</span>
