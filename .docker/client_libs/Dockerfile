@@ -16,6 +16,7 @@ RUN pip install --user git+http://github.com/CodeGra-de/openapi-python-client.gi
 ENV DEBUG=true
 ENV PROJECT_NAME_OVERRIDE=codegrade
 ENV PACKAGE_NAME_OVERRIDE=codegrade
+ENV PYTHONPATH=
 CMD cd /app && \
         make build_swagger && \
         cd api_libs/python && \
