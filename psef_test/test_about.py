@@ -157,7 +157,7 @@ def test_about_health_status(
                 'database': True,
                 'uploads': False,
                 'mirror_uploads': False,
-                'temp_dir': False,
+                'temp_dir': True,
                 'broker': True,
             },
         },

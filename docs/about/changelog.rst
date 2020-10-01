@@ -37,6 +37,11 @@ Updates
   <https://github.com/CodeGra-de/CodeGra.de/pull/1448>`__. When you use http
   or https URLs in your markdown feedback, they are automatically turned into
   clickable links.
+- It is no longer possible for students to edit their submissions in the filesystem
+  `(#1473) <https://github.com/CodeGra-de/CodeGra.de/pull/1473>`__. Students are
+  now no longer allowed to edit their submissions using the CodeGrade
+  filesystem. We can now guarantee that the student revision of a submission
+  never changes.
 
 Version Mosaic.1
 -----------------

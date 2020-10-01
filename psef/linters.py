@@ -719,9 +719,8 @@ class LinterRunner:
                     temp_res[f][line] = []
                 temp_res[f][line].append((code, msg))
 
-            tree_root = files.restore_directory_structure(
-                linter_instance.work,
-                tmpdir,
+            tree_root = models.File.restore_directory_structure(
+                tmpdir, models.File.make_cache(linter_instance.work)
             )
 
             self.linter.run(

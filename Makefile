@@ -2,7 +2,7 @@
 TEST_MODULES ?= $(wildcard cg_*/tests/)
 TEST_FILE ?= $(TEST_MODULES) psef_test/
 TEST_FLAGS ?=
-DOCTEST_MODULES ?= psef cg_cache cg_helpers cg_enum cg_sqlalchemy_helpers
+DOCTEST_MODULES ?= psef cg_cache cg_helpers cg_enum cg_sqlalchemy_helpers cg_maybe
 SHELL := $(shell which bash)
 PYTHON ?= env/bin/python3
 export PYTHONPATH=$(CURDIR)
