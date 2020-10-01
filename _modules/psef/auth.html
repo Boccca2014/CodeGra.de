@@ -1981,14 +1981,14 @@
             <span class="p">)</span></div></div>
 
 
-<div class="viewcode-block" id="LTI1p3ProviderPermissions"><a class="viewcode-back" href="../../psef_api/psef.html#psef.auth.LTI1p3ProviderPermissions">[docs]</a><span class="k">class</span> <span class="nc">LTI1p3ProviderPermissions</span><span class="p">(</span><span class="n">GlobalPermissionChecker</span><span class="p">):</span>
+<div class="viewcode-block" id="LTIProviderPermissions"><a class="viewcode-back" href="../../psef_api/psef.html#psef.auth.LTIProviderPermissions">[docs]</a><span class="k">class</span> <span class="nc">LTIProviderPermissions</span><span class="p">(</span><span class="n">GlobalPermissionChecker</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;The permission checker for :class:`psef.models.LTI1p3Provider`.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="vm">__slots__</span> <span class="o">=</span> <span class="p">(</span><span class="s1">&#39;lti_provider&#39;</span><span class="p">,</span> <span class="s1">&#39;secret_is_correct&#39;</span><span class="p">)</span>
 
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
-        <span class="n">lti_provider</span><span class="p">:</span> <span class="s1">&#39;psef.models.LTI1p3Provider&#39;</span><span class="p">,</span>
+        <span class="n">lti_provider</span><span class="p">:</span> <span class="s1">&#39;psef.models.LTIProviderBase&#39;</span><span class="p">,</span>
         <span class="o">*</span><span class="p">,</span>
         <span class="n">secret</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
@@ -2002,20 +2002,20 @@
             <span class="k">return</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_ensure</span><span class="p">(</span><span class="n">GPerm</span><span class="o">.</span><span class="n">can_manage_lti_providers</span><span class="p">)</span>
 
-<div class="viewcode-block" id="LTI1p3ProviderPermissions.ensure_may_add"><a class="viewcode-back" href="../../psef_api/psef.html#psef.auth.LTI1p3ProviderPermissions.ensure_may_add">[docs]</a>    <span class="nd">@GlobalPermissionChecker</span><span class="o">.</span><span class="n">as_ensure_function</span>
+<div class="viewcode-block" id="LTIProviderPermissions.ensure_may_add"><a class="viewcode-back" href="../../psef_api/psef.html#psef.auth.LTIProviderPermissions.ensure_may_add">[docs]</a>    <span class="nd">@GlobalPermissionChecker</span><span class="o">.</span><span class="n">as_ensure_function</span>
     <span class="k">def</span> <span class="nf">ensure_may_add</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
         <span class="sd">&quot;&quot;&quot;Check if the current user may add this lti provider.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="c1"># You don&#39; thave the permission to add based on a passed secret.</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_ensure</span><span class="p">(</span><span class="n">GPerm</span><span class="o">.</span><span class="n">can_manage_lti_providers</span><span class="p">)</span></div>
 
-<div class="viewcode-block" id="LTI1p3ProviderPermissions.ensure_may_see"><a class="viewcode-back" href="../../psef_api/psef.html#psef.auth.LTI1p3ProviderPermissions.ensure_may_see">[docs]</a>    <span class="nd">@GlobalPermissionChecker</span><span class="o">.</span><span class="n">as_ensure_function</span>
+<div class="viewcode-block" id="LTIProviderPermissions.ensure_may_see"><a class="viewcode-back" href="../../psef_api/psef.html#psef.auth.LTIProviderPermissions.ensure_may_see">[docs]</a>    <span class="nd">@GlobalPermissionChecker</span><span class="o">.</span><span class="n">as_ensure_function</span>
     <span class="k">def</span> <span class="nf">ensure_may_see</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
         <span class="sd">&quot;&quot;&quot;Check if the current user may see this lti provider.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_ensure_can_manage</span><span class="p">()</span></div>
 
-<div class="viewcode-block" id="LTI1p3ProviderPermissions.ensure_may_edit"><a class="viewcode-back" href="../../psef_api/psef.html#psef.auth.LTI1p3ProviderPermissions.ensure_may_edit">[docs]</a>    <span class="nd">@GlobalPermissionChecker</span><span class="o">.</span><span class="n">as_ensure_function</span>
+<div class="viewcode-block" id="LTIProviderPermissions.ensure_may_edit"><a class="viewcode-back" href="../../psef_api/psef.html#psef.auth.LTIProviderPermissions.ensure_may_edit">[docs]</a>    <span class="nd">@GlobalPermissionChecker</span><span class="o">.</span><span class="n">as_ensure_function</span>
     <span class="k">def</span> <span class="nf">ensure_may_edit</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
         <span class="sd">&quot;&quot;&quot;Check if the current user may edit this lti provider.</span>
 <span class="sd">        &quot;&quot;&quot;</span>

@@ -234,11 +234,19 @@
 
 <span class="kn">from</span> <span class="nn">..</span> <span class="kn">import</span> <span class="n">app</span><span class="p">,</span> <span class="n">auth</span><span class="p">,</span> <span class="n">models</span><span class="p">,</span> <span class="n">helpers</span><span class="p">,</span> <span class="n">features</span>
 <span class="kn">from</span> <span class="nn">..models</span> <span class="kn">import</span> <span class="n">db</span>
-<span class="kn">from</span> <span class="nn">..helpers</span> <span class="kn">import</span> <span class="n">register</span><span class="p">,</span> <span class="n">try_for_every</span>
+<span class="kn">from</span> <span class="nn">..helpers</span> <span class="kn">import</span> <span class="n">try_for_every</span>
 <span class="kn">from</span> <span class="nn">.abstract</span> <span class="kn">import</span> <span class="n">AbstractLTIConnector</span>
+<span class="kn">from</span> <span class="nn">..registry</span> <span class="kn">import</span> <span class="n">lti_1_1_providers</span>
 <span class="kn">from</span> <span class="nn">..exceptions</span> <span class="kn">import</span> <span class="n">APICodes</span><span class="p">,</span> <span class="n">APIWarnings</span><span class="p">,</span> <span class="n">APIException</span>
 
 <span class="n">logger</span> <span class="o">=</span> <span class="n">structlog</span><span class="o">.</span><span class="n">get_logger</span><span class="p">()</span>
+
+<span class="n">_T_LTI</span> <span class="o">=</span> <span class="n">t</span><span class="o">.</span><span class="n">TypeVar</span><span class="p">(</span><span class="s1">&#39;_T_LTI&#39;</span><span class="p">,</span> <span class="n">bound</span><span class="o">=</span><span class="s1">&#39;LTI&#39;</span><span class="p">)</span>  <span class="c1"># pylint: disable=invalid-name</span>
+
+
+<span class="k">def</span> <span class="nf">_register_provider</span><span class="p">(</span><span class="bp">cls</span><span class="p">:</span> <span class="n">t</span><span class="o">.</span><span class="n">Type</span><span class="p">[</span><span class="n">_T_LTI</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">t</span><span class="o">.</span><span class="n">Type</span><span class="p">[</span><span class="n">_T_LTI</span><span class="p">]:</span>
+    <span class="n">lti_1_1_providers</span><span class="o">.</span><span class="n">register</span><span class="p">(</span><span class="bp">cls</span><span class="o">.</span><span class="n">get_lms_name</span><span class="p">())(</span><span class="bp">cls</span><span class="p">)</span>
+    <span class="k">return</span> <span class="bp">cls</span>
 
 
 <div class="viewcode-block" id="init_app"><a class="viewcode-back" href="../../../psef_api/psef.html#psef.lti.v1_1.init_app">[docs]</a><span class="k">def</span> <span class="nf">init_app</span><span class="p">(</span><span class="n">_</span><span class="p">:</span> <span class="n">t</span><span class="o">.</span><span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
@@ -432,9 +440,6 @@
 
 <span class="n">T_LTI</span> <span class="o">=</span> <span class="n">t</span><span class="o">.</span><span class="n">TypeVar</span><span class="p">(</span><span class="s1">&#39;T_LTI&#39;</span><span class="p">,</span> <span class="n">bound</span><span class="o">=</span><span class="s1">&#39;LTI&#39;</span><span class="p">)</span>  <span class="c1"># pylint: disable=invalid-name</span>
 
-<span class="n">lti_classes</span><span class="p">:</span> <span class="n">register</span><span class="o">.</span><span class="n">Register</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">t</span><span class="o">.</span>
-                               <span class="n">Type</span><span class="p">[</span><span class="s1">&#39;LTI&#39;</span><span class="p">]]</span> <span class="o">=</span> <span class="n">register</span><span class="o">.</span><span class="n">Register</span><span class="p">(</span><span class="s1">&#39;LTIClasses&#39;</span><span class="p">)</span>
-
 
 <span class="c1"># TODO: This class has so many public methods as they are properties. A lot of</span>
 <span class="c1"># them can be converted to private properties which should be done.</span>
@@ -442,8 +447,10 @@
     <span class="sd">&quot;&quot;&quot;The base LTI class.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
-<div class="viewcode-block" id="LTI.get_lms_name"><a class="viewcode-back" href="../../../psef_api/psef.html#psef.lti.v1_1.LTI.get_lms_name">[docs]</a>    <span class="k">def</span> <span class="nf">get_lms_name</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">lti_provider</span><span class="o">.</span><span class="n">lms_name</span></div>
+<div class="viewcode-block" id="LTI.get_lms_name"><a class="viewcode-back" href="../../../psef_api/psef.html#psef.lti.v1_1.LTI.get_lms_name">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="nd">@abc</span><span class="o">.</span><span class="n">abstractmethod</span>
+    <span class="k">def</span> <span class="nf">get_lms_name</span><span class="p">(</span><span class="bp">cls</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span></div>
 
 <div class="viewcode-block" id="LTI.supports_lti_launch_as_result"><a class="viewcode-back" href="../../../psef_api/psef.html#psef.lti.v1_1.LTI.supports_lti_launch_as_result">[docs]</a>    <span class="nd">@staticmethod</span>
     <span class="k">def</span> <span class="nf">supports_lti_launch_as_result</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>  <span class="c1"># pragma: no cover</span>
@@ -465,7 +472,7 @@
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">params</span><span class="p">:</span> <span class="n">t</span><span class="o">.</span><span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">],</span>
-        <span class="n">lti_provider</span><span class="p">:</span> <span class="n">models</span><span class="o">.</span><span class="n">LTI1p1Provider</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="n">lti_provider</span><span class="p">:</span> <span class="s1">&#39;models.LTI1p1Provider&#39;</span> <span class="o">=</span> <span class="kc">None</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">launch_params</span> <span class="o">=</span> <span class="n">params</span>
 
@@ -505,17 +512,19 @@
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">params</span> <span class="o">=</span> <span class="n">req</span><span class="o">.</span><span class="n">form</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
 
-        <span class="n">lti_provider</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">db</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">query</span><span class="p">(</span>
-            <span class="n">models</span><span class="o">.</span><span class="n">LTI1p1Provider</span>
-        <span class="p">)</span><span class="o">.</span><span class="n">filter_by</span><span class="p">(</span>
-            <span class="n">key</span><span class="o">=</span><span class="n">params</span><span class="p">[</span><span class="s1">&#39;oauth_consumer_key&#39;</span><span class="p">],</span>
-        <span class="p">)</span><span class="o">.</span><span class="n">first</span><span class="p">()</span>
-        <span class="k">if</span> <span class="n">lti_provider</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="n">lti_provider</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">LTI1p1Provider</span><span class="p">(</span>
-                <span class="n">key</span><span class="o">=</span><span class="n">params</span><span class="p">[</span><span class="s1">&#39;oauth_consumer_key&#39;</span><span class="p">]</span>
+        <span class="n">lti_provider</span> <span class="o">=</span> <span class="n">helpers</span><span class="o">.</span><span class="n">filter_single_or_404</span><span class="p">(</span>
+            <span class="n">models</span><span class="o">.</span><span class="n">LTI1p1Provider</span><span class="p">,</span>
+            <span class="n">models</span><span class="o">.</span><span class="n">LTI1p1Provider</span><span class="o">.</span><span class="n">key</span> <span class="o">==</span> <span class="n">params</span><span class="p">[</span><span class="s1">&#39;oauth_consumer_key&#39;</span><span class="p">],</span>
+        <span class="p">)</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">lti_provider</span><span class="o">.</span><span class="n">is_finalized</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">APIException</span><span class="p">(</span>
+                <span class="p">(</span>
+                    <span class="s1">&#39;This LTI connection is not yet finalized, please make&#39;</span>
+                    <span class="s1">&#39; sure you have completed all steps in the wizard.&#39;</span>
+                <span class="p">),</span> <span class="sa">f</span><span class="s1">&#39;The LTIProvider </span><span class="si">{</span><span class="n">lti_provider</span><span class="o">.</span><span class="n">id</span><span class="si">}</span><span class="s1"> is not finalized&#39;</span><span class="p">,</span>
+                <span class="n">APICodes</span><span class="o">.</span><span class="n">INVALID_STATE</span><span class="p">,</span> <span class="mi">400</span>
             <span class="p">)</span>
-            <span class="n">db</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">lti_provider</span><span class="p">)</span>
-            <span class="n">db</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">commit</span><span class="p">()</span>
 
         <span class="n">params</span><span class="p">[</span><span class="s1">&#39;lti_provider_id&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">lti_provider</span><span class="o">.</span><span class="n">id</span>
 
@@ -548,8 +557,7 @@
 <span class="sd">        :returns: A fresh LTI instance.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">lms</span> <span class="o">=</span> <span class="n">params</span><span class="p">[</span><span class="s1">&#39;custom_lms_name&#39;</span><span class="p">]</span>
-        <span class="bp">cls</span> <span class="o">=</span> <span class="n">lti_classes</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">lms</span><span class="p">)</span>
-        <span class="k">assert</span> <span class="bp">cls</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+        <span class="bp">cls</span> <span class="o">=</span> <span class="n">lti_1_1_providers</span><span class="p">[</span><span class="n">lms</span><span class="p">]</span>
         <span class="n">res</span> <span class="o">=</span> <span class="bp">cls</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
         <span class="n">res</span><span class="o">.</span><span class="n">ensure_lti_data_correct</span><span class="p">()</span>
         <span class="k">return</span> <span class="n">res</span></div>
@@ -680,7 +688,7 @@
         <span class="k">raise</span> <span class="ne">NotImplementedError</span>
 
     <span class="nd">@property</span>
-    <span class="k">def</span> <span class="nf">assignment_state</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">models</span><span class="o">.</span><span class="n">AssignmentStateEnum</span><span class="p">:</span>  <span class="c1"># pylint: disable=protected-access</span>
+    <span class="k">def</span> <span class="nf">assignment_state</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s1">&#39;models.AssignmentStateEnum&#39;</span><span class="p">:</span>  <span class="c1"># pylint: disable=protected-access</span>
         <span class="sd">&quot;&quot;&quot;The state of the current LTI assignment.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">raise</span> <span class="ne">NotImplementedError</span>
@@ -739,7 +747,7 @@
 
 <div class="viewcode-block" id="LTI.ensure_lti_user"><a class="viewcode-back" href="../../../psef_api/psef.html#psef.lti.v1_1.LTI.ensure_lti_user">[docs]</a>    <span class="k">def</span> <span class="nf">ensure_lti_user</span><span class="p">(</span>
         <span class="bp">self</span>
-    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">t</span><span class="o">.</span><span class="n">Tuple</span><span class="p">[</span><span class="n">models</span><span class="o">.</span><span class="n">User</span><span class="p">,</span> <span class="n">t</span><span class="o">.</span><span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span> <span class="n">t</span><span class="o">.</span><span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]]:</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">t</span><span class="o">.</span><span class="n">Tuple</span><span class="p">[</span><span class="s1">&#39;models.User&#39;</span><span class="p">,</span> <span class="n">t</span><span class="o">.</span><span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span> <span class="n">t</span><span class="o">.</span><span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]]:</span>
         <span class="sd">&quot;&quot;&quot;Make sure the current LTI user is logged in as a psef user.</span>
 
 <span class="sd">        This is done by first checking if we know a user with the current LTI</span>
@@ -773,7 +781,7 @@
 
         <span class="k">return</span> <span class="n">user</span><span class="p">,</span> <span class="n">token</span><span class="p">,</span> <span class="n">updated_email</span></div>
 
-<div class="viewcode-block" id="LTI.get_course"><a class="viewcode-back" href="../../../psef_api/psef.html#psef.lti.v1_1.LTI.get_course">[docs]</a>    <span class="k">def</span> <span class="nf">get_course</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">models</span><span class="o">.</span><span class="n">Course</span><span class="p">:</span>
+<div class="viewcode-block" id="LTI.get_course"><a class="viewcode-back" href="../../../psef_api/psef.html#psef.lti.v1_1.LTI.get_course">[docs]</a>    <span class="k">def</span> <span class="nf">get_course</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s1">&#39;models.Course&#39;</span><span class="p">:</span>
         <span class="sd">&quot;&quot;&quot;Get the current LTI course as a psef course.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">course_lti_provider</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">lti_provider</span><span class="o">.</span><span class="n">find_course</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">course_id</span><span class="p">)</span>
@@ -802,8 +810,8 @@
         <span class="k">return</span> <span class="n">course</span></div>
 
 <div class="viewcode-block" id="LTI.create_and_add_assignment"><a class="viewcode-back" href="../../../psef_api/psef.html#psef.lti.v1_1.LTI.create_and_add_assignment">[docs]</a>    <span class="k">def</span> <span class="nf">create_and_add_assignment</span><span class="p">(</span>
-        <span class="bp">self</span><span class="p">,</span> <span class="n">course</span><span class="p">:</span> <span class="n">models</span><span class="o">.</span><span class="n">Course</span>
-    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">models</span><span class="o">.</span><span class="n">Assignment</span><span class="p">:</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">course</span><span class="p">:</span> <span class="s1">&#39;models.Course&#39;</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="s1">&#39;models.Assignment&#39;</span><span class="p">:</span>
         <span class="sd">&quot;&quot;&quot;Create a new assignment in the database from the launch parameters.</span>
 
 <span class="sd">        This function also adds the created assignment to the current session.</span>
@@ -822,8 +830,8 @@
         <span class="k">return</span> <span class="n">assignment</span></div>
 
 <div class="viewcode-block" id="LTI.get_assignment"><a class="viewcode-back" href="../../../psef_api/psef.html#psef.lti.v1_1.LTI.get_assignment">[docs]</a>    <span class="k">def</span> <span class="nf">get_assignment</span><span class="p">(</span>
-        <span class="bp">self</span><span class="p">,</span> <span class="n">user</span><span class="p">:</span> <span class="n">models</span><span class="o">.</span><span class="n">User</span><span class="p">,</span> <span class="n">course</span><span class="p">:</span> <span class="n">models</span><span class="o">.</span><span class="n">Course</span>
-    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">models</span><span class="o">.</span><span class="n">Assignment</span><span class="p">:</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">user</span><span class="p">:</span> <span class="s1">&#39;models.User&#39;</span><span class="p">,</span> <span class="n">course</span><span class="p">:</span> <span class="s1">&#39;models.Course&#39;</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="s1">&#39;models.Assignment&#39;</span><span class="p">:</span>
         <span class="sd">&quot;&quot;&quot;Get the current LTI assignment as a psef assignment.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">assignment</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">Assignment</span><span class="o">.</span><span class="n">query</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span>
@@ -875,7 +883,7 @@
 
         <span class="k">return</span> <span class="n">assignment</span></div>
 
-<div class="viewcode-block" id="LTI.set_user_role"><a class="viewcode-back" href="../../../psef_api/psef.html#psef.lti.v1_1.LTI.set_user_role">[docs]</a>    <span class="k">def</span> <span class="nf">set_user_role</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">user</span><span class="p">:</span> <span class="n">models</span><span class="o">.</span><span class="n">User</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<div class="viewcode-block" id="LTI.set_user_role"><a class="viewcode-back" href="../../../psef_api/psef.html#psef.lti.v1_1.LTI.set_user_role">[docs]</a>    <span class="k">def</span> <span class="nf">set_user_role</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">user</span><span class="p">:</span> <span class="s1">&#39;models.User&#39;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
         <span class="sd">&quot;&quot;&quot;Set the role of the given user if the user has no role.</span>
 
 <span class="sd">        The role is determined according to</span>
@@ -904,8 +912,9 @@
                 <span class="n">name</span><span class="o">=</span><span class="n">app</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s1">&#39;DEFAULT_ROLE&#39;</span><span class="p">]</span>
             <span class="p">)</span><span class="o">.</span><span class="n">one</span><span class="p">()</span></div>
 
-<div class="viewcode-block" id="LTI.set_user_course_role"><a class="viewcode-back" href="../../../psef_api/psef.html#psef.lti.v1_1.LTI.set_user_course_role">[docs]</a>    <span class="k">def</span> <span class="nf">set_user_course_role</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">user</span><span class="p">:</span> <span class="n">models</span><span class="o">.</span><span class="n">User</span><span class="p">,</span>
-                             <span class="n">course</span><span class="p">:</span> <span class="n">models</span><span class="o">.</span><span class="n">Course</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">t</span><span class="o">.</span><span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
+<div class="viewcode-block" id="LTI.set_user_course_role"><a class="viewcode-back" href="../../../psef_api/psef.html#psef.lti.v1_1.LTI.set_user_course_role">[docs]</a>    <span class="k">def</span> <span class="nf">set_user_course_role</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">user</span><span class="p">:</span> <span class="s1">&#39;models.User&#39;</span><span class="p">,</span> <span class="n">course</span><span class="p">:</span> <span class="s1">&#39;models.Course&#39;</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">t</span><span class="o">.</span><span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
         <span class="sd">&quot;&quot;&quot;Set the course role for the given course and user if there is no</span>
 <span class="sd">        such role just yet.</span>
 
@@ -994,7 +1003,7 @@
         <span class="n">service_url</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
         <span class="n">sourcedid</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
         <span class="n">lti_points_possible</span><span class="p">:</span> <span class="n">t</span><span class="o">.</span><span class="n">Optional</span><span class="p">[</span><span class="nb">float</span><span class="p">],</span>
-        <span class="n">submission</span><span class="p">:</span> <span class="n">models</span><span class="o">.</span><span class="n">Work</span><span class="p">,</span>
+        <span class="n">submission</span><span class="p">:</span> <span class="s1">&#39;models.Work&#39;</span><span class="p">,</span>
         <span class="n">host</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
         <span class="sd">&quot;&quot;&quot;Do a LTI grade passback.</span>
@@ -1025,7 +1034,7 @@
         <span class="n">service_url</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
         <span class="n">sourcedid</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
         <span class="n">lti_points_possible</span><span class="p">:</span> <span class="n">t</span><span class="o">.</span><span class="n">Optional</span><span class="p">[</span><span class="nb">float</span><span class="p">],</span>
-        <span class="n">submission</span><span class="p">:</span> <span class="n">models</span><span class="o">.</span><span class="n">Work</span><span class="p">,</span>
+        <span class="n">submission</span><span class="p">:</span> <span class="s1">&#39;models.Work&#39;</span><span class="p">,</span>
         <span class="n">use_submission_details</span><span class="p">:</span> <span class="nb">bool</span><span class="p">,</span>
         <span class="n">url</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
@@ -1083,10 +1092,14 @@
         <span class="p">)</span><span class="o">.</span><span class="n">post_outcome_request</span><span class="p">()</span></div>
 
 
-<div class="viewcode-block" id="CanvasLTI"><a class="viewcode-back" href="../../../psef_api/psef.html#psef.lti.v1_1.CanvasLTI">[docs]</a><span class="nd">@lti_classes</span><span class="o">.</span><span class="n">register</span><span class="p">(</span><span class="s1">&#39;Canvas&#39;</span><span class="p">)</span>
+<div class="viewcode-block" id="CanvasLTI"><a class="viewcode-back" href="../../../psef_api/psef.html#psef.lti.v1_1.CanvasLTI">[docs]</a><span class="nd">@_register_provider</span>
 <span class="k">class</span> <span class="nc">CanvasLTI</span><span class="p">(</span><span class="n">LTI</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;The LTI class used for the Canvas LMS.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="CanvasLTI.get_lms_name"><a class="viewcode-back" href="../../../psef_api/psef.html#psef.lti.v1_1.CanvasLTI.get_lms_name">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">get_lms_name</span><span class="p">(</span><span class="bp">cls</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+        <span class="k">return</span> <span class="s1">&#39;Canvas&#39;</span></div>
 
 <div class="viewcode-block" id="CanvasLTI.get_custom_extensions"><a class="viewcode-back" href="../../../psef_api/psef.html#psef.lti.v1_1.CanvasLTI.get_custom_extensions">[docs]</a>    <span class="nd">@staticmethod</span>
     <span class="k">def</span> <span class="nf">get_custom_extensions</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
@@ -1224,8 +1237,8 @@
         <span class="k">return</span> <span class="s1">&#39;lis_result_sourcedid&#39;</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">launch_params</span></div>
 
 <div class="viewcode-block" id="CanvasLTI.create_and_add_assignment"><a class="viewcode-back" href="../../../psef_api/psef.html#psef.lti.v1_1.CanvasLTI.create_and_add_assignment">[docs]</a>    <span class="k">def</span> <span class="nf">create_and_add_assignment</span><span class="p">(</span>
-        <span class="bp">self</span><span class="p">,</span> <span class="n">course</span><span class="p">:</span> <span class="n">models</span><span class="o">.</span><span class="n">Course</span>
-    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">models</span><span class="o">.</span><span class="n">Assignment</span><span class="p">:</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">course</span><span class="p">:</span> <span class="s1">&#39;models.Course&#39;</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="s1">&#39;models.Assignment&#39;</span><span class="p">:</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">has_outcome_service_url</span><span class="p">():</span>
             <span class="n">helpers</span><span class="o">.</span><span class="n">add_warning</span><span class="p">(</span>
                 <span class="p">(</span>
@@ -1240,7 +1253,7 @@
         <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">create_and_add_assignment</span><span class="p">(</span><span class="n">course</span><span class="o">=</span><span class="n">course</span><span class="p">)</span></div>
 
     <span class="nd">@property</span>
-    <span class="k">def</span> <span class="nf">assignment_state</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">models</span><span class="o">.</span><span class="n">AssignmentStateEnum</span><span class="p">:</span>
+    <span class="k">def</span> <span class="nf">assignment_state</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s1">&#39;models.AssignmentStateEnum&#39;</span><span class="p">:</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">launch_params</span><span class="p">[</span><span class="s1">&#39;custom_canvas_assignment_published&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;true&#39;</span><span class="p">:</span>
             <span class="k">return</span> <span class="n">models</span><span class="o">.</span><span class="n">AssignmentStateEnum</span><span class="o">.</span><span class="n">open</span>
         <span class="k">else</span><span class="p">:</span>
@@ -1277,7 +1290,7 @@
         <span class="n">service_url</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
         <span class="n">sourcedid</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
         <span class="n">lti_points_possible</span><span class="p">:</span> <span class="n">t</span><span class="o">.</span><span class="n">Optional</span><span class="p">[</span><span class="nb">float</span><span class="p">],</span>
-        <span class="n">submission</span><span class="p">:</span> <span class="n">models</span><span class="o">.</span><span class="n">Work</span><span class="p">,</span>
+        <span class="n">submission</span><span class="p">:</span> <span class="s1">&#39;models.Work&#39;</span><span class="p">,</span>
         <span class="n">host</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
         <span class="n">redirect</span> <span class="o">=</span> <span class="p">(</span>
@@ -1355,7 +1368,7 @@
         <span class="k">return</span> <span class="s1">&#39;lis_result_sourcedid&#39;</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">launch_params</span></div>
 
     <span class="nd">@property</span>
-    <span class="k">def</span> <span class="nf">assignment_state</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">models</span><span class="o">.</span><span class="n">AssignmentStateEnum</span><span class="p">:</span>
+    <span class="k">def</span> <span class="nf">assignment_state</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s1">&#39;models.AssignmentStateEnum&#39;</span><span class="p">:</span>
         <span class="k">return</span> <span class="n">models</span><span class="o">.</span><span class="n">AssignmentStateEnum</span><span class="o">.</span><span class="n">open</span>
 
     <span class="nd">@property</span>
@@ -1382,7 +1395,7 @@
         <span class="n">service_url</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
         <span class="n">sourcedid</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
         <span class="n">lti_points_possible</span><span class="p">:</span> <span class="n">t</span><span class="o">.</span><span class="n">Optional</span><span class="p">[</span><span class="nb">float</span><span class="p">],</span>
-        <span class="n">submission</span><span class="p">:</span> <span class="n">models</span><span class="o">.</span><span class="n">Work</span><span class="p">,</span>
+        <span class="n">submission</span><span class="p">:</span> <span class="s1">&#39;models.Work&#39;</span><span class="p">,</span>
         <span class="n">host</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
         <span class="k">if</span> <span class="n">initial</span><span class="p">:</span>
@@ -1417,10 +1430,14 @@
         <span class="p">)</span></div></div>
 
 
-<div class="viewcode-block" id="BlackboardLTI"><a class="viewcode-back" href="../../../psef_api/psef.html#psef.lti.v1_1.BlackboardLTI">[docs]</a><span class="nd">@lti_classes</span><span class="o">.</span><span class="n">register</span><span class="p">(</span><span class="s1">&#39;Blackboard&#39;</span><span class="p">)</span>
+<div class="viewcode-block" id="BlackboardLTI"><a class="viewcode-back" href="../../../psef_api/psef.html#psef.lti.v1_1.BlackboardLTI">[docs]</a><span class="nd">@_register_provider</span>
 <span class="k">class</span> <span class="nc">BlackboardLTI</span><span class="p">(</span><span class="n">BareBonesLTIProvider</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;The LTI class used for the Blackboard LMS.</span>
-<span class="sd">    &quot;&quot;&quot;</span></div>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="BlackboardLTI.get_lms_name"><a class="viewcode-back" href="../../../psef_api/psef.html#psef.lti.v1_1.BlackboardLTI.get_lms_name">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">get_lms_name</span><span class="p">(</span><span class="bp">cls</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+        <span class="k">return</span> <span class="s1">&#39;Blackboard&#39;</span></div></div>
 
 
 <span class="k">class</span> <span class="nc">_BareRolesLTIProvider</span><span class="p">(</span><span class="n">BareBonesLTIProvider</span><span class="p">):</span>
@@ -1447,21 +1464,29 @@
         <span class="k">return</span> <span class="n">roles</span>
 
 
-<div class="viewcode-block" id="SakaiLTI"><a class="viewcode-back" href="../../../psef_api/psef.html#psef.lti.v1_1.SakaiLTI">[docs]</a><span class="nd">@lti_classes</span><span class="o">.</span><span class="n">register</span><span class="p">(</span><span class="s1">&#39;Sakai&#39;</span><span class="p">)</span>
+<div class="viewcode-block" id="SakaiLTI"><a class="viewcode-back" href="../../../psef_api/psef.html#psef.lti.v1_1.SakaiLTI">[docs]</a><span class="nd">@_register_provider</span>
 <span class="k">class</span> <span class="nc">SakaiLTI</span><span class="p">(</span><span class="n">_BareRolesLTIProvider</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;The LTI class used for the Sakai LMS.</span>
-<span class="sd">    &quot;&quot;&quot;</span></div>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="SakaiLTI.get_lms_name"><a class="viewcode-back" href="../../../psef_api/psef.html#psef.lti.v1_1.SakaiLTI.get_lms_name">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">get_lms_name</span><span class="p">(</span><span class="bp">cls</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+        <span class="k">return</span> <span class="s1">&#39;Sakai&#39;</span></div></div>
 
 
-<div class="viewcode-block" id="OpenEdX"><a class="viewcode-back" href="../../../psef_api/psef.html#psef.lti.v1_1.OpenEdX">[docs]</a><span class="nd">@lti_classes</span><span class="o">.</span><span class="n">register</span><span class="p">(</span><span class="s1">&#39;Open edX&#39;</span><span class="p">)</span>
+<div class="viewcode-block" id="OpenEdX"><a class="viewcode-back" href="../../../psef_api/psef.html#psef.lti.v1_1.OpenEdX">[docs]</a><span class="nd">@_register_provider</span>
 <span class="k">class</span> <span class="nc">OpenEdX</span><span class="p">(</span><span class="n">_BareRolesLTIProvider</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;The LTI class used for the Open edX LMS.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
+<div class="viewcode-block" id="OpenEdX.get_lms_name"><a class="viewcode-back" href="../../../psef_api/psef.html#psef.lti.v1_1.OpenEdX.get_lms_name">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">get_lms_name</span><span class="p">(</span><span class="bp">cls</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+        <span class="k">return</span> <span class="s1">&#39;Open edX&#39;</span></div>
+
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">params</span><span class="p">:</span> <span class="n">t</span><span class="o">.</span><span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">],</span>
-        <span class="n">lti_provider</span><span class="p">:</span> <span class="n">models</span><span class="o">.</span><span class="n">LTI1p1Provider</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="n">lti_provider</span><span class="p">:</span> <span class="s1">&#39;models.LTI1p1Provider&#39;</span> <span class="o">=</span> <span class="kc">None</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">,</span> <span class="n">lti_provider</span><span class="p">)</span>
 
@@ -1503,10 +1528,14 @@
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">launch_params</span><span class="p">[</span><span class="s1">&#39;custom_component_display_name&#39;</span><span class="p">]</span></div>
 
 
-<div class="viewcode-block" id="MoodleLTI"><a class="viewcode-back" href="../../../psef_api/psef.html#psef.lti.v1_1.MoodleLTI">[docs]</a><span class="nd">@lti_classes</span><span class="o">.</span><span class="n">register</span><span class="p">(</span><span class="s1">&#39;Moodle&#39;</span><span class="p">)</span>
+<div class="viewcode-block" id="MoodleLTI"><a class="viewcode-back" href="../../../psef_api/psef.html#psef.lti.v1_1.MoodleLTI">[docs]</a><span class="nd">@_register_provider</span>
 <span class="k">class</span> <span class="nc">MoodleLTI</span><span class="p">(</span><span class="n">_BareRolesLTIProvider</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;The LTI class used for the Moodle LMS.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="MoodleLTI.get_lms_name"><a class="viewcode-back" href="../../../psef_api/psef.html#psef.lti.v1_1.MoodleLTI.get_lms_name">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">get_lms_name</span><span class="p">(</span><span class="bp">cls</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+        <span class="k">return</span> <span class="s1">&#39;Moodle&#39;</span></div>
 
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">username</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
@@ -1530,7 +1559,7 @@
         <span class="n">service_url</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
         <span class="n">sourcedid</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
         <span class="n">lti_points_possible</span><span class="p">:</span> <span class="n">t</span><span class="o">.</span><span class="n">Optional</span><span class="p">[</span><span class="nb">float</span><span class="p">],</span>
-        <span class="n">submission</span><span class="p">:</span> <span class="n">models</span><span class="o">.</span><span class="n">Work</span><span class="p">,</span>
+        <span class="n">submission</span><span class="p">:</span> <span class="s1">&#39;models.Work&#39;</span><span class="p">,</span>
         <span class="n">host</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
         <span class="k">if</span> <span class="n">initial</span><span class="p">:</span>
@@ -1563,10 +1592,14 @@
         <span class="p">)</span></div></div>
 
 
-<div class="viewcode-block" id="BrightSpaceLTI"><a class="viewcode-back" href="../../../psef_api/psef.html#psef.lti.v1_1.BrightSpaceLTI">[docs]</a><span class="nd">@lti_classes</span><span class="o">.</span><span class="n">register</span><span class="p">(</span><span class="s1">&#39;BrightSpace&#39;</span><span class="p">)</span>
+<div class="viewcode-block" id="BrightSpaceLTI"><a class="viewcode-back" href="../../../psef_api/psef.html#psef.lti.v1_1.BrightSpaceLTI">[docs]</a><span class="nd">@_register_provider</span>
 <span class="k">class</span> <span class="nc">BrightSpaceLTI</span><span class="p">(</span><span class="n">BareBonesLTIProvider</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;The LTI class used for the BrightSpace LMS.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="BrightSpaceLTI.get_lms_name"><a class="viewcode-back" href="../../../psef_api/psef.html#psef.lti.v1_1.BrightSpaceLTI.get_lms_name">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">get_lms_name</span><span class="p">(</span><span class="bp">cls</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+        <span class="k">return</span> <span class="s1">&#39;BrightSpace&#39;</span></div>
 
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">username</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
