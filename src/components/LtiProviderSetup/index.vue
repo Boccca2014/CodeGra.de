@@ -26,25 +26,39 @@ import CanvasSetup from './CanvasSetup';
 import MoodleSetup from './MoodleSetup';
 import BlackboardSetup from './BlackboardSetup';
 import BrightspaceSetup from './BrightspaceSetup';
+import Lti1p1Provider from './Lti1p1Provider';
 
-@Component({})
+// @ts-ignore
+import LocalHeader from '../LocalHeader';
+
+@Component({ components: { LocalHeader } })
 export default class LtiProviderSetup extends Vue {
-    @Prop({ required: true }) ltiProvider!: api.lti.LTI1p3ProviderServerData;
+    @Prop({ required: true }) ltiProvider!: api.lti.LTIProviderServerData;
 
     @Prop({ required: true }) secret!: string | null;
 
     get wantedComponent() {
-        switch (this.ltiProvider.lms) {
-            case 'Canvas':
-                return CanvasSetup;
-            case 'Moodle':
-                return MoodleSetup;
-            case 'Blackboard':
-                return BlackboardSetup;
-            case 'Brightspace':
-                return BrightspaceSetup;
-            default:
-                return this.$utils.AssertionError.assertNever(this.ltiProvider.lms, `Unknown lms: ${this.ltiProvider.lms}`);
+        switch (this.ltiProvider.version) {
+            case 'lti1.1': {
+                return Lti1p1Provider;
+            }
+
+            case 'lti1.3': {
+                switch (this.ltiProvider.lms) {
+                    case 'Canvas':
+                        return CanvasSetup;
+                    case 'Moodle':
+                        return MoodleSetup;
+                    case 'Blackboard':
+                        return BlackboardSetup;
+                    case 'Brightspace':
+                        return BrightspaceSetup;
+                    default:
+                        return this.$utils.AssertionError.assertNever(this.ltiProvider.lms, `Unknown lms: ${this.ltiProvider.lms}`);
+                }
+            }
+
+            default: return this.$utils.AssertionError.assertNever(this.ltiProvider);
         }
     }
 }

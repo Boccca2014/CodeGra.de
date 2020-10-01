@@ -1776,14 +1776,14 @@ class TaskResultPermissions(GlobalPermissionChecker):
             )
 
 
-class LTI1p3ProviderPermissions(GlobalPermissionChecker):
+class LTIProviderPermissions(GlobalPermissionChecker):
     """The permission checker for :class:`psef.models.LTI1p3Provider`.
     """
     __slots__ = ('lti_provider', 'secret_is_correct')
 
     def __init__(
         self,
-        lti_provider: 'psef.models.LTI1p3Provider',
+        lti_provider: 'psef.models.LTIProviderBase',
         *,
         secret: str = None
     ) -> None:
