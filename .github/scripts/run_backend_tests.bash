@@ -82,6 +82,7 @@ timeout -k 900 900 \
         --cov cg_cache \
         --cov cg_enum \
         --cov cg_sqlalchemy_helpers \
+        --cov cg_register \
         --cov cg_object_storage \
         --cov-append \
         -x \

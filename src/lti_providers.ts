@@ -13,22 +13,23 @@ const defaultLTI1p1Provider = Object.freeze(<const>{
     supportsBonusPoints: false,
     supportsStateManagement: false,
 });
-export type LTIProvider = {
-    readonly lms: string;
+export type LTIProvider<T extends string = string> = {
+    readonly lms: T;
     readonly addBorder: boolean;
     readonly supportsDeadline: boolean;
     readonly supportsBonusPoints: boolean;
     readonly supportsStateManagement: boolean;
 };
 
-type LTI1p1Provider = LTIProvider & { tag?: string };
+type LTI1p1Provider<T extends string, Y extends string> = LTIProvider<Y> & { tag: T };
 
-function makeLTI1p1Provider(
-    name: string,
-    override: Partial<Omit<LTI1p1Provider, 'lms'>> | null = null,
-): Readonly<LTI1p1Provider> {
+function makeLTI1p1Provider<T extends string, Y extends string = T>(
+    name: T,
+    override: Partial<Omit<LTI1p1Provider<Y, T>, 'lms'>> | null = null,
+): Readonly<LTI1p1Provider<T extends Y ? T : Y, T>> {
+    // @ts-ignore
     return Object.freeze(
-        Object.assign({}, defaultLTI1p1Provider, override, { lms: name }),
+        Object.assign({ tag: name }, defaultLTI1p1Provider, override, { lms: name }),
     );
 }
 
@@ -93,14 +94,21 @@ class LTI1p3ProviderCapabilties implements LTIProvider {
     }
 }
 
-const LTI1p1Lookup: Record<string, LTIProvider> = mapToObject([
+const LTI1p1Providers = <const>[
     blackboardProvider,
     brightSpaceProvider,
     canvasProvider,
     moodleProvider,
     sakaiProvider,
     openEdxProvider,
-], prov => [prov.tag || prov.lms, prov]);
+];
+const LTI1p1Lookup: Record<string, LTIProvider> = mapToObject(
+    LTI1p1Providers, prov => [prov.tag, prov],
+);
+export const LTI1p1ProviderTags = LTI1p1Providers.map(p => p.tag);
+export const LTI1p1ProviderNames = LTI1p1Providers.map(p => p.lms);
+export type LTI1p1ProviderName = typeof LTI1p1ProviderNames[number];
+export type LTI1p1ProviderTag = typeof LTI1p1ProviderTags[number];
 
 export function makeProvider(provider: LTIProviderServerData): LTIProvider {
     switch (provider.version) {
