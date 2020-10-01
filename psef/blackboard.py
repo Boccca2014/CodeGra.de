@@ -4,7 +4,6 @@ This module implements the parsing of blackboard gradebook info files.
 SPDX-License-Identifier: AGPL-3.0-only
 """
 import re
-import mmap
 import typing as t
 import datetime
 
@@ -77,7 +76,7 @@ class SubmissionInfo(
     """
 
 
-def parse_info_file(file: str) -> SubmissionInfo:
+def parse_info_file(fileobj: t.IO[bytes]) -> SubmissionInfo:
     """Parses a blackboard gradebook .txt file.
 
     :param file: Path to the file
@@ -87,57 +86,48 @@ def parse_info_file(file: str) -> SubmissionInfo:
 
     grade: t.Optional[float]
 
-    # _TXT_FMT is a object gotten from `re.compile`
-    with open(file, 'r+') as f:
-        with mmap.mmap(f.fileno(), 0) as data:
-            # casting here is wrong, however see
-            # https://github.com/python/typeshed/issues/1467
-            match = _TXT_FMT.match(t.cast(bytes, data))
+    data = fileobj.read()
+    match = _TXT_FMT.match(data)
 
-            if match is None:
-                raise ValueError('Invalid format')
+    if match is None:
+        raise ValueError('Invalid format')
 
-            try:
-                grade = float(match.group('grade'))
-            except ValueError:
-                grade = None
+    try:
+        grade = float(match.group('grade'))
+    except ValueError:
+        grade = None
 
-            bb_files = match.group('files')
-            files: t.List[t.Union[t.Tuple[str, bytes], FileInfo]] = []
+    bb_files = match.group('files')
+    files: t.List[t.Union[t.Tuple[str, bytes], FileInfo]] = []
 
-            if bb_files:
-                files = [
-                    FileInfo(org, cur) for org, cur in
-                    _TXT_FILES_FMT.findall(bb_files.decode('utf-8'))
-                ]
-            else:
-                logger.debug(
-                    'Processed blackboard without files submission',
-                    match=str(data.read()),
-                )
-                content = (
-                    b'No files were uploaded! The'
-                    b'comments for this submission were:\n"""\n' +
-                    match.group('comment').strip() + b'\n"""'
-                )
-                files = [('Comment', content)]
+    if bb_files:
+        files = [
+            FileInfo(org, cur)
+            for org, cur in _TXT_FILES_FMT.findall(bb_files.decode('utf-8'))
+        ]
+    else:
+        logger.debug('Processed blackboard without files submission')
+        content = (
+            b'No files were uploaded! The'
+            b'comments for this submission were:\n"""\n' +
+            match.group('comment').strip() + b'\n"""'
+        )
+        files = [('Comment', content)]
 
-            info = SubmissionInfo(
-                student_name=match.group('name').decode('utf-8'),
-                student_id=match.group('id').decode('utf-8'),
-                assignment_name=match.group('assignment').decode('utf-8'),
-                # Timezones are probably wrong here, but we are parsing a
-                # format that is not really documented, so who cares?
-                created_at=dateparser.parse(
-                    match.group('datetime').decode('utf-8').replace(
-                        " o'clock", ""
-                    ),
-                    tzinfos={'CET': gettz('Europe/Amsterdam')}
-                ),
-                grade=grade,
-                text=match.group('text').decode('utf-8').rstrip(),
-                comment=match.group('comment').decode('utf-8').rstrip(),
-                files=files,
-            )
+    info = SubmissionInfo(
+        student_name=match.group('name').decode('utf-8'),
+        student_id=match.group('id').decode('utf-8'),
+        assignment_name=match.group('assignment').decode('utf-8'),
+        # Timezones are probably wrong here, but we are parsing a
+        # format that is not really documented, so who cares?
+        created_at=dateparser.parse(
+            match.group('datetime').decode('utf-8').replace(" o'clock", ""),
+            tzinfos={'CET': gettz('Europe/Amsterdam')}
+        ),
+        grade=grade,
+        text=match.group('text').decode('utf-8').rstrip(),
+        comment=match.group('comment').decode('utf-8').rstrip(),
+        files=files,
+    )
 
-            return info
+    return info

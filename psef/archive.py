@@ -28,8 +28,10 @@ SPDX-License-Identifier: MIT
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 
+import io
 import os
 import abc
+import uuid
 import typing as t
 import tarfile
 import zipfile
@@ -39,17 +41,24 @@ from os import path
 
 import py7zlib
 import structlog
-from typing_extensions import Protocol
 
-from . import app
+from cg_maybe import Just, Maybe
+from cg_object_storage import File, Putter, FileSize
+
+from . import app, files
 from .helpers import register, add_warning
 from .exceptions import APIWarnings
+from .extract_tree import ExtractFileTree
 
 T = t.TypeVar('T', bound='_BaseArchive')
 TT = t.TypeVar('TT')
-FileSize = t.NewType('FileSize', int)
 
 logger = structlog.get_logger()
+
+
+@dataclasses.dataclass
+class _Symlink:
+    target: str
 
 
 @dataclasses.dataclass(order=True, repr=True)
@@ -62,67 +71,13 @@ class ArchiveMemberInfo(t.Generic[TT]):  # pylint: disable=unsubscriptable-objec
     name: str
     is_dir: bool
     size: FileSize
-    orig_file: TT
+    orig_file: TT = dataclasses.field(compare=False)
 
-
-_BUFFER_SIZE = 16 * 1024
-
-
-class ReadableStream(Protocol):
-    """A protocol representing an object from which you can read binary data.
-    """
-
-    def read(self, amount: int) -> bytes:  # pylint: disable=unused-argument,no-self-use
-        ...
-
-
-def limited_copy(
-    src: ReadableStream, dst: t.IO[bytes], max_size: FileSize
-) -> FileSize:
-    """Copy ``max_size`` bytes from ``src`` to ``dst``.
-
-    >>> import io
-    >>> dst = io.BytesIO()
-    >>> limited_copy(io.BytesIO(b'1234567890'), dst, 15)
-    10
-    >>> dst.seek(0)
-    0
-    >>> dst.read()
-    b'1234567890'
-    >>> dst = io.BytesIO()
-    >>> limited_copy(io.BytesIO(b'1234567890'), dst, 5)
-    Traceback (most recent call last):
-    ...
-    _LimitedCopyOverflow
-
-
-    :raises _LimitedCopyOverflow: If more data was in source than
-        ``max_size``. In this case some data may have been written to ``dst``,
-        but this is not guaranteed.
-    """
-    size_left = max_size
-    written = FileSize(0)
-
-    while True:
-        buf: bytes = src.read(_BUFFER_SIZE)
-        if not buf:
-            break
-        elif len(buf) > size_left:
-            raise _LimitedCopyOverflow
-
-        dst.write(buf)
-
-        written = FileSize(written + len(buf))
-        size_left = FileSize(size_left - len(buf))
-
-    return written
-
-
-def _safe_join(*args: str) -> str:
-    assert args
-    res = path.normpath(path.realpath(path.join(*args)))
-    assert res.startswith(args[0])
-    return res
+    @property
+    def name_list(self) -> t.List[str]:
+        """The name of the member as a list.
+        """
+        return [p for p in self.name.split('/') if p and p != '.']
 
 
 class ArchiveException(Exception):
@@ -173,9 +128,10 @@ class Archive(t.Generic[TT]):  # pylint: disable=unsubscriptable-object
     Base Archive class.  Implementations should inherit this class.
     """
 
-    def __init__(self, archive: '_BaseArchive[TT]') -> None:
+    def __init__(self, archive: '_BaseArchive[TT]', filename: str) -> None:
         self.__archive = archive
         self.__max_items_check_done = False
+        self.__filename = filename
 
     @classmethod
     def is_archive(cls: t.Type['Archive'], filename: str) -> bool:
@@ -200,22 +156,9 @@ class Archive(t.Generic[TT]):  # pylint: disable=unsubscriptable-object
 
     @classmethod
     @contextlib.contextmanager
-    def create_from_file(cls, filename: str) -> t.Iterator['Archive[object]']:
+    def create_from_fileobj(cls, filename: str, fileobj: t.IO[bytes]
+                            ) -> t.Iterator['Archive[object]']:
         """Create a instance of this class from the given filename.
-
-        >>> with Archive.create_from_file('test_data/test_blackboard/correct.tar.gz') as arch:
-        ...  arch
-        <psef.archive.Archive object at 0x...>
-        >>> with Archive.create_from_file('non_existing.tar.gz') as arch:
-        ...  arch
-        Traceback (most recent call last):
-        ...
-        FileNotFoundError: [Errno 2] No such file or directory: 'non_existing.tar.gz'
-        >>> with Archive.create_from_file('not_an_archive') as arch:
-        ...  arch
-        Traceback (most recent call last):
-        ...
-        psef.archive.UnrecognizedArchiveFormat: Path is not a recognized archive format
 
         :param filename: The path to the file as source for this archive.
         :returns: An instance of :class:`Archive` when the filename was a
@@ -227,124 +170,72 @@ class Archive(t.Generic[TT]):  # pylint: disable=unsubscriptable-object
             raise UnrecognizedArchiveFormat(
                 'Path is not a recognized archive format'
             )
-        arr = base_archive_cls(filename)
+        arr = base_archive_cls(fileobj)
 
         try:
-            yield t.cast(t.Type[Archive[object]], cls)(arr)
+            yield t.cast(t.Type[Archive[object]], cls)(arr, filename)
         finally:
             arr.close()
 
-    def extract(self, to_path: str, max_size: FileSize) -> FileSize:
+    def extract(self, putter: Putter, max_size: FileSize) -> ExtractFileTree:
         """Safely extract the current archive.
 
-        :param to_path: The path were the archive should be extracted to.
         :returns: Nothing
         """
-        # Make sure we are passing a proper path as to_path
-        assert to_path
-        assert path.isabs(to_path)
-        assert path.isdir(to_path)
 
-        self.check_files(to_path)
-        res = self.__extract_archive(to_path, max_size)
-        self.replace_symlinks(to_path)
+        self.check_files()
+        res = self.__extract_archive(putter, max_size)
         return res
 
     def __extract_archive(
-        self, base_to_path: str, max_size: FileSize
-    ) -> FileSize:
-        assert base_to_path
+        self, putter: Putter, max_size: FileSize
+    ) -> ExtractFileTree:
         total_size = FileSize(0)
-
-        def maybe_raise_too_large(
-            extra: int = 0, *, always: bool = False
-        ) -> None:
-            if always or total_size + extra > max_size:
-                logger.warning(
-                    'Archive contents exceeded size limit', max_size=max_size
-                )
-                raise ArchiveTooLarge(max_size)
-
-        def maybe_single_too_large(size: FileSize) -> None:
-            if size > app.max_single_file_size:
-                logger.warning(
-                    'File exceeded size limit',
-                    max_size=max_size,
-                )
-                raise FileTooLarge(FileSize(app.max_single_file_size))
-
-        for member in self.get_members():
-            if member.is_dir:
-                member_create_dir = _safe_join(base_to_path, member.name)
-                assert member_create_dir.startswith(base_to_path)
-                if not path.exists(member_create_dir):
-                    os.makedirs(member_create_dir, mode=0o700)
-            else:
-                maybe_raise_too_large(member.size)
-                maybe_single_too_large(member.size)
-
-                member_to_path = _safe_join(base_to_path, member.name)
-                member_to_dir = path.dirname(member_to_path)
-                assert member_to_dir.startswith(base_to_path)
-                if not path.exists(member_to_dir):
-                    os.makedirs(member_to_dir, mode=0o700)
-
-                try:
-                    self.__archive.extract_member(
-                        member, base_to_path, FileSize(max_size - total_size)
-                    )
-                except _LimitedCopyOverflow:  # pragma: no cover
-                    maybe_raise_too_large(always=True)
-
-                if path.islink(member_to_path):
-                    total_size = FileSize(total_size + member.size)
-                else:
-                    real_size = FileSize(path.getsize(member_to_path))
-                    maybe_single_too_large(real_size)
-                    total_size = FileSize(total_size + real_size)
-                maybe_raise_too_large()
-
-        return total_size
-
-    @staticmethod
-    def replace_symlinks(to_path: str) -> None:
-        """Replace symlinks in the given directory with regular files
-        containing a notice that the symlink was replaced.
-
-        :param to_path: Directory to scan for symlinks.
-        :returns: Nothing
-        """
+        base = ExtractFileTree(name=self.__filename)
         symlinks = []
+        max_single = app.max_single_file_size
 
-        for parent, _, files in os.walk(to_path):
-            for f in files:
-                file_path = path.join(parent, f)
+        def raise_archive_too_large() -> t.NoReturn:
+            logger.warning(
+                'Archive contents exceeded size limit', max_size=max_size
+            )
+            raise ArchiveTooLarge(max_size)
 
-                if not path.islink(file_path):
-                    assert path.isfile(file_path) or path.isdir(file_path)
-                    # This cannot be covered, see:
-                    # https://bitbucket.org/ned/coveragepy/issues/198/continue-marked-as-not-covered
-                    continue  # pragma: no cover
+        all_members = self.get_members()
+        files.fix_duplicate_filenames(all_members)
 
-                rel_path = path.relpath(file_path, to_path)
-                link_target = os.readlink(file_path)
-
-                symlinks.append(rel_path)
-                os.remove(file_path)
-                with open(file_path, 'w') as new_file:
-                    new_file.write(
-                        (
-                            'This file was a symbolic link to "{}" when it '
-                            'was submitted, but CodeGrade does not support '
-                            'symbolic links.\n'
-                        ).format(link_target),
-                    )
-
-                logger.warning(
-                    'Symlink detected in archive',
-                    filename=rel_path,
-                    link_target=link_target,
+        for member in all_members:
+            if member.is_dir:
+                base.insert_dir(member.name_list)
+            else:
+                new_file = self.__archive.extract_member(
+                    member,
+                    min(max_single, FileSize(max_size - total_size)),
+                    putter,
                 )
+                if new_file.is_nothing:
+                    raise_archive_too_large()
+
+                if isinstance(new_file.value, _Symlink):
+                    link = new_file.value
+                    backing_file = putter.from_string(
+                        (
+                            'This file was a symbolic link to "{}" when '
+                            'it was submitted, but CodeGrade does not '
+                            'support symbolic links.\n'
+                        ).format(link.target)
+                    )
+                    logger.warning(
+                        'Symlink detected in archive',
+                        filename=member.name_list,
+                        link_target=link.target,
+                    )
+                    symlinks.append(link.target)
+                else:
+                    backing_file = new_file.value
+
+                total_size = FileSize(total_size + backing_file.size)
+                base.insert_file(member.name_list, backing_file)
 
         if symlinks:
             add_warning(
@@ -359,7 +250,9 @@ class Archive(t.Generic[TT]):  # pylint: disable=unsubscriptable-object
                 APIWarnings.SYMLINK_IN_ARCHIVE,
             )
 
-    def get_members(self) -> t.Iterable[ArchiveMemberInfo[TT]]:
+        return base
+
+    def get_members(self) -> t.Sequence[ArchiveMemberInfo[TT]]:
         """Get the members of this archive.
 
         This function also makes sure the archive doesn't contain too many
@@ -374,43 +267,32 @@ class Archive(t.Generic[TT]):  # pylint: disable=unsubscriptable-object
                     f'Archive contains too many files, maximum is {max_amount}'
                 )
             self.__max_items_check_done = True
-        return self.__archive.get_members()
+        return sorted(self.__archive.get_members())
 
-    def check_files(self, to_path: str) -> None:
+    def check_files(self) -> None:
         """
         Check that all of the files contained in the archive are within the
         target directory.
 
 
-        >>> from pprint import pprint
-        >>> class Bunch: pass
-        >>> import psef
-        >>> psef.archive.app = Bunch()
-        >>> psef.archive.app.config = {'MAX_NUMBER_OF_FILES': 100000}
-        >>> with Archive.create_from_file(
-        ...  'test_data/test_submissions/multiple_dir_archive.tar.gz'
-        ... ) as arch:
-        ...  print(arch.check_files('/tmp/out'))
-        None
-        >>> with Archive.create_from_file('test_data/test_submissions/unsafe.tar.gz') as arch:
-        ...  arch.check_files('/tmp/out')
-        Traceback (most recent call last):
-        ...
-        psef.archive.UnsafeArchive: Archive member destination is outside the target directory
-
         :param to_path: The path were the archive should be extracted to.
         :returns: Nothing
         """
-        target_path = _safe_join(to_path)
+        _base_path = f'/{uuid.uuid4()}/'
 
         for member in self.get_members():
-            # Don't use `_safe_join` here as we detect unsafe joins here to
-            # raise an `UnsafeArchive` exception.
-            extract_path = path.normpath(
-                path.realpath(path.join(target_path, member.name))
+            name_list = member.name_list
+            paths = (
+                path.normpath(
+                    path.realpath(path.join(_base_path, member.name))
+                ),
+                path.normpath(path.join(_base_path, member.name)),
+                path.normpath(path.join(_base_path, *name_list)),
             )
 
-            if not extract_path.startswith(target_path):
+            if not name_list or any(
+                not p.startswith(_base_path) and p != _base_path for p in paths
+            ):
                 raise UnsafeArchive(
                     'Archive member destination is outside the target'
                     ' directory', member
@@ -421,18 +303,17 @@ class Archive(t.Generic[TT]):  # pylint: disable=unsubscriptable-object
 
 
 class _BaseArchive(abc.ABC, t.Generic[TT]):
-    def __init__(self, filename: str) -> None:
-        self.filename = filename
+    @abc.abstractmethod
+    def __init__(self, fileobj: t.IO[bytes]) -> None:
+        raise NotImplementedError
 
     @abc.abstractmethod
     def extract_member(
-        self, member: ArchiveMemberInfo[TT], to_path: str, size_left: FileSize
-    ) -> None:
+        self, member: ArchiveMemberInfo[TT], size_left: FileSize,
+        putter: Putter
+    ) -> Maybe[t.Union[File, _Symlink]]:
         """Extract the given filename to the given path.
 
-        :param to_path: The base path to which the member should be
-            extracted. This will be example ``'/tmp/tmpdir/``' for the file
-            `'dir/file``', not ``'/tmp/tmpdir/dir/``'.
         :param size_left: The maximum amount of size the extraction should
             take. This is also checked by the calling function after
             extraction.
@@ -498,26 +379,31 @@ class _TarArchive(_BaseArchive[tarfile.TarInfo]):  # pylint: disable=unsubscript
     def close(self) -> None:
         self._archive.close()
 
-    def __init__(self, filename: str) -> None:
-        super().__init__(filename)
-        self._archive = tarfile.open(name=self.filename)
+    def __init__(self, fileobj: t.IO[bytes]) -> None:
+        self._archive = tarfile.open(fileobj=fileobj)
 
     def extract_member(
-        self, member: ArchiveMemberInfo[tarfile.TarInfo], to_path: str,
-        _: FileSize
-    ) -> None:
+        self, member: ArchiveMemberInfo[tarfile.TarInfo], size_left: FileSize,
+        putter: Putter
+    ) -> Maybe[t.Union[File, _Symlink]]:
         """Extract the given member.
 
         :param member: The member to extract.
-        :param to_path: The location to which it should be extracted.
         """
-        # Make sure archives can be deleted later by fixing permissions
-        if not member.orig_file.isdir():
-            member.orig_file.mode = 0o600
+        tarinfo = member.orig_file
+        if tarinfo.islnk() or tarinfo.issym():
+            return Just(_Symlink(tarinfo.linkname))
 
-        # We don't need to use ``size_left`` as our tar impl. will never read
-        # more than tarinfo object specifies as its size.
-        self._archive.extract(member.orig_file, to_path)
+        assert tarinfo.isfile()
+        assert getattr(tarinfo, 'sparse', None) is None
+
+        fileobj = self._archive.fileobj
+        assert fileobj is not None
+        offset_data = tarinfo.offset_data  # type: ignore[attr-defined]
+        fileobj.seek(offset_data)
+        return putter.from_stream(
+            fileobj, max_size=size_left, size=Just(FileSize(tarinfo.size))
+        )
 
     def get_members(self) -> t.Iterable[ArchiveMemberInfo[tarfile.TarInfo]]:
         """Get all members from this tar archive.
@@ -528,30 +414,12 @@ class _TarArchive(_BaseArchive[tarfile.TarInfo]):  # pylint: disable=unsubscript
             function can therefore be used to filter out some files, like
             sparse files. Files that are symlinks should be kept, as special
             error handling is in place for such files.
-
-        >>> from pprint import pprint
-        >>> zp = _TarArchive('test_data/test_submissions/multiple_dir_archive.tar.gz')
-        >>> print([dataclasses.astuple(i) for i in sorted(zp.get_members())])
-        [('dir/', True, ..., ...), \
-('dir/single_file_work', False, ..., ...), \
-('dir/single_file_work_copy', False, ..., ...), \
-('dir2/', True, ..., ...), \
-('dir2/single_file_work', False, ..., ...), \
-('dir2/single_file_work_copy', False, ..., ...)]
-        >>> zp = _TarArchive('test_data/test_submissions/deheading_dir_archive.tar.gz')
-        >>> print([dataclasses.astuple(i) for i in sorted(zp.get_members())])
-        [('dir/', True, ..., ...), \
-('dir/dir2/', True, ..., ...), \
-('dir/dir2/single_file_work', False, ..., ...), \
-('dir/dir2/single_file_work_copy', False, ..., ...)]
         """
         for member in self._archive.getmembers():
             if not self._member_is_safe(member):
                 continue
 
             name = member.name
-            if member.isdir():
-                name += '/'
             yield ArchiveMemberInfo(
                 name=name,
                 is_dir=member.isdir(),
@@ -561,10 +429,10 @@ class _TarArchive(_BaseArchive[tarfile.TarInfo]):  # pylint: disable=unsubscript
 
     @staticmethod
     def _member_is_safe(member: tarfile.TarInfo) -> bool:
-        return (
-            member.isfile() or member.isdir() or member.issym() or
-            member.islnk()
-        )
+        if member.isfile():
+            return getattr(member, 'sparse', None) is None
+
+        return member.isdir() or member.issym() or member.islnk()
 
     def has_unsafe_filetypes(self) -> bool:
         return any(
@@ -609,46 +477,30 @@ def _get_members_of_archives(
     :param arch: The archive to get the archive members of.
     :returns: A iterable of archive member objects.
     """
-    seen_dirs: t.Set[str] = set()
     for member in archive_files:
-        name = member.filename
-        cur_is_dir = name[-1] == '/'
-        name.rstrip('/')
+        cur_is_dir = member.filename[-1] == '/'
 
-        while name and name not in seen_dirs:
-            name, tail = path.split(name)
-            if name:
-                cur_path = '{}/{}'.format(name, tail)
-            else:
-                cur_path = tail
-
-            seen_dirs.add(cur_path)
-
-            if cur_is_dir:
-                cur_path += '/'
-
-            if cur_is_dir:
-                yield ArchiveMemberInfo(
-                    name=cur_path,
-                    is_dir=cur_is_dir,
-                    orig_file=member,
-                    size=FileSize(0),
-                )
-            elif isinstance(member, zipfile.ZipInfo):
-                yield ArchiveMemberInfo(
-                    name=cur_path,
-                    is_dir=False,
-                    orig_file=member,
-                    size=FileSize(member.file_size),
-                )
-            elif isinstance(member, py7zlib.ArchiveFile):
-                yield ArchiveMemberInfo(
-                    name=cur_path,
-                    is_dir=False,
-                    orig_file=member,
-                    size=FileSize(member.size),
-                )
-            cur_is_dir = True
+        if cur_is_dir:
+            yield ArchiveMemberInfo(
+                name=member.filename,
+                is_dir=cur_is_dir,
+                orig_file=member,
+                size=FileSize(0),
+            )
+        elif isinstance(member, zipfile.ZipInfo):
+            yield ArchiveMemberInfo(
+                name=member.filename,
+                is_dir=False,
+                orig_file=member,
+                size=FileSize(member.file_size),
+            )
+        elif isinstance(member, py7zlib.ArchiveFile):
+            yield ArchiveMemberInfo(
+                name=member.filename,
+                is_dir=False,
+                orig_file=member,
+                size=FileSize(member.size),
+            )
 
 
 @_archive_handlers.register('.zip')
@@ -659,42 +511,23 @@ class _ZipArchive(_BaseArchive[zipfile.ZipInfo]):  # pylint: disable=unsubscript
     def has_unsafe_filetypes(self) -> bool:  # pylint: disable=no-self-use
         return False
 
-    def __init__(self, filename: str) -> None:
-        super().__init__(filename)
-        self._archive = zipfile.ZipFile(self.filename)
+    def __init__(self, fileobj: t.IO[bytes]) -> None:
+        self._archive = zipfile.ZipFile(fileobj)
 
     def extract_member(
-        self, member: ArchiveMemberInfo[zipfile.ZipInfo], to_path: str,
-        size_left: FileSize
-    ) -> None:
+        self, member: ArchiveMemberInfo[zipfile.ZipInfo], size_left: FileSize,
+        putter: Putter
+    ) -> Maybe[File]:
         """Extract the given member.
 
         :param member: The member to extract.
         :param to_path: The location to which it should be extracted.
         """
-        dst_path = _safe_join(to_path, member.name)
-
-        with open(dst_path,
-                  'wb') as dst, self._archive.open(member.orig_file) as src:
-            limited_copy(src, dst, size_left)
+        with self._archive.open(member.orig_file) as src:
+            return putter.from_stream(src, max_size=size_left)
 
     def get_members(self) -> t.Iterable[ArchiveMemberInfo[zipfile.ZipInfo]]:
         """Get all members from this zip archive.
-
-        >>> zp = _ZipArchive('test_data/test_submissions/multiple_dir_archive.zip')
-        >>> print([dataclasses.astuple(i) for i in sorted(zp.get_members())])
-        [('dir/', True, ..., ...), \
-('dir/single_file_work', False, ..., ...), \
-('dir/single_file_work_copy', False, ..., ...), \
-('dir2/', True, ..., ...), \
-('dir2/single_file_work', False, ..., ...), \
-('dir2/single_file_work_copy', False, ..., ...)]
-        >>> zp = _ZipArchive('test_data/test_submissions/deheading_dir_archive.zip')
-        >>> print([dataclasses.astuple(i) for i in sorted(zp.get_members())])
-        [('dir/', True, ..., ...), \
-('dir/dir2/', True, ..., ...), \
-('dir/dir2/single_file_work', False, ..., ...), \
-('dir/dir2/single_file_work_copy', False, ..., ...)]
         """
         yield from _get_members_of_archives(self._archive.infolist())
 
@@ -711,47 +544,31 @@ class _ZipArchive(_BaseArchive[zipfile.ZipInfo]):  # pylint: disable=unsubscript
 @_archive_handlers.register('.7z')
 class _7ZipArchive(_BaseArchive[py7zlib.ArchiveFile]):  # pylint: disable=unsubscriptable-object
     def close(self) -> None:
-        self._fp.close()
+        pass
 
     def has_unsafe_filetypes(self) -> bool:  # pylint: disable=no-self-use
         return False
 
-    def __init__(self, filename: str) -> None:
-        super().__init__(filename)
-        self._fp = open(filename, 'rb')
-        self._archive = py7zlib.Archive7z(self._fp)
+    def __init__(self, fileobj: t.IO[bytes]) -> None:
+        self._archive = py7zlib.Archive7z(fileobj)
 
     def extract_member(  # pylint: disable=no-self-use
-        self, member: ArchiveMemberInfo[py7zlib.ArchiveFile], to_path: str,
-        _: FileSize
-    ) -> None:
+        self, member: ArchiveMemberInfo[py7zlib.ArchiveFile],
+            size_left: FileSize, putter: Putter
+    ) -> Maybe[File]:
         """Extract the given member.
 
         :param member: The member to extract.
         :param to_path: The location to which it should be extracted.
         """
-        with open(_safe_join(to_path, member.name), 'wb') as f:
-            # We cannot provide a maximum to read to this method...
-            f.write(member.orig_file.read())
+        # We cannot provide a maximum to read to this method...
+        return putter.from_stream(
+            io.BytesIO(member.orig_file.read()), max_size=size_left
+        )
 
     def get_members(self
                     ) -> t.Iterable[ArchiveMemberInfo[py7zlib.ArchiveFile]]:
         """Get all members from this 7zip archive.
-
-        >>> zp = _7ZipArchive('test_data/test_submissions/multiple_dir_archive.7z')
-        >>> print([(i.name, i.is_dir) for i in sorted(zp.get_members())])
-        [('dir/', True), \
-('dir/single_file_work', False), \
-('dir/single_file_work_copy', False), \
-('dir2/', True), \
-('dir2/single_file_work', False), \
-('dir2/single_file_work_copy', False)]
-        >>> zp = _7ZipArchive('test_data/test_submissions/deheading_dir_archive.7z')
-        >>> print([(i.name, i.is_dir) for i in sorted(zp.get_members())])
-        [('dir/', True), \
-('dir/dir2/', True), \
-('dir/dir2/single_file_work', False), \
-('dir/dir2/single_file_work_copy', False)]
         """
         yield from _get_members_of_archives(self._archive.getmembers())
 
