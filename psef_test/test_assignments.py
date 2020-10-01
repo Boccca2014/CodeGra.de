@@ -432,6 +432,80 @@ def test_update_rubric_row(
             )
 
 
+@pytest.mark.parametrize('initial_type', ['plain_text', 'markdown'])
+def test_rubric_row_description_type(
+    logged_in, test_client, teacher_user, assignment, describe, initial_type,
+    rubric, session
+):
+    with describe('setup'):
+        url = f'/api/v1/assignments/{assignment.id}/rubrics/'
+
+        with logged_in(teacher_user):
+            ret = test_client.req(
+                'put',
+                url,
+                200,
+                data={'rows': rubric},
+                result=[dict],
+            )
+
+            for row in ret:
+                m.RubricRow.query.filter(
+                    m.RubricRow.id == row['id'],
+                ).one().description_type = initial_type
+
+            session.commit()
+
+    with describe('should receive the correct description type'):
+        ret = test_client.req(
+            'get',
+            url,
+            200,
+            result=[{
+                '__allow_extra__': True,
+                'description_type': initial_type,
+            }],
+        )
+
+    with describe('should keep the same type when updating a row'):
+        new_rubric = copy.copy(rubric)
+
+        for row in new_rubric:
+            row['description'] = 'new description'
+
+        test_client.req(
+            'put',
+            url,
+            200,
+            data={'rows': new_rubric},
+            result=[{
+                '__allow_extra__': True,
+                'description_type': initial_type,
+            }],
+        )
+
+    with describe('should set new rows to be markdown'):
+        new_rubric.append({
+            'type': 'continuous',
+            'header': 'new category',
+            'description': 'new category',
+            'items': [{
+                'header': 'new item',
+                'description': 'new item',
+                'points': 1,
+            }],
+        })
+
+        ret = test_client.req(
+            'put',
+            url,
+            200,
+            data={'rows': new_rubric},
+        )
+
+        assert ret[-1]['description_type'] == 'markdown'
+
+
 def test_reorder_rubric_rows(
     logged_in, test_client, teacher_user, assignment, describe
 ):
