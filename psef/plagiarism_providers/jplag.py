@@ -128,17 +128,17 @@ class JPlag(plag.PlagiarismProvider):
         res = [
             java,
             '-jar', jar,
-            '{ restored_dir }',
+            '{restored_dir}',
             '-l', self.lang,
             '-s',
-            '-r', '{ result_dir }',
+            '-r', '{result_dir}',
             '-m', f'{self.simil}%',
-            '-a', '{ archive_dir }',
-            '-progress', '{ progress_prefix }',
+            '-a', '{archive_dir}',
+            '-progress', '{progress_prefix}',
         ]
         # yapf: enable
         if self.has_base_code:
-            res.extend(['-bc', '{ base_code_dir }'])
+            res.extend(['-bc', '{base_code_dir}'])
 
         if self.suffixes is not None:
             res.extend(['-p', self.suffixes])

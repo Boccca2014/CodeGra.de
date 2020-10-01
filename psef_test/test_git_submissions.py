@@ -463,7 +463,10 @@ def test_clone_git_repo(
         assert sub is not None
         assert sub.created_at == now
         with tempfile.TemporaryDirectory() as tmpdir:
-            p.files.restore_directory_structure(sub, tmpdir)
+            m.File.restore_directory_structure(
+                tmpdir,
+                m.File.make_cache(sub),
+            )
 
             root = f'{tmpdir}/{os.listdir(tmpdir)[0]}'
             print(os.listdir(root))
