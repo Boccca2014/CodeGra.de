@@ -118,18 +118,18 @@
                     <b-card no-body
                             class="rubric-category flex-grow-1 mb-0">
                         <collapse :collapsed="collapsedCategories[row.trackingId]"
-                                  :disabled="!editable && !collapseByDefault"
+                                  :disabled="!canCollapseCategories"
                                   @change="collapsedCategories[row.trackingId] = $event"
                                   :key="row.trackingId">
                             <b-card-header slot="handle"
                                            class="d-flex flex-row align-items-center pl-3"
                                            :class="{ 'pr-1 py-1': editable }">
-                                <fa-icon v-if="editable || collapseByDefault"
-                                         class="chevron"
+                                <fa-icon v-if="canCollapseCategories"
+                                         class="chevron mr-2"
                                          name="chevron-down"
                                          :scale="0.75" />
 
-                                <div class="flex-grow-1 px-2">
+                                <div class="flex-grow-1 mr-2">
                                     <template v-if="row.header">
                                         {{ row.header }}
                                     </template>
@@ -206,7 +206,7 @@
             </transition-group>
         </slick-list>
 
-        <fa-icon v-if="editable || collapseByDefault"
+        <fa-icon v-if="canCollapseCategories"
                  class="collapse-all-btn flex-grow-0 text-muted ml-3 mt-3"
                  :class="{ collapsed: !canCollapseAll }"
                  :name="collapseAllIcon"
@@ -765,6 +765,10 @@ export default {
 
         collapseByDefault() {
             return this.rubricRows.length > 1;
+        },
+
+        canCollapseCategories() {
+            return this.editable || this.collapseByDefault;
         },
 
         canCollapseAll() {
