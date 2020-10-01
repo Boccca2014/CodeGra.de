@@ -148,7 +148,7 @@ and give it a score and then use a Capture Points test to load this into
 AutoTest.
 
 For some linters, CodeGrade can provide these wrapper scripts for you, contact
-us for more details.
+us at `support@codegrade.com <mailto:support@codegrade.com>`_ for more details.
 
 .. note::
     Sometimes some warnings/errors are more important than others, keep this
@@ -156,15 +156,16 @@ us for more details.
 
 How to use a unit testing framework?
 -----------------------------------------
+You can use a unit testing framework by using one of the wrapper scripts that
+we provide or by writing your own. The wrapper scripts write their results to
+a file that is read by CodeGrade to get any output, error messages, and the
+final score.
 
-You can use a unit testing framework, by writing a wrapper script or by slightly
-modifying the test code, so that it outputs a score between zero and one at
-the end of the tests. In this way you can use a Capture Points test in AutoTest
-to capture the score of the unit tests.
-
-For common unit testing frameworks, we already have written frameworks to
-easily and seamlessly use them in CodeGrade, please contact us at
-`support@codegrade.com <mailto:support@codegrade.com>`_ for details.
+For many frameworks we have already written wrapper scripts to easily use them
+in CodeGrade. Check out the :ref:`Unit Test documentation
+<autotest-tests-unit-test>` for a list of supported frameworks, or contact us
+at `support@codegrade.com <mailto:support@codegrade.com>`_ if your preferred
+framework is not included so we can discuss what we can do!.
 
 How to integrate existing grading scripts?
 --------------------------------------------

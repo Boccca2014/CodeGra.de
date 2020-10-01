@@ -1,3 +1,5 @@
+.. _setting-up-unit-tests:
+
 Setting up Unit Tests
 =====================
 
@@ -22,23 +24,15 @@ Compatibility scripts
 
 For most unit testing frameworks it is necessary to install additional software
 and to figure out how to make the framework output its results to the correct
-location. We provide wrapper scripts for a growing list of frameworks at our
-`AutoTest Examples <https://github.com/CodeGra-de/AutoTest-examples>`__ GitHub
-repository that handle all of this for you. Is your preferred testing framework
-not listed or does a script not work as you need it to? Please send an email
-to `support@codegrade.com <mailto:support@codegrade.com>`__ so we can discuss the
-possibilities!
+location. We provide wrapper scripts for a growing list of frameworks that
+handle all of this for you. Check out the :ref:`Unit Test documentation
+<autotest-tests-unit-test>` for a list of frameworks that are already
+supported, or contact us at `support@codegrade.com
+<mailto:support@codegrade.com>`_ if your preferred framework is not listed
+there so we can discuss the possibilities!
 
-All wrapper scripts have a similar interface and procedure for running tests.
-To see the options and commands provided by a script run it with the ``--help``
-flag.
-
-Initial setup
-~~~~~~~~~~~~~
-
-Upload the wrapper script and the other files in the ``fixtures`` subdirectory
-of the testing framework as fixtures to your AutoTest setup.  Also upload the
-test files that you want to execute as fixtures.
+All wrapper scripts share a similar interface and procedure for running tests,
+which we describe below.
 
 Installing dependencies
 ~~~~~~~~~~~~~~~~~~~~~~~
@@ -52,23 +46,23 @@ For example, to install JUnit 4 and its dependencies you would run
 
 .. code-block:: bash
 
-    $FIXTURES/cg-junit install
+    cg-junit4 install
 
 Compiling code and tests
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
 For compiled languages it can be tricky to get the compiler to find all
-libraries needed to compile the students' code and your tests. For these
-languages the wrapper scripts provide a ``compile`` command that configures the
-compiler to be able to find the required libraries. The ``compile`` command
-takes file names as arguments and compiles those files.
+libraries and other dependencies needed to compile the students' code and your
+tests. For these languages the wrapper scripts provide a ``compile`` command
+that configures the compiler to be able to find the required libraries. The
+``compile`` command takes file names as arguments and compiles those files.
 
 For example, to compile all ``.java`` files in the current directory, including
 a JUnit version 4 test class, you would run
 
 .. code-block:: bash
 
-    $FIXTURES/cg-junit compile *.java
+    cg-junit4 compile *.java
 
 Running tests
 ~~~~~~~~~~~~~
@@ -77,21 +71,19 @@ Running the tests can be similarly tricky when a language needs to know about
 certain locations of libraries it depends on, but also because you need to
 figure out how you can make the framework output its results in the correct
 format, or in the correct location. The wrapper scripts handle this in their
-```run`` command.
+``run`` command.
 
 The scripts extract the output location from ``$CG_JUNIT_XML_LOCATION`` and
-then unset it before running the tests. This way students have no access to
-this information when their code is running. The testing framework is then
+then unset it before running the tests. The testing framework is then
 configured to output its results at that location and the tests are executed.
 
-For example, to run a JUnit 4 test class named ``MyClass`` you would run
+For example, to run a JUnit 4 test class named ``MyTestClass`` you would run
 
 .. code-block::
 
-    $FIXTURES/cg-junit run MyClass
+    cg-junit4 run MyTestClass
 
 .. note::
 
-    The exact arguments to the ``run`` command of each script may differ from
-    script to script. They are described in more detail in the readme files
-    accompanying each script.
+    The exact arguments to the ``run`` command of each script may differ
+    between scripts.
