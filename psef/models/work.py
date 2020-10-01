@@ -2,12 +2,12 @@
 
 SPDX-License-Identifier: AGPL-3.0-only
 """
+import io
 import os
 import enum
 import typing as t
 import zipfile
 import tempfile
-from collections import defaultdict
 
 import structlog
 import sqlalchemy
@@ -821,40 +821,6 @@ class Work(Base):
             *self.search_file_filters(pathname, exclude),
         )
 
-    def get_file_children_mapping(
-        self, exclude: 'file_models.FileOwner'
-    ) -> t.Mapping[t.Optional[int], t.Sequence['file_models.File']]:
-        """Get a mapping that maps a file id to all its children.
-
-        This implementation does a single query to the database and runs in
-        O(n*log(n)), so it will be quite a bit quicker than using the
-        `children` attribute on files if you are going to need all children or
-        all files.
-
-        The list of children is sorted on filename.
-
-        :param exclude: The file owners to exclude
-        :returns: A mapping from file id to list of all its children for this
-            submission.
-        """
-        cache: t.Mapping[t.Optional[int], t.
-                         List['file_models.File']] = defaultdict(list)
-        files = file_models.File.query.filter(
-            file_models.File.work == self,
-            file_models.File.fileowner != exclude,
-            ~file_models.File.self_deleted,
-        ).all()
-        # We sort in Python as this increases consistency between different
-        # server platforms, Python also has better defaults.
-        # TODO: Investigate if sorting in the database first and sorting in
-        # Python after is faster, as sorting in the database should be faster
-        # overal and sorting an already sorted list in Python is really fast.
-        files.sort(key=lambda el: el.name.lower())
-        for f in files:
-            cache[f.parent_id].append(f)
-
-        return cache
-
     @classmethod
     def peer_feedback_submissions_filter(
         cls,
@@ -948,27 +914,21 @@ class Work(Base):
         self,
         exclude_owner: 'file_models.FileOwner',
         create_leading_directory: bool = True
-    ) -> str:
-        """Create zip in `MIRROR_UPLOADS` directory.
+    ) -> io.BytesIO:
+        """Create zip from the files in this submission.
 
         :param exclude_owner: Which files to exclude.
-        :returns: The name of the zip file in the `MIRROR_UPLOADS` dir.
+        :returns: The BytesIO containing the zipfile.
         """
-        path, name = psef.files.random_file_path(True)
-
-        with open(
-            path,
-            'w+b',
-        ) as f, tempfile.TemporaryDirectory(
+        result = io.BytesIO()
+        with tempfile.TemporaryDirectory(
             suffix='dir',
         ) as tmpdir, zipfile.ZipFile(
-            f,
-            'w',
-            compression=zipfile.ZIP_DEFLATED,
+            result, 'w', compression=zipfile.ZIP_DEFLATED
         ) as zipf:
-            # Restore the files to tmpdir
-            tree_root = psef.files.restore_directory_structure(
-                self, tmpdir, exclude_owner
+            tree_root = file_models.File.restore_directory_structure(
+                tmpdir,
+                file_models.File.make_cache(self, exclude_owner),
             )
 
             if create_leading_directory:
@@ -982,7 +942,8 @@ class Work(Base):
                     path = psef.files.safe_join(root, file)
                     zipf.write(path, path[leading_len:])
 
-        return name
+        result.seek(0)
+        return result
 
     @classmethod
     def create_from_tree(

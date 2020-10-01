@@ -84,9 +84,9 @@ class Option:
 
 
 def process_output_csv(
-    lookup_map: t.Dict[str, int],
+    lookup_map: t.Mapping[str, int],
     old_submissions: t.Container[int],
-    file_tree_lookup: t.Dict[int, files.FileTree[int]],
+    file_tree_lookup: t.Mapping[int, files.FileTree[int]],
     csvfile: str,
     delimiter: str = ';',
 ) -> t.List[models.PlagiarismCase]:
@@ -195,6 +195,12 @@ class PlagiarismProvider(metaclass=abc.ABCMeta):
     done using :func:`PlagiarismProvider.transform_csv` which is called just
     before the csv file is processed.
     """
+
+    @classmethod
+    def get_name(cls) -> str:
+        """Get the name of this provider.
+        """
+        return cls.__name__
 
     @staticmethod
     def supports_base_code() -> bool:
