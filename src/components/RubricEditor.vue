@@ -90,16 +90,8 @@
         </template>
     </div>
 
-    <template v-else>
-        <h5 class="position-relative text-center mb-3">
-            <fa-icon class="collapse-all-btn text-muted mt-1"
-                     :name="collapseAllIcon"
-                     @click.native="toggleAllCategories"
-                     v-b-popover.hover.top="collapseAllPopover" />
-
-            Categories
-        </h5>
-
+    <div v-else
+         class="d-flex flex-row">
         <slick-list :value="rubricRows"
                     lock-axis="y"
                     lock-to-container-edges
@@ -107,7 +99,7 @@
                     @input="reorderRows"
                     @sort-start="onSortStart"
                     @sort-end="onSortEnd"
-                    class="category-list">
+                    class="category-list flex-grow-1">
             <transition-group name="rubric-row">
                 <slick-item v-for="row, i in rubricRows"
                             :key="`rubric-editor-${id}-row-${i}`"
@@ -126,12 +118,16 @@
                     <b-card no-body
                             class="rubric-category flex-grow-1 mb-0">
                         <collapse :collapsed="collapsedCategories[row.trackingId]"
+                                  :disabled="!editable && !collapseByDefault"
                                   @change="collapsedCategories[row.trackingId] = $event"
                                   :key="row.trackingId">
                             <b-card-header slot="handle"
                                            class="d-flex flex-row align-items-center pl-3"
                                            :class="{ 'pr-1 py-1': editable }">
-                                <fa-icon class="chevron" name="chevron-down" :scale="0.75" />
+                                <fa-icon v-if="editable || collapseByDefault"
+                                         class="chevron"
+                                         name="chevron-down"
+                                         :scale="0.75" />
 
                                 <div class="flex-grow-1 px-2">
                                     <template v-if="row.header">
@@ -178,8 +174,13 @@
                                         @after-success="() => deleteRow(i)"
                                         :disabled="!!row.locked"
                                         confirm="Do you really want to delete this category?">
-                                        <fa-icon v-if="row.locked" name="lock" class="lock" />
-                                        <fa-icon v-else name="times" />
+                                        <fa-icon v-if="row.locked"
+                                                 name="lock"
+                                                 style="width: 0.9rem"
+                                                 class="lock" />
+                                        <fa-icon v-else
+                                                 name="times"
+                                                 style="width: 0.9rem" />
                                     </cg-submit-button>
 
                                     <fa-icon v-else-if="row.locked"
@@ -204,31 +205,27 @@
                 </slick-item>
             </transition-group>
         </slick-list>
-    </template>
 
-    <div class="position-relative text-center mb-3">
-        <fa-icon v-if="rubricRows.length > 0"
-                 class="collapse-all-btn text-muted"
-                 :class="{ 'mt-2': editable, 'mt-n2': !editable }"
+        <fa-icon v-if="editable || collapseByDefault"
+                 class="collapse-all-btn flex-grow-0 text-muted ml-3 mt-3"
+                 :class="{ collapsed: !canCollapseAll }"
                  :name="collapseAllIcon"
                  @click.native="toggleAllCategories"
                  v-b-popover.hover.top="collapseAllPopover" />
-
-        <b-button-toolbar v-if="editable"
-                          class="justify-content-center">
-            <b-button class="add-row normal"
-                      @click="createRow('normal')">
-                <fa-icon name="ellipsis-h" /> Discrete
-            </b-button>
-
-            <b-button class="add-row continuous"
-                      @click="createRow('continuous')">
-                <fa-icon name="progress" /> Continuous
-            </b-button>
-        </b-button-toolbar>
-
-        <hr v-else class="my-4 ml-5" />
     </div>
+
+    <b-button-toolbar v-if="editable"
+                      class="justify-content-center mb-3">
+        <b-button class="add-row normal"
+                  @click="createRow('normal')">
+            <fa-icon name="plus" /> Discrete category
+        </b-button>
+
+        <b-button class="add-row continuous"
+                  @click="createRow('continuous')">
+            <fa-icon name="plus" /> Continuous category
+        </b-button>
+    </b-button-toolbar>
 
     <template v-if="editable">
         <advanced-collapse v-if="rubric"
@@ -300,21 +297,21 @@
                     <fa-icon name="times"/> Delete
                 </cg-submit-button>
 
-                <div v-b-popover.top.hover="rubricChangedPopover('Reset rubric.')">
+                <div v-b-popover.top.hover="resetPopover || 'Reset rubric'">
                     <cg-submit-button class="reset-rubric border-left rounded-left-0"
                                       variant="danger"
                                       :submit="resetRubric"
                                       confirm="Are you sure you want to revert your changes?"
-                                      :disabled="resetDisabled">
+                                      :disabled="!!resetPopover">
                         <fa-icon name="reply"/> Reset
                     </cg-submit-button>
                 </div>
             </div>
 
-            <div v-b-popover.top.hover="rubricChangedPopover()">
+            <div v-b-popover.top.hover="submitPopover">
                 <cg-submit-button class="submit-rubric"
                                   ref="submitButton"
-                                  :disabled="submitDisabled"
+                                  :disabled="!!submitPopover"
                                   :confirm="shouldConfirm ? 'yes' : ''"
                                   :confirm-in-modal="confirmInModal"
                                   :submit="submit"
@@ -474,13 +471,12 @@ import { SlickList, SlickItem, Handle } from 'vue-slicksort';
 
 import 'vue-awesome/icons/bars';
 import 'vue-awesome/icons/chevron-down';
+import 'vue-awesome/icons/compress';
+import 'vue-awesome/icons/expand';
 import 'vue-awesome/icons/copy';
 import 'vue-awesome/icons/plus';
 import 'vue-awesome/icons/times';
 import 'vue-awesome/icons/reply';
-import 'vue-awesome/icons/ellipsis-h';
-import 'vue-awesome/icons/minus-square';
-import 'vue-awesome/icons/plus-square';
 
 import { NONEXISTENT, INITIAL_COURSES_AMOUNT } from '@/constants';
 import { Rubric } from '@/models';
@@ -747,20 +743,28 @@ export default {
             }
         },
 
-        submitDisabled() {
-            return !this.rubricChanged && !this.maxPointsChanged;
+        submitPopover() {
+            if (this.rubricRows.length === 0) {
+                return 'The rubric must have at least 1 category.';
+            }
+            if (this.rubricChanged || this.maxPointsChanged) {
+                return '';
+            }
+            return 'You have not made any modifications to the rubric.';
         },
 
-        resetDisabled() {
-            if (this.submitDisabled) {
-                return true;
-            } else {
-                return this.serverData != null && this.rubricRows.length === 0;
+        resetPopover() {
+            if (this.serverData == null) {
+                return 'There is no previous rubric.';
             }
+            if (this.rubricChanged || this.maxPointsChanged) {
+                return '';
+            }
+            return 'You have not made any modifications to the rubric.';
         },
 
         collapseByDefault() {
-            return this.editable || this.rubricRows.length > 1;
+            return this.rubricRows.length > 1;
         },
 
         canCollapseAll() {
@@ -770,7 +774,7 @@ export default {
         },
 
         collapseAllIcon() {
-            return this.canCollapseAll ? 'minus-square' : 'plus-square';
+            return this.canCollapseAll ? 'compress' : 'expand';
         },
 
         collapseAllPopover() {
@@ -1047,14 +1051,6 @@ export default {
             this.slickItemMoving = false;
         },
 
-        rubricChangedPopover(ifChanged = '') {
-            if (this.submitDisabled) {
-                return 'You have not made any modifications to the rubric.';
-            } else {
-                return ifChanged;
-            }
-        },
-
         shouldCancelDrag(event) {
             if (!this.editable) {
                 return true;
@@ -1151,18 +1147,14 @@ input.max-points {
 }
 
 .collapse-all-btn {
-    position: absolute;
-    top: 0;
-    left: 1rem;
+    position: sticky;
+    top: 8rem;
     cursor: pointer;
     opacity: 0.8;
+    transform: rotate(-45deg);
 
     &:hover {
         opacity: 1;
-    }
-
-    .rubric-editor.editable & {
-        left: 0;
     }
 }
 
