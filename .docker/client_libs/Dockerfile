@@ -10,8 +10,8 @@ ENV PATH="/home/codegrade/.local/bin:${PATH}"
 COPY --chown=codegrade:codegrade ./requirements.txt requirements.txt
 
 RUN pip install --user -r requirements.txt
-RUN pip install --user pypandoc pyaml
-RUN pip install git+http://github.com/CodeGra-de/openapi-python-client.git@9520476
+RUN pip install --user pypandoc pyyaml
+RUN pip install --user git+http://github.com/CodeGra-de/openapi-python-client.git@9520476405a71b2402e6ee52936cf549a4dee01a
 
 ENV DEBUG=true
 ENV PROJECT_NAME_OVERRIDE=codegrade

@@ -1,7 +1,10 @@
 #!/bin/bash
 set -o xtrace
 
-make build_api_libs
+pip install -r test_requirements.txt
+pip install pyyaml
+
+make build_api_libs || exit 1
 git add api_libs
 if [[ -n "$(git diff-index --name-only HEAD)" ]]; then
     echo "You forgot to update the API libs!"
@@ -24,8 +27,6 @@ proxy_base_domain = test.com
 redis_cache_url = redis://localhost:6379/cg_cache
 EOF
 
-pip install -r test_requirements.txt
-
 make pylint &
 PYLINT_PID="$!"
 
@@ -45,7 +46,7 @@ fi
 make yapf_check
 res5=$?
 
-( cd docs && make html )
+( cd docs && make build_swagger && make html )
 res6="$?"
 
 wait "$PYLINT_PID"
