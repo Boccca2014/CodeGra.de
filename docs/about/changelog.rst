@@ -38,7 +38,7 @@ Updates
   or https URLs in your markdown feedback, they are automatically turned into
   clickable links.
 - The Jupyter Notebook viewer now supports more output types and colors `(#1479)
-  <https://github.com/CodeGra-de/CodeGra.de/pull/1479`__. If a Jupyter Notebook
+  <https://github.com/CodeGra-de/CodeGra.de/pull/1479>`__. If a Jupyter Notebook
   contains ANSI colored output we will display these colors in all their glory.
 
 Version Mosaic.1
