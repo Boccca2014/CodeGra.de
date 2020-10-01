@@ -203,6 +203,9 @@ class _ParserLike(Protocol):
         ...
 
 
+LogReplacer = t.Callable[[str, object], object]
+
+
 class _Parser(t.Generic[_T_COV]):
     __slots__ = ('__description', )
 
@@ -238,17 +241,17 @@ class _Parser(t.Generic[_T_COV]):
                other: _Parser[_Y]) -> _Parser[t.Union[_T, _Y]]:
         return Union(self, other)
 
-    def from_flask(
-        self,
-        *,
-        log_replacer: t.Callable[[str, object], object] = None,
-    ) -> _T_COV:
+    def from_flask(self, *, log_replacer: LogReplacer = None) -> _T_COV:
         if _GENERATE_SCHEMA is not None:
             json_schema = self.to_open_api(_GENERATE_SCHEMA)
             raise _Schema(typ='application/json', schema=json_schema)
 
         json = flask.request.get_json()
+        return self.try_parse_and_log(json, log_replacer=log_replacer)
 
+    def try_parse_and_log(
+        self, json, *, log_replacer: LogReplacer = None
+    ) -> _T_COV:
         if isinstance(json, dict):
             to_log = json
             if log_replacer is not None:
@@ -978,7 +981,8 @@ class MultipartUpload(t.Generic[_T]):
         self.__file_key = file_key
         self.__multiple = multiple
 
-    def from_flask(self, ) -> t.Tuple[_T, t.Sequence[FileStorage]]:
+    def from_flask(self, *, log_replacer: LogReplacer = None
+                   ) -> t.Tuple[_T, t.Sequence[FileStorage]]:
         if _GENERATE_SCHEMA is not None:
             json_schema = self.__parser.to_open_api(_GENERATE_SCHEMA)
             file_type: t.Mapping[str, t.Any] = {
@@ -1006,15 +1010,11 @@ class MultipartUpload(t.Generic[_T]):
         if 'json' in flask.request.files:
             body = _json.load(flask.request.files['json'])
         if not body:
-            body = flask.request.json()
+            body = flask.request.get_json()
 
-        if isinstance(body, dict):
-            to_log = body
-            logger.info('JSON request processed', request_data=body)
-        else:
-            logger.info('JSON request processed', request_data=to_log)
-
-        result = self.__parser.try_parse(body)
+        result = self.__parser.try_parse_and_log(
+            body, log_replacer=log_replacer
+        )
 
         if not flask.request.files:
             files = []
