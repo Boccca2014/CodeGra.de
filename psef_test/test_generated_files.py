@@ -91,7 +91,10 @@ def test_git_submission_generated_files(
         )
 
     with tempfile.TemporaryDirectory() as tmpdir:
-        p.files.restore_directory_structure(sub, tmpdir)
+        m.File.restore_directory_structure(
+            tmpdir,
+            m.File.make_cache(sub),
+        )
         root = f'{tmpdir}/{os.listdir(tmpdir)[0]}'
 
         with describe('cg-size-limit-exceeded'
@@ -131,7 +134,10 @@ def test_archive_generated_files(basic, test_client, describe, logged_in):
         )
 
     with tempfile.TemporaryDirectory() as tmpdir:
-        p.files.restore_directory_structure(sub, tmpdir)
+        m.File.restore_directory_structure(
+            tmpdir,
+            m.File.make_cache(sub),
+        )
         root = f'{tmpdir}/{os.listdir(tmpdir)[0]}'
 
         with describe('symbolic link replacement files'

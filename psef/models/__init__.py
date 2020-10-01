@@ -161,7 +161,7 @@ else:
 if True:  # pylint: disable=using-constant-test
     from .file import (
         File, FileMixin, FileOwner, AutoTestFixture, NestedFileMixin,
-        AutoTestOutputFile
+        AutoTestOutputFile, PlagiarismBaseCodeFile
     )
     from .role import Role, CourseRole, AbstractRole
     from .user import User

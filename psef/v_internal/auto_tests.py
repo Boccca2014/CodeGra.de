@@ -11,7 +11,8 @@ import typing as t
 import requests
 import werkzeug
 import structlog
-from flask import request, make_response, send_from_directory
+from flask import request, send_file, make_response
+from werkzeug.wrappers import Response
 
 from . import api
 from .. import app, files, tasks, models, helpers, auto_test
@@ -187,8 +188,8 @@ def update_run(auto_test_id: int, run_id: int) -> EmptyResponse:
     '/auto_tests/<int:auto_test_id>/results/<int:result_id>', methods=['GET']
 )
 @feature_required(Feature.AUTO_TEST)
-def get_result_data(auto_test_id: int, result_id: int
-                    ) -> t.Union[werkzeug.wrappers.Response, EmptyResponse]:
+def get_result_data(auto_test_id: int,
+                    result_id: int) -> t.Union[Response, EmptyResponse]:
     """Get the submission files for the given result_id.
 
     The files are zipped and this zip is send. This zip DOES NOT contain a top
@@ -207,7 +208,7 @@ def get_result_data(auto_test_id: int, result_id: int
     # fails the entire run goes to a crashed state.
     _verify_and_get_runner(result.run, password)
 
-    res = make_empty_response()
+    res: t.Union[Response, EmptyResponse] = make_empty_response()
 
     if request.args.get('type', None) == 'submission_files':
         if result.run.auto_test.prefer_teacher_revision:
@@ -215,12 +216,10 @@ def get_result_data(auto_test_id: int, result_id: int
         else:
             excluded_user = models.FileOwner.teacher
 
-        file_name = result.work.create_zip(
-            excluded_user,
-            create_leading_directory=False,
+        zip_file = result.work.create_zip(
+            excluded_user, create_leading_directory=False
         )
-        directory = app.config['MIRROR_UPLOAD_DIR']
-        res = send_from_directory(directory, file_name)
+        res = send_file(zip_file, attachment_filename='student.zip')
 
     return res
 
