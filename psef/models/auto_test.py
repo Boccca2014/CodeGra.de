@@ -2,7 +2,6 @@
 
 SPDX-License-Identifier: AGPL-3.0-only
 """
-import os
 import math
 import uuid
 import typing as t
@@ -16,6 +15,7 @@ from sqlalchemy.sql.expression import or_, and_, case, nullsfirst
 
 import psef
 import cg_helpers
+import cg_object_storage
 from cg_dt_utils import DatetimeWithTimezone
 from cg_flask_helpers import callback_after_this_request
 from cg_typing_extensions import make_typed_dict_extender
@@ -1157,27 +1157,23 @@ class AutoTestRun(Base, TimestampMixin, IdMixin):
 
         ATResult = auto_test_step_models.AutoTestStepResult  # pylint: disable=invalid-name
 
-        attachments = db.session.query(ATResult.attachment_filename).filter(
-            ATResult.attachment_filename.isnot(None),
+        results_with_attachment = ATResult.query.filter(
+            ATResult.has_attachment,
             ATResult.auto_test_result_id.in_(
                 [result.id for result in self.results]
             )
         ).all()
 
-        if attachments:
+        if results_with_attachment:
+            attachments = [r.attachment for r in results_with_attachment]
 
             def after_req() -> None:
-                for attachment, in attachments:
-                    # This is never the case as we filter the attachments in
-                    # the query, but mypy doesn't understand that.
-                    if attachment is None:  # pragma: no cover
-                        continue
-
-                    path = psef.files.safe_join(
-                        psef.app.config['UPLOAD_DIR'], attachment
-                    )
-                    if os.path.isfile(path):
-                        os.unlink(path)
+                for attachment in attachments:
+                    try:
+                        attachment.if_just(lambda a: a.delete())
+                    # pylint: disable=broad-except
+                    except BaseException:  # pragma: no cover
+                        pass
 
             callback_after_this_request(after_req)
 
@@ -1654,12 +1650,14 @@ class AutoTest(Base, TimestampMixin, IdMixin):
         rubric_mapping: (
             t.Mapping['psef.models.RubricRow', 'psef.models.RubricRow']
         ),
+        putter: cg_object_storage.Putter,
     ) -> 'AutoTest':
         """Copy this AutoTest configuration.
 
         :param rubric_mapping: The mapping how the rubric was copied, if suite
             ``A`` was copied to suite ``B`` then suite ``B`` is connected to
             rubric row ``rubric_mapping[A.rubric_row]``.
+        :param putter: The putter used to copy fixtures.
         :returns: The copied AutoTest config.
 
         .. note::
@@ -1669,7 +1667,7 @@ class AutoTest(Base, TimestampMixin, IdMixin):
         """
         res = AutoTest(
             sets=[s.copy() for s in self.sets],
-            fixtures=[fixture.copy() for fixture in self.fixtures],
+            fixtures=[fixture.copy(putter) for fixture in self.fixtures],
             setup_script=self.setup_script,
             run_setup_script=self.run_setup_script,
             finalize_script=self.finalize_script,

@@ -5,30 +5,31 @@ SPDX-License-Identifier: AGPL-3.0-only
 import os
 import enum
 import uuid
-import shutil
 import typing as t
 from abc import abstractmethod
 from collections import defaultdict
 
 import structlog
-from flask import current_app
 from sqlalchemy import event
 from sqlalchemy_utils import UUIDType
-from typing_extensions import TypedDict
+from typing_extensions import Literal, TypedDict
 
 import psef
+import cg_maybe
+import cg_flask_helpers
+import cg_object_storage
 from cg_enum import CGEnum
 from cg_dt_utils import DatetimeWithTimezone
 from cg_typing_extensions import make_typed_dict_extender
-from cg_sqlalchemy_helpers import hybrid_property
+from cg_sqlalchemy_helpers import expression, hybrid_property
 from cg_sqlalchemy_helpers.types import (
-    MyQuery, ColumnProxy, ImmutableColumnProxy
+    MyQuery, ColumnProxy, FilterColumn, ImmutableColumnProxy
 )
 from cg_sqlalchemy_helpers.mixins import TimestampMixin
 
 from . import Base, db
 from . import work as work_models
-from .. import auth, helpers
+from .. import auth, helpers, current_app
 from ..exceptions import APICodes, APIException
 from ..permissions import CoursePermission
 
@@ -60,12 +61,50 @@ class FileMixin(t.Generic[T]):
     """A mixin for representing a file in the database.
     """
 
+    @t.overload
+    def __init__(
+        self,
+        name: str,
+        *,
+        is_directory: Literal[True],
+        backing_file: None = None,
+        **extra_opts: object,
+    ) -> None:
+        ...
+
+    @t.overload
+    def __init__(
+        self,
+        name: str,
+        backing_file: cg_object_storage.File,
+        *,
+        is_directory: Literal[False] = False,
+        **extra_opts: object,
+    ) -> None:
+        ...
+
+    def __init__(
+        self,
+        name: str,
+        backing_file: t.Optional[cg_object_storage.File] = None,
+        **kwargs: t.Any,
+    ) -> None:
+        filename = None
+        if backing_file is not None:
+            filename = backing_file.name
+
+        super().__init__(  # type: ignore
+            name=name,
+            _filename=filename,
+            **kwargs,
+        )
+
     # The given name of the file.
     name = db.Column('name', db.Unicode, nullable=False)
 
     # This is the filename for the actual file on the disk. This is probably a
     # randomly generated uuid.
-    filename = db.Column('filename', db.Unicode, nullable=True)
+    _filename = db.Column('filename', db.Unicode, nullable=True)
 
     @abstractmethod
     def get_id(self) -> T:
@@ -75,70 +114,82 @@ class FileMixin(t.Generic[T]):
 
     is_directory: ImmutableColumnProxy[bool]
 
-    def open(self) -> t.BinaryIO:
-        """Open this file.
+    @property
+    def backing_file(self) -> cg_maybe.Maybe[cg_object_storage.File]:
+        """Maybe get the backing file for this file.
 
-        This file checks if this file can be opened.
-
-        :returns: The contents of the file with newlines.
+        This will return ``Nothing`` for directories.
         """
-        if self.is_directory:
+        if self._filename is None or self.is_directory:
+            return cg_maybe.Nothing
+        return current_app.file_storage.get(self._filename)
+
+    @property
+    def unwrapped_backing_file(self) -> cg_object_storage.File:
+        """Get the backing file, or raise an exception if it cannot be found.
+
+        :raises APIException: If the ``backing_file`` is ``Nothing`` or if it
+            no longer exists.
+        """
+        backing_file = self.backing_file
+        if backing_file.is_nothing:
             raise APIException(
                 'Cannot display this file as it is a directory.',
                 f'The selected file with id {self.get_id()} is a directory.',
                 APICodes.OBJECT_WRONG_TYPE, 400
             )
 
-        filename = self.get_diskname()
-        if os.path.islink(filename):  # pragma: no cover
-            # This should not be possible as we replace symlinks with regular
-            # files on submission.
-            logger.error(
-                'Symlink found in uploads directory',
-                filename=filename,
-            )
-            raise APIException(
-                f'This file is a symlink to `{os.readlink(filename)}`.',
-                f'The file {self.get_id()} is a symlink',
-                APICodes.INVALID_STATE, 410
-            )
-        return open(filename, 'rb')
+        return backing_file.value
+
+    def update_backing_file(
+        self, new_file: cg_object_storage.File, *, delete: bool = False
+    ) -> None:
+        """Replace the backing file of this ``File``.
+
+        :param new_file: The new backing file for this row.
+        :param delete: If ``True`` we will delete the old file at the end of
+            the request.
+        :raises AssertionError: When called on a directory.
+        """
+        if self.is_directory:  # pragma: no cover
+            raise AssertionError('Cannot set file of directory')
+        if delete:
+            cg_flask_helpers.callback_after_this_request(self._get_deleter())
+
+        self._filename = new_file.name
+
+    def open(self) -> t.IO[bytes]:
+        """Open this file.
+
+        This file checks if this file can be opened.
+
+        :returns: The contents of the file with newlines.
+        """
+        backing_file = self.unwrapped_backing_file
+
+        return backing_file.open()
+
+    def _get_deleter(self) -> t.Callable[[], None]:
+        backing = self.backing_file
+
+        def make_deleter(backing: cg_object_storage.File
+                         ) -> t.Callable[[], None]:
+            def callback() -> None:
+                try:
+                    backing.delete()
+                except (AssertionError, FileNotFoundError):  # pragma: no cover
+                    pass
+
+            return callback
+
+        return backing.map(make_deleter).or_default(lambda: None)
 
     def delete_from_disk(self) -> None:
         """Delete the file from disk if it is not a directory.
 
-        >>> import os
-        >>> f = FileMixin()
-        >>> f.filename = 'NON_EXISTING'
-        >>> f.get_diskname = lambda: f.filename
-        >>> f.delete_from_disk() is None
-        True
-        >>> open('new_file_name', 'w').close()
-        >>> f.filename = 'new_file_name'
-        >>> os.path.isfile(f.filename)
-        True
-        >>> f.delete_from_disk()
-        >>> os.path.isfile(f.filename)
-        False
-
         :returns: Nothing.
         """
-        try:
-            os.remove(self.get_diskname())
-        except (AssertionError, FileNotFoundError):
-            pass
-
-    def get_diskname(self) -> str:
-        """Get the absolute path on the disk for this file.
-
-        :returns: The absolute path.
-        """
-        assert self.filename
-        assert not self.is_directory
-
-        return psef.files.safe_join(
-            current_app.config['UPLOAD_DIR'], self.filename
-        )
+        self._get_deleter()()
 
     class AsJSON(TypedDict):
         #: The id of this file
@@ -170,6 +221,9 @@ class FileMixin(t.Generic[T]):
 
 NFM_T = t.TypeVar('NFM_T', bound='NestedFileMixin')  # pylint: disable=invalid-name
 
+LiteralTrue: Literal[True] = True
+LiteralFalse: Literal[False] = False
+
 
 class NestedFileMixin(FileMixin[T]):
     """A mixin representing nested files, i.e. a structure of directories where
@@ -191,17 +245,43 @@ class NestedFileMixin(FileMixin[T]):
         """
         raise NotImplementedError
 
-    if t.TYPE_CHECKING:  # pragma: no cover
-        # pylint: disable=unused-argument
-        def __init__(
-            self,
-            name: str,
-            parent: t.Optional['NestedFileMixin[T]'],
-            is_directory: bool,
-            filename: t.Optional[str] = None,
-            **extra_opts: object,
-        ) -> None:
-            ...
+    @t.overload
+    def __init__(
+        self,
+        name: str,
+        parent: t.Optional['NestedFileMixin[T]'],
+        is_directory: Literal[True],
+        backing_file: None,
+        **extra_opts: object,
+    ) -> None:
+        ...
+
+    @t.overload
+    def __init__(
+        self: NFM_T,
+        name: str,
+        parent: NFM_T,
+        is_directory: Literal[False],
+        backing_file: cg_object_storage.File,
+        **extra_opts: object,
+    ) -> None:
+        ...
+
+    def __init__(
+        self,
+        name: str,
+        parent: t.Any,
+        is_directory: t.Any,
+        backing_file: t.Any,
+        **extra_opts: object,
+    ) -> None:
+        super().__init__(
+            name=name,
+            parent=parent,
+            is_directory=is_directory,
+            backing_file=backing_file,
+            **extra_opts,
+        )
 
     # The id of the parent.
     parent_id: ImmutableColumnProxy[t.Optional[T]]
@@ -224,10 +304,11 @@ class NestedFileMixin(FileMixin[T]):
         :param top: The parent file
         :returns: Nothing
         """
-        new_top = cls(
-            is_directory=True,
+        new_top: NFM_T = cls(  # type: ignore[abstract]
             name=tree.name,
             parent=top,
+            is_directory=LiteralTrue,
+            backing_file=None,
             **creation_opts,
         )
 
@@ -237,10 +318,10 @@ class NestedFileMixin(FileMixin[T]):
                     child, new_top, creation_opts
                 )
             elif isinstance(child, psef.files.ExtractFileTreeFile):
-                cls(
+                cls(  # type: ignore[abstract]
                     name=child.name,
-                    filename=child.disk_name,
-                    is_directory=False,
+                    backing_file=child.backing_file,
+                    is_directory=LiteralFalse,
                     parent=new_top,
                     **creation_opts,
                 )
@@ -248,6 +329,55 @@ class NestedFileMixin(FileMixin[T]):
                 # The above checks are exhaustive, so this cannot happen
                 assert False
         return new_top
+
+    @classmethod
+    def _make_cache(cls: t.Type['NFM_T'], query_filter: FilterColumn
+                    ) -> t.Mapping[t.Optional[t.Any], t.Sequence['NFM_T']]:
+        cache = defaultdict(list)
+        query: MyQuery[NFM_T] = cls.query  # type: ignore[attr-defined]
+        all_files = query.filter(query_filter).order_by(cls.name).all()
+        # We sort in Python as this increases consistency between different
+        # server platforms, Python also has better defaults.
+        # TODO: Investigate if sorting in the database first and sorting in
+        # Python after is faster, as sorting in the database should be faster
+        # overal and sorting an already sorted list in Python is really fast.
+        all_files.sort(key=lambda el: el.name.lower())
+        for f in all_files:
+            cache[f.parent_id].append(f)
+
+        return cache
+
+    @classmethod
+    def restore_directory_structure(
+        cls: t.Type['NestedFileMixin[T]'],
+        parent: str,
+        cache: t.Mapping[t.Optional[T], t.Sequence['NestedFileMixin[T]']],
+    ) -> 'psef.files.FileTree[T]':
+        """Restore the directory structure for this class.
+        """
+        return cache[None][0]._restore_directory_structure(parent, cache)  # pylint: disable=protected-access
+
+    def _restore_directory_structure(
+        self: 'NestedFileMixin[T]',
+        parent: str,
+        cache: t.Mapping[t.Optional[T], t.Sequence['NestedFileMixin[T]']],
+    ) -> 'psef.files.FileTree[T]':
+        FileTree = psef.files.FileTree
+
+        out = psef.files.safe_join(parent, self.name)
+        backing_file = self.backing_file
+        if backing_file.is_nothing:
+            assert self.is_directory
+            os.mkdir(out)
+
+            subtree = [
+                child._restore_directory_structure(out, cache)  # pylint: disable=protected-access
+                for child in cache[self.get_id()]
+            ]
+            return FileTree(name=self.name, id=self.get_id(), entries=subtree)
+        else:  # this is a file
+            backing_file.value.save_to_disk(out)
+            return FileTree(name=self.name, id=self.get_id(), entries=None)
 
 
 class File(NestedFileMixin[int], Base):
@@ -366,15 +496,6 @@ class File(NestedFileMixin[int], Base):
         else:
             return teacher
 
-    def get_diskname(self) -> str:
-        """Get the absolute path on the disk for this file.
-
-        :returns: The absolute path.
-        :raises AssertionError: If this file is deleted.
-        """
-        assert not self._deleted
-        return super().get_diskname()
-
     def get_path(self) -> str:
         return '/'.join(self.get_path_list())
 
@@ -390,18 +511,36 @@ class File(NestedFileMixin[int], Base):
         upper.append(self.name)
         return upper
 
-    def list_contents(
-        self,
-        exclude: FileOwner,
-    ) -> 'psef.files.FileTree[int]':
+    @classmethod
+    def make_cache(
+        cls,
+        work: 'psef.models.Work',
+        exclude: FileOwner = FileOwner.teacher,
+    ) -> t.Mapping[t.Optional[int], t.Sequence['File']]:
+        """Make a file cache object for the given work without files owned by
+        ``exclude``.
+
+        :param work: The work for which you want to create a cache object.
+        :param exclude: Files with this value as owner will not be included in
+            the resulting cache.
+        """
+        return cls._make_cache(
+            expression.and_(
+                cls.work == work,
+                cls.fileowner != exclude,
+                ~cls.self_deleted,
+            )
+        )
+
+    def list_contents(self, exclude: FileOwner) -> 'psef.files.FileTree[int]':
         """List the basic file info and the info of its children.
 
         :param exclude: The file owner to exclude from the tree.
 
-        :returns: A :class:`psef.files.FileTree` object where the given file is
-            the root object.
+        :returns: A :class:`psef.files.FileTree` object where this file is the
+                  root object.
         """
-        cache = self.work.get_file_children_mapping(exclude)
+        cache = self.make_cache(self.work, exclude)
         return self._inner_list_contents(cache)
 
     def rename_code(
@@ -451,7 +590,7 @@ class File(NestedFileMixin[int], Base):
         )
 
 
-class AutoTestFixture(Base, FileMixin[int], TimestampMixin):
+class AutoTestFixture(FileMixin[int], TimestampMixin, Base):
     """This class represents a single fixture for an AutoTest configuration.
     """
     __tablename__ = 'AutoTestFixture'
@@ -505,32 +644,22 @@ class AutoTestFixture(Base, FileMixin[int], TimestampMixin):
             super().__to_json__(), AutoTestFixture.AsJSON
         )(hidden=self.hidden)
 
-    def copy(self) -> 'AutoTestFixture':
+    def copy(self, putter: cg_object_storage.Putter) -> 'AutoTestFixture':
         """Copy this AutoTest fixture.
 
+        :param putter: The putter used to copy the underlying file.
         :returns: The copied AutoTest fixture.
-
-        .. note::
-
-            The connected file is only copied after this request has finished,
-            so there is a very small period of time where this fixture is
-            committed to the database, but where it does not have an underlying
-            file yet.
         """
-        path, filename = psef.files.random_file_path()
-        old_path = self.get_diskname()
-        helpers.callback_after_this_request(
-            lambda: shutil.copy(old_path, path)
-        )
+        new_file = self.unwrapped_backing_file.copy(putter)
 
         return AutoTestFixture(
             hidden=self.hidden,
             name=self.name,
-            filename=filename,
+            backing_file=new_file,
         )
 
 
-class AutoTestOutputFile(Base, NestedFileMixin[uuid.UUID], TimestampMixin):
+class AutoTestOutputFile(NestedFileMixin[uuid.UUID], TimestampMixin, Base):
     """This class represents an output file from an AutoTest run.
 
     The output files are connected to both a
@@ -587,14 +716,13 @@ class AutoTestOutputFile(Base, NestedFileMixin[uuid.UUID], TimestampMixin):
     def list_contents(self) -> 'psef.files.FileTree[uuid.UUID]':
         """List the basic file info and the info of its children.
         """
-        cache: t.Mapping[t.Optional[uuid.UUID], t.
-                         List[AutoTestOutputFile]] = defaultdict(list)
-
-        for f in AutoTestOutputFile.query.filter_by(
-            auto_test_result_id=self.auto_test_result_id,
-            auto_test_suite_id=self.auto_test_suite_id
-        ).order_by(AutoTestOutputFile.name):
-            cache[f.parent_id].append(f)
+        cls = type(self)
+        cache = self._make_cache(
+            expression.and_(
+                cls.auto_test_result_id == self.auto_test_result_id,
+                cls.auto_test_suite_id == self.auto_test_suite_id
+            )
+        )
 
         return self._inner_list_contents(cache)
 
@@ -605,3 +733,49 @@ def _receive_after_delete(
 ) -> None:
     """Listen for the 'after_delete' event"""
     helpers.callback_after_this_request(target.delete_from_disk)
+
+
+class PlagiarismBaseCodeFile(NestedFileMixin[uuid.UUID], Base, TimestampMixin):
+    """This object describes a file or directory that stored is stored as base
+    code for a plagiarism run.
+    """
+    id = db.Column('id', UUIDType, primary_key=True, default=uuid.uuid4)
+
+    def get_id(self) -> uuid.UUID:
+        return self.id
+
+    plagiarism_run_id = db.Column(
+        'plagiarism_run_id',
+        db.Integer,
+        db.ForeignKey('PlagiarismRun.id', ondelete='CASCADE'),
+        nullable=False,
+    )
+
+    is_directory = db.Column('is_directory', db.Boolean, nullable=False)
+    parent_id = db.Column(
+        'parent_id', UUIDType, db.ForeignKey('plagiarism_base_code_file.id')
+    )
+
+    # This variable is generated from the backref from the parent
+    children: MyQuery["File"]
+
+    parent = db.relationship(
+        lambda: PlagiarismBaseCodeFile,
+        remote_side=[id],
+        backref=db.backref('children', lazy='dynamic'),
+    )
+
+    plagiarism_run = db.relationship(
+        lambda: psef.models.PlagiarismRun,
+        foreign_keys=plagiarism_run_id,
+    )
+
+    @classmethod
+    def make_cache(cls, plagiarism_run: 'psef.models.PlagiarismRun'
+                   ) -> t.Mapping[t.Optional[uuid.UUID], t.
+                                  Sequence['PlagiarismBaseCodeFile']]:
+        """Make a file cache object for the given plagiarism run.
+
+        :param plagiarism_run: The run for which you want to get the cache.
+        """
+        return cls._make_cache(cls.plagiarism_run == plagiarism_run)

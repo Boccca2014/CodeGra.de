@@ -1133,11 +1133,12 @@ def test_archive_with_symlinks(
         file = session.query(
             m.File
         ).filter(m.File.id == tree['entries'][0]['id']).first()
-        file = os.path.join(app.config['UPLOAD_DIR'], file.filename)
 
-        assert os.path.exists(file)
-        assert not os.path.islink(file)
-        assert open(file).read() != ''
+        assert file.backing_file.unsafe_extract().exists
+        assert not any(
+            os.path.islink(f) for f in os.listdir(app.config['UPLOAD_DIR'])
+        )
+        assert file.open().read() != b''
 
 
 @pytest.mark.parametrize('name', ['single_file_archive.tar.gz'])
@@ -1300,8 +1301,8 @@ def test_upload_archive_with_dev_file(
             },
             result=error_template
         )
-        assert res['message'].startswith(
-            'The given archive contains invalid or too many'
+        assert res['message'] == (
+            'The given archive contains invalid or too many files'
         )
 
 
@@ -4403,8 +4404,8 @@ def test_upload_files_with_duplicate_filenames(
                     'other_name',
                 ),
                 'file4': (
-                    get_submission_archive('single_file_archive.zip'),
-                    f'duplicate_name.zip (2)',
+                    get_submission_archive('multiple_dir_archive.zip'),
+                    f'duplicate_name (2).zip',
                 ),
                 'file5': (
                     get_submission_archive('single_file_archive.zip'),
@@ -4430,26 +4431,50 @@ def test_upload_files_with_duplicate_filenames(
             result={
                 'entries': [
                     {
-                        'name': 'duplicate_name.zip',
-                        'entries': [{'id': str, 'name': 'single_file_work'}],
-                        'id': str,
-                    },
-                    {
-                        'name': 'duplicate_name.zip (1)',
+                        'name': 'duplicate_name (1).zip',
                         'entries':
                             [{'id': str, 'name': 'single_file_work'},
                              {'id': str, 'name': 'single_file_work_copy'}],
                         'id': str,
                     },
                     {
-                        'name': 'duplicate_name.zip (2)',
+                        'name': 'duplicate_name (2).zip',
                         # This has no entries as its original name was
                         # `duplicate_name.zip (2)` so it is not detected as
                         # .zip file.
                         'id': str,
+                        'entries': [
+                            {
+                                'id': str,
+                                'name': 'dir',
+                                'entries': [
+                                    {'id': str, 'name': 'single_file_work'},
+                                    {
+                                        'id': str,
+                                        'name': 'single_file_work_copy',
+                                    },
+                                ],
+                            },
+                            {
+                                'id': str,
+                                'name': 'dir2',
+                                'entries': [
+                                    {'id': str, 'name': 'single_file_work'},
+                                    {
+                                        'id': str,
+                                        'name': 'single_file_work_copy',
+                                    },
+                                ],
+                            },
+                        ],
                     },
                     {
-                        'name': 'duplicate_name.zip (3)',
+                        'name': 'duplicate_name (3).zip',
+                        'entries': [{'id': str, 'name': 'single_file_work'}],
+                        'id': str,
+                    },
+                    {
+                        'name': 'duplicate_name.zip',
                         'entries': [{'id': str, 'name': 'single_file_work'}],
                         'id': str,
                     },

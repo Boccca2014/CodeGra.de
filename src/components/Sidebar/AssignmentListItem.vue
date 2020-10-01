@@ -1,51 +1,41 @@
 <!-- SPDX-License-Identifier: AGPL-3.0-only -->
 <template>
-<li :class="{ 'light-selected': selected }"
+<li :class="{ 'light-selected': selected, 'small-item': small }"
     class="sidebar-list-item assignment-list-item">
-    <router-link class="sidebar-item name"
+    <router-link class="sidebar-item overflow-hidden flex-grow-1"
                  :class="{ selected: submissionsSelected || (small && selected) }"
                  :to="submissionsRoute(assignment)">
-        <div class="assignment-wrapper">
-            <span :title="assignment.name" class="assignment text-truncate">{{ assignment.name }}</span>
-            <div class="flex-grow-1 text-small-uppercase d-flex align-self-center">
-                <b-badge class="exam-badge mx-2"
-                         v-if="assignment.kind === 'exam'"
-                         :variant="examBadgeVariant">
-                    exam
-                </b-badge>
-            </div>
-
-            <assignment-state :assignment="assignment"
-                              :editable="false"
-                              v-if="!small"
-                              size="sm"/>
-            <small v-else-if="isNotStartedExam" class="deadline">
-                Starts <cg-relative-time :date="assignment.availableAt" />
-            </small>
-            <small v-else-if="assignment.hasDeadline" class="deadline">
-                Due <cg-relative-time :date="assignment.deadline" />
-            </small>
-
-            <small v-else class="deadline text-muted">
-                <i>No deadline</i>
-            </small>
+        <div class="d-flex flex-row align-items-center" v-if="small">
+            <assignment-name
+                :assignment="assignment"
+                :badge-variant="examBadgeVariant" />
+            <assignment-date
+                :assignment="assignment"
+                relative />
         </div>
 
-        <template v-if="!small">
-            <small v-if="showCourseName"
-                   class="course text-truncate"><course-name :course="assignment.course" /></small>
+        <template v-else>
+            <div class="d-flex flex-row">
+                <assignment-name
+                    :assignment="assignment"
+                    :badge-variant="examBadgeVariant" />
+                <assignment-state
+                    :assignment="assignment"
+                    :editable="false"
+                    size="sm" />
+            </div>
 
-            <small v-if="isNotStartedExam" class="deadline">
-                Starts <cg-relative-time :date="assignment.availableAt" />
+            <small v-if="showCourseName"
+                   class="course text-truncate">
+                <course-name :course="assignment.course" />
             </small>
-            <small v-else-if="assignment.hasDeadline" class="deadline">
-                Due <cg-relative-time :date="assignment.deadline" />
-            </small>
-            <small v-else class="deadline text-muted">
-                <i>No deadline</i>
-            </small>
+
+            <assignment-date
+                :assignment="assignment"
+                relative />
         </template>
     </router-link>
+
     <router-link class="sidebar-item manage-link"
                  v-if="assignment.canManage && !small"
                  v-b-popover.topleft.hover.window="noPopover ? '' : 'Manage assignment'"
@@ -62,9 +52,9 @@ import 'vue-awesome/icons/gear';
 
 import { mapGetters } from 'vuex';
 
-import { AssignmentKind } from '@/models';
-
 import CourseName from '@/components/CourseName';
+import AssignmentDate from '@/components/AssignmentDate';
+import AssignmentName from '@/components/AssignmentName';
 import AssignmentState from '@/components/AssignmentState';
 
 export default {
@@ -125,16 +115,7 @@ export default {
         },
 
         isNotStartedExam() {
-            const { assignment } = this;
-
-            if (assignment == null) {
-                return false;
-            }
-
-            return (
-                assignment.kind === AssignmentKind.exam &&
-                assignment.availableAt.isAfter(this.$root.$epoch)
-            );
+            return this.$utils.getProps(this.assignment, false, 'isNotStartedExam');
         },
     },
 
@@ -168,6 +149,8 @@ export default {
 
     components: {
         Icon,
+        AssignmentDate,
+        AssignmentName,
         AssignmentState,
         CourseName,
     },
@@ -176,13 +159,6 @@ export default {
 
 <style lang="less" scoped>
 @import '~mixins.less';
-
-.name {
-    flex: 1 1 auto;
-    white-space: nowrap;
-    text-overflow: ellipsis;
-    overflow: hidden;
-}
 
 .manage-link {
     flex: 0 0 auto;
@@ -202,24 +178,28 @@ a {
     color: inherit;
 }
 
-.assignment-wrapper {
+.assignment-name {
     display: flex;
-    max-width: 100%;
-    text-overflow: ellipsis;
-    align-items: baseline;
-    margin-bottom: 2px;
+    flex: 1 1 auto;
+    min-width: 0;
+}
 
-    .deadline {
-        padding-left: 2px;
+.assignment-state.fa-icon {
+    transform: translateY(0) !important;
+}
+
+.assignment-list-item.small-item {
+    .assignment-name {
+        line-height: 1.1;
     }
 
-    .assignment {
-        line-height: 1.1;
+    .assignment-date {
+        flex: 0 0 auto;
     }
 }
 
 @{dark-mode} {
-    .light-selected .exam-badge {
+    .light-selected .badge {
         color: white;
         background-color: @color-primary;
     }

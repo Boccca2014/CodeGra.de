@@ -24,9 +24,12 @@ import psef
 import cg_enum
 import cg_junit
 import cg_logger
+import cg_object_storage
+from cg_maybe import Maybe, Nothing
 from cg_dt_utils import DatetimeWithTimezone
 from cg_flask_helpers import callback_after_this_request
-from cg_sqlalchemy_helpers.types import DbType, ColumnProxy
+from cg_sqlalchemy_helpers import hybrid_property, hybrid_expression
+from cg_sqlalchemy_helpers.types import DbType, DbColumn, ColumnProxy
 from cg_sqlalchemy_helpers.mixins import IdMixin, TimestampMixin
 
 from . import Base, db
@@ -1049,8 +1052,22 @@ class AutoTestStepResult(Base, TimestampMixin, IdMixin):
         'log', JSON, nullable=True, default=None
     )
 
-    attachment_filename = db.Column(
+    _attachment_filename = db.Column(
         'attachment_filename', db.Unicode, nullable=True, default=None
+    )
+
+    def _get_has_attachment(self) -> bool:
+        return self.attachment.is_just
+
+    @hybrid_expression
+    def _get_has_attachment_expr(cls: t.Type['AutoTestStepResult']
+                                 ) -> DbColumn[bool]:
+        # pylint: disable=no-self-argument
+        return cls._attachment_filename.isnot(None)
+
+    #: Check if this step has an attachment
+    has_attachment = hybrid_property(
+        _get_has_attachment, expr=_get_has_attachment_expr
     )
 
     @property
@@ -1077,6 +1094,17 @@ class AutoTestStepResult(Base, TimestampMixin, IdMixin):
         """
         return self.step.get_amount_achieved_points(self)
 
+    @property
+    def attachment(self) -> Maybe[cg_object_storage.File]:
+        """Maybe the attachment of this step.
+
+        The step might not have an attachment in which case ``Nothing`` is
+        returned.
+        """
+        if self._attachment_filename is None:
+            return Nothing
+        return current_app.file_storage.get(self._attachment_filename)
+
     def schedule_attachment_deletion(self) -> None:
         """Delete the attachment of this result after the current request.
 
@@ -1085,17 +1113,10 @@ class AutoTestStepResult(Base, TimestampMixin, IdMixin):
 
         :returns: Nothing.
         """
-        old_filename = self.attachment_filename
-        if old_filename is not None:
-            old_path = psef.files.safe_join(
-                current_app.config['UPLOAD_DIR'], old_filename
-            )
-
-            def after_req() -> None:
-                if os.path.isfile(old_path):
-                    os.unlink(old_path)
-
-            callback_after_this_request(after_req)
+        old_attachment = self.attachment
+        if old_attachment.is_just:
+            deleter = old_attachment.value.delete
+            callback_after_this_request(deleter)
 
     def update_attachment(self, stream: FileStorage) -> None:
         """Update the attachment of this step.
@@ -1112,7 +1133,13 @@ class AutoTestStepResult(Base, TimestampMixin, IdMixin):
             )
 
         self.schedule_attachment_deletion()
-        self.attachment_filename = psef.files.save_stream(stream)
+        max_size = current_app.max_single_file_size
+        with current_app.file_storage.putter() as putter:
+            new_file = putter.from_stream(stream.stream, max_size=max_size)
+        if new_file.is_nothing:  # pragma: no cover
+            raise helpers.make_file_too_big_exception(max_size, True)
+
+        self._attachment_filename = new_file.value.name
 
     class AsJSON(TypedDict):
         #: The id of the result of a step
@@ -1148,7 +1175,7 @@ class AutoTestStepResult(Base, TimestampMixin, IdMixin):
             'achieved_points': self.achieved_points,
             'log': log,
             'started_at': self.started_at,
-            'attachment_id': self.attachment_filename,
+            'attachment_id': self._attachment_filename,
         }
 
 

@@ -17,6 +17,7 @@ from flask import Flask
 from werkzeug.local import LocalProxy
 
 import cg_logger
+import cg_object_storage
 import cg_cache.inter_request
 from cg_json import jsonify
 
@@ -100,27 +101,38 @@ class PsefFlask(Flask):
             )
         )
 
-    @property
-    def max_single_file_size(self) -> 'psef.archive.FileSize':
-        """The maximum allowed size for a single file.
-        """
-        return archive.FileSize(self.config['MAX_FILE_SIZE'])
+        self.file_storage: cg_object_storage.Storage
+        self.file_storage = cg_object_storage.LocalStorage(
+            self.config['UPLOAD_DIR'],
+        )
+        self.mirror_file_storage: cg_object_storage.Storage
+        self.mirror_file_storage = cg_object_storage.LocalStorage(
+            self.config['MIRROR_UPLOAD_DIR'],
+        )
 
     @property
-    def max_file_size(self) -> 'psef.archive.FileSize':
+    def max_single_file_size(self) -> cg_object_storage.FileSize:
+        """The maximum allowed size for a single file.
+        """
+        return cg_object_storage.FileSize(self.config['MAX_FILE_SIZE'])
+
+    @property
+    def max_file_size(self) -> cg_object_storage.FileSize:
         """The maximum allowed size for normal files.
 
         .. note:: An individual file has a different limit!
         """
-        return archive.FileSize(self.config['MAX_NORMAL_UPLOAD_SIZE'])
+        return cg_object_storage.FileSize(
+            self.config['MAX_NORMAL_UPLOAD_SIZE']
+        )
 
     @property
-    def max_large_file_size(self) -> 'psef.archive.FileSize':
+    def max_large_file_size(self) -> cg_object_storage.FileSize:
         """The maximum allowed size for large files (such as blackboard zips).
 
         .. note:: An individual file has a different limit!
         """
-        return archive.FileSize(self.config['MAX_LARGE_UPLOAD_SIZE'])
+        return cg_object_storage.FileSize(self.config['MAX_LARGE_UPLOAD_SIZE'])
 
     @property
     def do_sanity_checks(self) -> bool:
@@ -139,12 +151,10 @@ class PsefFlask(Flask):
 
 logger = structlog.get_logger()
 
-app: 'PsefFlask' = current_app  # pylint: disable=invalid-name
+app: PsefFlask = current_app  # pylint: disable=invalid-name
 
 _current_tester = None  # pylint: disable=invalid-name
 current_tester = LocalProxy(lambda: _current_tester)  # pylint: disable=invalid-name
-
-from . import archive  # isort:skip, pylint: disable=wrong-import-position
 
 
 def enable_testing() -> None:
