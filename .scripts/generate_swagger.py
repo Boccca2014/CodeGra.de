@@ -7,7 +7,7 @@ import yaml
 import psef
 from cg_request_args.open_api import OpenAPISchema
 
-app = psef.create_app()
+app = psef.create_app(skip_all=True)
 app.config['SERVER_NAME'] = '$inst.codegra.de'
 with app.app_context():
     res = OpenAPISchema({'psef': psef, 'uuid': uuid}).collect_for_current_app()

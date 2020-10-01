@@ -1,6 +1,13 @@
 #!/bin/bash
 set -o xtrace
 
+make build_api_libs
+git add api_libs
+if [[ -n "$(git diff-index --name-only HEAD)" ]]; then
+    echo "You forgot to update the API libs!"
+    exit 1;
+fi
+
 # Opacity with a percentage gets changed by our css optimizer, and will always
 # be 1%, so we disallow using percentages and simply require a fraction.
 if grep -r 'opacity:.*%' ./src; then

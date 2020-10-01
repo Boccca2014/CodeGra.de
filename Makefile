@@ -168,3 +168,12 @@ hotreload_docs:
 .PHONY: clean
 clean:
 	$(MAKE) -C docs clean
+
+.PHONY: build_api_libs
+build_api_libs:
+	docker build --tag cg_api_libs_builder -f .docker/client_libs/Dockerfile .
+	docker run --user=$(shell id -u) -v $(CURDIR)/:/app --rm -it cg_api_libs_builder
+
+.PHONY: build_swagger
+build_swagger:
+	python ./.scripts/generate_swagger.py

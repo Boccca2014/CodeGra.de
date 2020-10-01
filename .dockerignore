@@ -33,5 +33,7 @@ PRIVACY_STATEMENT.md
 .#*
 /src/userConfig.ts
 /static/commitHash
+/api_libs
 /swagger.json
 /swagger.yaml
+.docker/
