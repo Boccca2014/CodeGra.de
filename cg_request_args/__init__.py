@@ -1,19 +1,16 @@
 from __future__ import annotations
 
 import abc
-import ast
 import copy
 import enum
 import json as _json
 import typing as t
 import datetime
-import textwrap
 import contextlib
 import collections
 import dataclasses
 import email.utils
 
-import yaml
 import flask
 import structlog
 import validate_email
@@ -28,6 +25,7 @@ from cg_dt_utils import DatetimeWithTimezone
 logger = structlog.get_logger()
 
 if t.TYPE_CHECKING:
+    # pylint: disable=unused-import
     from .open_api import OpenAPISchema
 
 
