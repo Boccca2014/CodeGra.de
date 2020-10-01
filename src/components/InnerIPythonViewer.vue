@@ -5,7 +5,7 @@
          :key="`output-cell-${i}`"
          :style="{ fontSize: `${fontSize}px` }"
          class="output-cell">
-        <hr v-if="i > 0"/>
+        <hr v-if="i > 0" class="mt-0"/>
 
         <span class="input-data-prompt"
               v-if="cell.cell_type === 'code'">
@@ -181,7 +181,7 @@ export default {
 
 .output-cell {
     &:not(:last-child) {
-        margin-bottom: 20px;
+        margin-bottom: 1rem;
     }
 
     .code {
@@ -239,5 +239,18 @@ pre {
 
 .inner-output-cell {
     position: relative;
+}
+</style>
+
+<style lang="less">
+.inner-ipython-viewer {
+    .inner-markdown-viewer :last-child {
+        margin-bottom: 0;
+    }
+
+    .floating-feedback-button .content,
+    .floating-feedback-button .content-wrapper {
+        overflow: initial;
+    }
 }
 </style>
