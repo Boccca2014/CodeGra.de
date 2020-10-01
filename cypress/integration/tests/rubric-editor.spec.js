@@ -131,9 +131,7 @@ context('Rubric Editor', () => {
                 .click();
 
             cy.get('.rubric-editor .submit-button.submit-rubric')
-                .submit('error', {
-                    popoverMsg: 'This rubric is empty, you should create at least one category.',
-                });
+                .should('be.disabled');
         });
     });
 
