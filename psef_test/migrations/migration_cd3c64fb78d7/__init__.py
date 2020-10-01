@@ -37,14 +37,10 @@ class UpgradeTester(Tester):
 
         # Check that positions are reused between assignments.
         pos_assig1 = set(
-            row['position']
-            for row in cur_rows
-            if row['Assignment_id'] == 1
+            row['position'] for row in cur_rows if row['Assignment_id'] == 1
         )
         pos_assig2 = set(
-            row['position']
-            for row in cur_rows
-            if row['Assignment_id'] == 2
+            row['position'] for row in cur_rows if row['Assignment_id'] == 2
         )
         assert pos_assig1 == pos_assig2
 
