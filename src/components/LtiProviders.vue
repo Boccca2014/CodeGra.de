@@ -354,7 +354,13 @@ export default class LtiProviders extends Vue {
         }
     }
 
-    async afterSubmitNewProvider({ data }: { data: api.lti.NonFinalizedLTI1p3ProviderServerData }) {
+    async afterSubmitNewProvider(
+        { data }: {
+            data:
+                | api.lti.NonFinalizedLTI1p3ProviderServerData
+                | api.lti.NonFinalizedLTI1p1ProviderServerData,
+        },
+    ) {
         this.newLMS = null;
 
         if (this.ltiProviders == null) {
@@ -363,7 +369,7 @@ export default class LtiProviders extends Vue {
             this.ltiProviders.push(data);
         }
 
-        if (data.lms === 'Blackboard') {
+        if (data.version === 'lti1.3' && data.lms === 'Blackboard') {
             this.initialSetupBlackboardProvider(data);
         }
     }
@@ -374,7 +380,7 @@ export default class LtiProviders extends Vue {
         this.blackboardModal.show();
     }
 
-    copyEditLink(ltiProvider: api.lti.LTI1p3ProviderServerData) {
+    copyEditLink(ltiProvider: api.lti.LTIProviderServerData) {
         this.$utils.AssertionError.assert(!ltiProvider.finalized);
 
         this.$copyText(this.$utils.buildUrl(
