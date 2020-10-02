@@ -11,7 +11,7 @@ COPY --chown=codegrade:codegrade ./requirements.txt requirements.txt
 
 RUN pip install --user -r requirements.txt
 RUN pip install --user pypandoc pyyaml
-RUN pip install --user git+http://github.com/CodeGra-de/openapi-python-client.git@9520476405a71b2402e6ee52936cf549a4dee01a
+RUN pip install --user git+http://github.com/CodeGra-de/openapi-python-client.git@7785a52ea392ddf69553677d4c7d667ca8219c28
 
 ENV DEBUG=true
 ENV PROJECT_NAME_OVERRIDE=codegrade
