@@ -41,7 +41,13 @@ from .json_create_auto_test import JsonCreateAutoTest
 from .json_patch_auto_test import JsonPatchAutoTest
 from .key import Key
 from .login_user_data import LoginUserData
-from .lti_provider_base_as_json import LTIProviderBaseAsJSON
+from .lti1p1_provider_base_as_json import LTI1p1ProviderBaseAsJSON
+from .lti1p1_provider_finalized_as_json import LTI1p1ProviderFinalizedAsJSON
+from .lti1p1_provider_non_finalized_as_json import LTI1p1ProviderNonFinalizedAsJSON
+from .lti1p3_provider_base_as_json import LTI1p3ProviderBaseAsJSON
+from .lti1p3_provider_finalized_as_json import LTI1p3ProviderFinalizedAsJSON
+from .lti1p3_provider_non_finalized_as_json import LTI1p3ProviderNonFinalizedAsJSON
+from .lti_provider_base_base_as_json import LTIProviderBaseBaseAsJSON
 from .options_input_data import OptionsInputData
 from .patch_assignment_data import PatchAssignmentData
 from .patch_auto_test_data import PatchAutoTestData
@@ -58,7 +64,6 @@ from .rubric_row_base_as_json import RubricRowBaseAsJSON
 from .rubric_row_base_input_as_json import RubricRowBaseInputAsJSON
 from .rubric_row_base_input_as_json_base import RubricRowBaseInputAsJSONBase
 from .rule_type import RuleType
-from .state import State
 from .submission_validator_input_data import SubmissionValidatorInputData
 from .types import *
 from .update_set_auto_test_data import UpdateSetAutoTestData

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import datetime
 import json
-from dataclasses import dataclass
+from dataclasses import asdict, dataclass
 from io import StringIO
 from typing import Any, Dict, Optional, cast
 
@@ -11,13 +11,13 @@ from .types import File
 
 
 @dataclass
-class LTIProviderBaseAsJSON:
+class LTIProviderBaseBaseAsJSON:
     """  """
 
     id: "str"
     lms: "str"
-    version: "str"
     created_at: "datetime.datetime"
+    intended_use: "str"
 
     raw_data: Optional[Dict[str, Any]] = None
 
@@ -28,23 +28,25 @@ class LTIProviderBaseAsJSON:
         res["id"] = id
         lms = self.lms
         res["lms"] = lms
-        version = self.version
-        res["version"] = version
         created_at = self.created_at.isoformat()
 
         res["created_at"] = created_at
+        intended_use = self.intended_use
+        res["intended_use"] = intended_use
 
         return res
 
     @staticmethod
-    def from_dict(d: Dict[str, Any]) -> LTIProviderBaseAsJSON:
+    def from_dict(d: Dict[str, Any]) -> LTIProviderBaseBaseAsJSON:
         base = {}
         id = d["id"]
 
         lms = d["lms"]
 
-        version = d["version"]
-
         created_at = datetime.datetime.fromisoformat(d["created_at"])
 
-        return LTIProviderBaseAsJSON(**base, id=id, lms=lms, version=version, created_at=created_at, raw_data=d,)
+        intended_use = d["intended_use"]
+
+        return LTIProviderBaseBaseAsJSON(
+            **base, id=id, lms=lms, created_at=created_at, intended_use=intended_use, raw_data=d,
+        )

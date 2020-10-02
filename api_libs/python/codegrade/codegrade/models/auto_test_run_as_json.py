@@ -2,12 +2,13 @@ from __future__ import annotations
 
 import datetime
 import json
-from dataclasses import dataclass
+from dataclasses import asdict, dataclass
 from io import StringIO
 from typing import Any, Dict, Optional, cast
 
+from typing_extensions import Literal
+
 from ..utils import maybe_to_dict
-from .state import State
 from .types import File
 
 
@@ -17,7 +18,7 @@ class AutoTestRunAsJSON:
 
     id: "int"
     created_at: "datetime.datetime"
-    state: "State"
+    state: 'Literal["running"]'
     is_continuous: "bool"
 
     raw_data: Optional[Dict[str, Any]] = None
@@ -30,7 +31,7 @@ class AutoTestRunAsJSON:
         created_at = self.created_at.isoformat()
 
         res["created_at"] = created_at
-        state = self.state.value
+        state = self.state
 
         res["state"] = state
         is_continuous = self.is_continuous
@@ -45,7 +46,7 @@ class AutoTestRunAsJSON:
 
         created_at = datetime.datetime.fromisoformat(d["created_at"])
 
-        state = State(d["state"])
+        state = d["state"]
 
         is_continuous = d["is_continuous"]
 

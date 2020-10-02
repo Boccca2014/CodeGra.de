@@ -2,6 +2,7 @@ import os
 import re
 import sys
 import copy
+import uuid
 import typing as t
 import inspect
 import datetime
@@ -29,6 +30,16 @@ _SIMPLE_TYPE_NAME_LOOKUP = {
     bool: 'boolean',
     int: 'integer',
 }
+
+
+def _expand_anyof(anyof_lst: t.Iterable[dict]) -> t.List[dict]:
+    res = []
+    for opt in anyof_lst:
+        if 'anyOf' in opt:
+            res.extend(_expand_anyof(opt['anyOf']))
+        else:
+            res.append(opt)
+    return res
 
 
 @contextlib.contextmanager
@@ -400,11 +411,11 @@ class OpenAPISchema:
                 nullable = False
                 if type(None) in typ.__args__:
                     nullable = True
-                any_of = [
+                any_of = _expand_anyof(
                     self._typ_to_schema(
                         arg, do_extended=do_extended, inline=inline, done=done
                     ) for arg in typ.__args__ if arg != type(None)
-                ]
+                )
                 if len(any_of) > 1:
                     return {
                         'anyOf': any_of,
@@ -453,6 +464,8 @@ class OpenAPISchema:
                 )
             elif typ == t.Any:
                 return {'type': 'object'}
+            elif typ == uuid.UUID:
+                return {'type': 'string', 'format': 'uuid'}
             elif isinstance(typ, EnumMeta):
                 return self.add_schema(typ, force_inline=inline)
             elif typ in do_extended and hasattr(typ, '__extended_to_json__'):
@@ -466,20 +479,18 @@ class OpenAPISchema:
                     inline=bool(inline and next_do_extended),
                     done=done,
                 )
-            elif hasattr(typ, '__to_json__'):
-                return self._typ_to_schema(
-                    inspect.signature(typ.__to_json__).return_annotation,
+            elif hasattr(typ, '__to_json__') or hasattr(origin, '__to_json__'):
+                res = self._typ_to_schema(
+                    inspect.signature((origin or
+                                       typ).__to_json__).return_annotation,
                     do_extended=do_extended,
                     inline=inline,
                     done=done,
                 )
-            elif hasattr(origin, '__to_json__'):
-                return self._typ_to_schema(
-                    inspect.signature(origin.__to_json__).return_annotation,
-                    do_extended=do_extended,
-                    inline=inline,
-                    done=done,
-                )
+                if False and not '$ref' in res:
+                    self._schemas[self._get_schema_name(typ)] = res
+                    return {'$ref': self._get_schema_name(typ)}
+                return res
             elif origin in (dict, collections.abc.Mapping):
                 _, value_type = typ.__args__
                 return {
@@ -656,11 +667,15 @@ class OpenAPISchema:
                 else:
                     assert False
 
-                if in_type == 'multipart/form-data' and '$ref' not in in_schema['properties']['json']:
+                if in_type == 'multipart/form-data' and '$ref' not in in_schema[
+                    'properties']['json']:
                     inner_schema_name = f'Json{_to_pascalcase(operation_id)}{tags[0]}'
-                    self._schemas[inner_schema_name] = in_schema['properties']['json']
-                    in_schema['properties']['json'] = {'$ref': f'#/components/schemas/{inner_schema_name}'}
-                    
+                    self._schemas[inner_schema_name] = in_schema['properties'
+                                                                 ]['json']
+                    in_schema['properties']['json'] = {
+                        '$ref': f'#/components/schemas/{inner_schema_name}'
+                    }
+
                 if '$ref' not in in_schema:
                     schema_name = f'{_to_pascalcase(operation_id)}{tags[0]}Data'
                     self._schemas[schema_name] = in_schema
@@ -717,8 +732,7 @@ class OpenAPISchema:
                 },
                 'responses': {
                     'IncorrectParametersError': {
-                        'description':
-                            'Some parameters were wrong',
+                        'description': 'Some parameters were wrong',
                         'content': {
                             'application/json': {
                                 'schema': {

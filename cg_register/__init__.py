@@ -8,7 +8,8 @@ import typing as t
 from collections import OrderedDict
 
 if t.TYPE_CHECKING:  # pragma: no cover
-    from ..models import Base  # pylint: disable=unused-import
+    from cg_sqlalchemy_helpers.types import \
+        Base  # pylint: disable=unused-import
 
 T = t.TypeVar('T')  # pylint: disable=invalid-name
 V = t.TypeVar('V')  # pylint: disable=invalid-name
@@ -83,6 +84,14 @@ class Register(t.Generic[T, V]):  # pylint: disable=unsubscriptable-object
             return cls
 
         return __decorator
+
+    @property
+    def __members__(self) -> t.Mapping[T, V]:
+        return self.__map
+
+    @property
+    def __name__(self) -> str:
+        return str(self)
 
     def __contains__(self, key: T) -> bool:
         return key in self.__map

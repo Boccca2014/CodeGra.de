@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import json
-from dataclasses import dataclass
+from dataclasses import asdict, dataclass
 from io import StringIO
 from typing import Any, Dict, Optional, Union, cast
 
@@ -24,8 +24,6 @@ class UserAsJSON(UserAsJSONWithoutGroup):
 
         if self.group is None:
             group: Optional[Union[Optional[GroupAsJSON]]] = None
-        if self.group is None:
-            group = None
         else:
             group = maybe_to_dict(self.group) if self.group else None
 
@@ -36,7 +34,8 @@ class UserAsJSON(UserAsJSONWithoutGroup):
 
     @staticmethod
     def from_dict(d: Dict[str, Any]) -> UserAsJSON:
-        base = UserAsJSONWithoutGroup.from_dict(d).to_dict()
+        base = asdict(UserAsJSONWithoutGroup.from_dict(d))
+        base.pop("raw_data")
 
         def _parse_group(data: Optional[Dict[str, Any]]) -> Optional[Union[Optional[GroupAsJSON]]]:
             if data is None:

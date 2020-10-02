@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import json
-from dataclasses import dataclass
+from dataclasses import asdict, dataclass
 from io import StringIO
 from typing import Any, Dict, List, Optional, cast
 
@@ -46,7 +46,8 @@ class AutoTestRunAsExtendedJSON(AutoTestRunAsJSON):
 
     @staticmethod
     def from_dict(d: Dict[str, Any]) -> AutoTestRunAsExtendedJSON:
-        base = AutoTestRunAsJSON.from_dict(d).to_dict()
+        base = asdict(AutoTestRunAsJSON.from_dict(d))
+        base.pop("raw_data")
         results = []
         for results_item_data in d.get("results") or []:
             results_item = AutoTestResultAsJSON.from_dict(results_item_data)

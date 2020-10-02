@@ -250,7 +250,7 @@ class _Parser(t.Generic[_T_COV]):
         return self.try_parse_and_log(json, log_replacer=log_replacer)
 
     def try_parse_and_log(
-        self, json, *, log_replacer: LogReplacer = None
+        self, json: object, *, log_replacer: LogReplacer = None
     ) -> _T_COV:
         if isinstance(json, dict):
             to_log = json

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import json
-from dataclasses import dataclass
+from dataclasses import asdict, dataclass
 from io import StringIO
 from typing import Any, Dict, List, Optional, cast
 
@@ -64,7 +64,8 @@ class CourseAsExtendedJSON(CourseAsJSON):
 
     @staticmethod
     def from_dict(d: Dict[str, Any]) -> CourseAsExtendedJSON:
-        base = CourseAsJSON.from_dict(d).to_dict()
+        base = asdict(CourseAsJSON.from_dict(d))
+        base.pop("raw_data")
         assignments = []
         for assignments_item_data in d.get("assignments") or []:
             assignments_item = AssignmentAsJSON.from_dict(assignments_item_data)

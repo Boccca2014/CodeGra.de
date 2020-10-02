@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import json
-from dataclasses import dataclass
+from dataclasses import asdict, dataclass
 from io import StringIO
 from typing import Any, Dict, Optional
 
@@ -33,7 +33,8 @@ class RubricRowBaseInputAsJSON(RubricRowBaseInputAsJSONBase):
 
     @staticmethod
     def from_dict(d: Dict[str, Any]) -> RubricRowBaseInputAsJSON:
-        base = RubricRowBaseInputAsJSONBase.from_dict(d).to_dict()
+        base = asdict(RubricRowBaseInputAsJSONBase.from_dict(d))
+        base.pop("raw_data")
         id = d.get("id")
 
         type = d.get("type")

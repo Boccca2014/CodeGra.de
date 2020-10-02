@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import json
-from dataclasses import dataclass
+from dataclasses import asdict, dataclass
 from io import StringIO
 from typing import Any, Dict, Optional, Union, cast
 
@@ -34,7 +34,8 @@ class GroupAsExtendedJSON(GroupAsJSON):
 
     @staticmethod
     def from_dict(d: Dict[str, Any]) -> GroupAsExtendedJSON:
-        base = GroupAsJSON.from_dict(d).to_dict()
+        base = asdict(GroupAsJSON.from_dict(d))
+        base.pop("raw_data")
 
         def _parse_virtual_user(data: Dict[str, Any]) -> Optional[Union[Optional[UserAsJSONWithoutGroup]]]:
             virtual_user: Optional[Union[Optional[UserAsJSONWithoutGroup]]] = d.get("virtual_user")

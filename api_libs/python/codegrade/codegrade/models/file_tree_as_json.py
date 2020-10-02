@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import json
-from dataclasses import dataclass
+from dataclasses import asdict, dataclass
 from io import StringIO
 from typing import Any, Dict, List, Optional, cast
 
@@ -37,7 +37,8 @@ class FileTreeAsJSON(FileTree_AsJSONFile):
 
     @staticmethod
     def from_dict(d: Dict[str, Any]) -> FileTreeAsJSON:
-        base = FileTree_AsJSONFile.from_dict(d).to_dict()
+        base = asdict(FileTree_AsJSONFile.from_dict(d))
+        base.pop("raw_data")
         entries = []
         for entries_item_data in d.get("entries") or []:
             entries_item = FileTreeAsJSON.from_dict(entries_item_data)

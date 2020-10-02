@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import json
-from dataclasses import astuple, dataclass
+from dataclasses import asdict, astuple, dataclass
 from io import StringIO
 from typing import Any, Dict, List, Optional, cast
 

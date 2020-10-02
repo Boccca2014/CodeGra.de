@@ -153,13 +153,15 @@ def test_upgrade_with_data(
         )
 
     upgrade_tester = mod.UpgradeTester(db=fresh_database)
-    upgrade_tester.load_data()
+    with migration_app.app_context():
+        upgrade_tester.load_data()
 
     # Upgrade to the target
     upgrade(alembic_config, migration)
 
     # Make sure it applied "cleanly" for some definition of clean
-    upgrade_tester.check()
+    with migration_app.app_context():
+        upgrade_tester.check()
 
 
 @pytest.mark.parametrize('migration', ALL_TESTED_MIGRATIONS)

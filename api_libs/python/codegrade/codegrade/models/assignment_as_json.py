@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import datetime
 import json
-from dataclasses import dataclass
+from dataclasses import asdict, dataclass
 from io import StringIO
 from typing import Any, Dict, List, Optional, Union, cast
 
@@ -73,11 +73,9 @@ class AssignmentAsJSON:
         course_id = self.course_id
         res["course_id"] = course_id
         if self.cgignore is None:
-            cgignore = None
-        if isinstance(self.cgignore, str):
+            cgignore: Optional[Union[str, SubmissionValidatorInputData]] = None
+        elif isinstance(self.cgignore, str):
             cgignore = self.cgignore
-        if self.cgignore is None:
-            cgignore = None
         else:
             cgignore = maybe_to_dict(self.cgignore)
 
@@ -96,8 +94,8 @@ class AssignmentAsJSON:
         max_grade = self.max_grade
         res["max_grade"] = max_grade
         if self.group_set is None:
-            group_set = None
-        if isinstance(self.group_set, GroupSetAsJSON):
+            group_set: Optional[Union[GroupSetAsJSON]] = None
+        else:
             group_set = maybe_to_dict(self.group_set)
 
         res["group_set"] = group_set
@@ -118,8 +116,8 @@ class AssignmentAsJSON:
         lms_name = self.lms_name
         res["lms_name"] = lms_name
         if self.peer_feedback_settings is None:
-            peer_feedback_settings = None
-        if isinstance(self.peer_feedback_settings, AssignmentPeerFeedbackSettingsAsJSON):
+            peer_feedback_settings: Optional[Union[AssignmentPeerFeedbackSettingsAsJSON]] = None
+        else:
             peer_feedback_settings = maybe_to_dict(self.peer_feedback_settings)
 
         res["peer_feedback_settings"] = peer_feedback_settings

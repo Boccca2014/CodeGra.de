@@ -27,11 +27,19 @@ from cg_dt_utils import DatetimeWithTimezone
 
 from .. import app, auth, models, helpers, features
 from ..models import db
-from ..helpers import register, try_for_every
+from ..helpers import try_for_every
 from .abstract import AbstractLTIConnector
+from ..registry import lti_1_1_providers
 from ..exceptions import APICodes, APIWarnings, APIException
 
 logger = structlog.get_logger()
+
+_T_LTI = t.TypeVar('_T_LTI', bound='LTI')  # pylint: disable=invalid-name
+
+
+def _register_provider(cls: t.Type[_T_LTI]) -> t.Type[_T_LTI]:
+    lti_1_1_providers.register(cls.get_lms_name())(cls)
+    return cls
 
 
 def init_app(_: t.Any) -> None:
@@ -225,9 +233,6 @@ class LTIGlobalRole(LTIRole):
 
 T_LTI = t.TypeVar('T_LTI', bound='LTI')  # pylint: disable=invalid-name
 
-lti_classes: register.Register[str, t.
-                               Type['LTI']] = register.Register('LTIClasses')
-
 
 # TODO: This class has so many public methods as they are properties. A lot of
 # them can be converted to private properties which should be done.
@@ -235,8 +240,10 @@ class LTI(AbstractLTIConnector):  # pylint: disable=too-many-public-methods
     """The base LTI class.
     """
 
-    def get_lms_name(self) -> str:
-        return self.lti_provider.lms_name
+    @classmethod
+    @abc.abstractmethod
+    def get_lms_name(cls) -> str:
+        raise NotImplementedError
 
     @staticmethod
     def supports_lti_launch_as_result() -> bool:  # pragma: no cover
@@ -258,7 +265,7 @@ class LTI(AbstractLTIConnector):  # pylint: disable=too-many-public-methods
     def __init__(
         self,
         params: t.Mapping[str, str],
-        lti_provider: models.LTI1p1Provider = None
+        lti_provider: 'models.LTI1p1Provider' = None
     ) -> None:
         self.launch_params = params
 
@@ -298,17 +305,19 @@ class LTI(AbstractLTIConnector):  # pylint: disable=too-many-public-methods
         """
         params = req.form.copy()
 
-        lti_provider = models.db.session.query(
-            models.LTI1p1Provider
-        ).filter_by(
-            key=params['oauth_consumer_key'],
-        ).first()
-        if lti_provider is None:
-            lti_provider = models.LTI1p1Provider(
-                key=params['oauth_consumer_key']
+        lti_provider = helpers.filter_single_or_404(
+            models.LTI1p1Provider,
+            models.LTI1p1Provider.key == params['oauth_consumer_key'],
+        )
+
+        if not lti_provider.is_finalized:
+            raise APIException(
+                (
+                    'This LTI connection is not yet finalized, please make'
+                    ' sure you have completed all steps in the wizard.'
+                ), f'The LTIProvider {lti_provider.id} is not finalized',
+                APICodes.INVALID_STATE, 400
             )
-            db.session.add(lti_provider)
-            db.session.commit()
 
         params['lti_provider_id'] = lti_provider.id
 
@@ -341,8 +350,7 @@ class LTI(AbstractLTIConnector):  # pylint: disable=too-many-public-methods
         :returns: A fresh LTI instance.
         """
         lms = params['custom_lms_name']
-        cls = lti_classes.get(lms)
-        assert cls is not None
+        cls = lti_1_1_providers[lms]
         res = cls(params)
         res.ensure_lti_data_correct()
         return res
@@ -473,7 +481,7 @@ class LTI(AbstractLTIConnector):  # pylint: disable=too-many-public-methods
         raise NotImplementedError
 
     @property
-    def assignment_state(self) -> models.AssignmentStateEnum:  # pylint: disable=protected-access
+    def assignment_state(self) -> 'models.AssignmentStateEnum':  # pylint: disable=protected-access
         """The state of the current LTI assignment.
         """
         raise NotImplementedError
@@ -532,7 +540,7 @@ class LTI(AbstractLTIConnector):  # pylint: disable=too-many-public-methods
 
     def ensure_lti_user(
         self
-    ) -> t.Tuple[models.User, t.Optional[str], t.Optional[str]]:
+    ) -> t.Tuple['models.User', t.Optional[str], t.Optional[str]]:
         """Make sure the current LTI user is logged in as a psef user.
 
         This is done by first checking if we know a user with the current LTI
@@ -566,7 +574,7 @@ class LTI(AbstractLTIConnector):  # pylint: disable=too-many-public-methods
 
         return user, token, updated_email
 
-    def get_course(self) -> models.Course:
+    def get_course(self) -> 'models.Course':
         """Get the current LTI course as a psef course.
         """
         course_lti_provider = self.lti_provider.find_course(self.course_id)
@@ -595,8 +603,8 @@ class LTI(AbstractLTIConnector):  # pylint: disable=too-many-public-methods
         return course
 
     def create_and_add_assignment(
-        self, course: models.Course
-    ) -> models.Assignment:
+        self, course: 'models.Course'
+    ) -> 'models.Assignment':
         """Create a new assignment in the database from the launch parameters.
 
         This function also adds the created assignment to the current session.
@@ -615,8 +623,8 @@ class LTI(AbstractLTIConnector):  # pylint: disable=too-many-public-methods
         return assignment
 
     def get_assignment(
-        self, user: models.User, course: models.Course
-    ) -> models.Assignment:
+        self, user: 'models.User', course: 'models.Course'
+    ) -> 'models.Assignment':
         """Get the current LTI assignment as a psef assignment.
         """
         assignment = models.Assignment.query.filter(
@@ -668,7 +676,7 @@ class LTI(AbstractLTIConnector):  # pylint: disable=too-many-public-methods
 
         return assignment
 
-    def set_user_role(self, user: models.User) -> None:
+    def set_user_role(self, user: 'models.User') -> None:
         """Set the role of the given user if the user has no role.
 
         The role is determined according to
@@ -697,8 +705,9 @@ class LTI(AbstractLTIConnector):  # pylint: disable=too-many-public-methods
                 name=app.config['DEFAULT_ROLE']
             ).one()
 
-    def set_user_course_role(self, user: models.User,
-                             course: models.Course) -> t.Optional[str]:
+    def set_user_course_role(
+        self, user: 'models.User', course: 'models.Course'
+    ) -> t.Optional[str]:
         """Set the course role for the given course and user if there is no
         such role just yet.
 
@@ -787,7 +796,7 @@ class LTI(AbstractLTIConnector):  # pylint: disable=too-many-public-methods
         service_url: str,
         sourcedid: str,
         lti_points_possible: t.Optional[float],
-        submission: models.Work,
+        submission: 'models.Work',
         host: str,
     ) -> None:
         """Do a LTI grade passback.
@@ -818,7 +827,7 @@ class LTI(AbstractLTIConnector):  # pylint: disable=too-many-public-methods
         service_url: str,
         sourcedid: str,
         lti_points_possible: t.Optional[float],
-        submission: models.Work,
+        submission: 'models.Work',
         use_submission_details: bool,
         url: str,
     ) -> None:
@@ -877,10 +886,14 @@ class LTI(AbstractLTIConnector):  # pylint: disable=too-many-public-methods
         ).post_outcome_request()
 
 
-@lti_classes.register('Canvas')
+@_register_provider
 class CanvasLTI(LTI):
     """The LTI class used for the Canvas LMS.
     """
+
+    @classmethod
+    def get_lms_name(cls) -> str:
+        return 'Canvas'
 
     @staticmethod
     def get_custom_extensions() -> str:
@@ -1018,8 +1031,8 @@ class CanvasLTI(LTI):
         return 'lis_result_sourcedid' in self.launch_params
 
     def create_and_add_assignment(
-        self, course: models.Course
-    ) -> models.Assignment:
+        self, course: 'models.Course'
+    ) -> 'models.Assignment':
         if not self.has_outcome_service_url():
             helpers.add_warning(
                 (
@@ -1034,7 +1047,7 @@ class CanvasLTI(LTI):
         return super().create_and_add_assignment(course=course)
 
     @property
-    def assignment_state(self) -> models.AssignmentStateEnum:
+    def assignment_state(self) -> 'models.AssignmentStateEnum':
         if self.launch_params['custom_canvas_assignment_published'] == 'true':
             return models.AssignmentStateEnum.open
         else:
@@ -1071,7 +1084,7 @@ class CanvasLTI(LTI):
         service_url: str,
         sourcedid: str,
         lti_points_possible: t.Optional[float],
-        submission: models.Work,
+        submission: 'models.Work',
         host: str,
     ) -> None:
         redirect = (
@@ -1149,7 +1162,7 @@ class BareBonesLTIProvider(LTI):
         return 'lis_result_sourcedid' in self.launch_params
 
     @property
-    def assignment_state(self) -> models.AssignmentStateEnum:
+    def assignment_state(self) -> 'models.AssignmentStateEnum':
         return models.AssignmentStateEnum.open
 
     @property
@@ -1176,7 +1189,7 @@ class BareBonesLTIProvider(LTI):
         service_url: str,
         sourcedid: str,
         lti_points_possible: t.Optional[float],
-        submission: models.Work,
+        submission: 'models.Work',
         host: str,
     ) -> None:
         if initial:
@@ -1211,10 +1224,14 @@ class BareBonesLTIProvider(LTI):
         )
 
 
-@lti_classes.register('Blackboard')
+@_register_provider
 class BlackboardLTI(BareBonesLTIProvider):
     """The LTI class used for the Blackboard LMS.
     """
+
+    @classmethod
+    def get_lms_name(cls) -> str:
+        return 'Blackboard'
 
 
 class _BareRolesLTIProvider(BareBonesLTIProvider):
@@ -1241,21 +1258,29 @@ class _BareRolesLTIProvider(BareBonesLTIProvider):
         return roles
 
 
-@lti_classes.register('Sakai')
+@_register_provider
 class SakaiLTI(_BareRolesLTIProvider):
     """The LTI class used for the Sakai LMS.
     """
 
+    @classmethod
+    def get_lms_name(cls) -> str:
+        return 'Sakai'
 
-@lti_classes.register('Open edX')
+
+@_register_provider
 class OpenEdX(_BareRolesLTIProvider):
     """The LTI class used for the Open edX LMS.
     """
 
+    @classmethod
+    def get_lms_name(cls) -> str:
+        return 'Open edX'
+
     def __init__(
         self,
         params: t.Mapping[str, str],
-        lti_provider: models.LTI1p1Provider = None
+        lti_provider: 'models.LTI1p1Provider' = None
     ) -> None:
         super().__init__(params, lti_provider)
 
@@ -1297,10 +1322,14 @@ class OpenEdX(_BareRolesLTIProvider):
         return self.launch_params['custom_component_display_name']
 
 
-@lti_classes.register('Moodle')
+@_register_provider
 class MoodleLTI(_BareRolesLTIProvider):
     """The LTI class used for the Moodle LMS.
     """
+
+    @classmethod
+    def get_lms_name(cls) -> str:
+        return 'Moodle'
 
     @property
     def username(self) -> str:
@@ -1324,7 +1353,7 @@ class MoodleLTI(_BareRolesLTIProvider):
         service_url: str,
         sourcedid: str,
         lti_points_possible: t.Optional[float],
-        submission: models.Work,
+        submission: 'models.Work',
         host: str,
     ) -> None:
         if initial:
@@ -1357,10 +1386,14 @@ class MoodleLTI(_BareRolesLTIProvider):
         )
 
 
-@lti_classes.register('BrightSpace')
+@_register_provider
 class BrightSpaceLTI(BareBonesLTIProvider):
     """The LTI class used for the BrightSpace LMS.
     """
+
+    @classmethod
+    def get_lms_name(cls) -> str:
+        return 'BrightSpace'
 
     @property
     def username(self) -> str:

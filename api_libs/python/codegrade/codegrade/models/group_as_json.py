@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import datetime
 import json
-from dataclasses import dataclass
+from dataclasses import asdict, dataclass
 from io import StringIO
 from typing import Any, Dict, List, Optional, cast
 

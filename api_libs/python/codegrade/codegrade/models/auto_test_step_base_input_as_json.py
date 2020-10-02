@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import json
-from dataclasses import dataclass
+from dataclasses import asdict, dataclass
 from io import StringIO
 from typing import Any, Dict, Optional
 
@@ -29,7 +29,8 @@ class AutoTestStepBaseInputAsJSON(AutoTestStepBaseAsJSONBase):
 
     @staticmethod
     def from_dict(d: Dict[str, Any]) -> AutoTestStepBaseInputAsJSON:
-        base = AutoTestStepBaseAsJSONBase.from_dict(d).to_dict()
+        base = asdict(AutoTestStepBaseAsJSONBase.from_dict(d))
+        base.pop("raw_data")
         id = d.get("id")
 
         return AutoTestStepBaseInputAsJSON(**base, id=id, raw_data=d,)
