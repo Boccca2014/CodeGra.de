@@ -204,14 +204,13 @@ class MultipleParseErrors(_ParseError):
         return f'{res}, which is incorrect because {reasons}'
 
     def to_dict(self) -> t.Mapping[str, t.Any]:
-        res = super().to_dict()
-        errs = res.setdefault('sub_errors', [])
-        for err in self.errors:
-            errs.append({
+        return {
+            **super().to_dict(),
+            'sub_errors': [{
                 'error': err.to_dict(),
                 'location': err.location,
-            })
-        return res
+            } for err in self.errors],
+        }
 
 
 _T_PARSER = t.TypeVar('_T_PARSER', bound='_Parser')
@@ -306,40 +305,45 @@ class _Parser(t.Generic[_T_COV]):
 
 
 class Union(t.Generic[_T, _Y], _Parser[t.Union[_T, _Y]]):
-    __slots__ = ('__parser', )
+    __slots__ = ('_parser', )
 
     def __init__(self, first: _Parser[_T], second: _Parser[_Y]) -> None:
         super().__init__()
-        self.__parser: _Parser[t.Union[_T, _Y]]
+        self._parser: _Parser[t.Union[_T, _Y]]
+        if isinstance(first, Union):
+            first = first._parser
+
+        if isinstance(second, Union):
+            second = second._parser
 
         if isinstance(first, SimpleValue) and isinstance(second, SimpleValue):
-            self.__parser = _SimpleUnion(first.typ, second.typ)
+            self._parser = _SimpleUnion(first.typ, second.typ)
         elif (
             isinstance(first, _SimpleUnion) and
             isinstance(second, SimpleValue)
         ):
-            self.__parser = _SimpleUnion(*first.typs, second.typ)
+            self._parser = _SimpleUnion(*first.typs, second.typ)
         elif (
             isinstance(first, SimpleValue) and
             isinstance(second, _SimpleUnion)
         ):
-            self.__parser = _SimpleUnion(first.typ, *second.typs)
+            self._parser = _SimpleUnion(first.typ, *second.typs)
         elif (
             isinstance(first, _SimpleUnion) and
             isinstance(second, _SimpleUnion)
         ):
-            self.__parser = _SimpleUnion(*first.typs, *second.typs)
+            self._parser = _SimpleUnion(*first.typs, *second.typs)
         else:
-            self.__parser = _RichUnion(first, second)
+            self._parser = _RichUnion(first, second)
 
     def describe(self) -> str:
-        return self.__parser.describe()
+        return self._parser.describe()
 
     def _to_open_api(self, schema: 'OpenAPISchema') -> t.Mapping[str, t.Any]:
-        return self.__parser.to_open_api(schema)
+        return self._parser.to_open_api(schema)
 
     def try_parse(self, value: object) -> t.Union[_T, _Y]:
-        return self.__parser.try_parse(value)
+        return self._parser.try_parse(value)
 
 
 class Nullable(t.Generic[_T], _Parser[t.Union[_T, None]]):
@@ -412,6 +416,9 @@ class SimpleValue(t.Generic[_SIMPLE_VALUE], _Parser[_SIMPLE_VALUE]):
         return {'type': schema.simple_type_to_open_api_type(self.typ)}
 
     def try_parse(self, value: object) -> _SIMPLE_VALUE:
+        # Don't allow booleans as integers
+        if isinstance(value, bool) and self.typ != bool:
+            raise SimpleParseError(self, found=value)
         if isinstance(value, self.typ):
             return value
         # Also allow integers as floats
@@ -443,9 +450,7 @@ class _SimpleUnion(t.Generic[_SIMPLE_UNION], _Parser[_SIMPLE_UNION]):
             ]
         }
 
-    def try_parse(self, value: object) -> _SIMPLE_UNION:
-        if isinstance(value, self.typs):
-            return value  # type: ignore
+    def _raise(self, value: object) -> t.NoReturn:
         raise SimpleParseError(
             self,
             value,
@@ -454,6 +459,17 @@ class _SimpleUnion(t.Generic[_SIMPLE_UNION], _Parser[_SIMPLE_UNION]):
                     '(which is of type {})'.format(_type_to_name(type(value)))
             }
         )
+
+    def try_parse(self, value: object) -> _SIMPLE_UNION:
+        # Don't allow booleans as integers
+        if isinstance(value, bool) and bool not in self.typs:
+            self._raise(value)
+        if isinstance(value, self.typs):
+            return value  # type: ignore
+        # Also allow integers as floats
+        if float in self.typs and isinstance(value, int):
+            return float(value)  # type: ignore
+        self._raise(value)
 
 
 _ENUM = t.TypeVar('_ENUM', bound=enum.Enum)
@@ -825,7 +841,9 @@ class FixedMapping(
 
 
 class LookupMapping(t.Generic[_T], _Parser[t.Mapping[str, _T]]):
-    __slots__ = ('parser', )
+    __slots__ = ('__parser', )
+
+    _PARSE_KEY = SimpleValue(str)
 
     def __init__(self, parser: _Parser[_T]) -> None:
         super().__init__()
@@ -848,9 +866,10 @@ class LookupMapping(t.Generic[_T], _Parser[t.Mapping[str, _T]]):
         errors = []
         for key, val in value.items():
             try:
-                result[key] = self.__parser.try_parse(val)
+                parsed_key = self._PARSE_KEY.try_parse(key)
+                result[parsed_key] = self.__parser.try_parse(val)
             except _ParseError as exc:
-                errors.append(exc)
+                errors.append(exc.add_location(str(key)))
         if errors:
             raise MultipleParseErrors(self, value, errors)
 
@@ -946,7 +965,6 @@ class RichValue:
 
         def ok(self, to_parse: str) -> bool:
             addresses = email.utils.getaddresses([to_parse.strip()])
-            print(addresses)
             return all(
                 validate_email.validate_email(email) for _, email in addresses
             )
