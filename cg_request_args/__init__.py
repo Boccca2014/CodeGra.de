@@ -699,11 +699,12 @@ class _BaseFixedMapping(t.Generic[_BASE_DICT]):
 class BaseFixedMapping(
     t.Generic[_BASE_DICT], _BaseFixedMapping[_BASE_DICT], _Parser[_BASE_DICT]
 ):
-    def __init__(self, *arguments: object) -> None:
+    def __init__(self, *arguments: object, has_optional: bool = True) -> None:
         super().__init__()
         self._arguments = t.cast(
             t.Sequence[t.Union[RequiredArgument, OptionalArgument]], arguments
         )
+        self.__has_optional = has_optional
         self.__schema: t.Optional[t.Type[_BASE_DICT]] = None
 
     def set_schema(self, schema: t.Type[_BASE_DICT]) -> None:
@@ -718,7 +719,18 @@ class BaseFixedMapping(
         return super()._to_open_api(schema)
 
     def try_parse(self, value: object) -> _BASE_DICT:
-        return self._try_parse(value)
+        res = self._try_parse(value)
+        # Optional values are parsed as Maybe, but callers think they will
+        # simply get a dict with possibly missing items. So we convert that
+        # here.
+        if self.__has_optional:
+            for key, item in list(res.items()):
+                if cg_maybe.Nothing.is_nothing_instance(item):
+                    del res[key]  # type: ignore
+                elif isinstance(item, cg_maybe.Just):
+                    res[key] = item.value  # type: ignore
+        return res
+
 
     @classmethod
     def __from_python_type(cls, typ):  # type: ignore
@@ -729,6 +741,7 @@ class BaseFixedMapping(
 
         if isinstance(typ, type(TypedDict)):
             args = []
+            has_optional = False
             for key, subtyp in typ.__annotations__.items():
                 if key in typ.__required_keys__:
                     args.append(
@@ -737,12 +750,13 @@ class BaseFixedMapping(
                         )
                     )
                 else:
+                    has_optional = True
                     args.append(
                         OptionalArgument(
                             key, cls.__from_python_type(subtyp), ''
                         )
                     )
-            res = BaseFixedMapping(*args)
+            res = BaseFixedMapping(*args, has_optional=has_optional)
             res.set_schema(typ)
             return res
         elif typ in (str, int, bool, float):
