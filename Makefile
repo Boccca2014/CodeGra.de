@@ -169,11 +169,24 @@ hotreload_docs:
 clean:
 	$(MAKE) -C docs clean
 
-.PHONY: build_api_libs
-build_api_libs:
+.PHONY: build_docker
+build_docker:
 	docker build --tag cg_api_libs_builder -f .docker/client_libs/Dockerfile .
-	docker run --user=$(shell id -u) -v $(CURDIR)/:/app --rm cg_api_libs_builder
 
 .PHONY: build_swagger
-build_swagger:
-	python ./.scripts/generate_swagger.py
+build_swagger: build_docker
+	docker run \
+		--user=$(shell id -u) \
+		-v $(CURDIR):/app \
+		--rm cg_api_libs_builder \
+		"python3 /app/.scripts/generate_swagger.py /app/swagger.json"
+
+.PHONY: build_api_libs
+build_api_libs: build_docker
+	-rm -rf api_libs/python/codegrade
+	docker run \
+		--user=$(shell id -u) \
+		-v $(CURDIR)/swagger.json:/app/swagger.json \
+		-v $(CURDIR)/api_libs/python/:/out \
+		--rm cg_api_libs_builder \
+		"cd /out && openapi-python-client --config ./config.yaml generate --path /app/swagger.json"

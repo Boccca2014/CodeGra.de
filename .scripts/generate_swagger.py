@@ -1,11 +1,15 @@
 import os
+import sys
 import json
 import uuid
 
-import yaml
+main_dir = os.path.join(os.path.dirname(__file__), '..')
+sys.path.append(main_dir)
+os.chdir(main_dir)
 
-import psef
-from cg_request_args.open_api import OpenAPISchema
+if True:
+    import psef
+    from cg_request_args.open_api import OpenAPISchema
 
 app = psef.create_app(skip_all=True)
 app.config['SERVER_NAME'] = '$inst.codegra.de'
@@ -14,8 +18,5 @@ with app.app_context():
 
     base = os.path.join(os.path.dirname(__file__), '..')
 
-    with open(os.path.join(base, 'swagger.yaml'), 'w') as f:
-        yaml.dump(res, f)
-
-    with open(os.path.join(base, 'swagger.json'), 'w') as f:
+    with open(sys.argv[1], 'w') as f:
         json.dump(res, f)

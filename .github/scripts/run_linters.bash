@@ -2,8 +2,8 @@
 set -o xtrace
 
 pip install -r test_requirements.txt
-pip install pyyaml
 
+make build_swagger || exit
 make build_api_libs || exit 1
 git add api_libs
 if [[ -n "$(git diff-index --name-only HEAD)" ]]; then
@@ -46,7 +46,7 @@ fi
 make yapf_check
 res5=$?
 
-( cd docs && make build_swagger && make html )
+( cd docs && make html )
 res6="$?"
 
 wait "$PYLINT_PID"
