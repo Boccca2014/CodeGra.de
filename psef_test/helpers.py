@@ -454,6 +454,11 @@ def create_error_template():
         'description': str,
         'request_id': str,
         '?missing_permissions?': list,
+        '?parse_error?': {
+            'found': object,
+            'expected': str,
+            '?sub_errors?': list,
+        }
     }
 
 

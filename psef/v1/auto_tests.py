@@ -121,14 +121,7 @@ _ATUpdateMap = rqa.FixedMapping(
     ),
     rqa.OptionalArgument(
         'fixtures',
-        rqa.List(
-            # rqa.FixedMapping(
-            #     rqa.RequiredArgument(
-            #         'id', rqa.SimpleValue(str), 'The id of the fixture'
-            #     )
-            # )
-            rqa.BaseFixedMapping.from_typeddict(_FixtureLike),
-        ),
+        rqa.List(rqa.BaseFixedMapping.from_typeddict(_FixtureLike)),
         'A list of old fixtures you want to keep',
     ),
 )
