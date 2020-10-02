@@ -16,7 +16,7 @@ import psef.models as m
 import psef.features as feats
 from helpers import (
     create_group, create_marker, create_group_set, create_submission,
-    create_user_with_perms
+    create_lti1p3_provider, create_user_with_perms
 )
 from psef.lti import v1_1 as lti
 from cg_dt_utils import DatetimeWithTimezone
@@ -1092,7 +1092,7 @@ def test_lti_assignment_update(
         with app.app_context():
             assig, token = do_lti_launch()
             url = f'/api/v1/assignments/{assig["id"]}'
-            lti_class = lti.lti_classes.get(lms)
+            lti_class = lti.lti_1_1_providers.get(lms)
             headers = {'Authorization': f'Bearer {token}'}
             assert assig['lms_name'] == lms
             assert lti_class is not None
@@ -2331,7 +2331,7 @@ def test_canvas_missing_required_params(
 
 
 def test_lti_multiple_providers_same_user_id(
-    test_client, app, logged_in, session, tomorrow
+    test_client, app, logged_in, session, tomorrow, canvas_lti1p1_provider
 ):
     def do_launch(lti_id, **d):
         data = {
@@ -2378,9 +2378,11 @@ def test_lti_multiple_providers_same_user_id(
     user1 = do_launch('1')
     user2 = do_launch('1')
     user3 = do_launch('1', custom_canvas_user_login_id='new!')
-    user4 = do_launch('1', oauth_consumer_key='canvas2')
+    user4 = do_launch('1', oauth_consumer_key=canvas_lti1p1_provider.key)
     user5 = do_launch(
-        '1', oauth_consumer_key='canvas2', custom_canvas_user_login_id='new!'
+        '1',
+        oauth_consumer_key=canvas_lti1p1_provider.key,
+        custom_canvas_user_login_id='new!'
     )
     user6 = do_launch(
         '1',
@@ -2485,6 +2487,7 @@ def test_open_edx_launches(test_client, app, describe, tomorrow):
     def do_launch(**extra_data):
         status = extra_data.pop('status')
         message = extra_data.pop('message', None)
+        outcome_url = extra_data.pop('lis_outcome_service_url', '')
 
         with app.app_context():
             data = {
@@ -2497,9 +2500,11 @@ def test_open_edx_launches(test_client, app, describe, tomorrow):
                 'context_title': 'WRONG_TITLE',
                 'resource_link_id': 'My link id',
                 'oauth_consumer_key': 'open_edx_lti',
-                'lis_outcome_service_url': '',
                 **extra_data,
             }
+
+            if outcome_url is not None:
+                data['lis_outcome_service_url'] = outcome_url
 
             res = test_client.post('/api/v1/lti/launch/1', data=data)
             assert res.status_code in {302, 303}
@@ -2520,6 +2525,14 @@ def test_open_edx_launches(test_client, app, describe, tomorrow):
     with describe('Cannot launch without assignment name'):
         do_launch(status=400, message=re.compile("'Display Name' option"))
 
+    with describe('With assignment name but no outcome service url'):
+        do_launch(
+            custom_component_display_name='My name',
+            lis_outcome_service_url=None,
+            status=400,
+            message=re.compile('"Scored" option'),
+        )
+
     with describe('With assignment name but not absolute service url'):
         do_launch(
             custom_component_display_name='My name',
@@ -2534,3 +2547,134 @@ def test_open_edx_launches(test_client, app, describe, tomorrow):
             lis_outcome_service_url='https://example.com/wow/url',
             status=200,
         )
+
+
+def test_list_providers(
+    describe, logged_in, admin_user, teacher_user, test_client
+):
+    with describe('teachers cannot see providers'), logged_in(teacher_user):
+        test_client.req('get', '/api/v1/lti/providers/', 200, result=[])
+
+    with describe('admin can see providers'), logged_in(admin_user):
+        result = test_client.req(
+            'get', '/api/v1/lti/providers/', 200, result=list
+        )
+        assert len(result) > 0
+        assert all(r['version'] == 'lti1.1' for r in result)
+        assert all(r['finalized'] for r in result)
+        assert all(r['edit_secret'] is None for r in result)
+
+    with describe('admin can see 1.3 providers when avail'
+                  ), logged_in(admin_user):
+        prov1p3 = create_lti1p3_provider(test_client, lms='Blackboard')
+        new_result = test_client.req(
+            'get', '/api/v1/lti/providers/', 200, result=list
+        )
+        assert len(new_result) == len(result) + 1
+        assert result == new_result[:-1]
+        assert new_result[-1] == prov1p3
+
+    with describe('can get single provider'):
+        for prov in new_result:
+            url = f'/api/v1/lti/providers/{prov["id"]}'
+            with logged_in(admin_user):
+                test_client.req('get', url, 200, prov)
+            with logged_in(teacher_user):
+                test_client.req('get', url, 403)
+
+
+def test_create_and_launch_lti1p1_provider(
+    describe, logged_in, admin_user, teacher_user, test_client, app
+):
+    with describe('setup'):
+
+        def do_launch(message, key):
+            with app.app_context():
+                lti_id = 'LTI_ID'
+                email = 'email@example.com'
+                name = 'My name'
+                data = {
+                    'roles': 'urn:lti:role:ims/lis/Instructor',
+                    'user_id': lti_id,
+                    'lis_person_sourcedid': lti_id,
+                    'lis_person_contact_email_primary': email,
+                    'lis_person_name_full': name,
+                    'context_id': 'NO_CONTEXT',
+                    'context_title': 'WRONG_TITLE',
+                    'resource_link_id': 'My link id',
+                    'resource_link_title': 'MY_ASSIG_TITLE',
+                    'oauth_consumer_key': key,
+                    'lis_outcome_service_url': '',
+                }
+
+                res = test_client.post('/api/v1/lti/launch/1', data=data)
+                assert res.status_code in {302, 303}
+                url = urllib.parse.urlparse(res.headers['Location'])
+                blob_id = urllib.parse.parse_qs(url.query)['blob_id'][0]
+
+                status = 200 if message is None else 400
+                test_client.req(
+                    'post',
+                    '/api/v1/lti/launch/2',
+                    status,
+                    data={'blob_id': blob_id},
+                    result={
+                        '__allow_extra__': True,
+                        'message': message,
+                    } if status != 200 else dict,
+                )
+
+    with describe('teachers cannot create providers'), logged_in(teacher_user):
+        test_client.req(
+            'post',
+            '/api/v1/lti/providers/',
+            403,
+            data={
+                'lms': 'Canvas',
+                'intended_use': 'Nothing',
+                'lti_version': 'lti1.1',
+            }
+        )
+
+    with describe('Cannot create with empty intended_use'
+                  ), logged_in(admin_user):
+        test_client.req(
+            'post',
+            '/api/v1/lti/providers/',
+            400,
+            data={
+                'lms': 'Canvas',
+                'intended_use': '',
+                'lti_version': 'lti1.1',
+            }
+        )
+        new_prov = test_client.req(
+            'post',
+            '/api/v1/lti/providers/',
+            200,
+            data={
+                'lms': 'Sakai',
+                'intended_use': 'NEW',
+                'lti_version': 'lti1.1',
+            },
+            result={
+                'id': str,
+                'finalized': False,
+                '__allow_extra__': True,
+            }
+        )
+        key = new_prov['lms_consumer_key']
+
+    with describe('cannot launch to non finalized'):
+        do_launch(
+            re.compile('This LTI connection is not yet finalized.*'), key
+        )
+
+    with describe('Can launch when finalized'):
+        with logged_in(admin_user):
+            test_client.req(
+                'post', f'/api/v1/lti1.1/providers/{new_prov["id"]}/finalize',
+                200
+            )
+
+        do_launch(None, key)

@@ -2,18 +2,18 @@
 
 SPDX-License-Identifier: AGPL-3.0-only
 """
-import os
 import abc
 import typing as t
 import dataclasses
 
 import psef
+from cg_maybe import Just, Maybe, Nothing
+from cg_object_storage import File as _File
+from cg_object_storage import FileSize
 
 if t.TYPE_CHECKING and not getattr(t, 'SPHINX', False):  # pragma: no cover
     # pylint: disable=unused-import
     import psef.files
-
-    from . import archive
 
 
 # This is a bug: https://github.com/python/mypy/issues/5374
@@ -25,7 +25,9 @@ class ExtractFileTreeBase:
         archive that was extracted.
     """
     name: str
-    parent: t.Optional['ExtractFileTreeDirectory']
+    parent: t.Optional['ExtractFileTreeDirectory'] = dataclasses.field(
+        default=None, init=False
+    )
 
     def __post_init__(self) -> None:
         self.name = psef.files.escape_logical_filename(self.name)
@@ -33,13 +35,12 @@ class ExtractFileTreeBase:
     def forget_parent(self) -> None:
         self.parent = None
 
-    def delete(self, base_dir: str) -> None:
+    def delete(self) -> None:
         """Delete the this file and all its children.
 
         :param base_dir: The base directory where the files can be found.
         :returns: Nothing.
         """
-        # pylint: disable=unused-argument
         if self.parent is not None:
             self.parent.forget_child(self)
 
@@ -62,7 +63,7 @@ class ExtractFileTreeBase:
             return [*self.parent.get_name_list(), self.name]
 
     @abc.abstractmethod
-    def get_size(self) -> 'psef.archive.FileSize':
+    def get_size(self) -> FileSize:
         """Get the size of this file.
 
         For a normal file this is the amount of space used on disk, and for a
@@ -92,17 +93,14 @@ class ExtractFileTreeFile(ExtractFileTreeBase):
     :ivar ~.ExtractFileTreeFile.diskname: The name of the file saved in the
         uploads directory.
     """
-    disk_name: str
-    size: 'psef.archive.FileSize'
+    backing_file: _File
 
-    def get_size(self) -> 'psef.archive.FileSize':
-        return self.size
+    def get_size(self) -> FileSize:
+        return self.backing_file.size
 
-    def delete(self, base_dir: str) -> None:
-        super().delete(base_dir)
-        path = psef.files.safe_join(base_dir, self.disk_name)
-        assert path.startswith(base_dir)
-        os.unlink(path)
+    def delete(self) -> None:
+        super().delete()
+        self.backing_file.delete()
 
     @property
     def is_dir(self) -> bool:
@@ -136,15 +134,47 @@ class ExtractFileTreeDirectory(ExtractFileTreeBase):
     :ivar ~.ExtractFileTreeDirectory.values: The items present in this
         directory.
     """
-    values: t.List[ExtractFileTreeBase]
+    _lookup: t.Dict[str, ExtractFileTreeBase] = dataclasses.field(init=False)
 
-    def get_size(self) -> 'psef.archive.FileSize':
-        return psef.archive.FileSize(sum(c.get_size() for c in self.values))
+    def __post_init__(self) -> None:
+        self._lookup = {}
 
-    def delete(self, base_dir: str) -> None:
-        super().delete(base_dir)
-        for val in self.values:
-            val.delete(base_dir)
+    @property
+    def only_child(self) -> Maybe[ExtractFileTreeBase]:
+        """Maybe get the only child in this directory.
+
+        This will return ``Nothing`` if the directory does not have exactly one
+        child.
+        """
+        if len(self._lookup) == 1:
+            return Just(next(iter(self._lookup.values())))
+        return Nothing
+
+    @property
+    def values(self) -> t.Iterable[ExtractFileTreeBase]:
+        """The values of this directory.
+
+        You are not allowed to mutate the directory (call ``add_child``,
+        ``forget_child`` or ``delete``) while iterating of the result.
+        """
+        return self._lookup.values()
+
+    @property
+    def is_empty(self) -> bool:
+        """Is this directory empty?
+        """
+        return not self._lookup
+
+    def get_size(self) -> FileSize:
+        return FileSize(sum(c.get_size() for c in self.values))
+
+    def delete(self) -> None:
+        super().delete()
+        old_lookup = self._lookup
+        self._lookup = {}
+        for val in old_lookup.values():
+            val.parent = None
+            val.delete()
 
     def get_all_children(self) -> t.Iterable['ExtractFileTreeBase']:
         """Get all the children of this directory.
@@ -160,6 +190,28 @@ class ExtractFileTreeDirectory(ExtractFileTreeBase):
     def is_dir(self) -> bool:
         return True
 
+    def add_child(self, f: ExtractFileTreeBase) -> None:
+        """Add a child to this directory.
+
+        :param f: The file to add.
+
+        :raises AssertionError: When the file already has a parent or if there
+            is already a file with the same name in this directory.
+        """
+        assert f.parent is None
+        assert f.name not in self._lookup
+        self._lookup[f.name] = f
+        f.parent = self
+
+    def lookup_direct_child(self,
+                            name: str) -> t.Optional[ExtractFileTreeBase]:
+        """Find a direct child of this directory with the given name.
+
+        :param name: The unescaped name that the file should have.
+        :returns: The found file or ``None``.
+        """
+        return self._lookup.get(psef.files.escape_logical_filename(name))
+
     def forget_child(self, f: ExtractFileTreeBase) -> None:
         """Remove a child as one of our children.
 
@@ -168,37 +220,13 @@ class ExtractFileTreeDirectory(ExtractFileTreeBase):
         :param f: The file to forget.
         """
         f.forget_parent()
-        self.values.remove(f)
-
-    def add_child(self, f: ExtractFileTreeBase) -> None:
-        """Add a directory as a child.
-
-        :param f: The file to add.
-        """
-        assert f is not self
-        assert f.parent is None
-
-        f.parent = self
-        self.values.append(f)
+        self._lookup.pop(f.name)
 
     def __to_json__(self) -> t.Mapping[str, object]:
         return {
             'name': self.name,
             'entries': sorted(self.values, key=lambda x: x.name.lower()),
         }
-
-    def fix_duplicate_filenames(self) -> None:
-        """Fix duplicate filenames in this directory and all its sub
-        directories.
-
-        This will rename files when duplicates are detected by adding a ``
-        ($number)`` suffix to the file.
-        """
-        psef.files.fix_duplicate_filenames(self.values)
-
-        for child in self.values:
-            if isinstance(child, ExtractFileTreeDirectory):
-                child.fix_duplicate_filenames()
 
 
 @dataclasses.dataclass
@@ -218,6 +246,44 @@ class ExtractFileTree(ExtractFileTreeDirectory):
             isinstance(v, ExtractFileTreeFile) for v in self.get_all_children()
         )
 
+    def insert_file(self, name: t.Sequence[str], backing_file: _File) -> None:
+        """Insert a file with the name in this directory.
+
+        :param name: The path of the new directory, the last item of the
+            sequence will be the name of the new file. Missing directories will
+            be created.
+        :param backing_file: The storage that should be connected to the new
+            extract file.
+        """
+        base = self._find_child(name[:-1])
+        base.add_child(
+            ExtractFileTreeFile(name=name[-1], backing_file=backing_file)
+        )
+
+    def insert_dir(self, name: t.Sequence[str]) -> None:
+        """Insert a directory with the name in this directory.
+
+        :param name: The path of the new directory, the last item of the
+            sequence will be the name of the directory. Missing directories
+            will be created.
+        """
+        base = self._find_child(name[:-1])
+        base.add_child(ExtractFileTreeDirectory(name=name[-1]))
+
+    def _find_child(self, name: t.Sequence[str]) -> ExtractFileTreeDirectory:
+        cur: ExtractFileTreeDirectory = self
+        for sub in name:
+            prev = cur
+            new_cur = cur.lookup_direct_child(sub)
+            if new_cur is None:
+                cur = ExtractFileTreeDirectory(name=sub)
+                prev.add_child(cur)
+            else:
+                assert isinstance(new_cur, ExtractFileTreeDirectory)
+                cur = new_cur
+
+        return cur
+
     def remove_leading_self(self) -> None:
         """Removing leading directories in this directory.
 
@@ -228,12 +294,13 @@ class ExtractFileTree(ExtractFileTreeDirectory):
 
         If one of the conditions don't hold a :exc:`AssertionError` is raised.
         """
-        # pylint: disable=access-member-before-definition,attribute-defined-outside-init
-        # Pylint is too stupid to see that this property already exists.
-        assert len(self.values) == 1
-        assert isinstance(self.values[0], ExtractFileTreeDirectory)
-        child = self.values[0]
-        child.forget_parent()
-        for grandchild in child.values:
+        maybe_only_child = self.only_child
+        assert maybe_only_child.is_just
+        only_child = maybe_only_child.value
+        assert isinstance(only_child, ExtractFileTreeDirectory)
+
+        only_child.forget_parent()
+        for grandchild in only_child.values:
             grandchild.parent = self
-        self.values = child.values
+
+        self._lookup = {c.name: c for c in only_child.values}

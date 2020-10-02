@@ -37,6 +37,7 @@ from werkzeug.datastructures import FileStorage
 from sqlalchemy.sql.expression import or_
 
 import psef
+import cg_register as register
 from cg_json import (
     JSONResponse, ExtendedJSONResponse, jsonify, extended_jsonify
 )
@@ -49,7 +50,7 @@ from cg_flask_helpers import (
 from cg_helpers.humanize import size as human_readable_size
 from cg_sqlalchemy_helpers.types import Base, MyQuery, DbColumn
 
-from . import register, validate, jsonify_options
+from . import validate, jsonify_options
 from .. import errors, current_tester
 
 if t.TYPE_CHECKING and not getattr(t, 'SPHINX', False):  # pragma: no cover
@@ -1162,9 +1163,10 @@ def ensure_json_dict(
     )
 
 
-def raise_file_too_big_exception(
-    max_size: 'psef.archive.FileSize', single_file: bool = False
-) -> mypy_extensions.NoReturn:
+def make_file_too_big_exception(
+    max_size: 'psef.archive.FileSize',
+    single_file: bool = False,
+) -> 'psef.errors.APIException':
     """Get an exception that should be thrown when uploade file is too big.
 
     :param max_size: The maximum size that was overwritten.
@@ -1181,7 +1183,7 @@ def raise_file_too_big_exception(
             f'The maximum is (extracted) size is '
             f'{human_readable_size(max_size)}.'
         )
-    raise psef.errors.APIException(
+    return psef.errors.APIException(
         msg, 'Request is bigger than maximum upload size of max_size bytes.',
         psef.errors.APICodes.REQUEST_TOO_LARGE, 400
     )
@@ -1451,7 +1453,7 @@ def get_files_from_request(
     res = []
 
     if (request.content_length or 0) > max_size:
-        raise_file_too_big_exception(max_size)
+        raise make_file_too_big_exception(max_size)
 
     if not flask.request.files:
         raise errors.APIException(

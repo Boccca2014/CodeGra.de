@@ -221,12 +221,12 @@ describe('IPythonViewer.vue', () => {
                     outputs: [
                         {
                             output_type: 'stream',
-                            text: 'hello',
+                            text: ['hello'],
                             feedback_offset: 5
                         },
                         {
                             output_type: 'not stream',
-                            text: 'hello',
+                            text: ['hello'],
                             feedback_offset: 6,
                         },
                     ],
@@ -275,12 +275,12 @@ describe('IPythonViewer.vue', () => {
                     outputs: [
                         {
                             output_type: 'stream',
-                            text: 'hello',
+                            text: ['hello'],
                             feedback_offset: 5
                         },
                         {
                             output_type: 'not stream',
-                            text: 'hello',
+                            text: ['hello'],
                             feedback_offset: 6,
                         },
                     ],
@@ -340,7 +340,7 @@ describe('IPythonViewer.vue', () => {
                     outputs: [
                         {
                             output_type: 'execute_result',
-                            text: 'line1\nline2\n',
+                            text: ['line1\n', 'line2\n'],
                             feedback_offset: 4
                         },
                         {

@@ -897,26 +897,20 @@ class WorkPermissions(CoursePermissionChecker):
         """Make sure the current user may edit the content of files in this
         work.
         """
-        if self.work.has_as_author(self.user):
-            if self.work.assignment.is_open:
-                self._ensure(CPerm.can_submit_own_work)
-            else:
-                self._ensure(CPerm.can_upload_after_deadline)
-        else:
-            if self.work.assignment.is_open:
-                raise PermissionException(
-                    (
-                        'You cannot edit work as teacher'
-                        ' if the assignment is stil open!'
-                    ),
-                    (
-                        f'The assignment "{self.work.assignment.id}" is still'
-                        ' open.'
-                    ),
-                    APICodes.INCORRECT_PERMISSION,
-                    403,
-                )
-            self._ensure(CPerm.can_edit_others_work)
+        self._ensure(CPerm.can_edit_others_work)
+        if self.work.assignment.is_open:
+            raise PermissionException(
+                (
+                    'You cannot edit work as teacher'
+                    ' if the assignment is stil open!'
+                ),
+                (
+                    f'The assignment "{self.work.assignment.id}" is still'
+                    ' open.'
+                ),
+                APICodes.INCORRECT_PERMISSION,
+                403,
+            )
 
     @CoursePermissionChecker.as_ensure_function
     def ensure_may_see(self) -> None:
@@ -1782,14 +1776,14 @@ class TaskResultPermissions(GlobalPermissionChecker):
             )
 
 
-class LTI1p3ProviderPermissions(GlobalPermissionChecker):
+class LTIProviderPermissions(GlobalPermissionChecker):
     """The permission checker for :class:`psef.models.LTI1p3Provider`.
     """
     __slots__ = ('lti_provider', 'secret_is_correct')
 
     def __init__(
         self,
-        lti_provider: 'psef.models.LTI1p3Provider',
+        lti_provider: 'psef.models.LTIProviderBase',
         *,
         secret: str = None
     ) -> None:
