@@ -3,6 +3,8 @@ This module defines all API routes with for user settings.
 
 SPDX-License-Identifier: AGPL-3.0-only
 """
+import typing as t
+
 from flask import request
 
 from cg_json import JSONResponse
@@ -67,6 +69,33 @@ def update_notification_settings() -> EmptyResponse:
     models.NotificationsSetting.update_for_user(
         user=user, reason=reason, value=value
     )
+    models.db.session.commit()
+
+    return EmptyResponse.make()
+
+
+@api.route('/settings/ui_preferences/', methods=['GET'])
+def get_user_preferences() -> JSONResponse[t.Mapping[str, t.Optional[bool]]]:
+    user = _get_user()
+
+    return JSONResponse.make(
+        {
+            pref.name: value
+            for pref, value in
+            models.UIPreference.get_preferences_for_user(user).items()
+        }
+    )
+
+
+@api.route('/settings/ui_preferences/', methods=['PATCH'])
+def update_user_preferences() -> EmptyResponse:
+    user = _get_user()
+
+    with get_from_request_transaction() as [get, _]:
+        name = get('name', models.UIPreferenceName)
+        value = get('value', bool)
+
+    models.UIPreference.update_for_user(user=user, name=name, value=value)
     models.db.session.commit()
 
     return EmptyResponse.make()

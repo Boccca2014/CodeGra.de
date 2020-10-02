@@ -271,18 +271,13 @@ export default {
 @import '~mixins.less';
 
 .rubric-viewer {
-    .nav-link {
-        display: block;
-        padding: 0.25rem 0.5rem;
+    .nav-link.active {
+        background-color: @card-header-background;
+        border-bottom-color: @card-header-background;
 
-        &.active {
-            background-color: @card-header-background;
-            border-bottom-color: @card-header-background;
-
-            @{dark-mode} {
-                border-bottom-color: @dark-card-header-background !important;
-                background-color: @dark-card-header-background !important;
-            }
+        @{dark-mode} {
+            border-bottom-color: @dark-card-header-background !important;
+            background-color: @dark-card-header-background !important;
         }
     }
 }

@@ -190,7 +190,7 @@
                             </b-card-header>
 
                             <component
-                                :is="`rubric-editor-${row.type}-row`"
+                                :is="`${row.type}-row`"
                                 :value="row"
                                 :assignment="assignment"
                                 :auto-test="autoTestConfig"
@@ -483,10 +483,10 @@ import { Rubric } from '@/models';
 import { ValidationError } from '@/models/errors';
 import { formatGrade } from '@/utils';
 
-import Collapse from './Collapse';
-import AdvancedCollapse from './AdvancedCollapse';
-import RubricEditorNormalRow from './RubricEditorNormalRow';
-import RubricEditorContinuousRow from './RubricEditorContinuousRow';
+import { Collapse, AdvancedCollapse } from '@/components';
+
+import NormalRow from './NormalRow';
+import ContinuousRow from './ContinuousRow';
 
 export default {
     name: 'rubric-editor',
@@ -1081,8 +1081,8 @@ export default {
     components: {
         Collapse,
         AdvancedCollapse,
-        RubricEditorNormalRow,
-        RubricEditorContinuousRow,
+        NormalRow,
+        ContinuousRow,
         Multiselect,
         SlickList,
         SlickItem,

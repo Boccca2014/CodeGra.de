@@ -143,8 +143,10 @@
 import 'vue-awesome/icons/times';
 import 'vue-awesome/icons/plus';
 
-import InnerMarkdownViewer from './InnerMarkdownViewer';
-import PreviewableMarkdownEditor from './PreviewableMarkdownEditor';
+import {
+    InnerMarkdownViewer,
+    PreviewableMarkdownEditor,
+} from '@/components';
 
 export default {
     name: 'rubric-editor-normal-row',

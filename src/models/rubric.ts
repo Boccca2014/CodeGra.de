@@ -283,6 +283,27 @@ export class RubricRow<T extends number | undefined | null> {
         return this.update({ items });
     }
 
+    // TODO: Remove setType once the RubricEditorV1 has been removed.
+    setType(type: 'continuous'): ContinuousRubricRow<undefined>;
+
+    setType(type: 'normal'): NormalRubricRow<undefined>;
+
+    // eslint-disable-next-line @typescript-eslint/no-use-before-define
+    setType<Y extends keyof typeof RubricRowsTypes>(
+        type: Y,
+    ): ContinuousRubricRow<undefined> | NormalRubricRow<undefined> {
+        if (this.type != null && this.type !== '') {
+            throw new Error(`Row type was already set and was ${this.type}`);
+        }
+
+        // eslint-disable-next-line @typescript-eslint/no-use-before-define
+        const cls = RubricRowsTypes[type];
+        if (cls == null) {
+            throw new TypeError(`Invalid row type: ${type}`);
+        }
+        return cls.createEmpty();
+    }
+
     createItem<T extends number | null | undefined>(
         this: NormalRubricRow<T>,
     ): NormalRubricRow<T | undefined>;
@@ -580,14 +601,25 @@ export class Rubric<T extends number | undefined | null> {
         }, {});
     }
 
-    createRow(type: RubricRowType) {
-        // eslint-disable-next-line @typescript-eslint/no-use-before-define
-        const cls = RubricRowsTypes[type];
-        if (cls == null) {
-            throw new TypeError(`Invalid row type: ${type}`);
+    createRow(type?: RubricRowType) {
+        // TODO: Make 'type' argument non-nullable once RubricEditorV1 is
+        // removed.
+
+        let newRow;
+
+        if (type == null) {
+            newRow = RubricRow.createEmpty();
+        } else {
+            // eslint-disable-next-line @typescript-eslint/no-use-before-define
+            const cls = RubricRowsTypes[type];
+
+            if (cls == null) {
+                throw new Error(`Invalid row type: ${type}`);
+            } else {
+                newRow = cls.createEmpty();
+            }
         }
 
-        const newRow = cls.createEmpty();
         const rows = [...this.rows, newRow];
         return new Rubric(rows);
     }
