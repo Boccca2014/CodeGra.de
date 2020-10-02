@@ -210,7 +210,6 @@ def escape_logical_filename(name: str) -> str:
 T = t.TypeVar('T')
 
 
-@dataclasses.dataclass
 class FileTree(t.Generic[T]):
     """A class representing a file tree as stored in the database.
 
@@ -221,9 +220,13 @@ class FileTree(t.Generic[T]):
         these files as direct children.
     """
     __slots__ = ('name', 'id', 'entries')
-    name: str
-    id: T
-    entries: t.Optional[t.Sequence['FileTree[T]']]
+
+    def __init__(
+        self, name: str, id: T, entries: t.Optional[t.Sequence['FileTree[T]']]
+    ) -> None:
+        self.name = name
+        self.id = id
+        self.entries = entries
 
     class _AsJSONFile(TypedDict):
         #: The id of the file, this can be used to retrieve it later on.
