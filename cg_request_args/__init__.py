@@ -946,13 +946,14 @@ class RichValue:
 
         def ok(self, to_parse: str) -> bool:
             addresses = email.utils.getaddresses([to_parse.strip()])
+            print(addresses)
             return all(
                 validate_email.validate_email(email) for _, email in addresses
             )
 
         @property
         def name(self) -> str:
-            return ' as email list'
+            return 'as email list'
 
     EmailList = _EmailList()
 

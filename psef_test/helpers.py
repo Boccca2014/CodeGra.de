@@ -197,7 +197,6 @@ def create_lti1p3_provider(
             'version': 'lti1.3',
             'iss': iss,
             'capabilities': dict,
-            'edit_secret': None,
             'finalized': True,
             'created_at': str,
         },

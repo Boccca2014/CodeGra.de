@@ -20,3 +20,4 @@ omit =
     cg_maybe/tests/*
     cg_enum/cg_enum_plugin.py
     cg_sqlalchemy_helpers/types.py
+    cg_request_args/types.py

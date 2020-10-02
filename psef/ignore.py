@@ -600,7 +600,7 @@ class FileRule:
                 if not self.__filename_matches(name_list[-1]):
                     return False
                 name_list = name_list[:-1]
-                res = self.__dir_matches(name_list)
+            res = self.__dir_matches(name_list)
             return res
 
         def __filename_matches(self, f_name: str) -> bool:

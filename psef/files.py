@@ -243,7 +243,7 @@ class FileTree(t.Generic[T]):
     AsJSON.__cg_extends__ = _AsJSONFile  # type: ignore
 
     def __to_json__(self) -> AsJSON:
-        if self.entries:
+        if self.entries is not None:
             return {
                 'id': str(self.id),
                 'name': self.name,
