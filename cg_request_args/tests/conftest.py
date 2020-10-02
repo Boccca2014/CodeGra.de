@@ -1,5 +1,6 @@
 import os
 import sys
+from contextlib import nullcontext
 
 import flask
 import pytest
@@ -17,3 +18,8 @@ def pytest_addoption(parser):
         )
     except ValueError:
         pass
+
+
+@pytest.fixture
+def maybe_raises():
+    yield lambda raises, exc: pytest.raises(exc) if raises else nullcontext()

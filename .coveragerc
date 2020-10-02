@@ -20,4 +20,6 @@ omit =
     cg_maybe/tests/*
     cg_enum/cg_enum_plugin.py
     cg_sqlalchemy_helpers/types.py
-    cg_request_args/types.py
+    cg_request_args/tests/*
+    cg_request_args/request_args_plugin.py
+    cg_request_args/open_api.py
