@@ -379,7 +379,17 @@ def test_create_auto_test_suite(basic, test_client, logged_in, describe):
 
     with describe('students should not be able to create suite'
                   ), logged_in(student):
-        test_client.req('patch', f'{url}/sets/{set_id}/suites/', 403)
+        test_client.req(
+            'patch',
+            f'{url}/sets/{set_id}/suites/',
+            403,
+            data={
+                'steps': [],
+                'rubric_row_id': rubric[0]['id'],
+                'network_disabled': False,
+                'submission_info': False,
+            },
+        )
         with describe('No suite should be created'), logged_in(teacher):
             test_client.req('get', url, 200, result=test)
 
@@ -612,7 +622,7 @@ def test_update_auto_test(
             data['json'] = (
                 io.BytesIO(
                     json.dumps(
-                        {**test, **new_data, 'has_new_fixtures': bool(data)}
+                        {**new_data, 'has_new_fixtures': bool(data)}
                     ).encode()
                 ), 'json'
             )

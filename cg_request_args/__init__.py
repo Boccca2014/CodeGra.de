@@ -101,7 +101,7 @@ def swaggerize(operation_name: str, *,
 
 
 class _ParseError(ValueError):
-    __slots__ = ('parser', 'found', 'extra', 'location')
+    __slots__ = ('parser', 'found', 'extra', 'location', '__as_string')
 
     def __init__(
         self,
@@ -115,6 +115,7 @@ class _ParseError(ValueError):
         self.found = found
         self.extra = {} if extra is None else extra
         self.location: t.Sequence[t.Union[int, str]] = []
+        self.__as_string: t.Optional[str] = None
 
     def _loc_to_str(self) -> str:
         res = []
@@ -129,8 +130,10 @@ class _ParseError(ValueError):
         return ''.join(res)
 
     def __str__(self) -> str:
-        res = f'{self._to_str()}.'
-        return f'{res[0].upper()}{res[1:]}'
+        if self.__as_string is None:
+            res = f'{self._to_str()}.'
+            self.__as_string = f'{res[0].upper()}{res[1:]}'
+        return self.__as_string
 
     def _to_str(self) -> str:
         if self.found is MISSING:
@@ -165,6 +168,12 @@ class _ParseError(ValueError):
         res.location = [location, *res.location]
         return res
 
+    def to_dict(self) -> t.Mapping[str, t.Any]:
+        return {
+            'found': type(self.found).__name__,
+            'expected': self.parser.describe(),
+        }
+
 
 class SimpleParseError(_ParseError):
     pass
@@ -193,6 +202,16 @@ class MultipleParseErrors(_ParseError):
             return res
         reasons = readable_join([err._to_str() for err in self.errors])
         return f'{res}, which is incorrect because {reasons}'
+
+    def to_dict(self) -> t.Mapping[str, t.Any]:
+        res = super().to_dict()
+        errs = res.setdefault('sub_errors', [])
+        for err in self.errors:
+            errs.append({
+                'error': err.to_dict(),
+                'location': err.location,
+            })
+        return res
 
 
 _T_PARSER = t.TypeVar('_T_PARSER', bound='_Parser')
@@ -252,12 +271,10 @@ class _Parser(t.Generic[_T_COV]):
     def try_parse_and_log(
         self, json: object, *, log_replacer: LogReplacer = None
     ) -> _T_COV:
-        if isinstance(json, dict):
-            to_log = json
-            if log_replacer is not None:
-                to_log = {k: log_replacer(k, v) for k, v in json.items()}
-            logger.info('JSON request processed', request_data=to_log)
-        elif log_replacer is None:
+        if log_replacer is None:
+            logger.info('JSON request processed', request_data=json)
+        elif isinstance(json, dict):
+            to_log = {k: log_replacer(k, v) for k, v in json.items()}
             logger.info('JSON request processed', request_data=to_log)
         else:
             # The replacers are used for top level objects, in this case it is
@@ -730,7 +747,6 @@ class BaseFixedMapping(
                 elif isinstance(item, cg_maybe.Just):
                     res[key] = item.value  # type: ignore
         return res
-
 
     @classmethod
     def __from_python_type(cls, typ):  # type: ignore
