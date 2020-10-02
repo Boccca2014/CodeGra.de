@@ -470,7 +470,6 @@ class LTI1p1Provider(LTIProviderBase):
         if self.is_finalized:
             return make_typed_dict_extender(base, self.FinalizedAsJSON)(
                 finalized=True,
-                edit_secret=None,
             )
         else:
             if auth.LTIProviderPermissions(self).ensure_may_edit.as_bool():

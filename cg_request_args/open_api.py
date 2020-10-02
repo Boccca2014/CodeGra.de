@@ -32,7 +32,8 @@ _SIMPLE_TYPE_NAME_LOOKUP = {
 }
 
 
-def _expand_anyof(anyof_lst: t.Iterable[dict]) -> t.List[dict]:
+def _expand_anyof(anyof_lst: t.Iterable[t.Mapping[str, t.Any]]
+                  ) -> t.List[t.Mapping[str, t.Any]]:
     res = []
     for opt in anyof_lst:
         if 'anyOf' in opt:
@@ -480,17 +481,13 @@ class OpenAPISchema:
                     done=done,
                 )
             elif hasattr(typ, '__to_json__') or hasattr(origin, '__to_json__'):
-                res = self._typ_to_schema(
+                return self._typ_to_schema(
                     inspect.signature((origin or
                                        typ).__to_json__).return_annotation,
                     do_extended=do_extended,
                     inline=inline,
                     done=done,
                 )
-                if False and not '$ref' in res:
-                    self._schemas[self._get_schema_name(typ)] = res
-                    return {'$ref': self._get_schema_name(typ)}
-                return res
             elif origin in (dict, collections.abc.Mapping):
                 _, value_type = typ.__args__
                 return {
