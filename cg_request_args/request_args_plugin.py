@@ -26,19 +26,16 @@ def from_typeddict_callback(ctx: MethodContext) -> Type:
     assert isinstance(ctx.default_return_type, Instance)
     producer = ctx.arg_types[0][0]
 
-    def err() -> Type:
+    if (
+        not isinstance(producer, CallableType) or
+        not isinstance(producer.ret_type, Instance) or
+        not isinstance(producer.ret_type.type.typeddict_type, TypedDictType)
+    ):
         ctx.api.fail(
             'The argument to `from_typeddict` should be a typeddict type',
             ctx.context
         )
         return ctx.default_return_type
-
-    if not isinstance(producer, CallableType):
-        return err()
-    elif not isinstance(producer.ret_type, Instance):
-        return err()
-    elif not isinstance(producer.ret_type.type.typeddict_type, TypedDictType):
-        return err()
 
     return ctx.default_return_type.copy_modified(
         args=[producer.ret_type.type.typeddict_type]
@@ -58,7 +55,7 @@ def dict_getter_attribute_callback(ctx: AttributeContext, attr: str) -> Type:
         if attr not in items:
             ctx.api.fail(
                 (
-                    'The _DictGetter[{}] does not have the attribute {},'
+                    'The _DictGetter[{}] does not have the attribute {!r},'
                     ' available attributes: {}'
                 ).format(typeddict, attr, ', '.join(items.keys())),
                 ctx.context,
@@ -75,7 +72,7 @@ def dict_getter_attribute_callback(ctx: AttributeContext, attr: str) -> Type:
             assert isinstance(item, Instance)
             items.append(get_for_typeddict(item.args[0]))
         return make_simplified_union(items)
-    else:
+    else:  # pragma: no cover
         raise AssertionError('Got strange type: {}'.format(ctx.type))
 
 
@@ -111,7 +108,7 @@ def combine_callback(ctx: MethodContext) -> Type:
     for new_key in other_typeddict.items.keys():
         if new_key in own_typeddict.items:
             ctx.api.fail(
-                'Cannot combine typeddict, got overlapping keys {}'.
+                'Cannot combine typeddict, got overlapping key {!r}'.
                 format(new_key), ctx.context
             )
             return ctx.default_return_type
@@ -139,7 +136,7 @@ def add_tag_callback(ctx: MethodContext) -> Type:
     if not isinstance(key, Instance
                       ) or not isinstance(key.last_known_value, LiteralType):
         ctx.api.fail(
-            'The key to the FixedMapping.add_tag should be a literal',
+            'The key to FixedMapping.add_tag should be a literal',
             ctx.context,
         )
         return ctx.default_return_type
@@ -147,17 +144,13 @@ def add_tag_callback(ctx: MethodContext) -> Type:
         value.last_known_value, LiteralType
     ):
         ctx.api.fail(
-            'The value to the FixedMapping.add_tag should be a literal',
+            'The value to FixedMapping.add_tag should be a literal',
             ctx.context,
         )
         return ctx.default_return_type
 
     key_value = key.last_known_value.value
-    if not isinstance(key_value, str):
-        ctx.api.fail(
-            'The key to the FixedMapping.add_tag should be a string',
-            ctx.context,
-        )
+    if not isinstance(key_value, str):   # pragma: no cover
         return ctx.default_return_type
 
     assert isinstance(ctx.default_return_type, Instance)
@@ -183,10 +176,10 @@ def add_tag_callback(ctx: MethodContext) -> Type:
 
 def argument_callback(ctx: FunctionContext) -> Type:
     key = ctx.arg_types[0][0]
-    if not isinstance(key, Instance):
-        return ctx.default_return_type
-
-    if not isinstance(key.last_known_value, LiteralType):
+    if (
+        not isinstance(key, Instance) or
+        not isinstance(key.last_known_value, LiteralType)
+    ):
         ctx.api.fail(
             'The key to the _Argument constructor should be a literal',
             ctx.context,
@@ -213,14 +206,14 @@ def fixed_mapping_callback(ctx: FunctionContext) -> Type:
 
         if isinstance(arg, AnyType):
             ctx.api.fail((
-                'Argument number {} was an "Any" which is not allowed as an'
-                ' argument to _FixedMapping'
+                'Argument {} was an "Any" which is not allowed as an'
+                ' argument to FixedMapping'
             ).format(idx + 1), ctx.context)
             continue
         try:
             assert isinstance(arg, Instance)
             typ = arg.type.fullname
-        except:
+        except:  # pragma: no cover
             typ = '????'
 
         if typ not in (
@@ -228,7 +221,7 @@ def fixed_mapping_callback(ctx: FunctionContext) -> Type:
             'cg_request_args.OptionalArgument'
         ):
             ctx.api.fail((
-                'Argument number {} provided was of wrong type, expected'
+                'Argument {} provided was of wrong type, expected'
                 ' cg_request_args._RequiredArgument or'
                 ' cg_request_args._OptionalArgument, but got {}.'
             ).format(idx + 1, typ), ctx.context)
@@ -247,13 +240,13 @@ def fixed_mapping_callback(ctx: FunctionContext) -> Type:
         if not isinstance(key, str):
             ctx.api.fail((
                 'Key should be of type string, but was of type {} for argument'
-                ' number {}.'
-            ).format(type(key), idx + 1), ctx.context)
+                ' {}.'
+            ).format(type(key).__name__, idx + 1), ctx.context)
             continue
 
         if key in items:
             ctx.api.fail((
-                'Key {} was already present, but given again as argument {}.'
+                'Key {!r} was already present, but given again as argument {}.'
             ).format(key, idx + 1), ctx.context)
             continue
 
