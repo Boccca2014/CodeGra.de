@@ -97,10 +97,17 @@
                     </span>
 
                     <!-- Weird formatting required for text-wrap-pre formatting. -->
-                    <p class="description flex-grow-1 border rounded mb-0 px-3 py-2 text-wrap-pre"
-                        ><template v-if="item.description">{{ item.description }}</template
-                        ><span v-else class="text-muted font-italic">No description.</span>
+                    <p v-if="!item.description"
+                       class="description border rounded mb-0 px-3 py-2 text-muted font-italic">
+                        No description.
                     </p>
+                    <inner-markdown-viewer
+                        v-else-if="value.isMarkdown"
+                        :markdown="item.description"
+                        class="border rounded px-3 pt-2"/>
+                    <p v-else
+                       class="description flex-grow-1 border rounded mb-0 px-3 py-2 text-wrap-pre"
+                        >{{ item.description }}</p>
                 </template>
             </div>
 
@@ -180,6 +187,10 @@ export default {
         canChangeItems() {
             const runs = this.$utils.getProps(this.autoTest, [], 'runs');
             return this.editable && !(this.value.locked && runs.length);
+        },
+
+        hasItemsWithDescription() {
+            return this.value.items.some(item => !!item.description);
         },
     },
 

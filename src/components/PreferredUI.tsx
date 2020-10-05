@@ -13,8 +13,9 @@ export default tsx.component({
     name: 'preferred-ui',
 
     props: {
-        prefName: p.ofType<api.user.UIPreferenceName>().required,
-        defaultValue: p(Boolean).default(true),
+        prefName: p.ofType<api.user.UIPreference>().required,
+        componentName: p(String).required,
+        defaultValue: p(Boolean).default(false),
     },
 
     data() {
@@ -25,11 +26,11 @@ export default tsx.component({
     },
 
     computed: {
-        userId() {
+        userId(): number {
             return store.getters['user/id'];
         },
 
-        allPrefs() {
+        allPrefs(): utils.Maybe<api.user.UIPreferenceMap> {
             return store.getters['user/uiPrefs'];
         },
 
@@ -53,33 +54,30 @@ export default tsx.component({
     render(h: CreateElement) {
         return <div class="preferred-ui">
             {this.renderError(h)}
-            {this.renderWarning(h)}
+            {this.renderMessage(h)}
             {this.allPrefs.caseOf({
                 Just: () => this.renderContent(h),
-                Nothing: () => <comp.Loader page-loader />
+                Nothing: () => [<comp.Loader page-loader />],
             })}
+            {this.renderToggle(h)}
         </div>;
     },
 
     methods: {
-        renderContent(h: CreateElement) {
-            const value = this.prefValue.orDefault(this.defaultValue);
-            return value ? this.$slots.ifTrue : this.$slots.ifFalse;
+        renderError(h: CreateElement): VNode {
+            return utils.ifOrEmpty(
+                this.error.isJust(),
+                () => <comp.CgError error={this.error.unsafeCoerce()} />,
+            );
         },
 
-        renderWarning(h: CreateElement) {
+        renderMessage(h: CreateElement): VNode {
             return utils.ifOrEmpty(
-                this.prefValue.isNothing(),
+                this.allPrefs.isJust() && this.prefValue.isNothing(),
                 () => <b-alert show variant="info">
                     {this.$slots.ifUnset}
 
-                    <p>
-                        You can still use the old version, but it will be
-                        removed in a couple of months. Do you want to keep
-                        using the new version?
-                    </p>
-
-                    <b-button-toolbar justify class="mb-3">
+                    <b-button-toolbar justify class="mt-3">
                         <comp.SubmitButton
                             label="No"
                             variant="outline-danger"
@@ -93,17 +91,73 @@ export default tsx.component({
             );
         },
 
-        renderError(h: CreateElement) {
-            return this.error.mapOrDefault(
-                e => <comp.CgError error={e} /> as VNode,
-                utils.emptyVNode() as VNode,
+        renderContent(h: CreateElement): VNode[] | undefined {
+            const value = this.prefValue.orDefault(this.defaultValue);
+            return value ? this.$slots.ifTrue : this.$slots.ifFalse;
+        },
+
+        renderToggle(h: CreateElement): VNode {
+            const compName = this.componentName;
+
+            const renderLabel = () =>
+                <template slot="label">
+                    {utils.capitalize(compName)} interface
+                    {utils.ifOrEmpty(
+                        this.updating,
+                        () => <comp.Loader class="d-inline-block ml-2" scale={1} />
+                    )}
+                </template>;
+
+            const renderSelect = () =>
+                <b-form-select
+                    class="float-right"
+                    value={this.prefValue.unsafeCoerce()}
+                    disabled={this.updating}
+                    onInput={() => this.togglePreference()}>
+                    <b-form-select-option value={true}>
+                        New interface
+                    </b-form-select-option>
+                    <b-form-select-option value={false}>
+                        Old interface
+                    </b-form-select-option>
+                </b-form-select>;
+
+            return utils.ifOrEmpty(
+                this.allPrefs.isJust() && this.prefValue.isJust(),
+                () => <div>
+                    <hr />
+
+                    <b-form-group
+                        class="mb-0"
+                        description={`You can switch between the old ${compName} and the new ${compName} here.`}>
+                        {renderLabel()}
+                        {renderSelect()}
+                    </b-form-group>
+                </div>,
             );
         },
 
         updatePreference(value: boolean) {
+            this.updating = true;
             return store.dispatch('user/patchUIPreference', {
                 name: this.prefName,
                 value,
+            }).then(
+                res => {
+                    this.updating = false;
+                    return res;
+                },
+                () => { this.updating = false },
+            );
+        },
+
+        togglePreference() {
+            return this.prefValue.caseOf({
+                Just: value => this.updatePreference(!value).then(res => {
+                    res.onAfterSuccess();
+                    return res;
+                }),
+                Nothing: () => Promise.reject(new Error('No value set.')),
             });
         },
     },

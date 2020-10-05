@@ -1,6 +1,7 @@
 import * as tsx from 'vue-tsx-support';
 import p from 'vue-strict-prop';
 
+import * as api from '@/api/v1';
 import * as models from '@/models';
 import * as utils from '@/utils';
 import * as comp from '@/components';
@@ -21,12 +22,16 @@ export default tsx.component({
     },
 
     render(h, { props }) {
-        return <comp.PreferredUI prefName="rubric_editor_v2">
+        return <comp.PreferredUI prefName={api.user.UIPreference.RubricEditorV2}
+                                 componentName="rubric editor">
             <template slot="ifUnset">
                 {utils.ifExpr(
                     props.editable,
-                    () => <p>
-                        This is the new rubric editor! The new editor supports:
+                    () => <div>
+                        <p>
+                            A new version of the rubric editor is available!
+                            The new editor supports:
+                        </p>
 
                         <ul>
                             <li>
@@ -39,7 +44,19 @@ export default tsx.component({
                             <li>Reordering rubric categories.</li>
                             <li>Previewing markdown descriptions.</li>
                         </ul>
-                    </p>,
+
+                        <p>
+                            You can keep using the old version, but it will be
+                            removed in a couple of months. Do you want to try
+                            out the new version?
+                        </p>
+
+                        <p>
+                            After making a decision you can switch freely
+                            between the new and old versions at the bottom of
+                            this page.
+                        </p>
+                    </div>,
                     () => <p>
                         This is the new rubric interface! The new interface gives
                         a better overview of the rubric categories and the points

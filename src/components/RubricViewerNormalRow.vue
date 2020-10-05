@@ -45,6 +45,7 @@
              :class="{
                  selected: item.id === selectedId,
                  'border-left': i > 0,
+                 'pb-2': !hasItemsWithDescription,
                  'pb-4': showProgressMeter,
              }"
              :style="{ flex: `0 0 ${itemWidth}`, maxWidth: itemWidth  }"
@@ -57,17 +58,19 @@
                          class="float-right mr-2" />
             </b>
 
-            <p v-if="!item.description"
-               class="text-muted font-italic">
-                No description.
-            </p>
-            <inner-markdown-viewer
-                v-if="rubricRow.isMarkdown"
-                :markdown="item.description"
-                class="description pr-2 text-justify" />
-            <p v-else
-               class="description mb-0 pb-2 pr-2 text-justify text-wrap-pre"
-               >{{ item.description }}</p>
+            <template v-if="hasItemsWithDescription">
+                <p v-if="!item.description"
+                   class="text-muted font-italic">
+                    No description.
+                </p>
+                <inner-markdown-viewer
+                    v-if="rubricRow.isMarkdown"
+                    :markdown="item.description"
+                    class="description pr-2 text-justify" />
+                <p v-else
+                   class="description mb-0 pb-2 pr-2 text-justify text-wrap-pre"
+                   >{{ item.description }}</p>
+            </template>
         </div>
 
         <div class="progress-meter"
@@ -181,6 +184,10 @@ export default {
 
         itemWidth() {
             return `${100 / this.rowItems.length}%`;
+        },
+
+        hasItemsWithDescription() {
+            return this.rowItems.some(item => !!item.description);
         },
     },
 

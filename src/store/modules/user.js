@@ -200,7 +200,6 @@ const actions = {
     patchUIPreference({ commit }, { name, value }) {
         return api.user.patchUIPreference(name, value).then(res => {
             res.onAfterSuccess = r => {
-                console.log('updating pref', name, value);
                 commit(types.UPDATE_UI_PREF, { name, value });
                 return r;
             };
