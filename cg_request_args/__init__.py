@@ -734,24 +734,21 @@ class _BaseFixedMapping(t.Generic[_BASE_DICT]):
 class BaseFixedMapping(
     t.Generic[_BASE_DICT], _BaseFixedMapping[_BASE_DICT], _Parser[_BASE_DICT]
 ):
-    def __init__(self, *arguments: object, has_optional: bool = True) -> None:
+    def __init__(
+        self,
+        *arguments: object,
+        has_optional: bool,
+        schema: t.Type[_BASE_DICT],
+    ) -> None:
         super().__init__()
         self._arguments = t.cast(
             t.Sequence[t.Union[RequiredArgument, OptionalArgument]], arguments
         )
         self.__has_optional = has_optional
-        self.__schema: t.Optional[t.Type[_BASE_DICT]] = None
-
-    def set_schema(self, schema: t.Type[_BASE_DICT]) -> None:
-        """
-        """
-        self.__schema = schema
+        self.__schema: t.Type[_BASE_DICT] = schema
 
     def _to_open_api(self, schema: 'OpenAPISchema') -> t.Mapping[str, t.Any]:
-        if self.__schema is not None:
-            return schema.add_schema(self.__schema)
-
-        return super()._to_open_api(schema)
+        return schema.add_schema(self.__schema)
 
     def try_parse(self, value: object) -> _BASE_DICT:
         res = self._try_parse(value)
@@ -768,9 +765,8 @@ class BaseFixedMapping(
 
     @classmethod
     def __from_python_type(cls, typ):  # type: ignore
-        # This function doesn't play nice at all with our plugins, so simply skip
-        # checking it.
-
+        # This function doesn't play nice at all with our plugins, so simply
+        # skip checking it.
         origin = getattr(typ, '__origin__', None)
 
         if isinstance(typ, type(TypedDict)):
@@ -790,9 +786,9 @@ class BaseFixedMapping(
                             key, cls.__from_python_type(subtyp), ''
                         )
                     )
-            res = BaseFixedMapping(*args, has_optional=has_optional)
-            res.set_schema(typ)
-            return res
+            return BaseFixedMapping(
+                *args, has_optional=has_optional, schema=typ
+            )
         elif typ in (str, int, bool, float):
             return SimpleValue(typ)
         elif origin in (list, collections.abc.Sequence):
@@ -1019,12 +1015,15 @@ class RichValue:
 
         def _to_open_api(self,
                          schema: 'OpenAPISchema') -> t.Mapping[str, t.Any]:
-            return {**super()._to_open_api(schema), 'format': 'password'}
+            return {
+                **super()._to_open_api(schema),
+                'format': 'password',
+            }
 
         def try_parse(self, value: object) -> str:
             try:
                 return super().try_parse(value)
-            except _ParseError as exc:
+            except _ParseError:
                 # Don't raise from as that might leak the value
                 raise SimpleParseError(self, found='REDACTED')  # pylint: disable=raise-missing-from
 

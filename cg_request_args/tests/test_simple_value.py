@@ -70,7 +70,8 @@ def test_int_parser(ok, value, maybe_raises):
 
 
 @pytest.mark.parametrize(
-    'ok,value', [
+    'ok,value',
+    [
         (False, ''),
         (False, 'HELLO'),
         (False, 't'),
@@ -94,3 +95,10 @@ def test_float_parser(ok, value, maybe_raises):
         res = parser.try_parse(value)
         assert res == pytest.approx(value)
         assert isinstance(res, float)
+
+
+@pytest.mark.parametrize('typ', [str, int, float, bool])
+def test_to_open_api(schema_mock, typ):
+    assert SimpleValue(typ).to_open_api(schema_mock) == {
+        'type': ('Convert', typ)
+    }

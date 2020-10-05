@@ -18,7 +18,7 @@ class Difficult(TypedDict):
     lookup: t.Dict[str, int]
 
 
-def test_simple_base():
+def test_simple_base(schema_mock):
     map1 = BaseFixedMapping.from_typeddict(Simple)
     assert map1.try_parse({
         'a': 5,
@@ -45,8 +45,10 @@ def test_simple_base():
         map1.try_parse({'a': 5, 'c': 1.0})
     assert '"b" an Union[None, str] is required, but' in str(err.value)
 
+    map1.to_open_api(schema_mock) == ('Add Schema', Simple)
 
-def test_difficult():
+
+def test_difficult(schema_mock):
     map1 = BaseFixedMapping.from_typeddict(Difficult)
     res = {
         'nested': {'a': 0, 'b': '', 'c': 1},
@@ -61,3 +63,5 @@ def test_difficult():
     assert '"nested" a Mapping[' in str(err.value)
     assert '"nested_in_list" a List[' in str(err.value)
     assert '"lookup" a Mapping[' in str(err.value)
+
+    map1.to_open_api(schema_mock) == ('Add Schema', Difficult)

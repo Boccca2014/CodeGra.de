@@ -36,13 +36,18 @@ def test_email_list(ok, value, maybe_raises):
         (True, -10, 10),
     ]
 )
-def test_number_gte(ok, value, minimum, maybe_raises):
+def test_number_gte(ok, value, minimum, maybe_raises, schema_mock):
     parser = RichValue.NumberGte(minimum)
     with maybe_raises(not ok, SimpleParseError):
         parser.try_parse(value)
 
+    assert parser.to_open_api(schema_mock) == {
+        'type': ('Convert', int),
+        'minimum': minimum,
+    }
 
-def test_password():
+
+def test_password(schema_mock):
     parser = RichValue.Password
     with pytest.raises(SimpleParseError) as exc:
         parser.try_parse(5)
@@ -51,6 +56,11 @@ def test_password():
     assert '5' not in str(exc.value)
 
     assert parser.try_parse('hunter2') == 'hunter2'
+
+    assert parser.to_open_api(schema_mock) == {
+        'type': ('Convert', str),
+        'format': 'password',
+    }
 
 
 def test_datetime():

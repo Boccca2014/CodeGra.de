@@ -28,7 +28,7 @@ def test_simple_union_with_float():
     assert parser.try_parse(5) == 5.0
 
 
-def test_larger_simple_union():
+def test_larger_simple_union(schema_mock):
     parser = SimpleValue(str) | SimpleValue(float) | SimpleValue(bool)
     assert isinstance(parser._parser, _SimpleUnion)
     assert isinstance((SimpleValue(bool) | parser)._parser, _SimpleUnion)
@@ -38,9 +38,12 @@ def test_larger_simple_union():
     assert parser.try_parse(5) == 5.0
     assert parser.try_parse(10.1) == 10.1
     assert parser.try_parse(True) is True
+    assert parser.to_open_api(schema_mock) == {
+        'anyOf': [('Convert', str), ('Convert', float), ('Convert', bool)]
+    }
 
 
-def test_rich_union():
+def test_rich_union(schema_mock):
     parser1 = List(SimpleValue(int)) | List(SimpleValue(str))
     parser2 = List(SimpleValue(int) | SimpleValue(str))
 
@@ -51,4 +54,15 @@ def test_rich_union():
     with pytest.raises(MultipleParseErrors) as err:
         parser1.try_parse([1, 'str'])
 
-    parser2.try_parse([1, 'str']) == [1, 'str']
+    assert parser2.try_parse([1, 'str']) == [1, 'str']
+
+    assert parser1.to_open_api(schema_mock) == {
+        'anyOf': [
+            List(SimpleValue(int)).to_open_api(schema_mock),
+            List(SimpleValue(str)).to_open_api(schema_mock),
+        ],
+    }
+    assert parser2.to_open_api(schema_mock) == {
+        'type': 'array',
+        'items': {'anyOf': [('Convert', int), ('Convert', str)]},
+    }

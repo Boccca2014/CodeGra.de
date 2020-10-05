@@ -52,7 +52,7 @@ def test_simple_parse_failure():
     assert "at index \"c\" a bool is required, but got 'not a bool'" in msg
 
 
-def test_parse_with_tag():
+def test_parse_with_tag(schema_mock):
     map1 = FixedMapping(
         RequiredArgument('value', SimpleValue(str), ''),
     ).add_tag('tag', 'tag_value')
@@ -66,18 +66,47 @@ def test_parse_with_tag():
     assert res.value == 'str'
     assert res.tag == 'tag_value'
 
+    # Tag does not show up in schema
+    assert map1.to_open_api(schema_mock) == {
+        'type': 'object',
+        'properties': {
+            'value': {
+                'description': ('Comment', ''),
+                'type': ('Convert', str),
+            },
+        },
+        'required': ['value'],
+    }
 
-def test_combine():
+
+def test_combine(schema_mock):
     map1 = FixedMapping(
-        RequiredArgument('value1', SimpleValue(str), ''),
-        OptionalArgument('value2', SimpleValue(int), '')
+        RequiredArgument('value1', SimpleValue(str), 'desc1'),
+        OptionalArgument('value2', SimpleValue(int), 'desc2')
     )
-    map2 = FixedMapping(
-        RequiredArgument('value3', SimpleValue(bool), '')
-    )
+    map2 = FixedMapping(RequiredArgument('value3', SimpleValue(bool), 'desc3'))
     map3 = map1.combine(map2)
 
     res = map3.try_parse({'value1': 'value1', 'value2': 100, 'value3': True})
     assert res.value1 == 'value1'
     assert res.value2.unsafe_extract() == 100
     assert res.value3 is True
+
+    assert map3.to_open_api(schema_mock) == {
+        'type': 'object',
+        'properties': {
+            'value1': {
+                'description': ('Comment', 'desc1'),
+                'type': ('Convert', str),
+            },
+            'value2': {
+                'description': ('Comment', 'desc2'),
+                'type': ('Convert', int),
+            },
+            'value3': {
+                'description': ('Comment', 'desc3'),
+                'type': ('Convert', bool),
+            },
+        },
+        'required': ['value1', 'value3'],
+    }

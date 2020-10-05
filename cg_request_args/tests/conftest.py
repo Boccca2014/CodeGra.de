@@ -23,3 +23,19 @@ def pytest_addoption(parser):
 @pytest.fixture
 def maybe_raises():
     yield lambda raises, exc: pytest.raises(exc) if raises else nullcontext()
+
+
+@pytest.fixture
+def schema_mock():
+    class _Mock:
+        def simple_type_to_open_api_type(self, typ):
+            return ('Convert', typ)
+
+        def make_comment(self, comment):
+            return ('Comment', comment)
+
+        def add_schema(self, schema):
+            return ('Add Schema', schema)
+
+
+    yield _Mock()
