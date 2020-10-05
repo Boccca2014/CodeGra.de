@@ -105,6 +105,7 @@ FlaskConfig = TypedDict(
         'MAX_NORMAL_UPLOAD_SIZE': int,
         'MAX_LARGE_UPLOAD_SIZE': int,
         'DEFAULT_ROLE': str,
+        '_DEFAULT_COURSE_ROLES': t.Mapping[str, t.Mapping],
         'DEFAULT_SSO_ROLE': str,
         'SSO_METADATA_EXTRA_LANGUAGES': t.List[str],
         'EXTERNAL_DOMAIN': str,

@@ -26,7 +26,7 @@ from psef.helpers import (
 from cg_sqlalchemy_helpers import expression as sql_expression
 
 from . import api
-from .. import helpers, limiter, parsers, features
+from .. import helpers, limiter, features
 from ..lti.v1_1 import LTICourseRole
 from ..exceptions import (
     APICodes, APIWarnings, APIException, PermissionException
@@ -220,8 +220,9 @@ def update_role(course_id: int, role_id: int) -> EmptyResponse:
 @api.route('/courses/<int:course_id>/roles/', methods=['GET'])
 def get_all_course_roles(
     course_id: int
-) -> JSONResponse[t.Union[t.Sequence[models.CourseRole], t.Sequence[
-    t.MutableMapping[str, t.Union[t.Mapping[str, bool], bool]]]]]:
+) -> t.Union[JSONResponse[t.List[models.CourseRole]],
+             JSONResponse[t.List[models.CourseRole.AsJSONWithPerms]],
+             ]:
     """Get a list of all :class:`.models.CourseRole` objects of a given
     :class:`.models.Course`.
 
@@ -250,15 +251,7 @@ def get_all_course_roles(
     ).order_by(models.CourseRole.name).all()
 
     if request.args.get('with_roles') == 'true':
-        res = []
-        for course_role in course_roles:
-            json_course = course_role.__to_json__()
-            json_course['perms'] = CPerm.create_map(
-                course_role.get_all_permissions()
-            )
-            json_course['own'] = current_user.courses[course_role.course_id
-                                                      ] == course_role
-            res.append(json_course)
+        res = [r.__to_json_with_perms__() for r in course_roles]
         return jsonify(res)
     return jsonify(course_roles)
 
@@ -996,23 +989,47 @@ def delete_registration_link(
 
 
 @api.route('/courses/<int:course_id>/registration_links/', methods=['PUT'])
+@rqa.swaggerize('put_enroll_link')
 def create_or_edit_registration_link(
     course_id: int
 ) -> JSONResponse[models.CourseRegistrationLink]:
-    """Create or edit a registration link.
+    """Create or edit an enroll link.
 
     .. :quickref: Course; Create or edit a registration link for a course.
 
     :param course_id: The id of the course in which this link should enroll
         users.
-    :>json id: The id of the link to edit, omit to create a new link.
-    :>json role_id: The id of the role that users should get when registering
-        with this link.
-    :>json expiration_date: The date this link should stop working, this date
-        should be in ISO8061 format without any timezone information, as it
-        will be interpret as a UTC date.
     :returns: The created or edited link.
     """
+    data = rqa.FixedMapping(
+        rqa.OptionalArgument(
+            'id',
+            rqa.RichValue.UUID,
+            'The id of the link to edit, omit to create a new link.',
+        ),
+        rqa.RequiredArgument(
+            'role_id',
+            rqa.SimpleValue(int),
+            """
+            The id of the role that users should get when enrolling with this
+            link.
+            """,
+        ),
+        rqa.RequiredArgument(
+            'expiration_date',
+            rqa.RichValue.DateTime,
+            'The date this link should stop working.',
+        ),
+        rqa.OptionalArgument(
+            'allow_register',
+            rqa.SimpleValue(bool),
+            """
+            Should students be allowed to register a new account using this
+            link. For registration to actually work this feature should be
+            enabled.
+            """,
+        ),
+    ).from_flask()
     course = helpers.get_or_404(
         models.Course, course_id, also_error=lambda c: c.virtual
     )
@@ -1024,32 +1041,25 @@ def create_or_edit_registration_link(
             400
         )
 
-    with get_from_map_transaction(get_json_dict_from_request()) as [
-        get, opt_get
-    ]:
-        expiration_date = get('expiration_date', str)
-        role_id = get('role_id', int)
-        link_id = opt_get('id', str, default=None)
-        allow_register = opt_get('allow_register', bool, default=None)
-
-    if link_id is None:
+    if data.id.is_nothing:
         link = models.CourseRegistrationLink(course=course)
         db.session.add(link)
     else:
         link = helpers.filter_single_or_404(
             models.CourseRegistrationLink,
-            models.CourseRegistrationLink.id == uuid.UUID(link_id),
+            models.CourseRegistrationLink.id == data.id.value,
             also_error=lambda l: l.course_id != course.id
         )
 
     link.course_role = helpers.get_or_404(
         models.CourseRole,
-        role_id,
+        data.role_id,
         also_error=lambda r: r.course_id != course.id
     )
-    if allow_register is not None:
-        link.allow_register = allow_register
-    link.expiration_date = parsers.parse_datetime(expiration_date)
+    if data.allow_register.is_just:
+        link.allow_register = data.allow_register.value
+
+    link.expiration_date = data.expiration_date
     if link.expiration_date < helpers.get_request_start_time():
         helpers.add_warning(
             'The link has already expired.', APIWarnings.ALREADY_EXPIRED

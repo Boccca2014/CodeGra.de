@@ -4,6 +4,7 @@ import abc
 import copy
 import enum
 import json as _json
+import uuid
 import typing as t
 import datetime
 import contextlib
@@ -940,6 +941,33 @@ class Constraint(t.Generic[_T], _Parser[_T]):
 
 
 class RichValue:
+    class _UUID(_Transform[uuid.UUID, str]):
+        def __init__(self) -> None:
+            super().__init__(
+                SimpleValue(str), self.__transform_to_uuid, 'UUID'
+            )
+
+        def _to_open_api(self,
+                         schema: 'OpenAPISchema') -> t.Mapping[str, t.Any]:
+            return {
+                **self._parser.to_open_api(schema),
+                'format': 'uuid',
+            }
+
+        def __transform_to_uuid(self, value: str) -> uuid.UUID:
+            try:
+                return uuid.UUID(value)
+            except ValueError as exc:
+                raise SimpleParseError(
+                    self,
+                    value,
+                    extra={
+                        'message': "which can't be parsed as a valid uuid",
+                    },
+                ) from exc
+
+    UUID = _UUID()
+
     class _DateTime(_Transform[DatetimeWithTimezone, str]):
         def __init__(self) -> None:
             super().__init__(

@@ -37,9 +37,6 @@ from .extract_tree import (
     ExtractFileTreeDirectory, ExtractFileTreeSpecialFile
 )
 
-if t.TYPE_CHECKING:
-    import psef
-
 logger = structlog.get_logger()
 
 # Gestolen van Erik Kooistra

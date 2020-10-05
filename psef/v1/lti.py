@@ -23,15 +23,14 @@ from mypy_extensions import TypedDict
 from typing_extensions import Literal
 from pylti1p3.deep_link import DeepLink
 
+import cg_request_args as rqa
 from psef import app
 from cg_json import JSONResponse, jsonify
 from cg_helpers import assert_never
 from cg_dt_utils import DatetimeWithTimezone
 
 from . import api
-from .. import (
-    auth, errors, models, helpers, parsers, features, registry, exceptions
-)
+from .. import auth, errors, models, helpers, features, registry, exceptions
 from ..lti import LTIVersion
 from ..lti import v1_1 as lti_v1_1
 from ..lti import v1_3 as lti_v1_3
@@ -774,23 +773,23 @@ def deep_link_lti_assignment(deep_link_blob_id: uuid.UUID
         models.LTI1p3Provider, blob_json['lti_provider_id']
     )
 
-    with helpers.get_from_request_transaction() as [get, _]:
-        auth_token = get('auth_token', str)
-        name = get('name', str)
-        deadline_str = get('deadline', str)
+    # Docs are not needed here as this route is not part of the public API.
+    data = rqa.FixedMapping(
+        rqa.RequiredArgument('auth_token', rqa.SimpleValue(str), ''),
+        rqa.RequiredArgument('name', rqa.SimpleValue(str), ''),
+        rqa.RequiredArgument('deadline', rqa.RichValue.DateTime, ''),
+    ).from_flask()
 
-    if auth_token != blob_json['auth_token']:
+    if data.auth_token != blob_json['auth_token']:
         raise exceptions.PermissionException(
             'You did not provide the correct token to deep link an assignment',
-            f'The provided token {auth_token} is not correct',
+            f'The provided token {data.auth_token} is not correct',
             exceptions.APICodes.INCORRECT_PERMISSION, 403
         )
 
-    deadline = parsers.parse_datetime(deadline_str)
-
     dp_resource = lti_v1_3.CGDeepLinkResource.make(
-        lti_provider=provider, deadline=deadline
-    ).set_title(name)
+        lti_provider=provider, deadline=data.deadline
+    ).set_title(data.name)
     deep_link_settings = t.cast(t.Any, blob_json['deep_link_settings'])
     deep_link = DeepLink(
         lti_v1_3.CGRegistration(provider),

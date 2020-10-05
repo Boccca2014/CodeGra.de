@@ -74,10 +74,21 @@ class CourseRegistrationLink(Base, mixins.UUIDMixin, mixins.TimestampMixin):
         server_default='true'
     )
 
-    def __to_json__(self) -> t.Mapping[str, object]:
+    class AsJSON(TypedDict):
+        #: The id of this link
+        id: uuid.UUID
+        #: The moment this link will stop working
+        expiration_date: DatetimeWithTimezone
+        #: The role new users will get
+        role: 'psef.models.CourseRole'
+        #: Can users register with this link
+        allow_register: bool
+
+
+    def __to_json__(self) -> AsJSON:
         return {
-            'id': str(self.id),
-            'expiration_date': self.expiration_date.isoformat(),
+            'id': self.id,
+            'expiration_date': self.expiration_date,
             'role': self.course_role,
             'allow_register': self.allow_register,
         }

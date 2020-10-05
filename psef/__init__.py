@@ -232,9 +232,6 @@ def create_app(  # pylint: disable=too-many-statements
     from . import auth
     auth.init_app(resulting_app)
 
-    from . import parsers
-    parsers.init_app(resulting_app)
-
     from . import tasks
     tasks.init_app(resulting_app)
 

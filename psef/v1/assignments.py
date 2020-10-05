@@ -32,7 +32,7 @@ from cg_sqlalchemy_helpers import expression as sql_expression
 
 from . import api
 from .. import (
-    auth, tasks, ignore, models, helpers, linters, parsers, db_locks, features,
+    auth, tasks, ignore, models, helpers, linters, db_locks, features,
     registry, plagiarism
 )
 from ..permissions import CoursePermission as CPerm

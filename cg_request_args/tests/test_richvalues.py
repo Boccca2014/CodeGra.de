@@ -1,3 +1,4 @@
+import uuid
 from datetime import timedelta
 
 import pytest
@@ -102,4 +103,21 @@ def test_datetime(schema_mock):
     assert parser.to_open_api(schema_mock) == {
         'type': ('Convert', str),
         'format': 'date-time',
+    }
+
+
+
+def test_uuid(schema_mock):
+    parser = RichValue.UUID
+    val = uuid.uuid4()
+    assert parser.try_parse(str(val)) == val
+    assert parser.try_parse(val.hex) == val
+
+    with pytest.raises(SimpleParseError) as exc:
+        parser.try_parse('Not a uuid')
+    assert "which can't be parsed as a valid uuid" in str(exc.value)
+
+    assert parser.to_open_api(schema_mock) == {
+        'type': ('Convert', str),
+        'format': 'uuid',
     }

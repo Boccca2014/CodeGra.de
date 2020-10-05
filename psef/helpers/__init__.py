@@ -774,30 +774,6 @@ def _get_type_name(
         return typ.__name__
 
 
-def get_key_from_dict(
-    mapping: t.Mapping[T, object], key: T, default: TT
-) -> TT:
-    """Get a key from a mapping of a specific type.
-
-    :param mapping: The mapping to get the key from.
-    :param key: The key in the mapping.
-    :param default: The default value used if the key is not in the dict.
-    :returns: The found value of the given default.
-    :raises APIException: If the found value is of a different type than the
-        given default.
-    """
-    val = mapping.get(key, default)
-    if not isinstance(val, type(default)):
-        raise psef.errors.APIException(
-            f'The given object contains the wrong type for the key "{key}"', (
-                f'A value of type "{_get_type_name(type(default))} is'
-                f' required, but "{val}" was given, which is a'
-                f' "{_get_type_name(type(val))}"'
-            ), psef.errors.APICodes.MISSING_REQUIRED_PARAM, 400
-        )
-    return val
-
-
 class TransactionGet(Protocol[K]):
     """Protocol for a function to get something with a given type from a map.
     """
