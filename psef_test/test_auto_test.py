@@ -899,6 +899,7 @@ def test_run_auto_test(
         )
         thread.start()
         thread.join()
+        session.expire_all()
 
         with logged_in(teacher, yield_token=True) as token:
             response = requests.get(
@@ -1946,6 +1947,7 @@ def test_output_dir(
         )
         thread.start()
         thread.join()
+        session.expire_all()
 
         res = session.query(m.AutoTestResult).filter_by(work_id=work['id']
                                                         ).one().id
@@ -2335,6 +2337,7 @@ def test_continuous_rubric(
         )
         thread.start()
         thread.join()
+        session.expire_all()
 
     with describe('Rubric should be filled in correctly'), logged_in(teacher):
         rubric_result = test_client.req(
@@ -2465,6 +2468,7 @@ def test_runner_harakiri(
         )
         thread.start()
         thread.join()
+        session.expire_all()
 
         assert not t.run.runners
         assert runners_in_start.get()
@@ -2689,8 +2693,8 @@ def test_prefer_teacher_revision_option(
         )
         thread.start()
         thread.join()
-
         session.expire_all()
+
         res = session.query(m.AutoTestResult).filter_by(work_id=work['id']
                                                         ).one()
 
@@ -2786,6 +2790,7 @@ def test_running_old_submission(
         )
         thread.start()
         thread.join()
+        session.expire_all()
 
         assert session.query(
             m.AutoTestResult
@@ -2882,6 +2887,7 @@ def test_submission_info_env_vars(
         )
         thread.start()
         thread.join()
+        session.expire_all()
 
         res = session.query(m.AutoTestResult).filter_by(work_id=work['id']
                                                         ).one()
@@ -3026,6 +3032,7 @@ def test_update_step_attachment(
         )
         thread.start()
         thread.join()
+        session.expire_all()
 
         res = session.query(m.AutoTestResult).filter_by(
             work_id=work['id'],
