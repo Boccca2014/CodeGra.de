@@ -621,9 +621,8 @@ def test_update_auto_test(
                     data[key] = new_data.pop(key)
             data['json'] = (
                 io.BytesIO(
-                    json.dumps(
-                        {**new_data, 'has_new_fixtures': bool(data)}
-                    ).encode()
+                    json.dumps({**new_data, 'has_new_fixtures':
+                        bool(data)}).encode()
                 ), 'json'
             )
 
@@ -2654,15 +2653,12 @@ def test_prefer_teacher_revision_option(
 
     with describe('start_auto_test'):
         t = m.AutoTest.query.get(test['id'])
-        with logged_in(teacher), tempfile.NamedTemporaryFile() as f:
-            f.write(b'echo student\n')
-            f.flush()
-
+        with logged_in(teacher):
             work = helpers.create_submission(
                 test_client,
                 assig_id,
                 for_user=student.username,
-                submission_data=(f.name, 'script.sh'),
+                submission_data=(io.BytesIO(b'echo student\n'), 'script.sh'),
             )
 
             if with_teacher_revision:
@@ -2670,6 +2666,11 @@ def test_prefer_teacher_revision_option(
                     'get',
                     f'/api/v1/submissions/{work["id"]}/files/',
                     200,
+                    result={
+                        'entries': [{'name': 'script.sh', 'id': str}],
+                        'name': 'top',
+                        'id': str,
+                    },
                 )['entries'][0]['id']
                 test_client.req(
                     'patch',
@@ -2689,6 +2690,7 @@ def test_prefer_teacher_revision_option(
         thread.start()
         thread.join()
 
+        session.expire_all()
         res = session.query(m.AutoTestResult).filter_by(work_id=work['id']
                                                         ).one()
 
