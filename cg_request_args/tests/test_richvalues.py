@@ -18,10 +18,17 @@ from cg_request_args import RichValue, SimpleParseError
         (True, 'Thomas Schaper <valid@codegrade.com>, valid2@codegrade.com'),
     ]
 )
-def test_email_list(ok, value, maybe_raises):
+def test_email_list(ok, value, maybe_raises, schema_mock):
     parser = RichValue.EmailList
-    with maybe_raises(not ok, SimpleParseError):
+    with maybe_raises(not ok, SimpleParseError) as maybe_exc:
         parser.try_parse(value)
+
+    if not ok:
+        exc = maybe_exc.value
+        if isinstance(value, str):
+            assert 'A str as email list' in str(exc)
+
+    assert parser.to_open_api(schema_mock) == {'type': ('Convert', str)}
 
 
 @pytest.mark.parametrize(
@@ -38,8 +45,14 @@ def test_email_list(ok, value, maybe_raises):
 )
 def test_number_gte(ok, value, minimum, maybe_raises, schema_mock):
     parser = RichValue.NumberGte(minimum)
-    with maybe_raises(not ok, SimpleParseError):
+    with maybe_raises(not ok, SimpleParseError) as maybe_exc:
         parser.try_parse(value)
+    if not ok:
+        exc = maybe_exc.value
+        if isinstance(value, int):
+            assert 'An int larger than {}'.format(minimum) in str(exc)
+        else:
+            assert 'An int is required, but got' in str(exc)
 
     assert parser.to_open_api(schema_mock) == {
         'type': ('Convert', int),
@@ -82,3 +95,6 @@ def test_datetime():
         parser.try_parse('now')
     with pytest.raises(SimpleParseError) as exc:
         parser.try_parse('yesterday')
+    assert str(
+        exc.value
+    ).startswith("A DateTime as str is required, but got 'yesterday'")

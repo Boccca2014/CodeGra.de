@@ -22,7 +22,12 @@ def pytest_addoption(parser):
 
 @pytest.fixture
 def maybe_raises():
-    yield lambda raises, exc: pytest.raises(exc) if raises else nullcontext()
+    def fun(raises, exc):
+        if raises:
+            return pytest.raises(exc)
+        return nullcontext()
+
+    yield fun
 
 
 @pytest.fixture

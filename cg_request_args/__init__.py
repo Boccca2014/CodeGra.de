@@ -87,7 +87,7 @@ _SWAGGER_FUNCS: t.Dict[str, _SwaggerFunc] = {}
 def swaggerize(operation_name: str, *,
                no_data: bool = False) -> t.Callable[[_T_CAL], _T_CAL]:
     def __wrapper(func: _T_CAL) -> _T_CAL:
-        if func.__name__ in _SWAGGER_FUNCS:
+        if func.__name__ in _SWAGGER_FUNCS:  # pragma: no cover
             raise AssertionError(
                 'The function {} was already registered.'.format(
                     func.__name__
@@ -198,7 +198,8 @@ class MultipleParseErrors(_ParseError):
 
     def _to_str(self) -> str:
         res = super()._to_str()
-        if not self.errors:
+        if not self.errors:  # pragma: no cover
+            # In this case you shouldn't really use this class.
             return res
         reasons = readable_join([err._to_str() for err in self.errors])
         return f'{res}, which is incorrect because {reasons}'
@@ -282,7 +283,7 @@ class _Parser(t.Generic[_T_COV]):
             logger.info(
                 'JSON request processed',
                 request_data='<FILTERED>',
-                request_data_type=type(json),
+                request_data_type=_type_to_name(type(json)),
             )
 
         try:
@@ -381,13 +382,14 @@ _TYPE_NAME_LOOKUP = {
     int: 'int',
     dict: 'mapping',
     list: 'list',
+    type(None): 'null'
 }
 
 
 def _type_to_name(typ: t.Type) -> str:
     if typ in _TYPE_NAME_LOOKUP:
         return _TYPE_NAME_LOOKUP[typ]
-    return str(typ)
+    return str(typ)  # pragma: no cover
 
 
 class AnyValue(_Parser[t.Any]):
@@ -803,7 +805,7 @@ class BaseFixedMapping(
                 else:
                     res = res | cls.__from_python_type(item)
             if has_none:
-                return Nullable(res)
+                res = Nullable(res)
             return res
         elif origin == Literal:
             return StringEnum(*typ.__args__)
@@ -815,7 +817,7 @@ class BaseFixedMapping(
             return LookupMapping(cls.__from_python_type(value))
         elif typ == t.Any:
             return AnyValue()
-        else:
+        else:  # pragma: no cover
             raise AssertionError(f'Could not convert: {typ}')
 
     @classmethod

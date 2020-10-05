@@ -53,6 +53,7 @@ def test_rich_union(schema_mock):
 
     with pytest.raises(MultipleParseErrors) as err:
         parser1.try_parse([1, 'str'])
+    assert 'Union[List[int], List[str]] is required' in str(err.value)
 
     assert parser2.try_parse([1, 'str']) == [1, 'str']
 

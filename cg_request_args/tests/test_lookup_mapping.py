@@ -12,7 +12,7 @@ def test_non_dict():
         mapping.try_parse('NOT A DICT')
 
 
-def test_simple_mapping():
+def test_simple_mapping(schema_mock):
     mapping = LookupMapping(SimpleValue(str))
 
     inp = {'5': 'a key'}
@@ -31,6 +31,10 @@ def test_simple_mapping():
         mapping.try_parse({'5': 'a key', 'wrong': None})
     assert len(exc.value.errors) == 1
     assert 'None' in str(exc.value)
+
+    assert mapping.to_open_api(schema_mock) == {
+        'type': 'object', 'additionalProperties': {'type': ('Convert', str)}
+    }
 
 
 def test_compound_values():
