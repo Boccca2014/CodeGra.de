@@ -1,5 +1,8 @@
+from datetime import timedelta
+
 import pytest
 
+from cg_dt_utils import DatetimeWithTimezone
 from cg_request_args import RichValue, SimpleParseError
 
 
@@ -48,3 +51,24 @@ def test_password():
     assert '5' not in str(exc.value)
 
     assert parser.try_parse('hunter2') == 'hunter2'
+
+
+def test_datetime():
+    parser = RichValue.DateTime
+    now = DatetimeWithTimezone.utcnow()
+    assert parser.try_parse(now.isoformat()) == now
+    assert parser.try_parse(now.isoformat().replace('+00:00', 'Z')) == now
+
+    assert (
+        parser.try_parse(
+            now.isoformat().replace('+00:00', '+01:00'),
+        ) == now - timedelta(hours=1)
+    )
+
+    with pytest.raises(SimpleParseError) as exc:
+        parser.try_parse('2020-10-02 0')
+    assert "which can't be parsed as a valid datetime" in str(exc.value)
+    with pytest.raises(SimpleParseError) as exc:
+        parser.try_parse('now')
+    with pytest.raises(SimpleParseError) as exc:
+        parser.try_parse('yesterday')
