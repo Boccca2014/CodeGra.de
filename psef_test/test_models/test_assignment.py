@@ -1,6 +1,8 @@
 from datetime import datetime, timedelta
 
-from psef import helpers
+import pytest
+
+from psef import helpers, exceptions
 from psef.models import Course, Assignment
 
 
@@ -29,3 +31,16 @@ def test_eq_of_assignment():
     assert make() != object()
     assert make(id=5) != make(id=6)
     assert make(id=5) == make(id=5)
+
+
+def test_update_cgignore_invalid():
+    course = Course(id=5)
+    a = Assignment(deadline=None, is_lti=False, course=course)
+    with pytest.raises(exceptions.APIException):
+        a.update_cgignore('invalid', 'err')
+
+    with pytest.raises(exceptions.APIException):
+        a.update_cgignore('IgnoreFilterManager', ['not a string'])
+
+    with pytest.raises(exceptions.APIException):
+        a.update_cgignore('SubmissionValidator', 'not a dict')

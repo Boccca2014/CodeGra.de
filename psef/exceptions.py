@@ -182,16 +182,3 @@ class InvalidStateException(Exception):
     def __init__(self, reason: str) -> None:
         super().__init__(self, reason)
         self.reason = reason
-
-
-class InvalidAssignmentState(APIException):
-    """Exception used to signal the assignment state is invalid.
-    """
-
-    def __init__(self, state: str) -> None:
-        super().__init__(
-            'The selected state is not valid',
-            'The state {} is not a valid state'.format(state),
-            APICodes.INVALID_PARAM, 400
-        )
-        self._state = state

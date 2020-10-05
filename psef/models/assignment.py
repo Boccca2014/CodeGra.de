@@ -27,6 +27,7 @@ import psef
 import cg_enum
 import cg_cache
 import cg_maybe
+import cg_request_args
 import cg_sqlalchemy_helpers
 from cg_helpers import (
     humanize, handle_none, on_not_none, zip_times_with_offset
@@ -56,8 +57,7 @@ from .. import auth, ignore, helpers, signals, db_locks
 from .role import CourseRole
 from .permission import Permission, PermissionComp
 from ..exceptions import (
-    APICodes, APIWarnings, APIException, PermissionException,
-    InvalidAssignmentState
+    APICodes, APIWarnings, APIException, PermissionException
 )
 from .link_tables import user_course, users_groups, course_permissions
 from ..permissions import CoursePermission as CPerm
@@ -2230,13 +2230,8 @@ class Assignment(helpers.NotEqualMixin, Base):  # pylint: disable=too-many-publi
         :param state: The new state, can be 'hidden', 'done' or 'open'
         :returns: Nothing
         """
-        try:
-            new_state = AssignmentStateEnum[state]
-        except KeyError as exc:
-            raise InvalidAssignmentState(
-                f'{state} is not a valid state'
-            ) from exc
-
+        new_state = cg_request_args.EnumValue(AssignmentStateEnum
+                                              ).try_parse(state)
         self.state = new_state
 
     def get_amount_users_with_submission(self) -> int:
