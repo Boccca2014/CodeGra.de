@@ -801,11 +801,23 @@ class BaseFixedMapping(
         elif origin == t.Union:
             args = typ.__args__
             res = cls.__from_python_type(typ.__args__[0])
+            has_none = False
             for item in typ.__args__[1:]:
-                res = res | cls.__from_python_type(item)
+                if item == type(None):
+                    has_none = True
+                else:
+                    res = res | cls.__from_python_type(item)
+            if has_none:
+                return Nullable(res)
             return res
         elif origin == Literal:
             return StringEnum(*typ.__args__)
+        elif origin == dict:
+            key, value = typ.__args__
+            assert key == str, (
+                'Only mappings with strings as keys are supported'
+            )
+            return LookupMapping(cls.__from_python_type(value))
         elif typ == t.Any:
             return AnyValue()
         else:
