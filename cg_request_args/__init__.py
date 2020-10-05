@@ -24,7 +24,7 @@ from cg_dt_utils import DatetimeWithTimezone
 
 logger = structlog.get_logger()
 
-if t.TYPE_CHECKING:
+if t.TYPE_CHECKING:  # pragma: no cover
     # pylint: disable=unused-import
     from .open_api import OpenAPISchema
 
@@ -1054,7 +1054,7 @@ class MultipartUpload(t.Generic[_T]):
             if self.__multiple:
                 file_type = {
                     'type': 'array',
-                    'items': {**file_type},
+                    'items': file_type,
                 }
             raise _Schema(
                 typ='multipart/form-data',
@@ -1086,7 +1086,12 @@ class MultipartUpload(t.Generic[_T]):
                 if key != self.__file_key and key.startswith(self.__file_key):
                     files.append(f)
         else:
-            files = flask.request.files.get(self.__file_key, default=[])
+            single_file = flask.request.files.get(
+                self.__file_key, default=None
+            )
+            files = []
+            if single_file is not None:
+                files = [single_file]
 
         files = [f for f in files if f.filename]
         return result, files
