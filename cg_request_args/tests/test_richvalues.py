@@ -76,7 +76,7 @@ def test_password(schema_mock):
     }
 
 
-def test_datetime():
+def test_datetime(schema_mock):
     parser = RichValue.DateTime
     now = DatetimeWithTimezone.utcnow()
     assert parser.try_parse(now.isoformat()) == now
@@ -98,3 +98,8 @@ def test_datetime():
     assert str(
         exc.value
     ).startswith("A DateTime as str is required, but got 'yesterday'")
+
+    assert parser.to_open_api(schema_mock) == {
+        'type': ('Convert', str),
+        'format': 'date-time',
+    }

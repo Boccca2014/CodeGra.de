@@ -382,7 +382,7 @@ _TYPE_NAME_LOOKUP = {
     int: 'int',
     dict: 'mapping',
     list: 'list',
-    type(None): 'null'
+    type(None): 'null',
 }
 
 
@@ -889,7 +889,7 @@ class LookupMapping(t.Generic[_T], _Parser[t.Mapping[str, _T]]):
 
 
 class _Transform(t.Generic[_T, _Y], _Parser[_T]):
-    __slots__ = ('__parser', '__transform', '__transform_name')
+    __slots__ = ('_parser', '__transform', '__transform_name')
 
     def __init__(
         self,
@@ -898,15 +898,15 @@ class _Transform(t.Generic[_T, _Y], _Parser[_T]):
         transform_name: str,
     ):
         super().__init__()
-        self.__parser = parser
+        self._parser = parser
         self.__transform = transform
         self.__transform_name = transform_name
 
     def describe(self) -> str:
-        return f'{self.__transform_name} as {self.__parser.describe()}'
+        return f'{self.__transform_name} as {self._parser.describe()}'
 
     def try_parse(self, value: object) -> _T:
-        res = self.__parser.try_parse(value)
+        res = self._parser.try_parse(value)
         return self.__transform(res)
 
 
@@ -949,7 +949,7 @@ class RichValue:
         def _to_open_api(self,
                          schema: 'OpenAPISchema') -> t.Mapping[str, t.Any]:
             return {
-                'type': 'string',
+                **self._parser.to_open_api(schema),
                 'format': 'date-time',
             }
 
