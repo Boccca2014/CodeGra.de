@@ -517,7 +517,7 @@ class StringEnum(t.Generic[_T], _Parser[_T]):
         self.__opts = opts
 
     def describe(self) -> str:
-        return 'Enum[{}]'.format(', '.join(self.__opts))
+        return 'Enum[{}]'.format(', '.join(map(repr, self.__opts)))
 
     def _to_open_api(self, schema: 'OpenAPISchema') -> t.Mapping[str, t.Any]:
         return {
@@ -569,11 +569,10 @@ class _RichUnion(t.Generic[_T, _Y], _Parser[t.Union[_T, _Y]]):
             try:
                 return self.__second.try_parse(value)
             except _ParseError as second_err:
-                raise SimpleParseError(
-                    # TODO: Set extra
+                raise MultipleParseErrors(  # pylint: disable=raise-missing-from
                     self,
                     value,
-                    extra={}
+                    errors=[first_err, second_err]
                 )
 
 

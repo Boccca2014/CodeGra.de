@@ -1,6 +1,8 @@
 import pytest
 
-from cg_request_args import List, SimpleValue, SimpleParseError, _SimpleUnion
+from cg_request_args import (
+    List, SimpleValue, SimpleParseError, MultipleParseErrors, _SimpleUnion
+)
 
 
 def test_simple_union():
@@ -36,3 +38,17 @@ def test_larger_simple_union():
     assert parser.try_parse(5) == 5.0
     assert parser.try_parse(10.1) == 10.1
     assert parser.try_parse(True) is True
+
+
+def test_rich_union():
+    parser1 = List(SimpleValue(int)) | List(SimpleValue(str))
+    parser2 = List(SimpleValue(int) | SimpleValue(str))
+
+    for p in [parser1, parser2]:
+        p.try_parse([1, 2]) == [1, 2]
+        p.try_parse(['str', 'str']) == ['str', 'str']
+
+    with pytest.raises(MultipleParseErrors) as err:
+        parser1.try_parse([1, 'str'])
+
+    parser2.try_parse([1, 'str']) == [1, 'str']
