@@ -44,6 +44,7 @@ class _CourseModule:
         import codegrade.api.course as course
 
         self.get_all = wraps(course.get_all)(partial(course.get_all, client=client))
+        self.put_enroll_link = wraps(course.put_enroll_link)(partial(course.put_enroll_link, client=client))
         self.get_group_sets = wraps(course.get_group_sets)(partial(course.get_group_sets, client=client))
         self.get_snippets = wraps(course.get_snippets)(partial(course.get_snippets, client=client))
         self.delete_role = wraps(course.delete_role)(partial(course.delete_role, client=client))

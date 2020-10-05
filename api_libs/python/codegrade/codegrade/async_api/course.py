@@ -13,9 +13,11 @@ from typing import Dict, cast
 
 from ..models.base_error import BaseError
 from ..models.course_as_extended_json import CourseAsExtendedJSON
+from ..models.course_registration_link_as_json import CourseRegistrationLinkAsJSON
 from ..models.course_snippet_as_json import CourseSnippetAsJSON
 from ..models.group_set_as_json import GroupSetAsJSON
 from ..models.patch_course_data import PatchCourseData
+from ..models.put_enroll_link_course_data import PutEnrollLinkCourseData
 
 
 async def get_all(
@@ -41,6 +43,45 @@ async def get_all(
 
     if response_code_matches(response.status_code, 200):
         return [CourseAsExtendedJSON.from_dict(item) for item in cast(List[Dict[str, Any]], response.json())]
+    if response_code_matches(response.status_code, 400):
+        return BaseError.from_dict(cast(Dict[str, Any], response.json()))
+    if response_code_matches(response.status_code, 409):
+        return BaseError.from_dict(cast(Dict[str, Any], response.json()))
+    if response_code_matches(response.status_code, 401):
+        return BaseError.from_dict(cast(Dict[str, Any], response.json()))
+    if response_code_matches(response.status_code, 403):
+        return BaseError.from_dict(cast(Dict[str, Any], response.json()))
+    if response_code_matches(response.status_code, "5XX"):
+        return BaseError.from_dict(cast(Dict[str, Any], response.json()))
+    else:
+        raise ApiResponseError(response=response)
+
+
+async def put_enroll_link(
+    *, client: "Client", course_id: "int", json_body: PutEnrollLinkCourseData,
+) -> Union[
+    CourseRegistrationLinkAsJSON,
+]:
+
+    """  """
+    url = "{}/api/v1/courses/{courseId}/registration_links/".format(client.base_url, courseId=course_id,)
+
+    headers: Dict[str, Any] = client.get_headers()
+
+    params: Dict[str, Any] = {
+        "no_course_in_assignment": "true",
+        "no_role_name": "true",
+        "no_assignment_in_case": "true",
+        "extended": "true",
+    }
+
+    json_json_body = maybe_to_dict(json_body)
+
+    async with httpx.AsyncClient() as _client:
+        response = await _client.put(url=url, headers=headers, json=json_json_body,)
+
+    if response_code_matches(response.status_code, 200):
+        return CourseRegistrationLinkAsJSON.from_dict(cast(Dict[str, Any], response.json()))
     if response_code_matches(response.status_code, 400):
         return BaseError.from_dict(cast(Dict[str, Any], response.json()))
     if response_code_matches(response.status_code, 409):

@@ -1,6 +1,7 @@
 """ Contains all the data models used in inputs/outputs """
 
 from ._fixture_like import _FixtureLike
+from .abstract_role_as_json import AbstractRoleAsJSON
 from .api_codes import APICodes
 from .assignment_as_json import AssignmentAsJSON
 from .assignment_done_type import AssignmentDoneType
@@ -25,6 +26,8 @@ from .copy_auto_test_data import CopyAutoTestData
 from .copy_rubric_assignment_data import CopyRubricAssignmentData
 from .course_as_extended_json import CourseAsExtendedJSON
 from .course_as_json import CourseAsJSON
+from .course_registration_link_as_json import CourseRegistrationLinkAsJSON
+from .course_role_as_json import CourseRoleAsJSON
 from .course_snippet_as_json import CourseSnippetAsJSON
 from .course_state import CourseState
 from .create_auto_test_data import CreateAutoTestData
@@ -53,6 +56,7 @@ from .patch_assignment_data import PatchAssignmentData
 from .patch_auto_test_data import PatchAutoTestData
 from .patch_course_data import PatchCourseData
 from .policy import Policy
+from .put_enroll_link_course_data import PutEnrollLinkCourseData
 from .put_rubric_assignment_data import PutRubricAssignmentData
 from .result_data_get_auto_test_get import ResultDataGetAutoTestGet
 from .result_data_post_user_login import ResultDataPostUserLogin
