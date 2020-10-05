@@ -673,7 +673,10 @@ class _DictGetter(t.Generic[_BASE_DICT]):
         self.__data = data
 
     def __getattr__(self, key: str) -> object:
-        return self.__data[key]
+        try:
+            return self.__data[key]
+        except KeyError:
+            return super().__getattribute__(key)
 
 
 _T_FIXED_MAPPING = t.TypeVar('_T_FIXED_MAPPING', bound='BaseFixedMapping')
