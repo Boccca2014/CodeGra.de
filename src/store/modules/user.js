@@ -4,7 +4,6 @@ import axios from 'axios';
 import jwtDecode from 'jwt-decode';
 
 import { store } from '@/store';
-import * as api from '@/api/v1';
 import * as utils from '@/utils';
 import * as types from '../mutation-types';
 
@@ -49,8 +48,6 @@ const getters = {
         }
         return utils.Maybe.fromNullable(store.getters['users/getUser'](myId));
     },
-    uiPrefs: state => state.uiPrefs,
-    getUIPref: state => name => state.uiPrefs.map(prefs => prefs[name]).join(),
 };
 
 const actions = {
@@ -181,31 +178,6 @@ const actions = {
             .then(() => commit(types.SET_ACCESS_TOKEN, newToken))
             .then(() => dispatch('verifyLogin'));
     },
-
-    loadUIPreferences({ state, commit }) {
-        if (state.id === 0) {
-            return Promise.resolve();
-        }
-
-        if (state.uiPrefs.isJust()) {
-            return Promise.resolve(state.uiPrefs);
-        }
-
-        return api.user.getUIPreferences().then(res => {
-            commit(types.UPDATE_UI_PREFS, res.data);
-            return res;
-        });
-    },
-
-    patchUIPreference({ commit }, { name, value }) {
-        return api.user.patchUIPreference(name, value).then(res => {
-            res.onAfterSuccess = r => {
-                commit(types.UPDATE_UI_PREF, { name, value });
-                return r;
-            };
-            return res;
-        });
-    },
 };
 
 const mutations = {
@@ -238,7 +210,6 @@ const mutations = {
         state.jwtToken = null;
         state.username = null;
         state.permissions = null;
-        state.uiPrefs = utils.Nothing;
         setUser(null);
     },
 
@@ -270,17 +241,6 @@ const mutations = {
     [types.CLEAR_CACHE](state) {
         state.snippets = UNLOADED_SNIPPETS;
     },
-
-    [types.UPDATE_UI_PREFS](state, prefs) {
-        state.uiPrefs = utils.Just(prefs);
-    },
-
-    [types.UPDATE_UI_PREF](state, { name, value }) {
-        state.uiPrefs = state.uiPrefs.map(prefs => {
-            prefs[name] = utils.Just(value);
-            return prefs;
-        });
-    },
 };
 
 export default {
@@ -294,7 +254,6 @@ export default {
         permissions: null,
         canSeeHidden: false,
         username: '',
-        uiPrefs: utils.Nothing,
     },
     getters,
     actions,

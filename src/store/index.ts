@@ -24,6 +24,7 @@ export { FeedbackStore } from './modules/feedback';
 export { PeerFeedbackStore } from './modules/peer_feedback';
 export { AssignmentsStore } from './modules/assignments';
 export { CoursesStore } from './modules/courses';
+export { UIPrefsStore } from './modules/ui_prefs';
 
 Vue.use(Vuex);
 

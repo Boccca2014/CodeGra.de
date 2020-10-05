@@ -22,8 +22,8 @@ export default tsx.component({
     },
 
     render(h, { props }) {
-        return <comp.PreferredUI prefName={api.user.UIPreference.RubricEditorV2}
-                                 componentName="rubric editor">
+        return <comp.PreferredUI prefName={models.UIPreference.RubricEditorV2}
+                                 componentName="rubric interface">
             <template slot="ifUnset">
                 {utils.ifExpr(
                     props.editable,

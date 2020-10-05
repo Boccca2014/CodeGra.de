@@ -6,14 +6,16 @@ import { modifiers as m } from 'vue-tsx-support';
 // @ts-ignore
 import * as comp from '@/components';
 import * as api from '@/api/v1';
+import * as types from '@/types';
 import * as utils from '@/utils';
-import { store } from '@/store';
+import * as models from '@/models';
+import { store, UIPrefsStore } from '@/store';
 
 export default tsx.component({
     name: 'preferred-ui',
 
     props: {
-        prefName: p.ofType<api.user.UIPreference>().required,
+        prefName: p.ofType<models.UIPreference>().required,
         componentName: p(String).required,
         defaultValue: p(Boolean).default(false),
     },
@@ -30,12 +32,12 @@ export default tsx.component({
             return store.getters['user/id'];
         },
 
-        allPrefs(): utils.Maybe<api.user.UIPreferenceMap> {
-            return store.getters['user/uiPrefs'];
+        allPrefs(): utils.Maybe<models.UIPreferenceMap> {
+            return UIPrefsStore.uiPrefs();
         },
 
         prefValue(): utils.Maybe<boolean> {
-            return store.getters['user/getUIPref'](this.prefName);
+            return UIPrefsStore.getUIPref()(this.prefName);
         },
     },
 
@@ -43,7 +45,7 @@ export default tsx.component({
         userId: {
             immediate: true,
             handler() {
-                store.dispatch('user/loadUIPreferences').then(
+                store.dispatch('ui_prefs/loadUIPreferences').then(
                     () => { this.error = utils.Nothing; },
                     err => { this.error = err; },
                 );
@@ -101,7 +103,7 @@ export default tsx.component({
 
             const renderLabel = () =>
                 <template slot="label">
-                    {utils.capitalize(compName)} interface
+                    {utils.capitalize(compName)}
                     {utils.ifOrEmpty(
                         this.updating,
                         () => <comp.Loader class="d-inline-block ml-2" scale={1} />
@@ -129,7 +131,7 @@ export default tsx.component({
 
                     <b-form-group
                         class="mb-0"
-                        description={`You can switch between the old ${compName} and the new ${compName} here.`}>
+                        description={`You can switch between the old and the new ${compName} here.`}>
                         {renderLabel()}
                         {renderSelect()}
                     </b-form-group>
@@ -139,7 +141,7 @@ export default tsx.component({
 
         updatePreference(value: boolean) {
             this.updating = true;
-            return store.dispatch('user/patchUIPreference', {
+            return UIPrefsStore.patchUIPreference({
                 name: this.prefName,
                 value,
             }).then(
@@ -147,14 +149,20 @@ export default tsx.component({
                     this.updating = false;
                     return res;
                 },
-                () => { this.updating = false },
-            );
+                err => {
+                    this.updating = false
+                    throw err;
+                },
+            ) as Promise<types.APIResponse<null>>;
         },
 
         togglePreference() {
             return this.prefValue.caseOf({
                 Just: value => this.updatePreference(!value).then(res => {
-                    res.onAfterSuccess();
+                    const afterSuccess = res.onAfterSuccess;
+                    if (afterSuccess != null) {
+                        afterSuccess(res);
+                    }
                     return res;
                 }),
                 Nothing: () => Promise.reject(new Error('No value set.')),

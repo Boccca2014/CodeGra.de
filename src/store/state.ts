@@ -5,6 +5,7 @@ import { AssignmentState } from './modules/assignments';
 import { FeedbackState } from './modules/feedback';
 import { GradersState } from './modules/graders';
 import { PeerFeedbackState } from './modules/peer_feedback';
+import { UIPrefsState } from './modules/ui_prefs';
 
 export interface RootState {
     notification: NotificationState;
@@ -14,6 +15,7 @@ export interface RootState {
     graders: GradersState;
     // eslint-disable-next-line camelcase
     peer_feedback: PeerFeedbackState;
+    ui_prefs: UIPrefsState;
 
     submissions: any;
     user: any;
