@@ -66,9 +66,9 @@ export default tsx.component({
 
     methods: {
         renderError(h: CreateElement): VNode {
-            return utils.ifOrEmpty(
-                this.error.isJust(),
-                () => <comp.CgError error={this.error.unsafeCoerce()} />,
+            return utils.ifJustOrEmpty(
+                this.error,
+                e => <comp.CgError error={e} />,
             );
         },
 
