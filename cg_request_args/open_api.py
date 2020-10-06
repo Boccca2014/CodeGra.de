@@ -17,7 +17,6 @@ from enum import Enum, EnumMeta
 from collections import OrderedDict, defaultdict
 
 import flask
-import pypandoc
 import sphinx.pycode
 from typing_extensions import Literal, TypedDict
 
@@ -110,6 +109,11 @@ class OpenAPISchema:
         if self._no_pandoc:
             return comment.strip()
         else:
+            # This module is only needed when generating the open API with
+            # swagger transforms enabled. However as we don't want to always
+            # install it (as it is not needed for normal deploys) pylint and
+            # isort will complain if we import it toplevel.
+            import pypandoc  # pylint: disable=import-error,import-outside-toplevel
             res = pypandoc.convert_text(
                 comment,
                 'markdown_strict',
