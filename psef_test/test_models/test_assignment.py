@@ -44,3 +44,25 @@ def test_update_cgignore_invalid():
 
     with pytest.raises(exceptions.APIException):
         a.update_cgignore('SubmissionValidator', 'not a dict')
+
+
+def test_update_amount_in_cool_off_period_invalid():
+    course = Course(id=5)
+    a = Assignment(deadline=None, is_lti=False, course=course)
+    with pytest.raises(exceptions.APIException):
+        a.amount_in_cool_off_period = 0
+
+    with pytest.raises(exceptions.APIException):
+        a.amount_in_cool_off_period = -1
+
+    a.amount_in_cool_off_period = 1
+
+
+def test_max_submissions_invalid():
+    course = Course(id=5)
+    a = Assignment(deadline=None, is_lti=False, course=course)
+    with pytest.raises(exceptions.APIException):
+        a.max_submissions = 0
+
+    with pytest.raises(exceptions.APIException):
+        a.max_submissions = -1
