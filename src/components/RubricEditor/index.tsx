@@ -44,25 +44,28 @@ export default tsx.component({
                             <li>Reordering rubric categories.</li>
                             <li>Previewing markdown descriptions.</li>
                         </ul>
-
-                        <p>
-                            You can keep using the old version, but it will be
-                            removed in a couple of months. Do you want to try
-                            out the new version?
-                        </p>
-
-                        <p>
-                            After making a decision you can switch freely
-                            between the new and old versions at the bottom of
-                            this page.
-                        </p>
                     </div>,
                     () => <p>
-                        This is the new rubric interface! The new interface gives
-                        a better overview of the rubric categories and the points
-                        that can be achieved per category.
+                        A new version of the rubric overview is available!
+                        In the new overview it is easier to see how the
+                        points that you can achieve are distributed across
+                        the rubric and you can inspect multiple categories
+                        at the same time.
                     </p>,
                 )}
+
+                <p>
+                    To not distract you too much, you can keep using the old
+                    version for now, but it will be removed in a couple of
+                    months. You can try the new version by clicking "Yes"
+                    below.
+                </p>
+
+                <p>
+                    After making a decision you can switch freely between the
+                    new and old versions at the bottom of this page. Do you
+                    want to try out the new version?
+                </p>
             </template>
 
             <RubricEditorV2
