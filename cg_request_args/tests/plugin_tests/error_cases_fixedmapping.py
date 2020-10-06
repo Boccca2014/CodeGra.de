@@ -7,8 +7,8 @@ from cg_request_args import (
 )
 
 FixedMapping(  # E:r Key 'a' was already present, but given again as argument 2\..*
-    RequiredArgument('a', SimpleValue(int), ''),
-    RequiredArgument('a', SimpleValue(int), ''),
+    RequiredArgument('a', SimpleValue.int, ''),
+    RequiredArgument('a', SimpleValue.int, ''),
 )
 
 arg: RequiredArgument[int, Literal[5]] = ...  # type: ignore
@@ -26,10 +26,10 @@ FixedMapping(  # E:r Argument 1 was an "Any" which is not allowed as an argument
 
 non_literal = 'hell' + 'o'
 RequiredArgument(  # E:r The key to the _Argument constructor should be a literal.*
-    non_literal, SimpleValue(str), ''
+    non_literal, SimpleValue.str, ''
 )
 
-map1 = FixedMapping(RequiredArgument('b', SimpleValue(str), ''))
+map1 = FixedMapping(RequiredArgument('b', SimpleValue.str, ''))
 map1.add_tag(  # E:r The key to FixedMapping.add_tag should be a literal.*
     non_literal, 'literal'
 )

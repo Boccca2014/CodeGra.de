@@ -192,6 +192,8 @@ class FileMixin(t.Generic[T]):
         self._get_deleter()()
 
     class AsJSON(TypedDict):
+        """The base JSON representation of a file.
+        """
         #: The id of this file
         id: str
         #: The local name of this file, this does **not** include any parent
@@ -215,7 +217,7 @@ class FileMixin(t.Generic[T]):
                 for c in cache[self.get_id()]
             ]
         return psef.files.FileTree(
-            name=self.name, id=self.get_id(), entries=entries
+            name=self.name, file_id=self.get_id(), entries=entries
         )
 
 
@@ -374,10 +376,14 @@ class NestedFileMixin(FileMixin[T]):
                 child._restore_directory_structure(out, cache)  # pylint: disable=protected-access
                 for child in cache[self.get_id()]
             ]
-            return FileTree(name=self.name, id=self.get_id(), entries=subtree)
+            return FileTree(
+                name=self.name, file_id=self.get_id(), entries=subtree
+            )
         else:  # this is a file
             backing_file.value.save_to_disk(out)
-            return FileTree(name=self.name, id=self.get_id(), entries=None)
+            return FileTree(
+                name=self.name, file_id=self.get_id(), entries=None
+            )
 
 
 class File(NestedFileMixin[int], Base):
@@ -576,6 +582,8 @@ class File(NestedFileMixin[int], Base):
         self.name = new_name
 
     class AsJSON(FileMixin.AsJSON, TypedDict):
+        """A file as JSON.
+        """
         #: Is this file a directory or a normal file.
         is_directory: bool
 
@@ -634,6 +642,8 @@ class AutoTestFixture(FileMixin[int], TimestampMixin, Base):
     )
 
     class AsJSON(FileMixin.AsJSON, TypedDict):
+        """The fixture as JSON.
+        """
         #: Is this fixture hidden.
         hidden: bool
 

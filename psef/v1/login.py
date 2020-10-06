@@ -64,7 +64,7 @@ def login(
         rqa.FixedMapping(
             rqa.RequiredArgument(
                 'username',
-                rqa.SimpleValue(str),
+                rqa.SimpleValue.str,
                 'Your username',
             ),
             rqa.RequiredArgument(
@@ -78,7 +78,7 @@ def login(
         rqa.FixedMapping(
             rqa.RequiredArgument(
                 'username',
-                rqa.SimpleValue(str),
+                rqa.SimpleValue.str,
                 'The username of the user you want to impersonate',
             ),
             rqa.RequiredArgument(

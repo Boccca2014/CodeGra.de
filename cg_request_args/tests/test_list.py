@@ -6,7 +6,7 @@ from cg_request_args import (
 
 
 def test_list():
-    parser = List(SimpleValue(str))
+    parser = List(SimpleValue.str)
 
     assert parser.try_parse([]) == []
     assert parser.try_parse(['str']) == ['str']

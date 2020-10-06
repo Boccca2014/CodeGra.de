@@ -3,7 +3,6 @@ APIs are used to create, start, and request information about AutoTests.
 
 SPDX-License-Identifier: AGPL-3.0-only
 """
-import json
 import typing as t
 
 import flask
@@ -18,16 +17,15 @@ from cg_json import (
     JSONResponse, ExtendedJSONResponse, MultipleExtendedJSONResponse, jsonify,
     extended_jsonify
 )
-from cg_maybe import Just, Maybe
+from cg_maybe import Maybe
 
 from . import api
 from .. import app, auth, files, tasks, models, helpers, registry, exceptions
 from ..models import db
 from ..helpers import (
-    EmptyResponse, get_or_404, add_warning, jsonify_options, ensure_json_dict,
-    make_empty_response, filter_single_or_404, get_files_from_request,
-    get_from_map_transaction, get_json_dict_from_request,
-    callback_after_this_request
+    EmptyResponse, get_or_404, add_warning, jsonify_options,
+    make_empty_response, filter_single_or_404, get_from_map_transaction,
+    get_json_dict_from_request, callback_after_this_request
 )
 from ..features import Feature, feature_required
 from ..exceptions import APICodes, APIWarnings, APIException
@@ -86,26 +84,26 @@ class _FixtureLike(TypedDict):
 
 _ATUpdateMap = rqa.FixedMapping(
     rqa.OptionalArgument(
-        'setup_script', rqa.SimpleValue(str),
+        'setup_script', rqa.SimpleValue.str,
         'The new setup script (per student) of the auto test.'
     ),
     rqa.OptionalArgument(
-        'run_setup_script', rqa.SimpleValue(str),
+        'run_setup_script', rqa.SimpleValue.str,
         'The new run setup script (global) of the auto test.'
     ),
     rqa.OptionalArgument(
         'has_new_fixtures',
-        rqa.SimpleValue(bool),
+        rqa.SimpleValue.bool,
         'If true all other files in the request will be used as new fixtures',
     ),
     rqa.OptionalArgument(
         'grade_calculation',
-        rqa.SimpleValue(str),
+        rqa.SimpleValue.str,
         'The way to do grade calculation for this AutoTest.',
     ),
     rqa.OptionalArgument(
         'results_always_visible',
-        rqa.Nullable(rqa.SimpleValue(bool)),
+        rqa.Nullable(rqa.SimpleValue.bool),
         """
         Should results be visible for students before the assignment is set to
         "done"?
@@ -113,7 +111,7 @@ _ATUpdateMap = rqa.FixedMapping(
     ),
     rqa.OptionalArgument(
         'prefer_teacher_revision',
-        rqa.Nullable(rqa.SimpleValue(bool)),
+        rqa.Nullable(rqa.SimpleValue.bool),
         """
         If ``true`` we will use the teacher revision if available when running
         tests.
@@ -228,7 +226,7 @@ def create_auto_test() -> JSONResponse[models.AutoTest]:
             rqa.FixedMapping(
                 rqa.RequiredArgument(
                     'assignment_id',
-                    rqa.SimpleValue(int),
+                    rqa.SimpleValue.int,
                     """
             The id of the assignment in which you want to create this
             AutoTest. This assignment should have a rubric.
@@ -485,7 +483,7 @@ def update_auto_test_set(auto_test_id: int, auto_test_set_id: int
     """
     data = rqa.FixedMapping(
         rqa.OptionalArgument(
-            'stop_points', rqa.SimpleValue(float), """
+            'stop_points', rqa.SimpleValue.float, """
             The minimum percentage a student should have achieved before the
             next tests will be run.
             """
@@ -571,7 +569,7 @@ def update_or_create_auto_test_suite(auto_test_id: int, set_id: int
     data = rqa.FixedMapping(
         rqa.OptionalArgument(
             'id',
-            rqa.SimpleValue(int),
+            rqa.SimpleValue.int,
             """
             The id of the suite you want to edit. If not provided we will
             create a new suite.
@@ -590,16 +588,16 @@ def update_or_create_auto_test_suite(auto_test_id: int, set_id: int
             """,
         ),
         rqa.RequiredArgument(
-            'rubric_row_id', rqa.SimpleValue(int),
+            'rubric_row_id', rqa.SimpleValue.int,
             'The id of the rubric row that should be connected to this suite.'
         ),
         rqa.RequiredArgument(
-            'network_disabled', rqa.SimpleValue(bool),
+            'network_disabled', rqa.SimpleValue.bool,
             'Should the network be disabled when running steps in this suite'
         ),
         rqa.OptionalArgument(
             'submission_info',
-            rqa.SimpleValue(bool),
+            rqa.SimpleValue.bool,
             """
             If passed as ``true`` we will provide information about the current
             submission while running steps. Defaults to ``false`` when creating
@@ -608,7 +606,7 @@ def update_or_create_auto_test_suite(auto_test_id: int, set_id: int
         ),
         rqa.OptionalArgument(
             'command_time_limit',
-            rqa.SimpleValue(float),
+            rqa.SimpleValue.float,
             """
             The maximum amount of time a single step (or substeps) can take
             when running tests. If not provided the default value is depended
@@ -976,7 +974,7 @@ def copy_auto_test(auto_test_id: int) -> JSONResponse[models.AutoTest]:
     data = rqa.FixedMapping(
         rqa.RequiredArgument(
             'assignment_id',
-            rqa.SimpleValue(int),
+            rqa.SimpleValue.int,
             """
             The id of the assignment into which you want to copy this AutoTest.
             """,

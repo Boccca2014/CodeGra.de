@@ -17,7 +17,7 @@ from werkzeug.local import LocalProxy
 
 T = t.TypeVar('T')
 Y = t.TypeVar('Y')
-U = t.TypeVar('U')
+U = t.TypeVar('U')  # pylint: disable=invalid-name
 logger = structlog.get_logger()
 
 
@@ -118,7 +118,7 @@ def get_extended_encoder_class(
 
 
 T_JSONResponse = t.TypeVar('T_JSONResponse', bound='JSONResponse')  # pylint: disable=invalid-name
-T_ExtJSONResponse = t.TypeVar(
+T_ExtJSONResponse = t.TypeVar(  # pylint: disable=invalid-name
     'T_ExtJSONResponse', bound='_BaseExtendedJSONResponse'
 )  # pylint: disable=invalid-name
 
@@ -155,10 +155,6 @@ class JSONResponse(t.Generic[T], flask.Response):  # pylint: disable=too-many-an
     def dump_to_object(cls, obj: T) -> t.Mapping:
         """Serialize the given object and parse its serialization.
         """
-
-        class Unused:
-            pass
-
         return system_json.loads(cls._dump_to_string(obj))
 
     @classmethod
@@ -196,7 +192,6 @@ class _BaseExtendedJSONResponse(flask.Response):  # pylint: disable=too-many-anc
     @contextlib.contextmanager
     def _setup_env(cls, use_extended: t.Union[t.Type, t.Tuple[t.Type, ...]]
                    ) -> t.Generator[None, None, None]:
-        print(use_extended)
         test = lambda o: isinstance(o, use_extended)
 
         try:
@@ -303,7 +298,11 @@ class MultipleExtendedJSONResponse(t.Generic[T, Y], _BaseExtendedJSONResponse): 
         return cls._make(obj, status_code, use_extended)
 
 
-class ExtendedJSONResponse(t.Generic[T], _BaseExtendedJSONResponse):
+class ExtendedJSONResponse(t.Generic[T], _BaseExtendedJSONResponse):  # pylint: disable=too-many-ancestors
+    """An extended JSON response where only the top level item will be
+    serialized in the extended format.
+    """
+
     @classmethod
     def make_list(
         cls: t.Type['ExtendedJSONResponse[t.Any]'],

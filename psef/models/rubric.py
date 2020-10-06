@@ -212,6 +212,8 @@ class RubricItem(helpers.NotEqualMixin, Base):
         points: float
 
     class InputAsJSON(AsJSONBase, total=False):
+        """The JSON needed to update a rubric item.
+        """
         #: The id of this rubric item. Pass this to update an existing rubric
         #: item, omit if you want to create a new item.
         id: int
@@ -219,6 +221,8 @@ class RubricItem(helpers.NotEqualMixin, Base):
     InputAsJSON.__cg_extends__ = AsJSONBase  # type: ignore
 
     class AsJSON(AsJSONBase, total=True):
+        """The JSON representation of a rubric item.
+        """
         #: The id of this rubric item.
         id: int
 
@@ -387,6 +391,8 @@ class RubricRowBase(helpers.NotEqualMixin, Base):
         return self.assignment.locked_rubric_rows.get(self.id, False)
 
     class InputAsJSONBase(TypedDict):
+        """The required part of the input data for a rubric row.
+        """
         #: The header of this row.
         header: str
         #: The description of this row.
@@ -395,6 +401,8 @@ class RubricRowBase(helpers.NotEqualMixin, Base):
         items: t.Sequence[RubricItem.InputAsJSON]
 
     class InputAsJSON(InputAsJSONBase, total=False):
+        """The JSON needed to update a rubric row.
+        """
         #: The id, pass this to update an existing row, omit it to create a new
         #: row.
         id: int
@@ -404,6 +412,8 @@ class RubricRowBase(helpers.NotEqualMixin, Base):
     InputAsJSON.__cg_extends__ = InputAsJSONBase  # type: ignore
 
     class AsJSON(TypedDict):
+        """The JSON representation of a rubric row.
+        """
         #: The id of this row, used for updating
         id: int
         #: The header of this row.

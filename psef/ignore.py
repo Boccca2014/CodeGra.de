@@ -17,8 +17,6 @@ from dataclasses import dataclass
 import structlog
 from typing_extensions import Literal, TypedDict
 
-import psef
-
 from . import helpers
 from .helpers import register
 from .exceptions import APICodes, APIException
@@ -697,6 +695,8 @@ class FileRule:
         }
 
     class InputData(TypedDict):
+        """The input data for a single file rule for the SubmissionValidator.
+        """
         #: The type of rule
         rule_type: Literal['allow', 'deny', 'require']
         #: The type of files this rule should apply to.
@@ -802,6 +802,8 @@ class Options:
         self._opts: t.Dict[Options.OptionName, bool] = {}
 
     class InputData(TypedDict):
+        """The input data for a single option for the SubmissionValidator.
+        """
         #: What option is this.
         key: Literal['delete_empty_directories', 'remove_leading_directories',
                      'allow_override']
@@ -846,6 +848,8 @@ class SubmissionValidator(SubmissionFilter):
         allow_all_files = enum.auto()
 
     class InputData(TypedDict):
+        """The input data for the SubmissionValidator ignore type.
+        """
         #: The default policy of this validator.
         policy: Literal['deny_all_files', 'allow_all_files']
         #: The rules in this validator. If the policy is "deny_all_files" this

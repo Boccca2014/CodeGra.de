@@ -8,9 +8,9 @@ from cg_request_args import (
 
 def test_simple_parse_success():
     map1 = FixedMapping(
-        RequiredArgument('a', SimpleValue(int), ''),
-        RequiredArgument('b', SimpleValue(str), ''),
-        OptionalArgument('c', SimpleValue(bool), ''),
+        RequiredArgument('a', SimpleValue.int, ''),
+        RequiredArgument('b', SimpleValue.str, ''),
+        OptionalArgument('c', SimpleValue.bool, ''),
     )
     res = map1.try_parse({'a': 5, 'b': 'hello'})
     assert res.a == 5
@@ -26,7 +26,7 @@ def test_simple_parse_success():
 
 
 def test_dict_getter_unknown_attr():
-    map1 = FixedMapping(RequiredArgument('a', SimpleValue(int), ''), )
+    map1 = FixedMapping(RequiredArgument('a', SimpleValue.int, ''), )
     res = map1.try_parse({'a': 0})
     assert res.a == 0
     with pytest.raises(AttributeError):
@@ -35,9 +35,9 @@ def test_dict_getter_unknown_attr():
 
 def test_simple_parse_failure():
     map1 = FixedMapping(
-        RequiredArgument('a', SimpleValue(int), ''),
-        RequiredArgument('b', SimpleValue(str), ''),
-        OptionalArgument('c', SimpleValue(bool), ''),
+        RequiredArgument('a', SimpleValue.int, ''),
+        RequiredArgument('b', SimpleValue.str, ''),
+        OptionalArgument('c', SimpleValue.bool, ''),
     )
     with pytest.raises(SimpleParseError):
         map1.try_parse('not a dict')
@@ -54,7 +54,7 @@ def test_simple_parse_failure():
 
 def test_parse_with_tag(schema_mock):
     map1 = FixedMapping(
-        RequiredArgument('value', SimpleValue(str), ''),
+        RequiredArgument('value', SimpleValue.str, ''),
     ).add_tag('tag', 'tag_value')
 
     res = map1.try_parse({'value': 'str'})
@@ -81,10 +81,10 @@ def test_parse_with_tag(schema_mock):
 
 def test_combine(schema_mock):
     map1 = FixedMapping(
-        RequiredArgument('value1', SimpleValue(str), 'desc1'),
-        OptionalArgument('value2', SimpleValue(int), 'desc2')
+        RequiredArgument('value1', SimpleValue.str, 'desc1'),
+        OptionalArgument('value2', SimpleValue.int, 'desc2')
     )
-    map2 = FixedMapping(RequiredArgument('value3', SimpleValue(bool), 'desc3'))
+    map2 = FixedMapping(RequiredArgument('value3', SimpleValue.bool, 'desc3'))
     map3 = map1.combine(map2)
 
     res = map3.try_parse({'value1': 'value1', 'value2': 100, 'value3': True})

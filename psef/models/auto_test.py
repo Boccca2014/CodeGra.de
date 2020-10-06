@@ -5,7 +5,6 @@ SPDX-License-Identifier: AGPL-3.0-only
 import math
 import uuid
 import typing as t
-import numbers
 import itertools
 
 import structlog
@@ -116,6 +115,8 @@ class AutoTestSuite(Base, TimestampMixin, IdMixin):
         }
 
     class AsJSON(TypedDict):
+        """The set as JSON.
+        """
         #: The id of this suite (or "category")
         id: int
         #: The steps that will be executed in this suite.
@@ -229,6 +230,8 @@ class AutoTestSet(Base, TimestampMixin, IdMixin):
         }
 
     class AsJSON(TypedDict):
+        """The result as JSON.
+        """
         #: The id of this set.
         id: int
         #: The suites connected to this set. In the UI these are called
@@ -504,6 +507,8 @@ class AutoTestResult(Base, TimestampMixin, IdMixin, NotEqualMixin):
         return achieved, possible
 
     class AsJSON(TypedDict):
+        """The JSON representation of a result.
+        """
         #: The id of this result
         id: int
         #: The time this result was created
@@ -519,6 +524,8 @@ class AutoTestResult(Base, TimestampMixin, IdMixin, NotEqualMixin):
         points_achieved: float
 
     class AsExtendedJSON(AsJSON):
+        """The extended JSON representation of a result.
+        """
         #: The stdout produced in the student setup script.
         setup_stdout: t.Optional[str]
         #: The stderr produced in the student setup script.
@@ -1098,6 +1105,8 @@ class AutoTestRun(Base, TimestampMixin, IdMixin):
         }
 
     class AsJSON(TypedDict):
+        """The run as JSON.
+        """
         #: The id of this run.
         id: int
         #: The moment the run was created.
@@ -1109,6 +1118,8 @@ class AutoTestRun(Base, TimestampMixin, IdMixin):
         is_continuous: bool
 
     class AsExtendedJSON(AsJSON, TypedDict):
+        """The run as extended JSON.
+        """
         #: The results in this run. This will only contain the result for the
         #: latest submissions.
         results: t.List[AutoTestResult]
@@ -1593,6 +1604,8 @@ class AutoTest(Base, TimestampMixin, IdMixin):
             )
 
     class AsJSON(TypedDict):
+        """An AutoTest as JSON.
+        """
         #: This id of this AutoTest
         id: int
         #: The fixtures connected to this AutoTest

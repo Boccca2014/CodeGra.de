@@ -593,7 +593,7 @@ def update_course(course_id: int) -> ExtendedJSONResponse[models.Course]:
     data = rqa.FixedMapping(
         rqa.OptionalArgument(
             'name',
-            rqa.SimpleValue(str),
+            rqa.SimpleValue.str,
             'The new name of the course',
         ),
         rqa.OptionalArgument(
@@ -1009,7 +1009,7 @@ def create_or_edit_registration_link(
         ),
         rqa.RequiredArgument(
             'role_id',
-            rqa.SimpleValue(int),
+            rqa.SimpleValue.int,
             """
             The id of the role that users should get when enrolling with this
             link.
@@ -1022,7 +1022,7 @@ def create_or_edit_registration_link(
         ),
         rqa.OptionalArgument(
             'allow_register',
-            rqa.SimpleValue(bool),
+            rqa.SimpleValue.bool,
             """
             Should students be allowed to register a new account using this
             link. For registration to actually work this feature should be

@@ -4,11 +4,11 @@ from cg_request_args import (
     SimpleValue, FixedMapping, OptionalArgument, RequiredArgument
 )
 
-arg1 = RequiredArgument('help', SimpleValue(int), '')
+arg1 = RequiredArgument('help', SimpleValue.int, '')
 reveal_type(
     arg1  # N: Revealed type is 'cg_request_args.RequiredArgument[builtins.int*, Literal['help']]'
 )
-arg2 = OptionalArgument('help2', SimpleValue(str), '')
+arg2 = OptionalArgument('help2', SimpleValue.str, '')
 reveal_type(
     arg2  # N: Revealed type is 'cg_request_args.OptionalArgument[builtins.str*, Literal['help2']]'
 )

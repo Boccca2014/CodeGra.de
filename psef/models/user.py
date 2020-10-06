@@ -588,6 +588,8 @@ class User(NotEqualMixin, Base):
         )
 
     class AsJSONWithoutGroup(TypedDict):
+        """The JSON representation of a user without the ``group`` property.
+        """
         #: The is the id of this user
         id: int
         #: The fullname of the user. This might contain a first and last name,
@@ -599,6 +601,8 @@ class User(NotEqualMixin, Base):
         is_test_student: bool
 
     class AsJSON(AsJSONWithoutGroup, TypedDict):
+        """The JSON representation of a user.
+        """
         #: If this user is a wrapper user for a group this will contain this
         #: group, otherwise it will be ``null``.
         group: t.Optional['psef.models.Group']
@@ -606,6 +610,8 @@ class User(NotEqualMixin, Base):
     AsJSON.__cg_extends__ = AsJSONWithoutGroup  # type: ignore[attr-defined]
 
     class AsExtendedJSON(AsJSON, TypedDict):
+        """The extended JSON representation of a user.
+        """
         #: The email of the user. This will only be provided for the currently
         #: logged in user.
         email: str

@@ -138,6 +138,8 @@ class AbstractRole(t.Generic[_T]):
         }
 
     class AsJSON(TypedDict):
+        """The JSON representation of a role.
+        """
         #: The id of the role
         id: int
         #: The name of the role
@@ -258,6 +260,8 @@ class CourseRole(AbstractRole[CoursePermission], Base):
         self.hidden = hidden
 
     class AsJSON(AbstractRole.AsJSON):
+        """The JSON representation of a course role.
+        """
         #: The course this role is connected to
         course: 'psef.models.Course'
         #: Is this role hidden
@@ -266,6 +270,9 @@ class CourseRole(AbstractRole[CoursePermission], Base):
     AsJSON.__cg_extends__ = AbstractRole.AsJSON  # type: ignore
 
     class AsJSONWithPerms(AsJSON):
+        """The JSON representation of a role including the permissions the role
+        has.
+        """
         #: The permissions this role has
         perms: t.Mapping[str, bool]
         #: Is the currently logged in user enrolled in the course as this role.

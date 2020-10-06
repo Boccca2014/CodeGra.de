@@ -24,7 +24,7 @@ class CourseAsJSON:
     created_at: "datetime.datetime"
     is_lti: "bool"
     virtual: "bool"
-    lti_provider: "Optional[Union[LTI1p1ProviderFinalizedAsJSON, LTI1p1ProviderNonFinalizedAsJSON, LTI1p3ProviderFinalizedAsJSON, LTI1p3ProviderNonFinalizedAsJSON]]"
+    lti_provider: "Optional[Union[LTI1p3ProviderFinalizedAsJSON, LTI1p3ProviderNonFinalizedAsJSON, LTI1p1ProviderFinalizedAsJSON, LTI1p1ProviderNonFinalizedAsJSON]]"
     state: "Union[CourseState]"
 
     raw_data: Optional[Dict[str, Any]] = None
@@ -46,19 +46,19 @@ class CourseAsJSON:
         if self.lti_provider is None:
             lti_provider: Optional[
                 Union[
-                    LTI1p1ProviderFinalizedAsJSON,
-                    LTI1p1ProviderNonFinalizedAsJSON,
                     LTI1p3ProviderFinalizedAsJSON,
                     LTI1p3ProviderNonFinalizedAsJSON,
+                    LTI1p1ProviderFinalizedAsJSON,
+                    LTI1p1ProviderNonFinalizedAsJSON,
                 ]
             ] = None
-        elif isinstance(self.lti_provider, LTI1p1ProviderFinalizedAsJSON):
-            lti_provider = maybe_to_dict(self.lti_provider)
-
-        elif isinstance(self.lti_provider, LTI1p1ProviderNonFinalizedAsJSON):
-            lti_provider = maybe_to_dict(self.lti_provider)
-
         elif isinstance(self.lti_provider, LTI1p3ProviderFinalizedAsJSON):
+            lti_provider = maybe_to_dict(self.lti_provider)
+
+        elif isinstance(self.lti_provider, LTI1p3ProviderNonFinalizedAsJSON):
+            lti_provider = maybe_to_dict(self.lti_provider)
+
+        elif isinstance(self.lti_provider, LTI1p1ProviderFinalizedAsJSON):
             lti_provider = maybe_to_dict(self.lti_provider)
 
         else:
@@ -89,10 +89,10 @@ class CourseAsJSON:
             data: Optional[Dict[str, Any]]
         ) -> Optional[
             Union[
-                LTI1p1ProviderFinalizedAsJSON,
-                LTI1p1ProviderNonFinalizedAsJSON,
                 LTI1p3ProviderFinalizedAsJSON,
                 LTI1p3ProviderNonFinalizedAsJSON,
+                LTI1p1ProviderFinalizedAsJSON,
+                LTI1p1ProviderNonFinalizedAsJSON,
             ]
         ]:
             if data is None:
@@ -100,31 +100,31 @@ class CourseAsJSON:
 
             lti_provider: Optional[
                 Union[
-                    LTI1p1ProviderFinalizedAsJSON,
-                    LTI1p1ProviderNonFinalizedAsJSON,
                     LTI1p3ProviderFinalizedAsJSON,
                     LTI1p3ProviderNonFinalizedAsJSON,
+                    LTI1p1ProviderFinalizedAsJSON,
+                    LTI1p1ProviderNonFinalizedAsJSON,
                 ]
             ] = d["lti_provider"]
-            try:
-                lti_provider = LTI1p1ProviderFinalizedAsJSON.from_dict(d["lti_provider"])
-
-                return lti_provider
-            except:
-                pass
-            try:
-                lti_provider = LTI1p1ProviderNonFinalizedAsJSON.from_dict(d["lti_provider"])
-
-                return lti_provider
-            except:
-                pass
             try:
                 lti_provider = LTI1p3ProviderFinalizedAsJSON.from_dict(d["lti_provider"])
 
                 return lti_provider
             except:
                 pass
-            lti_provider = LTI1p3ProviderNonFinalizedAsJSON.from_dict(lti_provider)
+            try:
+                lti_provider = LTI1p3ProviderNonFinalizedAsJSON.from_dict(d["lti_provider"])
+
+                return lti_provider
+            except:
+                pass
+            try:
+                lti_provider = LTI1p1ProviderFinalizedAsJSON.from_dict(d["lti_provider"])
+
+                return lti_provider
+            except:
+                pass
+            lti_provider = LTI1p1ProviderNonFinalizedAsJSON.from_dict(lti_provider)
 
             return lti_provider
 

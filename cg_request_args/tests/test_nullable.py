@@ -4,7 +4,7 @@ from cg_request_args import Nullable, SimpleValue, SimpleParseError
 
 
 def test_simple(schema_mock):
-    inner = SimpleValue(str)
+    inner = SimpleValue.str
     parser = Nullable(inner)
 
     with pytest.raises(SimpleParseError):

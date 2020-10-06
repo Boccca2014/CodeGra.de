@@ -775,8 +775,8 @@ def deep_link_lti_assignment(deep_link_blob_id: uuid.UUID
 
     # Docs are not needed here as this route is not part of the public API.
     data = rqa.FixedMapping(
-        rqa.RequiredArgument('auth_token', rqa.SimpleValue(str), ''),
-        rqa.RequiredArgument('name', rqa.SimpleValue(str), ''),
+        rqa.RequiredArgument('auth_token', rqa.SimpleValue.str, ''),
+        rqa.RequiredArgument('name', rqa.SimpleValue.str, ''),
         rqa.RequiredArgument('deadline', rqa.RichValue.DateTime, ''),
     ).from_flask()
 

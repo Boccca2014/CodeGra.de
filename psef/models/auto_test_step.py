@@ -232,6 +232,8 @@ class AutoTestStepBase(Base, TimestampMixin, IdMixin):
         }
 
     class AsJSONBase(TypedDict):
+        """The base JSON for a step, used for both input and output.
+        """
         #: The name of this step.
         name: str
         #: The type of AutoTest step. We constantly add new step types, so
@@ -247,12 +249,16 @@ class AutoTestStepBase(Base, TimestampMixin, IdMixin):
         data: t.Any
 
     class AsJSON(AsJSONBase):
+        """The step as JSON.
+        """
         #: The id of this step
         id: int
 
     AsJSON.__cg_extends__ = AsJSONBase  # type: ignore
 
     class InputAsJSON(AsJSONBase, total=False):
+        """The input data needed for a new AutoTest step.
+        """
         #: The id of the step. Provide this if you want to edit an existing
         #: step. If not provided a new step will be created.
         id: int
@@ -1142,6 +1148,8 @@ class AutoTestStepResult(Base, TimestampMixin, IdMixin):
         self._attachment_filename = new_file.value.name
 
     class AsJSON(TypedDict):
+        """The step result as JSON.
+        """
         #: The id of the result of a step
         id: int
         #: The step this is the result of.

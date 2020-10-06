@@ -1,4 +1,5 @@
-"""This module implements the mypy plugin needed for the override decorators.
+"""This module implements the mypy plugin needed for the cg_request_args
+module.
 
 SPDX-License-Identifier: AGPL-3.0-only
 """
@@ -9,20 +10,20 @@ from collections import OrderedDict
 
 # For some reason pylint cannot find these... I've found a lot of people also
 # disabling this pylint error, but haven't found an explanation why...
-from mypy.nodes import TypeInfo  # pylint: disable=no-name-in-module
 from mypy.types import (  # pylint: disable=no-name-in-module
-    Type, AnyType, Instance, TypeType, TupleType, UnionType, LiteralType,
-    CallableType, TypedDictType
+    Type, AnyType, Instance, UnionType, LiteralType, CallableType,
+    TypedDictType
 )
 from mypy.plugin import (  # pylint: disable=no-name-in-module
     Plugin, MethodContext, FunctionContext, AttributeContext
 )
-from mypy.typeops import make_simplified_union
-
-import cg_request_args
+from mypy.typeops import \
+    make_simplified_union  # pylint: disable=no-name-in-module
 
 
 def from_typeddict_callback(ctx: MethodContext) -> Type:
+    """Callback for the ``from_typeddict`` method on ``BaseFixedMapping``.
+    """
     assert isinstance(ctx.default_return_type, Instance)
     producer = ctx.arg_types[0][0]
 
@@ -43,6 +44,8 @@ def from_typeddict_callback(ctx: MethodContext) -> Type:
 
 
 def dict_getter_attribute_callback(ctx: AttributeContext, attr: str) -> Type:
+    """Callback for ``getattr`` in ``_DictGetter``.
+    """
     if attr == '__data':
         return ctx.default_attr_type
 
@@ -77,6 +80,8 @@ def dict_getter_attribute_callback(ctx: AttributeContext, attr: str) -> Type:
 
 
 def string_enum_callback(ctx: FunctionContext) -> Type:
+    """Callback to infer the correct type for ``StringEnum`` parsers.
+    """
     literals = []
     for idx, arg in enumerate(ctx.arg_types[0]):
         assert isinstance(arg, Instance)
@@ -96,6 +101,8 @@ def string_enum_callback(ctx: FunctionContext) -> Type:
 
 
 def combine_callback(ctx: MethodContext) -> Type:
+    """Callback for the ``combine`` method on ``FixedMapping``.
+    """
     assert isinstance(ctx.type, Instance)
     own_typeddict, = ctx.type.args
     (other, ), = ctx.arg_types
@@ -132,6 +139,8 @@ def combine_callback(ctx: MethodContext) -> Type:
 
 
 def add_tag_callback(ctx: MethodContext) -> Type:
+    """Callback for the ``add_tag`` method of ``FixedMapping``.
+    """
     (key, ), (value, ) = ctx.arg_types
     if not isinstance(key, Instance
                       ) or not isinstance(key.last_known_value, LiteralType):
@@ -175,6 +184,8 @@ def add_tag_callback(ctx: MethodContext) -> Type:
 
 
 def argument_callback(ctx: FunctionContext) -> Type:
+    """Callback to fix the type arguments to ``_Argument`` classes.
+    """
     key = ctx.arg_types[0][0]
     if (
         not isinstance(key, Instance) or
@@ -196,24 +207,23 @@ def argument_callback(ctx: FunctionContext) -> Type:
 
 
 def fixed_mapping_callback(ctx: FunctionContext) -> Type:
+    """The callback to infer a better type for ``FixedMapping``.
+    """
     fallback = ctx.api.named_generic_type('typing_extensions._TypedDict', [])
 
     required_keys = set()
     items = OrderedDict()
 
     for idx, arg in enumerate(ctx.arg_types[0]):
-        required = False
-
         if isinstance(arg, AnyType):
             ctx.api.fail((
                 'Argument {} was an "Any" which is not allowed as an'
                 ' argument to FixedMapping'
             ).format(idx + 1), ctx.context)
             continue
-        try:
-            assert isinstance(arg, Instance)
+        if isinstance(arg, Instance):
             typ = arg.type.fullname
-        except:  # pragma: no cover
+        else:  # pragma: no cover
             typ = '????'
 
         if typ not in (
@@ -314,9 +324,12 @@ class CgRequestArgPlugin(Plugin):
 
         return None
 
+    @staticmethod
     def get_attribute_hook(
-        self, fullname: str
+        fullname: str
     ) -> t.Optional[t.Callable[[AttributeContext], Type]]:
+        """Get the function hook for getattr for ``_DictGetter``.
+        """
         path = fullname.split('.')
         if path[:-1] == ['cg_request_args', '_DictGetter']:
             return partial(dict_getter_attribute_callback, attr=path[-1])

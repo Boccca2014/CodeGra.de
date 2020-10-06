@@ -9,9 +9,7 @@ import itertools
 from sqlalchemy.orm import defaultload, contains_eager
 from typing_extensions import TypedDict
 
-from cg_json import (
-    JSONResponse, ExtendedJSONResponse, MultipleExtendedJSONResponse
-)
+from cg_json import JSONResponse, MultipleExtendedJSONResponse
 
 from . import api
 from .. import auth, models, helpers, current_user

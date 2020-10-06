@@ -6,7 +6,6 @@ SPDX-License-Identifier: AGPL-3.0-only
 import json
 import typing as t
 import datetime
-import email.utils
 from collections import defaultdict
 
 import structlog
@@ -23,9 +22,9 @@ from cg_helpers import handle_none, on_not_none
 from cg_dt_utils import DatetimeWithTimezone
 from psef.models import db
 from psef.helpers import (
-    MISSING, JSONType, JSONResponse, EmptyResponse, ExtendedJSONResponse,
-    jsonify, add_warning, ensure_json_dict, extended_jsonify,
-    ensure_keys_in_dict, make_empty_response, get_from_map_transaction
+    JSONResponse, EmptyResponse, ExtendedJSONResponse, jsonify, add_warning,
+    ensure_json_dict, extended_jsonify, ensure_keys_in_dict,
+    make_empty_response, get_from_map_transaction
 )
 from psef.exceptions import APICodes, APIWarnings, APIException
 from cg_sqlalchemy_helpers import expression as sql_expression
@@ -248,7 +247,7 @@ def set_reminder(
 
 
 _IgnoreParser = (
-    rqa.SimpleValue(str)
+    rqa.SimpleValue.str
     |
     rqa.BaseFixedMapping.from_typeddict(ignore.SubmissionValidator.InputData)
 )
@@ -271,7 +270,7 @@ def update_assignment(assignment_id: int) -> JSONResponse[models.Assignment]:
             'The new state of the assignment'
         ),
         rqa.OptionalArgument(
-            'name', rqa.SimpleValue(str), 'The new name of the assignment'
+            'name', rqa.SimpleValue.str, 'The new name of the assignment'
         ),
         rqa.OptionalArgument(
             'deadline', rqa.RichValue.DateTime,
@@ -287,7 +286,7 @@ def update_assignment(assignment_id: int) -> JSONResponse[models.Assignment]:
         ),
         rqa.OptionalArgument(
             'group_set_id',
-            rqa.Nullable(rqa.SimpleValue(int)),
+            rqa.Nullable(rqa.SimpleValue.int),
             """
             The group set id for this assignment. Set to ``null`` to make
             this assignment not a group assignment
@@ -300,7 +299,7 @@ def update_assignment(assignment_id: int) -> JSONResponse[models.Assignment]:
         ),
         rqa.OptionalArgument(
             'send_login_links',
-            rqa.SimpleValue(bool),
+            rqa.SimpleValue.bool,
             """
             Should we send login links to students before the assignment
             opens. This is only available for assignments with 'kind' equal to
@@ -313,11 +312,11 @@ def update_assignment(assignment_id: int) -> JSONResponse[models.Assignment]:
             'The new kind of assignment',
         ),
         rqa.OptionalArgument(
-            'files_upload_enabled', rqa.SimpleValue(bool),
+            'files_upload_enabled', rqa.SimpleValue.bool,
             'Should students be allowed to make submissions by uploading files'
         ),
         rqa.OptionalArgument(
-            'webhook_upload_enabled', rqa.SimpleValue(bool),
+            'webhook_upload_enabled', rqa.SimpleValue.bool,
             'Should students be allowed to make submissions using git webhooks'
         ),
         rqa.OptionalArgument(
@@ -326,7 +325,7 @@ def update_assignment(assignment_id: int) -> JSONResponse[models.Assignment]:
             'The maximum amount of submissions a user may create.',
         ),
         rqa.OptionalArgument(
-            'cool_off_period', rqa.SimpleValue(float), """
+            'cool_off_period', rqa.SimpleValue.float, """
             The amount of time in seconds there should be between
             ``amount_in_cool_off_period + 1`` submissions.
             """
@@ -676,7 +675,7 @@ def import_assignment_rubric(assignment_id: int
     """
     data = rqa.FixedMapping(
         rqa.RequiredArgument(
-            'old_assignment_id', rqa.SimpleValue(int),
+            'old_assignment_id', rqa.SimpleValue.int,
             'The id of the assignment from which you want to copy the rubric.'
         ),
     ).from_flask()
@@ -738,7 +737,7 @@ def add_assignment_rubric(assignment_id: int
     """
     data = rqa.FixedMapping(
         rqa.OptionalArgument(
-            'max_points', rqa.Nullable(rqa.SimpleValue(float)), """
+            'max_points', rqa.Nullable(rqa.SimpleValue.float), """
             The maximum amount of points you need to get for this rubric for
             full mark (i.e. a 10). By passing ``null`` you reset this value, by
             not passing it you keep its current value.'

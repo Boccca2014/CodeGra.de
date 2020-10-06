@@ -6,14 +6,14 @@ from cg_request_args import (
 
 
 def test_non_dict():
-    mapping = LookupMapping(SimpleValue(str))
+    mapping = LookupMapping(SimpleValue.str)
 
     with pytest.raises(SimpleParseError):
         mapping.try_parse('NOT A DICT')
 
 
 def test_simple_mapping(schema_mock):
-    mapping = LookupMapping(SimpleValue(str))
+    mapping = LookupMapping(SimpleValue.str)
 
     inp = {'5': 'a key'}
     assert mapping.try_parse(inp) == inp
@@ -38,7 +38,7 @@ def test_simple_mapping(schema_mock):
 
 
 def test_compound_values():
-    mapping = LookupMapping(List(SimpleValue(str) | SimpleValue(int)))
+    mapping = LookupMapping(List(SimpleValue.str | SimpleValue.int))
 
     inp = {'5': [5, 'a']}
     assert mapping.try_parse(inp) == inp

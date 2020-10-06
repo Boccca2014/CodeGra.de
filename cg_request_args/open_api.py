@@ -1,7 +1,11 @@
+"""This module contains code to convert flask applications that use
+``cg_request_args`` to Open API schemas.
+
+SPDX-License-Identifier: AGPL-3.0-only
+"""
 import os
 import re
 import sys
-import copy
 import uuid
 import typing as t
 import inspect
@@ -80,6 +84,12 @@ class _Tag(TypedDict):
 
 
 class OpenAPISchema:
+    """The class representing an Open API schema.
+
+    Instances of this class can be used to convert a flask application to Open
+    API schemas.
+    """
+
     def __init__(
         self, type_globals: t.Dict[str, t.Any], no_pandoc: bool = False
     ) -> None:
@@ -92,6 +102,10 @@ class OpenAPISchema:
         self._set_initial_schemas()
 
     def make_comment(self, comment: str) -> str:
+        """Convert the given string to a description for Open API.
+
+        The comment is converted to markdown, and any newlines are removed.
+        """
         comment = _clean_comment(comment)
         if self._no_pandoc:
             return comment.strip()
@@ -157,7 +171,7 @@ class OpenAPISchema:
     ) -> t.Type:
         if isinstance(typ, t.ForwardRef):
             return self._maybe_resolve_forward(
-                t.cast(t.Type, typ._evaluate(self._type_globals, {}))
+                t.cast(t.Type, typ._evaluate(self._type_globals, {}))  # pylint: disable=protected-access
             )
         return typ
 
@@ -172,7 +186,7 @@ class OpenAPISchema:
 
         parsed = self._parsed_modules[typ.__module__]
         if typ.__name__ == 'AsExtendedJSON':
-            extends = base_as_json = getattr(
+            extends = getattr(
                 sys.modules[typ.__module__],
                 typ.__qualname__.split('.')[0]
             ).AsJSON
@@ -198,9 +212,11 @@ class OpenAPISchema:
     def simple_type_to_open_api_type(
         typ: t.Type[t.Union[str, int, float, bool, None]]
     ) -> str:
+        """Convert the given type to an Open API type.
+        """
         return _SIMPLE_TYPE_NAME_LOOKUP[typ]
 
-    def _will_use(self, _typ: t.Type, maybe_uses: t.Iterable[t.Type]) -> bool:
+    def _will_use(self, _typ: t.Type, maybe_uses: t.Iterable[t.Type]) -> bool:  # pylint: disable=too-many-branches,too-many-return-statements
         typ = self._maybe_resolve_forward(_typ)
         if not maybe_uses:
             return False
@@ -254,13 +270,16 @@ class OpenAPISchema:
         else:
             raise AssertionError("Unknown type encountered")
 
-    def add_schema(
+    def add_schema(  # pylint: disable=too-many-branches
         self,
         _typ: t.Type,
         force_inline: bool = False,
         done: 'OrderedDict[t.Type, int]' = None,
         do_extended: t.Collection[t.Type] = tuple()
     ) -> t.Mapping[str, str]:
+        """Add a schema for ``_typ`` to the current Open API and get a
+        reference to it.
+        """
         _typ = self._maybe_resolve_forward(_typ)
         schema_name = self._get_schema_name(_typ)
 
@@ -356,7 +375,7 @@ class OpenAPISchema:
         self._schemas[schema_name] = result
         return {'$ref': f'#/components/schemas/{schema_name}'}
 
-    def _typ_to_schema(
+    def _typ_to_schema(  # pylint: disable=too-many-return-statements,too-many-branches
         self,
         typ: t.Type,
         do_extended: t.Collection[t.Type],
@@ -365,7 +384,6 @@ class OpenAPISchema:
     ) -> t.Mapping[str, t.Any]:
         typ = self._maybe_resolve_forward(typ)
         if inline and done.get(typ, 0) > 0:
-            print(inline)
             raise AssertionError(
                 'Recursion detected: {}'.format(
                     '.'.join(map(str, done.keys()))
@@ -522,9 +540,13 @@ class OpenAPISchema:
         t.Tuple[t.Tuple[str, str], t.Sequence[t.Tuple[str, t.Sequence[str]]]]]:
         endpoints = []
         for rule in app.url_map.iter_rules():
-            url_with_endpoint = (
-                next(app.url_map.iter_rules(rule.endpoint)), rule.endpoint
+            url, endpoint = (
+                next(app.url_map.iter_rules(rule.endpoint), None),
+                rule.endpoint
             )
+            if url is None:
+                continue
+            url_with_endpoint = (url, endpoint)
             if url_with_endpoint not in endpoints:
                 endpoints.append(url_with_endpoint)
         endpoints = [e for _, e in endpoints]
@@ -629,7 +651,11 @@ class OpenAPISchema:
                 ret, do_extended=tuple(), inline=False, done=OrderedDict()
             )
             if schema.get('type') == 'object':
-                out_schema_name = f'ResultData{method.capitalize()}{tags[0]}{_to_pascalcase(operation_id)}'
+                out_schema_name = (
+                    f'ResultData{method.capitalize()}'
+                    f'{tags[0]}'
+                    f'{_to_pascalcase(operation_id)}'
+                )
                 self._schemas[out_schema_name] = schema
                 schema = {'$ref': f'#/components/schemas/{out_schema_name}'}
             responses[200] = {
@@ -690,6 +716,8 @@ class OpenAPISchema:
         self._paths[url][method.lower()] = result
 
     def collect_for_current_app(self) -> t.Mapping[str, t.Any]:
+        """Collect the Open API schema for the current flask app.
+        """
         for endpoint, rules in self._get_routes_from_app(flask.current_app):
             endpoint_func = flask.current_app.view_functions[endpoint]
             for method, urls in rules:

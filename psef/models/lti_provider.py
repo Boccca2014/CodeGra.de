@@ -329,6 +329,8 @@ class LTIProviderBase(Base, TimestampMixin):
         return newest_grade_history
 
     class BaseAsJSON(TypedDict):
+        """The base JSON representation for an LTI 1.1 provider.
+        """
         id: str  #: The id of this LTI provider.
         lms: str  #: The LMS that is connected as this LTI provider.
         #: The time this LTI provider was created.
@@ -344,11 +346,14 @@ class LTIProviderBase(Base, TimestampMixin):
             'intended_use': self._intended_use,
         }
 
-    AsJSON = t.Union['psef.models.LTI1p1Provider.AsJSON',
-                     'psef.models.LTI1p3Provider.AsJSON']
-
     @abc.abstractmethod
-    def __to_json__(self) -> AsJSON:
+    def __to_json__(
+        self
+    ) -> t.Union['psef.models.LTI1p3Provider.FinalizedAsJSON',
+                 'psef.models.LTI1p3Provider.NonFinalizedAsJSON',
+                 'psef.models.LTI1p1Provider.FinalizedAsJSON',
+                 'psef.models.LTI1p1Provider.NonFinalizedAsJSON',
+                 ]:
         ...
 
 
@@ -433,12 +438,16 @@ class LTI1p1Provider(LTIProviderBase):
         return self._lti_provider.get_lms_name()
 
     class BaseAsJSON(LTIProviderBase.BaseAsJSON, TypedDict):
+        """The base JSON representation of a LTI 1.1 provider.
+        """
         #: The LTI version used.
         version: Literal['lti1.1']
 
     BaseAsJSON.__cg_extends__ = LTIProviderBase.BaseAsJSON  # type: ignore
 
     class FinalizedAsJSON(BaseAsJSON, TypedDict):
+        """The JSON representation of a finalized provider.
+        """
         #: This is a already finalized provider and thus is actively being
         #: used.
         finalized: Literal[True]
@@ -446,6 +455,8 @@ class LTI1p1Provider(LTIProviderBase):
     FinalizedAsJSON.__cg_extends__ = BaseAsJSON  # type: ignore
 
     class NonFinalizedAsJSON(BaseAsJSON, TypedDict):
+        """The JSON representation of a non finalized provider.
+        """
         #: This is a non finalized provider, so it cannot yet be used for
         #: launches.
         finalized: Literal[False]
@@ -459,9 +470,7 @@ class LTI1p1Provider(LTIProviderBase):
 
     NonFinalizedAsJSON.__cg_extends__ = BaseAsJSON  # type: ignore
 
-    AsJSON = t.Union[FinalizedAsJSON, NonFinalizedAsJSON]
-
-    def __to_json__(self) -> AsJSON:
+    def __to_json__(self) -> t.Union[FinalizedAsJSON, NonFinalizedAsJSON]:
         base = make_typed_dict_extender(
             super().__base_to_json__(),
             self.BaseAsJSON,
@@ -1475,6 +1484,8 @@ class LTI1p3Provider(LTIProviderBase):
         }
 
     class BaseAsJSON(LTIProviderBase.BaseAsJSON, TypedDict):
+        """The base representation of an LTI 1.3 provider.
+        """
         #: The capabilities of this LMS
         capabilities: LMSCapabilities
         #: The LTI version used.
@@ -1485,12 +1496,16 @@ class LTI1p3Provider(LTIProviderBase):
     BaseAsJSON.__cg_extends__ = LTIProviderBase.BaseAsJSON  # type: ignore
 
     class FinalizedAsJSON(BaseAsJSON, TypedDict):
+        """A finalized provider as JSON.
+        """
         #: This is a finalized provider.
         finalized: Literal[True]
 
     FinalizedAsJSON.__cg_extends__ = BaseAsJSON  # type: ignore
 
     class NonFinalizedAsJSON(BaseAsJSON, TypedDict):
+        """A non finalized provider as JSON.
+        """
         #: This is a non finalized provider.
         finalized: Literal[False]
         #: The auth login url, if already configured.
@@ -1518,9 +1533,7 @@ class LTI1p3Provider(LTIProviderBase):
 
     NonFinalizedAsJSON.__cg_extends__ = BaseAsJSON  # type: ignore
 
-    AsJSON = t.Union[FinalizedAsJSON, NonFinalizedAsJSON]
-
-    def __to_json__(self) -> AsJSON:
+    def __to_json__(self) -> t.Union[FinalizedAsJSON, NonFinalizedAsJSON]:
         base = make_typed_dict_extender(
             super().__base_to_json__(),
             self.BaseAsJSON,

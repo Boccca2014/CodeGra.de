@@ -16,7 +16,7 @@ from cg_request_args import SimpleValue, SimpleParseError
     ]
 )
 def test_string_parser(ok, value, maybe_raises):
-    parser = SimpleValue(str)
+    parser = SimpleValue.str
     with maybe_raises(not ok, SimpleParseError):
         res = parser.try_parse(value)
         assert isinstance(res, str)
@@ -39,7 +39,7 @@ def test_string_parser(ok, value, maybe_raises):
     ]
 )
 def test_bool_parser(ok, value, maybe_raises):
-    parser = SimpleValue(bool)
+    parser = SimpleValue.bool
     with maybe_raises(not ok, SimpleParseError):
         res = parser.try_parse(value)
         assert isinstance(res, bool)
@@ -62,7 +62,7 @@ def test_bool_parser(ok, value, maybe_raises):
     ]
 )
 def test_int_parser(ok, value, maybe_raises):
-    parser = SimpleValue(int)
+    parser = SimpleValue.int
     with maybe_raises(not ok, SimpleParseError):
         res = parser.try_parse(value)
         assert isinstance(res, int)
@@ -90,7 +90,7 @@ def test_int_parser(ok, value, maybe_raises):
     ]
 )
 def test_float_parser(ok, value, maybe_raises):
-    parser = SimpleValue(float)
+    parser = SimpleValue.float
     with maybe_raises(not ok, SimpleParseError):
         res = parser.try_parse(value)
         assert res == pytest.approx(value)
@@ -99,6 +99,6 @@ def test_float_parser(ok, value, maybe_raises):
 
 @pytest.mark.parametrize('typ', [str, int, float, bool])
 def test_to_open_api(schema_mock, typ):
-    assert SimpleValue(typ).to_open_api(schema_mock) == {
+    assert getattr(SimpleValue, typ.__name__).to_open_api(schema_mock) == {
         'type': ('Convert', typ)
     }

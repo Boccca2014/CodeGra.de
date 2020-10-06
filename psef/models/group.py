@@ -295,6 +295,8 @@ class Group(Base):
             return {member.id: True for member in self._members}
 
     class AsJSON(TypedDict):
+        """The group as JSON.
+        """
         #: The id of this gropu
         id: int
         #: The members of this group.
@@ -307,6 +309,8 @@ class Group(Base):
         created_at: DatetimeWithTimezone
 
     class AsExtendedJSON(AsJSON, TypedDict):
+        """The group as extended JSON.
+        """
         #: The virtual user connected to this course. It will not contain the
         #: ``group`` key as this would lead to an infinite recursion.
         virtual_user: 'psef.models.User.AsJSONWithoutGroup'

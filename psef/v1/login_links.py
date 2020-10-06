@@ -8,9 +8,7 @@ from datetime import timedelta
 import structlog
 
 import cg_helpers
-from cg_json import (
-    JSONResponse, ExtendedJSONResponse, MultipleExtendedJSONResponse
-)
+from cg_json import JSONResponse, MultipleExtendedJSONResponse
 from cg_helpers import humanize
 
 from . import api

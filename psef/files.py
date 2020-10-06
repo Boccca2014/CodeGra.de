@@ -12,11 +12,9 @@ import copy
 import typing as t
 import tarfile
 import zipfile
-import dataclasses
 from collections import Counter, defaultdict
 
 import structlog
-from werkzeug.utils import secure_filename
 from typing_extensions import Protocol, TypedDict
 from werkzeug.datastructures import FileStorage
 
@@ -216,13 +214,16 @@ class FileTree(t.Generic[T]):
     :param entries: If not ``None`` this file is a directory, and contains
         these files as direct children.
     """
-    __slots__ = ('name', 'id', 'entries')
+    __slots__ = ('name', 'file_id', 'entries')
 
     def __init__(
-        self, name: str, id: T, entries: t.Optional[t.Sequence['FileTree[T]']]
+        self,
+        name: str,
+        file_id: T,
+        entries: t.Optional[t.Sequence['FileTree[T]']],
     ) -> None:
         self.name = name
-        self.id = id
+        self.file_id = file_id
         self.entries = entries
 
     class _AsJSONFile(TypedDict):
@@ -232,6 +233,8 @@ class FileTree(t.Generic[T]):
         name: str
 
     class AsJSON(_AsJSONFile, total=False):
+        """The FileTree represented as JSON.
+        """
         #: The entries in this directory. This is a list that will contain all
         #: children of the directory. This key might not be present, in which
         #: case the file is not a directory.
@@ -242,12 +245,12 @@ class FileTree(t.Generic[T]):
     def __to_json__(self) -> AsJSON:
         if self.entries is not None:
             return {
-                'id': str(self.id),
+                'id': str(self.file_id),
                 'name': self.name,
                 'entries': self.entries,
             }
         return {
-            'id': str(self.id),
+            'id': str(self.file_id),
             'name': self.name,
         }
 
@@ -334,23 +337,23 @@ def search_path_in_filetree(filetree: FileTree[T], path: str) -> T:
     ...        entries = [to_ftree(entry) for entry in dct['entries']]
     ...    return FileTree(**{**dct, 'entries': entries})
     >>> filetree = {
-    ...    "id": 1,
+    ...    "file_id": 1,
     ...    "name": "rootdir",
     ...    "entries": [
     ...        {
-    ...            "id": 2,
+    ...            "file_id": 2,
     ...            "name": "file1.txt"
     ...        },
     ...        {
-    ...            "id": 3,
+    ...            "file_id": 3,
     ...            "name": "subdir",
     ...            "entries": [
     ...                {
-    ...                    "id": 4,
+    ...                    "file_id": 4,
     ...                    "name": "file2.txt"
     ...                },
     ...                {
-    ...                    "id": 5,
+    ...                    "file_id": 5,
     ...                    "name": "file3.txt"
     ...                }
     ...            ],
@@ -384,7 +387,7 @@ def search_path_in_filetree(filetree: FileTree[T], path: str) -> T:
                 break
         else:
             raise KeyError(f'Path ({path}) not in tree')
-    return cur.id
+    return cur.file_id
 
 
 def rename_directory_structure(

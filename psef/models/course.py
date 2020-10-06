@@ -75,6 +75,8 @@ class CourseRegistrationLink(Base, mixins.UUIDMixin, mixins.TimestampMixin):
     )
 
     class AsJSON(TypedDict):
+        """The JSON representation of a course registration link.
+        """
         #: The id of this link
         id: uuid.UUID
         #: The moment this link will stop working
@@ -127,6 +129,8 @@ class CourseSnippet(Base):
     __table_args__ = (db.UniqueConstraint(course_id, key), )
 
     class AsJSON(TypedDict):
+        """The JSON representation of a course snippet.
+        """
         id: int  #: The id of this snippet.
         key: str  #: The key of this snippet.
         #: The value of this snippet, i.e. what this snippet should expand to.
