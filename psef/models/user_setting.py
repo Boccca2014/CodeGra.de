@@ -370,6 +370,12 @@ class UIPreference(Base, SettingBase):
         cls,
         user: User,
     ) -> t.Mapping[UIPreferenceName, t.Optional[bool]]:
+        """Get the ui preference mapping for a user.
+
+        :param user: User to get the preferences of.
+        :returns: Mapping of preference name to value. The value is None if the
+            user hasn't set a value yet, or a boolean to indicate their choice.
+        """
         prefs: t.MutableMapping[UIPreferenceName, t.Optional[bool]]
         prefs = {p: None for p in UIPreferenceName}
         prefs.update(
@@ -384,6 +390,12 @@ class UIPreference(Base, SettingBase):
         name: UIPreferenceName,
         value: bool,
     ) -> None:
+        """Update the given ui preference for the given user.
+
+        :param user: The user for which we should update the setting.
+        :param name: The name of the setting that should be updated.
+        :param value: The value the setting should be set to.
+        """
         pref = db.session.query(cls).filter(
             cls.user == user, cls.name == name
         ).with_for_update().one_or_none()

@@ -76,6 +76,15 @@ def update_notification_settings() -> EmptyResponse:
 
 @api.route('/settings/ui_preferences/', methods=['GET'])
 def get_user_preferences() -> JSONResponse[t.Mapping[str, t.Optional[bool]]]:
+    """Get ui preferences.
+
+    .. :quickref: User Setting; Get UI preferences.
+
+    :query str token: The token with which you want to get the preferences,
+        if not given the preferences are retrieved for the currently logged in
+        user.
+    :returns: The preferences for the user as described by the ``token``.
+    """
     user = _get_user()
 
     return JSONResponse.make(
@@ -89,6 +98,18 @@ def get_user_preferences() -> JSONResponse[t.Mapping[str, t.Optional[bool]]]:
 
 @api.route('/settings/ui_preferences/', methods=['PATCH'])
 def update_user_preferences() -> EmptyResponse:
+    """Update ui preferences.
+
+    .. :quickref: User Setting; Update UI preferences.
+
+    :query str token: The token with which you want to update the preferences,
+        if not given the preferences are updated for the currently logged in
+        user.
+    :>json string name: The :class:`.models.UIPreferenceName` which you
+        want to update.
+    :>json bool value: The value the setting should be set to.
+    :returns: Nothing.
+    """
     user = _get_user()
 
     with get_from_request_transaction() as [get, _]:
