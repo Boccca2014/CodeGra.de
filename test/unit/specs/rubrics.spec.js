@@ -372,7 +372,8 @@ describe('The rubric store', () => {
                 expect(newRow.items.length).toBe(1);
             });
 
-            it('should throw an error when no type is passed', () => {
+            // TODO: Unskip this test after removing the old rubric editor.
+            it.skip('should throw an error when no type is passed', () => {
                 const rubric = Rubric.fromServerData(mockRubric);
                 expect(() => {
                     rubric.createRow();

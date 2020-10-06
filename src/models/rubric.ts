@@ -614,7 +614,7 @@ export class Rubric<T extends number | undefined | null> {
             const cls = RubricRowsTypes[type];
 
             if (cls == null) {
-                throw new Error(`Invalid row type: ${type}`);
+                throw new TypeError(`Invalid row type: ${type}`);
             } else {
                 newRow = cls.createEmpty();
             }
