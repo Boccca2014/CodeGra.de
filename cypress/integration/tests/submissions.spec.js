@@ -2,6 +2,13 @@ context('Submissions page', () => {
     let course;
     let assignments = {};
 
+    function filterSubmissions(filter) {
+        return cy.get('.search-wrapper input[name="submissions-filter"]')
+            .clear()
+            .type(filter)
+            .type('{enter}');
+    }
+
     function createRubric(assigId) {
         return cy.createRubric(assigId, [
             {
@@ -135,8 +142,7 @@ context('Submissions page', () => {
                 { author: 'student1' },
             ).then(() => {
                 cy.reload();
-                cy.get('input[name="submissions-filter"]')
-                    .type('Student1');
+                filterSubmissions('Student1');
 
                 getStudent('Student1', true)
                     .find('.submission-grade')
@@ -262,17 +268,11 @@ context('Submissions page', () => {
         });
 
         context('Filtering', () => {
-            function filterSubmissions(filter) {
-                return cy.get('.search-wrapper input[name="submissions-filter"]')
-                    .clear()
-                    .type(filter);
-            }
-
             it('should be possible to filter', () => {
                 getStudent('Student1').should('exist');
                 getStudent('Student2').should('exist');
 
-                filterSubmissions('Student2{enter}');
+                filterSubmissions('Student2');
                 getStudent('Student1').should('not.exist');
                 getStudent('Student2').should('exist');
 
