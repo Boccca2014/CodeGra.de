@@ -113,19 +113,20 @@ export default tsx.component({
                     </b-form-select-option>
                 </b-form-select>;
 
-            return utils.ifOrEmpty(
-                this.allPrefs.isJust() && this.prefValue.isJust(),
-                () => <div>
-                    <hr />
-
-                    <b-form-group
-                        label={utils.capitalize(compName)}
-                        class="mb-0"
-                        description={`You can switch between the old and the new ${compName} here.`}>
-                        {renderSelect()}
-                    </b-form-group>
-                </div>,
-            );
+            return this.prefValue.caseOf({
+                Just: value => (
+                    <div class="text-right">
+                        <a href="#" onClick={m.prevent(this.togglePreference)}
+                           class="inline-link">
+                            {value
+                            ? 'Switch back to the old interface'
+                            : 'Switch to the new interface'
+                            }
+                        </a>
+                    </div>
+                ),
+                Nothing: () => this.$utils.emptyVNode(),
+            });
         },
 
         updatePreference(value: boolean) {

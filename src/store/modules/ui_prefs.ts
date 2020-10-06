@@ -64,11 +64,10 @@ export namespace UIPrefsStore {
     }, 'loadUIPreferences');
 
     export const patchUIPreference = moduleBuilder.dispatch(
-        (ctx, { name, value }: { name: models.UIPreference; value: boolean }) =>
-            api.uiPrefs.patchUIPreference(name, value).then(res => {
-                commitPatchedUIPref({ name, value });
-                return res;
-            }),
+        (ctx, { name, value }: { name: models.UIPreference; value: boolean }) => {
+            commitPatchedUIPref({ name, value });
+            return api.uiPrefs.patchUIPreference(name, value);
+        },
         'patchUIPreference',
     );
 }
