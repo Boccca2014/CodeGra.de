@@ -112,7 +112,7 @@ export default tsx.component({
 
             const renderSelect = () =>
                 <b-form-select
-                    class="float-right"
+                    class="ui-switcher"
                     value={this.prefValue.unsafeCoerce()}
                     disabled={this.updating}
                     onInput={() => this.togglePreference()}>
