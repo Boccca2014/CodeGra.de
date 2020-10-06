@@ -150,7 +150,6 @@ class PsefFlask(Flask):
         )
 
 
-
 logger = structlog.get_logger()
 
 app: PsefFlask = current_app  # pylint: disable=invalid-name

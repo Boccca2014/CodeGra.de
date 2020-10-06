@@ -84,7 +84,6 @@ class CourseRegistrationLink(Base, mixins.UUIDMixin, mixins.TimestampMixin):
         #: Can users register with this link
         allow_register: bool
 
-
     def __to_json__(self) -> AsJSON:
         return {
             'id': self.id,

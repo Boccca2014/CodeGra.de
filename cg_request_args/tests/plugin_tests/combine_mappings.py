@@ -10,4 +10,6 @@ map3 = FixedMapping(RequiredArgument('b', SimpleValue(str), ''))
 
 map1.combine(map2)  # E:r Cannot combine typeddict, got overlapping key 'a'.*
 map4 = map1.combine(map3)
-reveal_type(map4)  # N: Revealed type is 'cg_request_args.FixedMapping[TypedDict({'a': builtins.int*, 'b': builtins.str*})]'
+reveal_type(
+    map4  # N: Revealed type is 'cg_request_args.FixedMapping[TypedDict({'a': builtins.int*, 'b': builtins.str*})]'
+)

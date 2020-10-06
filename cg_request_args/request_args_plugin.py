@@ -150,7 +150,7 @@ def add_tag_callback(ctx: MethodContext) -> Type:
         return ctx.default_return_type
 
     key_value = key.last_known_value.value
-    if not isinstance(key_value, str):   # pragma: no cover
+    if not isinstance(key_value, str):  # pragma: no cover
         return ctx.default_return_type
 
     assert isinstance(ctx.default_return_type, Instance)

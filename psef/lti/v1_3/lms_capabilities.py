@@ -131,6 +131,7 @@ class LMSCapabilities(Protocol):
     def __to_json__(self) -> t.Mapping[str, t.Union[str, bool]]:
         ...
 
+
 @dataclasses.dataclass(frozen=True)
 class _LMSCapabilities:
     lms: str

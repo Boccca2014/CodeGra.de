@@ -50,7 +50,6 @@ class IgnoreHandling(enum.IntEnum):
     error: int = 3
 
 
-
 class ParseError(APIException):
     """The exception raised when parsing failed.
     """
@@ -737,8 +736,8 @@ class FileRule:
                 f' contains {star_amount} wildcards.'
             )
         elif (
-                file_type == cls.FileType.file and star_amount > 0 and
-                cls.count_chars('/', filename[star_indices[0] + 1:])[0] > 0
+            file_type == cls.FileType.file and star_amount > 0 and
+            cls.count_chars('/', filename[star_indices[0] + 1:])[0] > 0
         ):
             raise ParseError(
                 'Files can only contain a wildcard for the name of the file,'

@@ -1534,9 +1534,7 @@ class LTI1p3Provider(LTIProviderBase):
             return make_typed_dict_extender(
                 base,
                 LTI1p3Provider.FinalizedAsJSON,
-            )(
-                finalized=True,
-            )
+            )(finalized=True)
         else:
             if auth.LTIProviderPermissions(self).ensure_may_edit.as_bool():
                 edit_secret: t.Optional[uuid.UUID] = self.edit_secret

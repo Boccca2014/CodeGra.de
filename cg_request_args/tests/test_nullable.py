@@ -18,5 +18,5 @@ def test_simple(schema_mock):
 
     assert parser.to_open_api(schema_mock) == {
         'nullable': True,
-        'type': ('Convert', str)
+        'type': ('Convert', str),
     }

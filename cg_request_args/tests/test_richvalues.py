@@ -106,7 +106,6 @@ def test_datetime(schema_mock):
     }
 
 
-
 def test_uuid(schema_mock):
     parser = RichValue.UUID
     val = uuid.uuid4()

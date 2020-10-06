@@ -753,7 +753,6 @@ def filter_users_by_name(
     ).limit(limit)
 
 
-
 def ensure_on_test_server() -> None:
     """Make sure we are on a test server.
     """

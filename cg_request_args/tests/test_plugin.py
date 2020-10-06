@@ -60,7 +60,6 @@ def test_plugin(test_file):
             for _, e_or_n, is_regex, message in matches:
                 expected.append((idx + 1, e_or_n, bool(is_regex), message))
 
-
     print(output, expected)
     assert len(output) == len(expected)
     for out, expect in zip(output, expected):

@@ -457,7 +457,7 @@ def create_error_template():
             'found': object,
             'expected': str,
             '?sub_errors?': list,
-        }
+        },
     }
 
 

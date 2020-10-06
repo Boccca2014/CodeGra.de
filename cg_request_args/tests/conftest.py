@@ -42,5 +42,4 @@ def schema_mock():
         def add_schema(self, schema):
             return ('Add Schema', schema)
 
-
     yield _Mock()
