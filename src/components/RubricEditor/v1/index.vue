@@ -9,7 +9,7 @@
 </b-alert>
 
 <div v-else-if="!editable && rubric == null"
-     class="rubric-editor text-muted font-italic">
+     class="rubric-editor border rounded p-3 text-muted font-italic">
     There is no rubric for this assignment.
 </div>
 
@@ -374,7 +374,7 @@
         </b-button-toolbar>
     </template>
 
-    <p class="max-points border rounded-bottom p-3 mb-3" v-else>
+    <p class="max-points border rounded-bottom p-3 mb-0" v-else>
         To get a full mark you need to score
         {{ internalFixedMaxPoints || rubricMaxPoints }} points in this rubric.
     </p>

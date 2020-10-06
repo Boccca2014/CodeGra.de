@@ -18,6 +18,7 @@ export default tsx.component({
         prefName: p.ofType<models.UIPreference>().required,
         componentName: p(String).required,
         defaultValue: p(Boolean).default(false),
+        hideSwitcher: p(Boolean).default(false),
     },
 
     data() {
@@ -60,7 +61,7 @@ export default tsx.component({
                 Just: () => this.renderContent(h),
                 Nothing: () => [<comp.Loader page-loader />],
             })}
-            {this.renderToggle(h)}
+            {this.renderSwitcher(h)}
         </div>;
     },
 
@@ -73,17 +74,23 @@ export default tsx.component({
         },
 
         renderMessage(h: CreateElement): VNode {
+            const shouldRender = (
+                !this.hideSwitcher &&
+                this.allPrefs.isJust() &&
+                this.prefValue.isNothing()
+            );
+
             return utils.ifOrEmpty(
-                this.allPrefs.isJust() && this.prefValue.isNothing(),
+                shouldRender,
                 () => <b-alert show
                                dismissible
                                variant={store.getters['pref/darkMode'] ? 'dark' : 'light'}
                                class="mb-3"
                                onDismissed={() => this.updatePreference(false)}>
                     {this.$slots.ifUnset}
-
+                    {' '}
                     <a href="#"
-                       class="pl-1 inline-link"
+                       class="inline-link"
                        onClick={m.prevent(() => this.updatePreference(true))}>
                         Click here to try the new version.
                     </a>
@@ -96,36 +103,25 @@ export default tsx.component({
             return value ? this.$slots.ifTrue : this.$slots.ifFalse;
         },
 
-        renderToggle(h: CreateElement): VNode {
+        renderSwitcher(h: CreateElement): VNode {
+            if (this.hideSwitcher) {
+                return utils.emptyVNode();
+            }
+
             const compName = this.componentName;
 
-            const renderSelect = () =>
-                <b-form-select
-                    class="ui-switcher"
-                    value={this.prefValue.unsafeCoerce()}
-                    onInput={() => this.togglePreference()}>
-                    <b-form-select-option value={true}>
-                        New interface
-                    </b-form-select-option>
-                    <b-form-select-option value={false}>
-                        Old interface
-                    </b-form-select-option>
-                </b-form-select>;
-
-            return this.prefValue.caseOf({
-                Just: value => (
-                    <div class="text-right">
-                        <a href="#" onClick={m.prevent(this.togglePreference)}
-                           class="inline-link">
-                            {value
-                            ? 'Switch back to the old interface'
-                            : 'Switch to the new interface'
-                            }
-                        </a>
-                    </div>
-                ),
-                Nothing: () => this.$utils.emptyVNode(),
-            });
+            return utils.ifJustOrEmpty(
+                this.prefValue,
+                value => <div class="mt-3 text-right">
+                    <a href="#" onClick={m.prevent(this.togglePreference)}
+                        class="inline-link">
+                        {value
+                        ? 'Switch back to the old interface'
+                        : 'Switch to the new interface'
+                        }
+                    </a>
+                </div>,
+            );
         },
 
         updatePreference(value: boolean) {
