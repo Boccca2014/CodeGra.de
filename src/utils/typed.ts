@@ -941,9 +941,9 @@ export function pickKeys<T, K extends keyof T>(
     }, {} as Partial<Pick<T, K>>);
 }
 
-type EmptyVNode = { isRootInsert: false, isComment: true };
+type EmptyVNode = VNode & { isRootInsert: false, isComment: true };
 export function emptyVNode(): EmptyVNode {
-    return { isRootInsert: false, isComment: true };
+    return { isRootInsert: false, isComment: true, text: '' };
 }
 
 export function ifExpr<T, Y>(cond: boolean, then: () => T, else_: () => Y): T | Y {
