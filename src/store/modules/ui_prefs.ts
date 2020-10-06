@@ -66,7 +66,7 @@ export namespace UIPrefsStore {
     export const patchUIPreference = moduleBuilder.dispatch(
         (ctx, { name, value }: { name: models.UIPreference; value: boolean }) =>
             api.uiPrefs.patchUIPreference(name, value).then(res => {
-                res.onAfterSuccess = () => commitPatchedUIPref({ name, value });
+                commitPatchedUIPref({ name, value });
                 return res;
             }),
         'patchUIPreference',
