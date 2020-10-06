@@ -278,7 +278,7 @@ def update_assignment(assignment_id: int) -> JSONResponse[models.Assignment]:
         ),
         rqa.OptionalArgument(
             'max_grade',
-            rqa.Nullable(rqa.RichValue.NumberGte(0)),
+            rqa.Nullable(rqa.RichValue.ValueGte(rqa.SimpleValue.int, 0)),
             """
             The maximum possible grade for this assignment. You can reset
             this by passing ``null`` as value
@@ -321,7 +321,7 @@ def update_assignment(assignment_id: int) -> JSONResponse[models.Assignment]:
         ),
         rqa.OptionalArgument(
             'max_submissions',
-            rqa.Nullable(rqa.RichValue.NumberGte(1)),
+            rqa.Nullable(rqa.RichValue.ValueGte(rqa.SimpleValue.int, 1)),
             'The maximum amount of submissions a user may create.',
         ),
         rqa.OptionalArgument(
@@ -332,7 +332,7 @@ def update_assignment(assignment_id: int) -> JSONResponse[models.Assignment]:
         ),
         rqa.OptionalArgument(
             'amount_in_cool_off_period',
-            rqa.RichValue.NumberGte(1),
+            rqa.RichValue.ValueGte(rqa.SimpleValue.int, 1),
             """
             The maximum amount of submissions
             that can be made within ``cool_off_period`` seconds. This

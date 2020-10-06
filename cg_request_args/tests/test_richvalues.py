@@ -4,7 +4,7 @@ from datetime import timedelta
 import pytest
 
 from cg_dt_utils import DatetimeWithTimezone
-from cg_request_args import RichValue, SimpleParseError
+from cg_request_args import RichValue, SimpleValue, SimpleParseError
 
 
 @pytest.mark.parametrize(
@@ -44,8 +44,8 @@ def test_email_list(ok, value, maybe_raises, schema_mock):
         (True, -10, 10),
     ]
 )
-def test_number_gte(ok, value, minimum, maybe_raises, schema_mock):
-    parser = RichValue.NumberGte(minimum)
+def test_int_value_gte(ok, value, minimum, maybe_raises, schema_mock):
+    parser = RichValue.ValueGte(SimpleValue.int, minimum)
     with maybe_raises(not ok, SimpleParseError) as maybe_exc:
         parser.try_parse(value)
     if not ok:
@@ -120,3 +120,35 @@ def test_uuid(schema_mock):
         'type': ('Convert', str),
         'format': 'uuid',
     }
+
+
+def test_timedelta_from_int(schema_mock):
+    assert RichValue.TimeDelta.try_parse(5).total_seconds() == 5
+    assert RichValue.TimeDelta.try_parse(-10).total_seconds() == -10
+    assert RichValue.TimeDelta.try_parse(60) == timedelta(minutes=1)
+
+    assert RichValue.TimeDelta.to_open_api(schema_mock) == {
+        'anyOf': [
+            {'type': ('Convert', int)},
+            {
+                'type': ('Convert', str),
+                'format': 'time-delta',
+            },
+        ],
+    }
+
+
+def test_timedelta_simple_string_duration():
+    assert RichValue.TimeDelta.try_parse('PT15M') == timedelta(minutes=15)
+    assert RichValue.TimeDelta.try_parse('-PT15M') == timedelta(minutes=-15)
+    assert RichValue.TimeDelta.try_parse('P15D') == timedelta(days=15)
+    assert RichValue.TimeDelta.try_parse('P15DT01S') == timedelta(
+        days=15, seconds=1
+    )
+    assert RichValue.TimeDelta.try_parse('P1DT1S') == timedelta(
+        days=1, seconds=1
+    )
+
+    with pytest.raises(SimpleParseError) as exc:
+        RichValue.TimeDelta.try_parse('PINVALID')
+    assert 'TimeDelta as Union[str, int]' in str(exc.value)

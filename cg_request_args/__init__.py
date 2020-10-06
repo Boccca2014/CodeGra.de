@@ -4,6 +4,7 @@ SPDX-License-Identifier: AGPL-3.0-only
 """
 from __future__ import annotations
 
+import re
 import abc
 import copy
 import enum
@@ -37,6 +38,13 @@ if t.TYPE_CHECKING:  # pragma: no cover
 class _BaseDict(TypedDict):
     pass
 
+
+class _GEComparable(Protocol):
+    def __ge__(self: _T, other: _T) -> bool:
+        ...
+
+
+_GEComparableT = t.TypeVar('_GEComparableT', bound=_GEComparable)
 
 _BaseDictT = t.TypeVar('_BaseDictT', bound=_BaseDict)
 
@@ -1150,20 +1158,22 @@ class RichValue:
 
     EmailList = _EmailList()
 
-    class NumberGte(Constraint[int]):
+    class ValueGte(Constraint[_GEComparableT], t.Generic[_GEComparableT]):
         """Parse a number that is gte than a given minimum.
         """
         __slots__ = ('__minimum', )
 
-        def __init__(self, minimum: int) -> None:
-            super().__init__(SimpleValue.int)
+        def __init__(
+            self, parser: _Parser[_GEComparableT], minimum: _GEComparableT
+        ) -> None:
+            super().__init__(parser)
             self.__minimum: Final = minimum
 
         @property
         def name(self) -> str:
             return f'larger than {self.__minimum}'
 
-        def ok(self, value: int) -> bool:
+        def ok(self, value: _GEComparableT) -> bool:
             return value >= self.__minimum
 
         def _to_open_api(self,
@@ -1195,6 +1205,65 @@ class RichValue:
                 raise SimpleParseError(self, found='REDACTED')  # pylint: disable=raise-missing-from
 
     Password = _Password()
+
+    class _TimeDelta(_Transform[datetime.timedelta, t.Union[str, int]]):
+        # The regex below are copied from Pydantic
+        _ISO8601_DURATION_RE = re.compile(
+            r'^(?P<sign>[-+]?)'
+            r'P'
+            r'(?:(?P<days>\d+(.\d+)?)D)?'
+            r'(?:T'
+            r'(?:(?P<hours>\d+(.\d+)?)H)?'
+            r'(?:(?P<minutes>\d+(.\d+)?)M)?'
+            r'(?:(?P<seconds>\d+(.\d+)?)S)?'
+            r')?'
+            r'$'
+        )
+
+        def __init__(self) -> None:
+            super().__init__(
+                SimpleValue.str | SimpleValue.int,
+                self.__to_timedelta,
+                'TimeDelta',
+            )
+
+        def _to_open_api(self,
+                         schema: 'OpenAPISchema') -> t.Mapping[str, t.Any]:
+            return {
+                'anyOf': [
+                    SimpleValue.int.to_open_api(schema),
+                    {
+                        **SimpleValue.str.to_open_api(schema),
+                        'format': 'time-delta',
+                    },
+                ],
+            }
+
+        def __to_timedelta(
+            self, value: t.Union[str, int]
+        ) -> datetime.timedelta:
+            if isinstance(value, int):
+                return datetime.timedelta(seconds=value)
+            return self.__str_to_timedelta(value)
+
+        def __str_to_timedelta(self, value: str) -> datetime.timedelta:
+            match = self._ISO8601_DURATION_RE.match(value)
+            if match is None:
+                raise SimpleParseError(self, value)
+
+            groupdict: t.Mapping[str, t.Optional[str]] = match.groupdict()
+            groups = {k: v for k, v in groupdict.items() if v is not None}
+            sign = -1 if groups.get('sign', None) == '-' else 1
+
+            return sign * datetime.timedelta(
+                days=float(groups.get('days', 0)),
+                hours=float(groups.get('hours', 0)),
+                minutes=float(groups.get('minutes', 0)),
+                seconds=float(groups.get('seconds', 0)),
+                microseconds=float(groups.get('microseconds', 0)),
+            )
+
+    TimeDelta = _TimeDelta()
 
 
 class MultipartUpload(t.Generic[_T]):
