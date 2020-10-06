@@ -27,45 +27,9 @@ export default tsx.component({
             <template slot="ifUnset">
                 {utils.ifExpr(
                     props.editable,
-                    () => <div>
-                        <p>
-                            A new version of the rubric editor is available!
-                            The new editor supports:
-                        </p>
-
-                        <ul>
-                            <li>
-                                A better overview of the categories and the
-                                points that can be achieved per category.
-                            </li>
-                            <li>
-                                Editing multiple categories at the same time.
-                            </li>
-                            <li>Reordering rubric categories.</li>
-                            <li>Previewing markdown descriptions.</li>
-                        </ul>
-                    </div>,
-                    () => <p>
-                        A new version of the rubric overview is available!
-                        In the new overview it is easier to see how the
-                        points that you can achieve are distributed across
-                        the rubric and you can inspect multiple categories
-                        at the same time.
-                    </p>,
+                    () => 'An improved version of the rubric editor is available!',
+                    () => 'An improved version of the rubric overview is available!',
                 )}
-
-                <p>
-                    To not distract you too much, you can keep using the old
-                    version for now, but it will be removed in a couple of
-                    months. You can try the new version by clicking "Yes"
-                    below.
-                </p>
-
-                <p>
-                    After making a decision you can switch freely between the
-                    new and old versions at the bottom of this page. Do you
-                    want to try out the new version?
-                </p>
             </template>
 
             <RubricEditorV2

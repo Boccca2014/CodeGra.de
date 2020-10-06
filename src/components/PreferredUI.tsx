@@ -75,19 +75,18 @@ export default tsx.component({
         renderMessage(h: CreateElement): VNode {
             return utils.ifOrEmpty(
                 this.allPrefs.isJust() && this.prefValue.isNothing(),
-                () => <b-alert show variant="info">
+                () => <b-alert show
+                               dismissible
+                               variant={store.getters['pref/darkMode'] ? 'dark' : 'light'}
+                               class="mb-3"
+                               onDismissed={() => this.updatePreference(false)}>
                     {this.$slots.ifUnset}
 
-                    <b-button-toolbar justify class="mt-3">
-                        <comp.SubmitButton
-                            label="No"
-                            variant="outline-danger"
-                            submit={() => this.updatePreference(false)} />
-                        <comp.SubmitButton
-                            label="Yes"
-                            variant="primary"
-                            submit={() => this.updatePreference(true)} />
-                    </b-button-toolbar>
+                    <a href="#"
+                       class="pl-1 inline-link"
+                       onClick={m.prevent(() => this.updatePreference(true))}>
+                        Click here to try the new version.
+                    </a>
                 </b-alert>,
             );
         },

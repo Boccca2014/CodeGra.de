@@ -18,6 +18,7 @@ import fileTrees from './modules/file_trees';
 import { RootState } from './state';
 
 import { onDone as coursesOnDone } from './modules/courses';
+import { onDone as uiPrefsOnDone } from './modules/ui_prefs';
 
 export { NotificationStore } from './modules/notification';
 export { FeedbackStore } from './modules/feedback';
@@ -148,3 +149,4 @@ if (useLocalStorage()) {
 }
 
 coursesOnDone(store);
+uiPrefsOnDone(store);

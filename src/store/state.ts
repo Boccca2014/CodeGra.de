@@ -15,6 +15,7 @@ export interface RootState {
     graders: GradersState;
     // eslint-disable-next-line camelcase
     peer_feedback: PeerFeedbackState;
+    // eslint-disable-next-line camelcase
     ui_prefs: UIPrefsState;
 
     submissions: any;
