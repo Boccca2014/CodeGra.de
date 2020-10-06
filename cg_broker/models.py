@@ -7,6 +7,7 @@ import time
 import uuid
 import typing as t
 import secrets
+import functools
 import dataclasses
 from datetime import timedelta
 
@@ -26,7 +27,10 @@ from cg_logger import bound_to_logger
 from cg_timers import timed_code
 from cg_dt_utils import DatetimeWithTimezone
 from cg_flask_helpers import callback_after_this_request
-from cg_sqlalchemy_helpers import JSONB, types, mixins, hybrid_property
+from cg_sqlalchemy_helpers import (
+    JSONB, types, mixins, hybrid_property, hybrid_expression
+)
+from cg_sqlalchemy_helpers.types import DbColumn
 
 from . import BrokerFlask, app, utils, exceptions
 
@@ -66,14 +70,16 @@ class RunnerState(cg_enum.CGEnum):
     cleaned = 'cleaned'
 
     @classmethod
-    def get_before_started_states(cls) -> t.List['RunnerState']:
+    @functools.lru_cache(maxsize=None)
+    def get_before_started_states(cls) -> t.Sequence['RunnerState']:
         """Get the states in which a is runner before it posted to the alive
             route.
         """
         return [cls.not_running, cls.creating]
 
     @classmethod
-    def get_before_assigned_states(cls) -> t.List['RunnerState']:
+    @functools.lru_cache(maxsize=None)
+    def get_before_assigned_states(cls) -> t.Sequence['RunnerState']:
         """Get the states in which a is runner before it has ever done any
             work.
 
@@ -83,7 +89,8 @@ class RunnerState(cg_enum.CGEnum):
         return [*cls.get_before_started_states(), cls.started]
 
     @classmethod
-    def get_before_running_states(cls) -> t.List['RunnerState']:
+    @functools.lru_cache(maxsize=None)
+    def get_before_running_states(cls) -> t.Sequence['RunnerState']:
         """Get the states in which a is runner before it has ever done any
         work.
 
@@ -94,7 +101,8 @@ class RunnerState(cg_enum.CGEnum):
         return [*cls.get_before_assigned_states(), cls.assigned]
 
     @classmethod
-    def get_active_states(cls) -> t.List['RunnerState']:
+    @functools.lru_cache(maxsize=None)
+    def get_active_states(cls) -> t.Sequence['RunnerState']:
         """Get the states in which a runner is considered active.
         """
         return [*cls.get_before_running_states(), cls.running]
@@ -294,18 +302,26 @@ class Runner(Base, mixins.TimestampMixin, mixins.UUIDMixin):
             This also starts a job to kill this runner after a certain amount
             of time if it is still unassigned.
         """
-        self.job_id = None
-        eta = DatetimeWithTimezone.utcnow() + timedelta(
-            minutes=app.config['RUNNER_MAX_TIME_ALIVE']
-        )
         runner_hex_id = self.id.hex
-
-        callback_after_this_request(
-            lambda: cg_broker.tasks.maybe_kill_unneeded_runner.apply_async(
-                (runner_hex_id, ),
-                eta=eta,
+        self.job_id = None
+        if self.state in RunnerState.get_before_running_states():
+            if self.state.is_assigned:
+                self.state = RunnerState.started
+            eta = DatetimeWithTimezone.utcnow() + timedelta(
+                minutes=app.config['RUNNER_MAX_TIME_ALIVE']
             )
-        )
+
+            callback_after_this_request(
+                lambda: cg_broker.tasks.maybe_kill_unneeded_runner.apply_async(
+                    (runner_hex_id, ),
+                    eta=eta,
+                )
+            )
+        else:
+            self.state = RunnerState.cleaning
+            callback_after_this_request(
+                lambda: cg_broker.tasks.kill_runner.delay(runner_hex_id)
+            )
 
     def kill(self, *, maybe_start_new: bool, shutdown_only: bool) -> None:
         """Kill this runner and maybe start a new one.
@@ -503,7 +519,7 @@ chmod 777 "$F"
 
 
 @enum.unique
-class JobState(enum.IntEnum):
+class JobState(cg_enum.CGEnum):
     """This enum represents the current state of the Job.
 
     A job can never decrease its state, so when it is finished it can never be
@@ -513,19 +529,8 @@ class JobState(enum.IntEnum):
     started = 2
     finished = 3
 
-    @property
-    def is_finished(self) -> bool:
-        """Is this a finished state.
-        """
-        return self == self.finished
-
-    @property
-    def is_waiting_for_runner(self) -> bool:
-        """Is this waiting for a runner
-        """
-        return self == self.waiting_for_runner
-
     @classmethod
+    @functools.lru_cache(maxsize=None)
     def get_finished_states(cls) -> t.Sequence['JobState']:
         """Get the states that are considered finished.
         """
@@ -592,7 +597,7 @@ class Job(Base, mixins.TimestampMixin, mixins.IdMixin):
         return self._state
 
     def _set_state(self, new_state: JobState) -> None:
-        if new_state < self.state:
+        if new_state.value < self.state.value:
             raise ValueError(
                 'Cannot decrease the state!', self.state, new_state
             )
@@ -618,6 +623,27 @@ class Job(Base, mixins.TimestampMixin, mixins.IdMixin):
             if r.state in RunnerState.get_active_states()
         ]
 
+    def _use_runner(self, runner: Runner) -> None:
+        active_runners = self.get_active_runners()
+        before_assigned = set(RunnerState.get_before_assigned_states())
+
+        self.runners.append(runner)
+        too_many_active = len(active_runners) + 1 > self.wanted_runners
+        if too_many_active:
+            unneeded_runner = next(
+                (r for r in active_runners if r.state in before_assigned),
+                None,
+            )
+            if unneeded_runner is not None:
+                # In this case we now have too many runners assigned to us, so
+                # make one of the runners unassigned. But only do this if we
+                # have a runner which isn't already running.
+                unneeded_runner.make_unassigned()
+
+        callback_after_this_request(
+            cg_broker.tasks.maybe_start_more_runners.delay
+        )
+
     def __log__(self) -> t.Dict[str, object]:
         return {
             'state': self.state and self.state.name,
@@ -642,6 +668,29 @@ class Job(Base, mixins.TimestampMixin, mixins.IdMixin):
         # job.
         return any(r != runner for r in runner.job.get_active_runners())
 
+    def _get_needs_more_runners(self) -> bool:
+        """Are more runners needed for this job?
+
+        This will check how many runners the job currently has running (so this
+        less or equal to assigned amount) compared to the amount of wanted
+        runners.
+        """
+        amount_running = sum(1 for r in self.runners if r.state.is_running)
+        return amount_running < self.wanted_runners
+
+    @hybrid_expression
+    def _get_needs_more_runners_expr(cls: t.Type['Job']) -> DbColumn[bool]:
+        amount_running = Runner.query.filter(
+            Runner.job_id == cls.id,
+            Runner.state == RunnerState.running,
+        ).count()
+        return amount_running < cls.wanted_runners
+
+    needs_more_runners = hybrid_property(
+        fget=_get_needs_more_runners,
+        expr=_get_needs_more_runners_expr,
+    )
+
     def maybe_use_runner(self, runner: Runner) -> bool:
         """Maybe use the given ``runner`` for this job.
 
@@ -661,13 +710,8 @@ class Job(Base, mixins.TimestampMixin, mixins.IdMixin):
             # runner.
             return False
 
-        active_runners = self.get_active_runners()
-        before_active = set(RunnerState.get_before_running_states())
-
         # In this case we have enough running runners for this job.
-        if sum(
-            r.state not in before_active for r in active_runners
-        ) >= self.wanted_runners:
+        if not self.needs_more_runners:
             logger.info('Too many runners assigned to job')
             return False
 
@@ -676,42 +720,19 @@ class Job(Base, mixins.TimestampMixin, mixins.IdMixin):
 
         # Runner is unassigned, so get it.
         if runner.job is None:
-            self.runners.append(runner)
-            # However, we might assume that this runner can be used for other
-            # jobs, so we might need to start more runners.
-            callback_after_this_request(
-                cg_broker.tasks.maybe_start_more_runners.delay
-            )
+            self._use_runner(runner)
             return True
-
-        # Runner is assigned but we maybe can steal it.
-        if self._can_steal_runner(runner):
+        elif self._can_steal_runner(runner):
             logger.info(
                 'Stealing runner from job',
                 new_job_id=self.id,
                 other_job_id=runner.job.id,
                 runner=runner,
             )
-            self.runners.append(runner)
-            unneeded_runner = next(
-                (r for r in active_runners if r.state in before_active), None
-            )
-            too_many_active = len(active_runners) + 1 > self.wanted_runners
-            if too_many_active and unneeded_runner:
-                # In this case we now have too many runners assigned to us, so
-                # make one of the runners unassigned. But only do this if we
-                # have a runner which isn't already running.
-                unneeded_runner.make_unassigned()
-
-            # The runner we stole might be useful for the other job, as it
-            # might have requested extra runners. So we might want to start
-            # extra runners.
-            callback_after_this_request(
-                cg_broker.tasks.maybe_start_more_runners.delay
-            )
+            self._use_runner(runner)
             return True
-
-        return False
+        else:
+            return False
 
     def __to_json__(self) -> t.Dict[str, object]:
         return {
