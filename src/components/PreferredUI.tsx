@@ -23,7 +23,6 @@ export default tsx.component({
     data() {
         return {
             error: utils.Nothing as utils.Maybe<Error>,
-            updating: false,
         };
     },
 
@@ -67,9 +66,9 @@ export default tsx.component({
 
     methods: {
         renderError(h: CreateElement): VNode {
-            return utils.ifOrEmpty(
-                this.error.isJust(),
-                () => <comp.CgError error={this.error.unsafeCoerce()} />,
+            return utils.ifJustOrEmpty(
+                this.error,
+                e => <comp.CgError error={e} />,
             );
         },
 
@@ -101,20 +100,10 @@ export default tsx.component({
         renderToggle(h: CreateElement): VNode {
             const compName = this.componentName;
 
-            const renderLabel = () =>
-                <template slot="label">
-                    {utils.capitalize(compName)}
-                    {utils.ifOrEmpty(
-                        this.updating,
-                        () => <comp.Loader class="d-inline-block ml-2" scale={1} />
-                    )}
-                </template>;
-
             const renderSelect = () =>
                 <b-form-select
                     class="ui-switcher"
                     value={this.prefValue.unsafeCoerce()}
-                    disabled={this.updating}
                     onInput={() => this.togglePreference()}>
                     <b-form-select-option value={true}>
                         New interface
@@ -130,9 +119,9 @@ export default tsx.component({
                     <hr />
 
                     <b-form-group
+                        label={utils.capitalize(compName)}
                         class="mb-0"
                         description={`You can switch between the old and the new ${compName} here.`}>
-                        {renderLabel()}
                         {renderSelect()}
                     </b-form-group>
                 </div>,
@@ -140,31 +129,15 @@ export default tsx.component({
         },
 
         updatePreference(value: boolean) {
-            this.updating = true;
             return UIPrefsStore.patchUIPreference({
                 name: this.prefName,
                 value,
-            }).then(
-                res => {
-                    this.updating = false;
-                    return res;
-                },
-                err => {
-                    this.updating = false
-                    throw err;
-                },
-            ) as Promise<types.APIResponse<null>>;
+            });
         },
 
         togglePreference() {
             return this.prefValue.caseOf({
-                Just: value => this.updatePreference(!value).then(res => {
-                    const afterSuccess = res.onAfterSuccess;
-                    if (afterSuccess != null) {
-                        afterSuccess(res);
-                    }
-                    return res;
-                }),
+                Just: value => this.updatePreference(!value),
                 Nothing: () => Promise.reject(new Error('No value set.')),
             });
         },

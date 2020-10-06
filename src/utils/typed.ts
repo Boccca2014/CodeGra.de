@@ -960,3 +960,13 @@ export function ifOrEmpty<T extends VNode>(cond: boolean, then: () => T): T | Em
     }
     return emptyVNode();
 }
+
+export function ifJustOrEmpty<A>(
+    maybe: Maybe<A>,
+    then: (a: A) => VNode,
+): VNode {
+    return maybe.caseOf({
+        Just: then,
+        Nothing: () => emptyVNode(),
+    });
+}
