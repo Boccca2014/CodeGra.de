@@ -499,12 +499,12 @@ made in CodeGrade. A basic rubric consist of multiple categories that all have
 multiple levels and corresponding points. All components in a CodeGrade rubric
 can have a name and description.
 
-A new category can be created by clicking the :fa:`plus` button. You can also
+A new rubric can be created by clicking the :fa:`plus` button. You can also
 import a rubric by clicking the :fa:`copy` button.
 
-After creating a new rubric or copying an existing rubric you can add categories
-by pressing the :fa:`plus` icon in the tab bar. After creating a category you
-have to select one of two types:
+After creating a new rubric or copying an existing rubric you can add
+categories by pressing :fa:`plus` at the end of the list of categories. There
+are two types of categories:
 
 Discrete rubric categories
 ++++++++++++++++++++++++++++
