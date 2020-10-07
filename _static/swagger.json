@@ -1,0 +1,4266 @@
+{
+    "openapi": "3.0.3",
+    "info": {
+        "title": "CodeGrade",
+        "version": "v1",
+        "license": {
+            "name": "AGPL-3.0",
+            "url": "http://www.gnu.org/licenses/agpl-3.0.html"
+        },
+        "contact": {
+            "url": "https://codegrade.com",
+            "email": "support@codegrade.com"
+        }
+    },
+    "servers": [
+        {
+            "url": "https://{instance}.codegra.de",
+            "variables": {
+                "instance": {
+                    "description": "The instance you are on",
+                    "default": "app"
+                }
+            }
+        }
+    ],
+    "paths": {
+        "/api/v1/assignments/": {
+            "get": {
+                "responses": {
+                    "200": {
+                        "description": "The response if no errors occured",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/Assignment.AsJSON"
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "$ref": "#/components/responses/IncorrectParametersError"
+                    },
+                    "409": {
+                        "$ref": "#/components/responses/IncorrectParametersError"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/UnauthorizedError"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/IncorrectPermissionsError"
+                    },
+                    "5XX": {
+                        "$ref": "#/components/responses/UnknownError"
+                    }
+                },
+                "summary": "Get All",
+                "description": "Get all the <span data-role=\"class\">.models.Assignment</span> objects that the current user can see.",
+                "tags": [
+                    "Assignment"
+                ],
+                "operationId": "assignment_get_all",
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/auto_tests/": {
+            "post": {
+                "responses": {
+                    "200": {
+                        "description": "The response if no errors occured",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/AutoTest.AsJSON"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "$ref": "#/components/responses/IncorrectParametersError"
+                    },
+                    "409": {
+                        "$ref": "#/components/responses/IncorrectParametersError"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/UnauthorizedError"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/IncorrectPermissionsError"
+                    },
+                    "5XX": {
+                        "$ref": "#/components/responses/UnknownError"
+                    }
+                },
+                "summary": "Create",
+                "description": "Create a new AutoTest configuration.",
+                "tags": [
+                    "AutoTest"
+                ],
+                "operationId": "autotest_create",
+                "requestBody": {
+                    "content": {
+                        "multipart/form-data": {
+                            "schema": {
+                                "$ref": "#/components/schemas/CreateAutoTestData"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/courses/": {
+            "get": {
+                "responses": {
+                    "200": {
+                        "description": "The response if no errors occured",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/Course.AsExtendedJSON"
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "$ref": "#/components/responses/IncorrectParametersError"
+                    },
+                    "409": {
+                        "$ref": "#/components/responses/IncorrectParametersError"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/UnauthorizedError"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/IncorrectPermissionsError"
+                    },
+                    "5XX": {
+                        "$ref": "#/components/responses/UnknownError"
+                    }
+                },
+                "summary": "Get All",
+                "description": "Return all Course objects the current user is a member of.",
+                "tags": [
+                    "Course"
+                ],
+                "operationId": "course_get_all",
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/login": {
+            "post": {
+                "responses": {
+                    "200": {
+                        "description": "The response if no errors occured",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ResultDataPostUserLogin"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "$ref": "#/components/responses/IncorrectParametersError"
+                    },
+                    "409": {
+                        "$ref": "#/components/responses/IncorrectParametersError"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/UnauthorizedError"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/IncorrectPermissionsError"
+                    },
+                    "5XX": {
+                        "$ref": "#/components/responses/UnknownError"
+                    }
+                },
+                "summary": "Login",
+                "description": "Login using your username and password.",
+                "tags": [
+                    "User"
+                ],
+                "operationId": "user_login",
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/LoginUserData"
+                            }
+                        }
+                    },
+                    "required": true
+                }
+            },
+            "get": {
+                "responses": {
+                    "200": {
+                        "description": "The response if no errors occured",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "anyOf": [
+                                        {
+                                            "$ref": "#/components/schemas/User.AsJSON"
+                                        },
+                                        {
+                                            "type": "object",
+                                            "additionalProperties": {
+                                                "type": "string"
+                                            }
+                                        },
+                                        {
+                                            "$ref": "#/components/schemas/User.AsExtendedJSON"
+                                        }
+                                    ],
+                                    "nullable": false
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "$ref": "#/components/responses/IncorrectParametersError"
+                    },
+                    "409": {
+                        "$ref": "#/components/responses/IncorrectParametersError"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/UnauthorizedError"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/IncorrectPermissionsError"
+                    },
+                    "5XX": {
+                        "$ref": "#/components/responses/UnknownError"
+                    }
+                },
+                "summary": "Get",
+                "description": "Get the info of the currently logged in user.",
+                "tags": [
+                    "User"
+                ],
+                "operationId": "user_get",
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/auto_tests/{autoTestId}/runs/{runId}/results/{resultId}/restart": {
+            "post": {
+                "responses": {
+                    "200": {
+                        "description": "The response if no errors occured",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/AutoTestResult.AsExtendedJSON"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "$ref": "#/components/responses/IncorrectParametersError"
+                    },
+                    "409": {
+                        "$ref": "#/components/responses/IncorrectParametersError"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/UnauthorizedError"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/IncorrectPermissionsError"
+                    },
+                    "5XX": {
+                        "$ref": "#/components/responses/UnknownError"
+                    }
+                },
+                "summary": "Restart Result",
+                "description": "Restart an AutoTest result.",
+                "tags": [
+                    "AutoTest"
+                ],
+                "operationId": "autotest_restart_result",
+                "parameters": [
+                    {
+                        "name": "autoTestId",
+                        "required": true,
+                        "in": "path",
+                        "style": "simple",
+                        "description": "The id of the AutoTest in which the result is located.",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "name": "runId",
+                        "required": true,
+                        "in": "path",
+                        "style": "simple",
+                        "description": "The id of run in which the result is located.",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "name": "resultId",
+                        "required": true,
+                        "in": "path",
+                        "style": "simple",
+                        "description": "The id of the result you want to restart.",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/auto_tests/{autoTestId}/runs/{runId}/users/{userId}/results/": {
+            "get": {
+                "responses": {
+                    "200": {
+                        "description": "The response if no errors occured",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/AutoTestResult.AsJSON"
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "$ref": "#/components/responses/IncorrectParametersError"
+                    },
+                    "409": {
+                        "$ref": "#/components/responses/IncorrectParametersError"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/UnauthorizedError"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/IncorrectPermissionsError"
+                    },
+                    "5XX": {
+                        "$ref": "#/components/responses/UnknownError"
+                    }
+                },
+                "summary": "Get Results By User",
+                "description": "Get all AutoTest results for a given user.\n\nIf you don't have permission to see the results of the requested user an empty list will be returned.",
+                "tags": [
+                    "AutoTest"
+                ],
+                "operationId": "autotest_get_results_by_user",
+                "parameters": [
+                    {
+                        "name": "autoTestId",
+                        "required": true,
+                        "in": "path",
+                        "style": "simple",
+                        "description": "The id of the AutoTest in which to get the results.",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "name": "runId",
+                        "required": true,
+                        "in": "path",
+                        "style": "simple",
+                        "description": "The id of the AutoTestRun in which to get the results.",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "name": "userId",
+                        "required": true,
+                        "in": "path",
+                        "style": "simple",
+                        "description": "The id of the user of which we should get the results.",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/auto_tests/{autoTestId}/runs/{runId}/results/{resultId}": {
+            "get": {
+                "responses": {
+                    "200": {
+                        "description": "The response if no errors occured",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/AutoTestResult.AsExtendedJSON"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "$ref": "#/components/responses/IncorrectParametersError"
+                    },
+                    "409": {
+                        "$ref": "#/components/responses/IncorrectParametersError"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/UnauthorizedError"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/IncorrectPermissionsError"
+                    },
+                    "5XX": {
+                        "$ref": "#/components/responses/UnknownError"
+                    }
+                },
+                "summary": "Get Result",
+                "description": "Get the extended version of an AutoTest result.",
+                "tags": [
+                    "AutoTest"
+                ],
+                "operationId": "autotest_get_result",
+                "parameters": [
+                    {
+                        "name": "autoTestId",
+                        "required": true,
+                        "in": "path",
+                        "style": "simple",
+                        "description": "The id of the AutoTest in which the result is located.",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "name": "runId",
+                        "required": true,
+                        "in": "path",
+                        "style": "simple",
+                        "description": "The id of run in which the result is located.",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "name": "resultId",
+                        "required": true,
+                        "in": "path",
+                        "style": "simple",
+                        "description": "The id of the result you want to get.",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/auto_tests/{testId}/sets/{setId}/suites/{suiteId}": {
+            "delete": {
+                "responses": {
+                    "204": {
+                        "description": "An empty response"
+                    },
+                    "400": {
+                        "$ref": "#/components/responses/IncorrectParametersError"
+                    },
+                    "409": {
+                        "$ref": "#/components/responses/IncorrectParametersError"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/UnauthorizedError"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/IncorrectPermissionsError"
+                    },
+                    "5XX": {
+                        "$ref": "#/components/responses/UnknownError"
+                    }
+                },
+                "summary": "Delete Suite",
+                "description": "Delete a <span data-role=\"class\">.models.AutoTestSuite</span>.",
+                "tags": [
+                    "AutoTest"
+                ],
+                "operationId": "autotest_delete_suite",
+                "parameters": [
+                    {
+                        "name": "testId",
+                        "required": true,
+                        "in": "path",
+                        "style": "simple",
+                        "description": "The id of the <span data-role=\"class\">.models.AutoTest</span> where the suite is located in.",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "name": "setId",
+                        "required": true,
+                        "in": "path",
+                        "style": "simple",
+                        "description": "The id of the <span data-role=\"class\">.models.AutoTestSet</span> where the suite is located in.",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "name": "suiteId",
+                        "required": true,
+                        "in": "path",
+                        "style": "simple",
+                        "description": "The id of the <span data-role=\"class\">.models.AutoTestSuite</span> you want to delete.",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/auto_tests/{autoTestId}/sets/{setId}/suites/": {
+            "patch": {
+                "responses": {
+                    "200": {
+                        "description": "The response if no errors occured",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/AutoTestSuite.AsJSON"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "$ref": "#/components/responses/IncorrectParametersError"
+                    },
+                    "409": {
+                        "$ref": "#/components/responses/IncorrectParametersError"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/UnauthorizedError"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/IncorrectPermissionsError"
+                    },
+                    "5XX": {
+                        "$ref": "#/components/responses/UnknownError"
+                    }
+                },
+                "summary": "Update Suite",
+                "description": "Update or create a <span data-role=\"class\">.models.AutoTestSuite</span> (also known as category)",
+                "tags": [
+                    "AutoTest"
+                ],
+                "operationId": "autotest_update_suite",
+                "parameters": [
+                    {
+                        "name": "autoTestId",
+                        "required": true,
+                        "in": "path",
+                        "style": "simple",
+                        "description": "The id of the <span data-role=\"class\">.models.AutoTest</span> in which this suite should be created.",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "name": "setId",
+                        "required": true,
+                        "in": "path",
+                        "style": "simple",
+                        "description": "The id the <span data-role=\"class\">.models.AutoTestSet</span> in which this suite should be created.",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/UpdateSuiteAutoTestData"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/assignments/{assignmentId}/rubrics/": {
+            "get": {
+                "responses": {
+                    "200": {
+                        "description": "The response if no errors occured",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/RubricRowBase.AsJSON"
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "$ref": "#/components/responses/IncorrectParametersError"
+                    },
+                    "409": {
+                        "$ref": "#/components/responses/IncorrectParametersError"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/UnauthorizedError"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/IncorrectPermissionsError"
+                    },
+                    "5XX": {
+                        "$ref": "#/components/responses/UnknownError"
+                    }
+                },
+                "summary": "Get Rubric",
+                "description": "Return the rubric corresponding to the given `assignment_id`.",
+                "tags": [
+                    "Assignment"
+                ],
+                "operationId": "assignment_get_rubric",
+                "parameters": [
+                    {
+                        "name": "assignmentId",
+                        "required": true,
+                        "in": "path",
+                        "style": "simple",
+                        "description": "The id of the assignment.",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            },
+            "delete": {
+                "responses": {
+                    "204": {
+                        "description": "An empty response"
+                    },
+                    "400": {
+                        "$ref": "#/components/responses/IncorrectParametersError"
+                    },
+                    "409": {
+                        "$ref": "#/components/responses/IncorrectParametersError"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/UnauthorizedError"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/IncorrectPermissionsError"
+                    },
+                    "5XX": {
+                        "$ref": "#/components/responses/UnknownError"
+                    }
+                },
+                "summary": "Delete Rubric",
+                "description": "Delete the rubric for the given assignment.",
+                "tags": [
+                    "Assignment"
+                ],
+                "operationId": "assignment_delete_rubric",
+                "parameters": [
+                    {
+                        "name": "assignmentId",
+                        "required": true,
+                        "in": "path",
+                        "style": "simple",
+                        "description": "The id of the <span data-role=\"class\">.models.Assignment</span> whose rubric should be deleted.",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            },
+            "put": {
+                "responses": {
+                    "200": {
+                        "description": "The response if no errors occured",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/RubricRowBase.AsJSON"
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "$ref": "#/components/responses/IncorrectParametersError"
+                    },
+                    "409": {
+                        "$ref": "#/components/responses/IncorrectParametersError"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/UnauthorizedError"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/IncorrectPermissionsError"
+                    },
+                    "5XX": {
+                        "$ref": "#/components/responses/UnknownError"
+                    }
+                },
+                "summary": "Put Rubric",
+                "description": "Add or update rubric of an assignment.",
+                "tags": [
+                    "Assignment"
+                ],
+                "operationId": "assignment_put_rubric",
+                "parameters": [
+                    {
+                        "name": "assignmentId",
+                        "required": true,
+                        "in": "path",
+                        "style": "simple",
+                        "description": "The id of the assignment",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/PutRubricAssignmentData"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/assignments/{assignmentId}/course": {
+            "get": {
+                "responses": {
+                    "200": {
+                        "description": "The response if no errors occured",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Course.AsExtendedJSON"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "$ref": "#/components/responses/IncorrectParametersError"
+                    },
+                    "409": {
+                        "$ref": "#/components/responses/IncorrectParametersError"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/UnauthorizedError"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/IncorrectPermissionsError"
+                    },
+                    "5XX": {
+                        "$ref": "#/components/responses/UnknownError"
+                    }
+                },
+                "summary": "Get Course",
+                "description": "Get the course connected to an assignment.",
+                "tags": [
+                    "Assignment"
+                ],
+                "operationId": "assignment_get_course",
+                "parameters": [
+                    {
+                        "name": "assignmentId",
+                        "required": true,
+                        "in": "path",
+                        "style": "simple",
+                        "description": "The id of the assignment from which you want to get the course.",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/assignments/{assignmentId}/rubric": {
+            "post": {
+                "responses": {
+                    "200": {
+                        "description": "The response if no errors occured",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/RubricRowBase.AsJSON"
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "$ref": "#/components/responses/IncorrectParametersError"
+                    },
+                    "409": {
+                        "$ref": "#/components/responses/IncorrectParametersError"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/UnauthorizedError"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/IncorrectPermissionsError"
+                    },
+                    "5XX": {
+                        "$ref": "#/components/responses/UnknownError"
+                    }
+                },
+                "summary": "Copy Rubric",
+                "description": "Import a rubric from a different assignment.",
+                "tags": [
+                    "Assignment"
+                ],
+                "operationId": "assignment_copy_rubric",
+                "parameters": [
+                    {
+                        "name": "assignmentId",
+                        "required": true,
+                        "in": "path",
+                        "style": "simple",
+                        "description": "The id of the assignment in which you want to import the rubric. This assignment shouldn't have a rubric.",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/CopyRubricAssignmentData"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/auto_tests/{autoTestId}/sets/{autoTestSetId}": {
+            "patch": {
+                "responses": {
+                    "200": {
+                        "description": "The response if no errors occured",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/AutoTestSet.AsJSON"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "$ref": "#/components/responses/IncorrectParametersError"
+                    },
+                    "409": {
+                        "$ref": "#/components/responses/IncorrectParametersError"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/UnauthorizedError"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/IncorrectPermissionsError"
+                    },
+                    "5XX": {
+                        "$ref": "#/components/responses/UnknownError"
+                    }
+                },
+                "summary": "Update Set",
+                "description": "Update the given <span data-role=\"class\">.models.AutoTestSet</span>.",
+                "tags": [
+                    "AutoTest"
+                ],
+                "operationId": "autotest_update_set",
+                "parameters": [
+                    {
+                        "name": "autoTestId",
+                        "required": true,
+                        "in": "path",
+                        "style": "simple",
+                        "description": "The id of the <span data-role=\"class\">.models.AutoTest</span> of the set that should be updated.",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "name": "autoTestSetId",
+                        "required": true,
+                        "in": "path",
+                        "style": "simple",
+                        "description": "The id of the <span data-role=\"class\">.models.AutoTestSet</span> that should be updated.",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/UpdateSetAutoTestData"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            },
+            "delete": {
+                "responses": {
+                    "204": {
+                        "description": "An empty response"
+                    },
+                    "400": {
+                        "$ref": "#/components/responses/IncorrectParametersError"
+                    },
+                    "409": {
+                        "$ref": "#/components/responses/IncorrectParametersError"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/UnauthorizedError"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/IncorrectPermissionsError"
+                    },
+                    "5XX": {
+                        "$ref": "#/components/responses/UnknownError"
+                    }
+                },
+                "summary": "Delete Set",
+                "description": "Delete an <span data-role=\"class\">.models.AutoTestSet</span>.",
+                "tags": [
+                    "AutoTest"
+                ],
+                "operationId": "autotest_delete_set",
+                "parameters": [
+                    {
+                        "name": "autoTestId",
+                        "required": true,
+                        "in": "path",
+                        "style": "simple",
+                        "description": "The id of the <span data-role=\"class\">.models.AutoTest</span> of the to be deleted set.",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "name": "autoTestSetId",
+                        "required": true,
+                        "in": "path",
+                        "style": "simple",
+                        "description": "The id of the <span data-role=\"class\">.models.AutoTestSet</span> that should be deleted.",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/auto_tests/{autoTestId}/runs/{runId}": {
+            "delete": {
+                "responses": {
+                    "204": {
+                        "description": "An empty response"
+                    },
+                    "400": {
+                        "$ref": "#/components/responses/IncorrectParametersError"
+                    },
+                    "409": {
+                        "$ref": "#/components/responses/IncorrectParametersError"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/UnauthorizedError"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/IncorrectPermissionsError"
+                    },
+                    "5XX": {
+                        "$ref": "#/components/responses/UnknownError"
+                    }
+                },
+                "summary": "Stop Run",
+                "description": "Delete an AutoTest run, this makes it possible to edit the AutoTest.\n\nThis also clears the rubric categories filled in by the AutoTest.",
+                "tags": [
+                    "AutoTest"
+                ],
+                "operationId": "autotest_stop_run",
+                "parameters": [
+                    {
+                        "name": "autoTestId",
+                        "required": true,
+                        "in": "path",
+                        "style": "simple",
+                        "description": "The id of the AutoTest of which the run should be deleted.",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "name": "runId",
+                        "required": true,
+                        "in": "path",
+                        "style": "simple",
+                        "description": "The id of the run which should be deleted.",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/auto_tests/{autoTestId}/sets/": {
+            "post": {
+                "responses": {
+                    "200": {
+                        "description": "The response if no errors occured",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/AutoTestSet.AsJSON"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "$ref": "#/components/responses/IncorrectParametersError"
+                    },
+                    "409": {
+                        "$ref": "#/components/responses/IncorrectParametersError"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/UnauthorizedError"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/IncorrectPermissionsError"
+                    },
+                    "5XX": {
+                        "$ref": "#/components/responses/UnknownError"
+                    }
+                },
+                "summary": "Add Set",
+                "description": "Create a new set within an AutoTest",
+                "tags": [
+                    "AutoTest"
+                ],
+                "operationId": "autotest_add_set",
+                "parameters": [
+                    {
+                        "name": "autoTestId",
+                        "required": true,
+                        "in": "path",
+                        "style": "simple",
+                        "description": "The id of the AutoTest wherein you want to create a set.",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/auto_tests/{autoTestId}/runs/": {
+            "post": {
+                "responses": {
+                    "200": {
+                        "description": "The response if no errors occured",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "anyOf": [
+                                        {
+                                            "type": "object",
+                                            "additionalProperties": {
+                                                "type": "string",
+                                                "enum": [
+                                                    ""
+                                                ]
+                                            }
+                                        },
+                                        {
+                                            "$ref": "#/components/schemas/AutoTestRun.AsExtendedJSON"
+                                        }
+                                    ],
+                                    "nullable": false
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "$ref": "#/components/responses/IncorrectParametersError"
+                    },
+                    "409": {
+                        "$ref": "#/components/responses/IncorrectParametersError"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/UnauthorizedError"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/IncorrectPermissionsError"
+                    },
+                    "5XX": {
+                        "$ref": "#/components/responses/UnknownError"
+                    }
+                },
+                "summary": "Start Run",
+                "description": "Start a run for the given <span data-role=\"class\">AutoTest</span>.",
+                "tags": [
+                    "AutoTest"
+                ],
+                "operationId": "autotest_start_run",
+                "parameters": [
+                    {
+                        "name": "autoTestId",
+                        "required": true,
+                        "in": "path",
+                        "style": "simple",
+                        "description": "The id of the AutoTest for which you want to start a run.",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/auto_tests/{autoTestId}/copy": {
+            "post": {
+                "responses": {
+                    "200": {
+                        "description": "The response if no errors occured",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/AutoTest.AsJSON"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "$ref": "#/components/responses/IncorrectParametersError"
+                    },
+                    "409": {
+                        "$ref": "#/components/responses/IncorrectParametersError"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/UnauthorizedError"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/IncorrectPermissionsError"
+                    },
+                    "5XX": {
+                        "$ref": "#/components/responses/UnknownError"
+                    }
+                },
+                "summary": "Copy",
+                "description": "Copy the given AutoTest configuration.",
+                "tags": [
+                    "AutoTest"
+                ],
+                "operationId": "autotest_copy",
+                "parameters": [
+                    {
+                        "name": "autoTestId",
+                        "required": true,
+                        "in": "path",
+                        "style": "simple",
+                        "description": "The id of the AutoTest config which should be copied.",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/CopyAutoTestData"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/courses/{courseId}/registration_links/": {
+            "put": {
+                "responses": {
+                    "200": {
+                        "description": "The response if no errors occured",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/CourseRegistrationLink.AsJSON"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "$ref": "#/components/responses/IncorrectParametersError"
+                    },
+                    "409": {
+                        "$ref": "#/components/responses/IncorrectParametersError"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/UnauthorizedError"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/IncorrectPermissionsError"
+                    },
+                    "5XX": {
+                        "$ref": "#/components/responses/UnknownError"
+                    }
+                },
+                "summary": "Put Enroll Link",
+                "description": "Create or edit an enroll link.",
+                "tags": [
+                    "Course"
+                ],
+                "operationId": "course_put_enroll_link",
+                "parameters": [
+                    {
+                        "name": "courseId",
+                        "required": true,
+                        "in": "path",
+                        "style": "simple",
+                        "description": "The id of the course in which this link should enroll users.",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/PutEnrollLinkCourseData"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/courses/{courseId}/group_sets/": {
+            "get": {
+                "responses": {
+                    "200": {
+                        "description": "The response if no errors occured",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/GroupSet.AsJSON"
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "$ref": "#/components/responses/IncorrectParametersError"
+                    },
+                    "409": {
+                        "$ref": "#/components/responses/IncorrectParametersError"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/UnauthorizedError"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/IncorrectPermissionsError"
+                    },
+                    "5XX": {
+                        "$ref": "#/components/responses/UnknownError"
+                    }
+                },
+                "summary": "Get Group Sets",
+                "description": "Get the all the group sets of a given course.",
+                "tags": [
+                    "Course"
+                ],
+                "operationId": "course_get_group_sets",
+                "parameters": [
+                    {
+                        "name": "courseId",
+                        "required": true,
+                        "in": "path",
+                        "style": "simple",
+                        "description": "The id of the course of which the group sets should be retrieved.",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/courses/{courseId}/snippets/": {
+            "get": {
+                "responses": {
+                    "200": {
+                        "description": "The response if no errors occured",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/CourseSnippet.AsJSON"
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "$ref": "#/components/responses/IncorrectParametersError"
+                    },
+                    "409": {
+                        "$ref": "#/components/responses/IncorrectParametersError"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/UnauthorizedError"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/IncorrectPermissionsError"
+                    },
+                    "5XX": {
+                        "$ref": "#/components/responses/UnknownError"
+                    }
+                },
+                "summary": "Get Snippets",
+                "description": "Get all snippets (<span data-role=\"class\">.models.CourseSnippet</span>) of the given",
+                "tags": [
+                    "Course"
+                ],
+                "operationId": "course_get_snippets",
+                "parameters": [
+                    {
+                        "name": "courseId",
+                        "required": true,
+                        "in": "path",
+                        "style": "simple",
+                        "description": "The id of the course from which you want to get the snippets.",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/courses/{courseId}/roles/{roleId}": {
+            "delete": {
+                "responses": {
+                    "204": {
+                        "description": "An empty response"
+                    },
+                    "400": {
+                        "$ref": "#/components/responses/IncorrectParametersError"
+                    },
+                    "409": {
+                        "$ref": "#/components/responses/IncorrectParametersError"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/UnauthorizedError"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/IncorrectPermissionsError"
+                    },
+                    "5XX": {
+                        "$ref": "#/components/responses/UnknownError"
+                    }
+                },
+                "summary": "Delete Role",
+                "description": "Remove a CourseRole from the given Course.",
+                "tags": [
+                    "Course"
+                ],
+                "operationId": "course_delete_role",
+                "parameters": [
+                    {
+                        "name": "courseId",
+                        "required": true,
+                        "in": "path",
+                        "style": "simple",
+                        "description": "The id of the course",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "name": "roleId",
+                        "required": true,
+                        "in": "path",
+                        "style": "simple",
+                        "description": "The id of the role you want to delete",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/assignments/{assignmentId}": {
+            "patch": {
+                "responses": {
+                    "200": {
+                        "description": "The response if no errors occured",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Assignment.AsJSON"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "$ref": "#/components/responses/IncorrectParametersError"
+                    },
+                    "409": {
+                        "$ref": "#/components/responses/IncorrectParametersError"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/UnauthorizedError"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/IncorrectPermissionsError"
+                    },
+                    "5XX": {
+                        "$ref": "#/components/responses/UnknownError"
+                    }
+                },
+                "summary": "Patch",
+                "description": "Update the given assignment with new values.",
+                "tags": [
+                    "Assignment"
+                ],
+                "operationId": "assignment_patch",
+                "parameters": [
+                    {
+                        "name": "assignmentId",
+                        "required": true,
+                        "in": "path",
+                        "style": "simple",
+                        "description": "The id of the assignment you want to update.",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/PatchAssignmentData"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/auto_tests/{autoTestId}": {
+            "delete": {
+                "responses": {
+                    "204": {
+                        "description": "An empty response"
+                    },
+                    "400": {
+                        "$ref": "#/components/responses/IncorrectParametersError"
+                    },
+                    "409": {
+                        "$ref": "#/components/responses/IncorrectParametersError"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/UnauthorizedError"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/IncorrectPermissionsError"
+                    },
+                    "5XX": {
+                        "$ref": "#/components/responses/UnknownError"
+                    }
+                },
+                "summary": "Delete",
+                "description": "Delete the given AutoTest.\n\nThis route fails if the AutoTest has any runs, which should be deleted separately.",
+                "tags": [
+                    "AutoTest"
+                ],
+                "operationId": "autotest_delete",
+                "parameters": [
+                    {
+                        "name": "autoTestId",
+                        "required": true,
+                        "in": "path",
+                        "style": "simple",
+                        "description": "The AutoTest that should be deleted.",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            },
+            "patch": {
+                "responses": {
+                    "200": {
+                        "description": "The response if no errors occured",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/AutoTest.AsJSON"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "$ref": "#/components/responses/IncorrectParametersError"
+                    },
+                    "409": {
+                        "$ref": "#/components/responses/IncorrectParametersError"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/UnauthorizedError"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/IncorrectPermissionsError"
+                    },
+                    "5XX": {
+                        "$ref": "#/components/responses/UnknownError"
+                    }
+                },
+                "summary": "Patch",
+                "description": "Update the settings of an AutoTest configuration.",
+                "tags": [
+                    "AutoTest"
+                ],
+                "operationId": "autotest_patch",
+                "parameters": [
+                    {
+                        "name": "autoTestId",
+                        "required": true,
+                        "in": "path",
+                        "style": "simple",
+                        "description": "The id of the AutoTest you want to update.",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "content": {
+                        "multipart/form-data": {
+                            "schema": {
+                                "$ref": "#/components/schemas/PatchAutoTestData"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            },
+            "get": {
+                "responses": {
+                    "200": {
+                        "description": "The response if no errors occured",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ResultDataGetAutoTestGet"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "$ref": "#/components/responses/IncorrectParametersError"
+                    },
+                    "409": {
+                        "$ref": "#/components/responses/IncorrectParametersError"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/UnauthorizedError"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/IncorrectPermissionsError"
+                    },
+                    "5XX": {
+                        "$ref": "#/components/responses/UnknownError"
+                    }
+                },
+                "summary": "Get",
+                "description": "Get the extended version of an <span data-role=\"class\">.models.AutoTest</span> and its runs.",
+                "tags": [
+                    "AutoTest"
+                ],
+                "operationId": "autotest_get",
+                "parameters": [
+                    {
+                        "name": "autoTestId",
+                        "required": true,
+                        "in": "path",
+                        "style": "simple",
+                        "description": "The id of the AutoTest to get.",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/courses/{courseId}": {
+            "get": {
+                "responses": {
+                    "200": {
+                        "description": "The response if no errors occured",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Course.AsExtendedJSON"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "$ref": "#/components/responses/IncorrectParametersError"
+                    },
+                    "409": {
+                        "$ref": "#/components/responses/IncorrectParametersError"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/UnauthorizedError"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/IncorrectPermissionsError"
+                    },
+                    "5XX": {
+                        "$ref": "#/components/responses/UnknownError"
+                    }
+                },
+                "summary": "Get",
+                "description": "Return course data for a given <span data-role=\"class\">.models.Course</span>.",
+                "tags": [
+                    "Course"
+                ],
+                "operationId": "course_get",
+                "parameters": [
+                    {
+                        "name": "courseId",
+                        "required": true,
+                        "in": "path",
+                        "style": "simple",
+                        "description": "The id of the course",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            },
+            "patch": {
+                "responses": {
+                    "200": {
+                        "description": "The response if no errors occured",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Course.AsExtendedJSON"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "$ref": "#/components/responses/IncorrectParametersError"
+                    },
+                    "409": {
+                        "$ref": "#/components/responses/IncorrectParametersError"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/UnauthorizedError"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/IncorrectPermissionsError"
+                    },
+                    "5XX": {
+                        "$ref": "#/components/responses/UnknownError"
+                    }
+                },
+                "summary": "Patch",
+                "description": "Update the given <span data-role=\"class\">.models.Course</span> with new values.",
+                "tags": [
+                    "Course"
+                ],
+                "operationId": "course_patch",
+                "parameters": [
+                    {
+                        "name": "courseId",
+                        "required": true,
+                        "in": "path",
+                        "style": "simple",
+                        "description": "The id of the course you want to update.",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/PatchCourseData"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/groups/{groupId}": {
+            "get": {
+                "responses": {
+                    "200": {
+                        "description": "The response if no errors occured",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Group.AsExtendedJSON"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "$ref": "#/components/responses/IncorrectParametersError"
+                    },
+                    "409": {
+                        "$ref": "#/components/responses/IncorrectParametersError"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/UnauthorizedError"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/IncorrectPermissionsError"
+                    },
+                    "5XX": {
+                        "$ref": "#/components/responses/UnknownError"
+                    }
+                },
+                "summary": "Get",
+                "description": "Get a group by id.",
+                "tags": [
+                    "Group"
+                ],
+                "operationId": "group_get",
+                "parameters": [
+                    {
+                        "name": "groupId",
+                        "required": true,
+                        "in": "path",
+                        "style": "simple",
+                        "description": "The id of the group to get.",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        }
+    },
+    "tags": [
+        {
+            "name": "Assignment",
+            "description": "All routes to used to manipulate and retrieve assignment objects and their relations."
+        },
+        {
+            "name": "AutoTest",
+            "description": "This module defines all API routes with the main directory \"auto\\_tests\". The APIs are used to create, start, and request information about AutoTests."
+        },
+        {
+            "name": "Course",
+            "description": "All routes to used to manipulate and retrieve course objects and their relations."
+        },
+        {
+            "name": "User",
+            "description": "This module defines all API routes with the main directory \"login\". This APIs are used to handle starting and closing the user session and update the :class: User object of the logged in user."
+        },
+        {
+            "name": "Group",
+            "description": "This module defines all routes needed to manipulate a single group."
+        }
+    ],
+    "components": {
+        "schemas": {
+            "APICodes": {
+                "type": "string",
+                "enum": [
+                    "INCORRECT_PERMISSION",
+                    "NOT_LOGGED_IN",
+                    "OBJECT_ID_NOT_FOUND",
+                    "OBJECT_WRONG_TYPE",
+                    "MISSING_REQUIRED_PARAM",
+                    "INVALID_PARAM",
+                    "REQUEST_TOO_LARGE",
+                    "LOGIN_FAILURE",
+                    "INACTIVE_USER",
+                    "INVALID_URL",
+                    "OBJECT_NOT_FOUND",
+                    "BLOCKED_ASSIGNMENT",
+                    "INVALID_CREDENTIALS",
+                    "INVALID_STATE",
+                    "INVALID_OAUTH_REQUEST",
+                    "DISABLED_FEATURE",
+                    "UNKOWN_ERROR",
+                    "INVALID_FILE_IN_ARCHIVE",
+                    "NO_FILES_SUBMITTED",
+                    "RATE_LIMIT_EXCEEDED",
+                    "OBJECT_ALREADY_EXISTS",
+                    "INVALID_ARCHIVE",
+                    "ROUTE_NOT_FOUND",
+                    "WEAK_PASSWORD",
+                    "INSUFFICIENT_GROUP_SIZE",
+                    "ASSIGNMENT_RESULT_GROUP_NOT_READY",
+                    "ASSIGNMENT_GROUP_FULL",
+                    "UNSUPPORTED",
+                    "ASSIGNMENT_DEADLINE_UNSET",
+                    "PARSING_FAILED",
+                    "UNSAFE_ARCHIVE",
+                    "LOCKED_UPDATE",
+                    "NOT_NEWEST_SUBMSSION",
+                    "UPLOAD_TYPE_DISABLED",
+                    "WEBHOOK_DIFFERENT_BRANCH",
+                    "WEBHOOK_UNKNOWN_EVENT_TYPE",
+                    "WEBHOOK_UNKOWN_TYPE",
+                    "WEBHOOK_INVALID_REQUEST",
+                    "WEBHOOK_UNKNOWN_REQUEST",
+                    "WEBHOOK_DISABLED",
+                    "OBJECT_EXPIRED",
+                    "TOO_MANY_SUBMISSIONS",
+                    "COOL_OFF_PERIOD_ACTIVE",
+                    "MAILING_FAILED",
+                    "LTI1_3_ERROR",
+                    "LTI1_3_COOKIE_ERROR",
+                    "LTI1_1_ERROR"
+                ],
+                "description": "Internal API codes that are used by <span data-role=\"class\">APIException</span> objects."
+            },
+            "BaseError": {
+                "type": "object",
+                "x-is-error": true,
+                "properties": {
+                    "message": {
+                        "type": "string"
+                    },
+                    "description": {
+                        "type": "string"
+                    },
+                    "code": {
+                        "$ref": "#/components/schemas/APICodes"
+                    },
+                    "request_id": {
+                        "type": "string",
+                        "format": "uuid",
+                        "description": "The id of the request that went wrong. Please include this id when reporting bugs."
+                    }
+                }
+            },
+            "Assignment.AsJSON": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "integer",
+                        "description": "The id of the assignment."
+                    },
+                    "state": {
+                        "type": "string",
+                        "description": "Current state of the assignment."
+                    },
+                    "description": {
+                        "type": "string",
+                        "nullable": true,
+                        "description": "Description of the assignment."
+                    },
+                    "created_at": {
+                        "type": "string",
+                        "format": "date-time",
+                        "description": "ISO UTC date."
+                    },
+                    "deadline": {
+                        "type": "string",
+                        "format": "date-time",
+                        "nullable": true,
+                        "description": "ISO UTC date."
+                    },
+                    "name": {
+                        "type": "string",
+                        "description": "The name of the assignment."
+                    },
+                    "is_lti": {
+                        "type": "boolean",
+                        "description": "Is this an LTI assignment."
+                    },
+                    "course_id": {
+                        "type": "integer",
+                        "description": "Course of this assignment."
+                    },
+                    "cgignore": {
+                        "anyOf": [
+                            {
+                                "type": "string"
+                            },
+                            {
+                                "$ref": "#/components/schemas/SubmissionValidator.InputData"
+                            }
+                        ],
+                        "nullable": true,
+                        "description": "The cginore."
+                    },
+                    "cgignore_version": {
+                        "type": "string",
+                        "nullable": true,
+                        "description": "The version of the cignore file."
+                    },
+                    "whitespace_linter": {
+                        "type": "boolean",
+                        "description": "Has the whitespace linter run on this assignment."
+                    },
+                    "available_at": {
+                        "type": "string",
+                        "format": "date-time",
+                        "nullable": true,
+                        "description": "The time the assignment will become available (i.e. the state will switch from 'hidden' to 'open'). If the state is not 'hidden' this value has no meaning. If this value is not None you cannot change to state to 'hidden' or 'open'."
+                    },
+                    "send_login_links": {
+                        "type": "boolean",
+                        "description": "Should we send login links to all users before the available\\_at time."
+                    },
+                    "fixed_max_rubric_points": {
+                        "type": "number",
+                        "nullable": true,
+                        "description": "The fixed value for the maximum that can be achieved in a rubric. This can be higher and lower than the actual max. Will be null if unset."
+                    },
+                    "max_grade": {
+                        "type": "number",
+                        "nullable": true,
+                        "description": "The maximum grade you can get for this assignment. This is based around the idea that a 10 is a 'perfect' score. So if this value is 12 a user can score 2 additional bonus points. If this value is null it is unset and regarded as a 10."
+                    },
+                    "group_set": {
+                        "oneOf": [
+                            {
+                                "$ref": "#/components/schemas/GroupSet.AsJSON"
+                            }
+                        ],
+                        "nullable": true,
+                        "description": "The group set of this assignment. This is null if this assignment is not a group assignment."
+                    },
+                    "auto_test_id": {
+                        "type": "integer",
+                        "nullable": true,
+                        "description": "The id of the AutoTest configuration connected to this assignment. This will always be given if there is a configuration connected to this assignment, even if you do not have permission to see the configuration itself."
+                    },
+                    "files_upload_enabled": {
+                        "type": "boolean",
+                        "description": "Can you upload files to this assignment."
+                    },
+                    "webhook_upload_enabled": {
+                        "type": "boolean",
+                        "description": "Can you connect git to this assignment"
+                    },
+                    "max_submissions": {
+                        "type": "integer",
+                        "nullable": true,
+                        "description": "The maximum amount of submission a student may create, inclusive. The value null indicates that there is no limit."
+                    },
+                    "cool_off_period": {
+                        "type": "number",
+                        "format": "time-delta",
+                        "description": "The time period in which a person can submit at most amount\\_in\\_cool\\_off\\_period amount."
+                    },
+                    "amount_in_cool_off_period": {
+                        "type": "integer",
+                        "description": "The maximum amount of time a user can submit within amount\\_in\\_cool\\_off\\_period. This value is always \\>= 0, if this value is 0 a user can submit an unlimited amount of time."
+                    },
+                    "reminder_time": {
+                        "type": "string",
+                        "nullable": true,
+                        "description": "ISO UTC date. This will be null if you don't have the permission to see this or if it is unset."
+                    },
+                    "lms_name": {
+                        "type": "string",
+                        "nullable": true,
+                        "description": "The LMS providing this LTI assignment."
+                    },
+                    "peer_feedback_settings": {
+                        "oneOf": [
+                            {
+                                "$ref": "#/components/schemas/AssignmentPeerFeedbackSettings.AsJSON"
+                            }
+                        ],
+                        "nullable": true,
+                        "description": "The peer feedback settings for this assignment. If null this assignment is not a peer feedback assignment."
+                    },
+                    "done_type": {
+                        "type": "string",
+                        "nullable": true,
+                        "description": "The kind of reminder that will be sent. If you don't have the permission to see this it will always be null If this is not set it will also be null."
+                    },
+                    "done_email": {
+                        "type": "string",
+                        "nullable": true,
+                        "description": "The email where the done email will be sent to. This will be null if you do not have permission to see this information."
+                    },
+                    "division_parent_id": {
+                        "type": "integer",
+                        "nullable": true,
+                        "description": "The assignment id of the assignment that determines the grader division of this assignment. This will be null if you do not have permissions to see this information, or if no such parent is set."
+                    },
+                    "analytics_workspace_ids": {
+                        "type": "array",
+                        "items": {
+                            "type": "integer"
+                        },
+                        "description": "The ids of the analytics workspaces connected to this assignment. WARNING: This API is still in beta, and might change in the future."
+                    },
+                    "kind": {
+                        "oneOf": [
+                            {
+                                "$ref": "#/components/schemas/AssignmentKind"
+                            }
+                        ],
+                        "description": "What kind of assignment is this."
+                    }
+                },
+                "required": [
+                    "id",
+                    "state",
+                    "description",
+                    "created_at",
+                    "deadline",
+                    "name",
+                    "is_lti",
+                    "course_id",
+                    "cgignore",
+                    "cgignore_version",
+                    "whitespace_linter",
+                    "available_at",
+                    "send_login_links",
+                    "fixed_max_rubric_points",
+                    "max_grade",
+                    "group_set",
+                    "auto_test_id",
+                    "files_upload_enabled",
+                    "webhook_upload_enabled",
+                    "max_submissions",
+                    "cool_off_period",
+                    "amount_in_cool_off_period",
+                    "reminder_time",
+                    "lms_name",
+                    "peer_feedback_settings",
+                    "done_type",
+                    "done_email",
+                    "division_parent_id",
+                    "analytics_workspace_ids",
+                    "kind"
+                ],
+                "description": "The serialization of an assignment.\n\nSee the comments in the source code for the meaning of each field."
+            },
+            "SubmissionValidator.InputData": {
+                "type": "object",
+                "properties": {
+                    "policy": {
+                        "type": "string",
+                        "enum": [
+                            "deny_all_files",
+                            "allow_all_files"
+                        ],
+                        "description": "The default policy of this validator."
+                    },
+                    "rules": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/FileRule.InputData"
+                        },
+                        "description": "The rules in this validator. If the policy is \"deny\\_all\\_files\" this should not be empty."
+                    },
+                    "options": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/Options.InputData"
+                        },
+                        "description": "The options for this validator."
+                    }
+                },
+                "required": [
+                    "policy",
+                    "rules",
+                    "options"
+                ],
+                "description": "The input data for the SubmissionValidator ignore type."
+            },
+            "FileRule.InputData": {
+                "type": "object",
+                "properties": {
+                    "rule_type": {
+                        "type": "string",
+                        "enum": [
+                            "allow",
+                            "deny",
+                            "require"
+                        ],
+                        "description": "The type of rule"
+                    },
+                    "file_type": {
+                        "type": "string",
+                        "enum": [
+                            "file",
+                            "directory"
+                        ],
+                        "description": "The type of files this rule should apply to."
+                    },
+                    "name": {
+                        "type": "string",
+                        "description": "The pattern that describes which files this rule should apply to. This cannot be empty."
+                    }
+                },
+                "required": [
+                    "rule_type",
+                    "file_type",
+                    "name"
+                ],
+                "description": "The input data for a single file rule for the SubmissionValidator."
+            },
+            "Options.InputData": {
+                "type": "object",
+                "properties": {
+                    "key": {
+                        "type": "string",
+                        "enum": [
+                            "delete_empty_directories",
+                            "remove_leading_directories",
+                            "allow_override"
+                        ],
+                        "description": "What option is this."
+                    },
+                    "value": {
+                        "type": "boolean",
+                        "description": "Is this option enabled."
+                    }
+                },
+                "required": [
+                    "key",
+                    "value"
+                ],
+                "description": "The input data for a single option for the SubmissionValidator."
+            },
+            "GroupSet.AsJSON": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "integer",
+                        "description": "The id of this group set."
+                    },
+                    "minimum_size": {
+                        "type": "integer",
+                        "description": "The minimum size a group should be before it can submit work."
+                    },
+                    "maximum_size": {
+                        "type": "integer",
+                        "description": "The maximum size a group can be."
+                    },
+                    "assignment_ids": {
+                        "type": "array",
+                        "items": {
+                            "type": "integer"
+                        },
+                        "description": "The ids of the assignments connected to this group set."
+                    }
+                },
+                "required": [
+                    "id",
+                    "minimum_size",
+                    "maximum_size",
+                    "assignment_ids"
+                ],
+                "description": "The way this class will be represented in JSON."
+            },
+            "AssignmentPeerFeedbackSettings.AsJSON": {
+                "type": "object",
+                "properties": {
+                    "amount": {
+                        "type": "integer",
+                        "description": "The amount of student that a single user should peer review."
+                    },
+                    "time": {
+                        "type": "number",
+                        "nullable": true,
+                        "description": "The amount of time in seconds a user has after the deadline to do the peer review."
+                    },
+                    "auto_approved": {
+                        "type": "boolean",
+                        "description": "Should new peer feedback comments be considered approved by default or not."
+                    }
+                },
+                "required": [
+                    "amount",
+                    "time",
+                    "auto_approved"
+                ],
+                "description": "The serialization of an <span data-role=\"class\">.AssignmentPeerFeedbackSettings</span>."
+            },
+            "AssignmentKind": {
+                "type": "string",
+                "enum": [
+                    "normal",
+                    "exam"
+                ],
+                "description": "Describes in what state an <span data-role=\"class\">.Assignment</span> is."
+            },
+            "AutoTest.AsJSON": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "integer",
+                        "description": "This id of this AutoTest"
+                    },
+                    "fixtures": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/AutoTestFixture.AsJSON"
+                        },
+                        "description": "The fixtures connected to this AutoTest"
+                    },
+                    "run_setup_script": {
+                        "type": "string",
+                        "description": "The setup script that will be executed before any test starts."
+                    },
+                    "setup_script": {
+                        "type": "string",
+                        "description": "The setup script that will be executed for each student. In this script the submission of the student is available."
+                    },
+                    "finalize_script": {
+                        "type": "string",
+                        "description": "Unused"
+                    },
+                    "grade_calculation": {
+                        "type": "string",
+                        "nullable": true,
+                        "description": "The way the grade is calculated in this AutoTest. This is null if the options is still unset. This can be 'full' or 'partial'."
+                    },
+                    "sets": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/AutoTestSet.AsJSON"
+                        },
+                        "description": "The sets in this AutoTest. In the UI these are called levels."
+                    },
+                    "assignment_id": {
+                        "type": "integer",
+                        "description": "The id of the assignment to which this AutoTest belongs."
+                    },
+                    "runs": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/AutoTestRun.AsJSON"
+                        },
+                        "description": "The runs done with this AutoTest. This is list is always of length 0 or 1"
+                    },
+                    "results_always_visible": {
+                        "type": "boolean",
+                        "nullable": true,
+                        "description": "If true This is null if the options is still unset."
+                    },
+                    "prefer_teacher_revision": {
+                        "type": "boolean",
+                        "nullable": true,
+                        "description": "If true This is null if the options is still unset."
+                    }
+                },
+                "required": [
+                    "id",
+                    "fixtures",
+                    "run_setup_script",
+                    "setup_script",
+                    "finalize_script",
+                    "grade_calculation",
+                    "sets",
+                    "assignment_id",
+                    "runs",
+                    "results_always_visible",
+                    "prefer_teacher_revision"
+                ],
+                "description": "An AutoTest as JSON."
+            },
+            "AutoTestFixture.AsJSON": {
+                "allOf": [
+                    {
+                        "$ref": "#/components/schemas/FileMixin.AsJSON"
+                    },
+                    {
+                        "type": "object",
+                        "properties": {
+                            "hidden": {
+                                "type": "boolean",
+                                "description": "Is this fixture hidden."
+                            }
+                        },
+                        "required": [
+                            "hidden"
+                        ]
+                    }
+                ],
+                "description": "The fixture as JSON."
+            },
+            "FileMixin.AsJSON": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "string",
+                        "description": "The id of this file"
+                    },
+                    "name": {
+                        "type": "string",
+                        "description": "The local name of this file, this does **not** include any parent directory names, nor does it include trailing slashes for directories."
+                    }
+                },
+                "required": [
+                    "id",
+                    "name"
+                ],
+                "description": "The base JSON representation of a file."
+            },
+            "AutoTestSet.AsJSON": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "integer",
+                        "description": "The id of this set."
+                    },
+                    "suites": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/AutoTestSuite.AsJSON"
+                        },
+                        "description": "The suites connected to this set. In the UI these are called \"categories\""
+                    },
+                    "stop_points": {
+                        "type": "number",
+                        "description": "A floating indicating the minimum percentage of points a student should achieve after this set (or \"level\"). If this percentage is not achieved the AutoTest will stop running."
+                    }
+                },
+                "required": [
+                    "id",
+                    "suites",
+                    "stop_points"
+                ],
+                "description": "The result as JSON."
+            },
+            "AutoTestSuite.AsJSON": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "integer",
+                        "description": "The id of this suite (or \"category\")"
+                    },
+                    "steps": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/AutoTestStepBase.AsJSON"
+                        },
+                        "description": "The steps that will be executed in this suite."
+                    },
+                    "rubric_row": {
+                        "oneOf": [
+                            {
+                                "$ref": "#/components/schemas/RubricRowBase.AsJSON"
+                            }
+                        ],
+                        "description": "The rubric row this category is connected to."
+                    },
+                    "network_disabled": {
+                        "type": "boolean",
+                        "description": "Is the network disabled while running this category."
+                    },
+                    "submission_info": {
+                        "type": "boolean",
+                        "description": "Will submission info be available while running this step."
+                    },
+                    "command_time_limit": {
+                        "type": "number",
+                        "nullable": true,
+                        "description": "The maximum amount of time in seconds a step (or substep) may take. If null the instance default will be used."
+                    }
+                },
+                "required": [
+                    "id",
+                    "steps",
+                    "rubric_row",
+                    "network_disabled",
+                    "submission_info",
+                    "command_time_limit"
+                ],
+                "description": "The set as JSON."
+            },
+            "AutoTestStepBase.AsJSON": {
+                "allOf": [
+                    {
+                        "$ref": "#/components/schemas/AutoTestStepBase.AsJSONBase"
+                    },
+                    {
+                        "type": "object",
+                        "properties": {
+                            "id": {
+                                "type": "integer",
+                                "description": "The id of this step"
+                            }
+                        },
+                        "required": [
+                            "id"
+                        ]
+                    }
+                ],
+                "description": "The step as JSON."
+            },
+            "AutoTestStepBase.AsJSONBase": {
+                "type": "object",
+                "properties": {
+                    "name": {
+                        "type": "string",
+                        "description": "The name of this step."
+                    },
+                    "type": {
+                        "type": "string",
+                        "description": "The type of AutoTest step. We constantly add new step types, so don't try to store this as an enum."
+                    },
+                    "weight": {
+                        "type": "number",
+                        "description": "The amount of weight this step should have."
+                    },
+                    "hidden": {
+                        "type": "boolean",
+                        "description": "Is this step hidden? If true in most cases students will not be able to see this step and its details."
+                    },
+                    "data": {
+                        "type": "object",
+                        "description": "The data used to run this step. The data shape is dependent on your permissions and the step type."
+                    }
+                },
+                "required": [
+                    "name",
+                    "type",
+                    "weight",
+                    "hidden",
+                    "data"
+                ],
+                "description": "The base JSON for a step, used for both input and output."
+            },
+            "RubricRowBase.AsJSON": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "integer",
+                        "description": "The id of this row, used for updating"
+                    },
+                    "header": {
+                        "type": "string",
+                        "description": "The header of this row."
+                    },
+                    "description": {
+                        "type": "string",
+                        "nullable": true,
+                        "description": "The description of this row."
+                    },
+                    "items": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/RubricItem.AsJSON"
+                        },
+                        "description": "The item in this row. The length will always be 1 for continuous rubric rows."
+                    },
+                    "locked": {
+                        "anyOf": [
+                            {
+                                "type": "boolean"
+                            },
+                            {
+                                "$ref": "#/components/schemas/RubricLockReason"
+                            }
+                        ],
+                        "nullable": false,
+                        "description": "Is this row locked. If it is locked you cannot update it, nor can you manually select items in it."
+                    },
+                    "type": {
+                        "type": "string",
+                        "description": "The type of rubric row."
+                    }
+                },
+                "required": [
+                    "id",
+                    "header",
+                    "description",
+                    "items",
+                    "locked",
+                    "type"
+                ],
+                "description": "The JSON representation of a rubric row."
+            },
+            "RubricItem.AsJSON": {
+                "allOf": [
+                    {
+                        "$ref": "#/components/schemas/RubricItem.AsJSONBase"
+                    },
+                    {
+                        "type": "object",
+                        "properties": {
+                            "id": {
+                                "type": "integer",
+                                "description": "The id of this rubric item."
+                            }
+                        },
+                        "required": [
+                            "id"
+                        ]
+                    }
+                ],
+                "description": "The JSON representation of a rubric item."
+            },
+            "RubricItem.AsJSONBase": {
+                "type": "object",
+                "properties": {
+                    "description": {
+                        "type": "string",
+                        "description": "The description of this item"
+                    },
+                    "header": {
+                        "type": "string",
+                        "description": "The header of the item."
+                    },
+                    "points": {
+                        "type": "number",
+                        "description": "The amount of points a user gets when this item is selected."
+                    }
+                },
+                "required": [
+                    "description",
+                    "header",
+                    "points"
+                ],
+                "description": "The base serialization of a rubric item."
+            },
+            "RubricLockReason": {
+                "type": "string",
+                "enum": [
+                    "auto_test"
+                ],
+                "description": "An enumeration."
+            },
+            "AutoTestRun.AsJSON": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "integer",
+                        "description": "The id of this run."
+                    },
+                    "created_at": {
+                        "type": "string",
+                        "format": "date-time",
+                        "description": "The moment the run was created."
+                    },
+                    "state": {
+                        "type": "string",
+                        "enum": [
+                            "running"
+                        ],
+                        "description": "The state it is in. This is only kept for backwards compatibility reasons, it will always be \"running\"."
+                    },
+                    "is_continuous": {
+                        "type": "boolean",
+                        "description": "Also not used anymore, will always be false."
+                    }
+                },
+                "required": [
+                    "id",
+                    "created_at",
+                    "state",
+                    "is_continuous"
+                ],
+                "description": "The run as JSON."
+            },
+            "FixtureLike": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "string",
+                        "description": "The id of the fixture"
+                    }
+                },
+                "required": [
+                    "id"
+                ],
+                "description": "A AutoTest fixture where only the id is required."
+            },
+            "JsonCreateAutoTest": {
+                "type": "object",
+                "properties": {
+                    "setup_script": {
+                        "type": "string",
+                        "description": "The new setup script (per student) of the auto test."
+                    },
+                    "run_setup_script": {
+                        "type": "string",
+                        "description": "The new run setup script (global) of the auto test."
+                    },
+                    "has_new_fixtures": {
+                        "type": "boolean",
+                        "description": "If true all other files in the request will be used as new fixtures"
+                    },
+                    "grade_calculation": {
+                        "type": "string",
+                        "description": "The way to do grade calculation for this AutoTest."
+                    },
+                    "results_always_visible": {
+                        "type": "boolean",
+                        "nullable": true,
+                        "description": "Should results be visible for students before the assignment is set to \"done\"?"
+                    },
+                    "prefer_teacher_revision": {
+                        "type": "boolean",
+                        "nullable": true,
+                        "description": "If `true` we will use the teacher revision if available when running tests."
+                    },
+                    "fixtures": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/FixtureLike"
+                        },
+                        "description": "A list of old fixtures you want to keep"
+                    },
+                    "assignment_id": {
+                        "type": "integer",
+                        "description": "The id of the assignment in which you want to create this AutoTest. This assignment should have a rubric."
+                    }
+                },
+                "required": [
+                    "assignment_id"
+                ]
+            },
+            "CreateAutoTestData": {
+                "type": "object",
+                "properties": {
+                    "json": {
+                        "$ref": "#/components/schemas/JsonCreateAutoTest"
+                    },
+                    "fixture": {
+                        "type": "array",
+                        "items": {
+                            "type": "string",
+                            "format": "binary"
+                        }
+                    }
+                },
+                "required": [
+                    "json"
+                ]
+            },
+            "Course.AsExtendedJSON": {
+                "allOf": [
+                    {
+                        "$ref": "#/components/schemas/Course.AsJSON"
+                    },
+                    {
+                        "type": "object",
+                        "properties": {
+                            "assignments": {
+                                "type": "array",
+                                "items": {
+                                    "$ref": "#/components/schemas/Assignment.AsJSON"
+                                },
+                                "description": "The assignments connected to this assignment."
+                            },
+                            "group_sets": {
+                                "type": "array",
+                                "items": {
+                                    "$ref": "#/components/schemas/GroupSet.AsJSON"
+                                },
+                                "description": "The groups sets of this course."
+                            },
+                            "snippets": {
+                                "type": "array",
+                                "items": {
+                                    "$ref": "#/components/schemas/CourseSnippet.AsJSON"
+                                },
+                                "description": "The snippets of this course."
+                            }
+                        },
+                        "required": [
+                            "assignments",
+                            "group_sets",
+                            "snippets"
+                        ]
+                    }
+                ],
+                "description": "The way this class will be represented in extended JSON."
+            },
+            "LTI1p3Provider.FinalizedAsJSON": {
+                "allOf": [
+                    {
+                        "$ref": "#/components/schemas/LTI1p3Provider.BaseAsJSON"
+                    },
+                    {
+                        "type": "object",
+                        "properties": {
+                            "finalized": {
+                                "type": "string",
+                                "enum": [
+                                    true
+                                ],
+                                "description": "This is a finalized provider."
+                            }
+                        },
+                        "required": [
+                            "finalized"
+                        ]
+                    }
+                ],
+                "description": "A finalized provider as JSON."
+            },
+            "LTI1p3Provider.BaseAsJSON": {
+                "allOf": [
+                    {
+                        "$ref": "#/components/schemas/LTIProviderBase.BaseAsJSON"
+                    },
+                    {
+                        "type": "object",
+                        "properties": {
+                            "capabilities": {
+                                "type": "object",
+                                "additionalProperties": {
+                                    "anyOf": [
+                                        {
+                                            "type": "string"
+                                        },
+                                        {
+                                            "type": "boolean"
+                                        }
+                                    ],
+                                    "nullable": false
+                                },
+                                "description": "The capabilities of this LMS"
+                            },
+                            "version": {
+                                "type": "string",
+                                "enum": [
+                                    "lti1.3"
+                                ],
+                                "description": "The LTI version used."
+                            },
+                            "iss": {
+                                "type": "string",
+                                "description": "The iss configured for this provider."
+                            }
+                        },
+                        "required": [
+                            "capabilities",
+                            "version",
+                            "iss"
+                        ]
+                    }
+                ],
+                "description": "The base representation of an LTI 1.3 provider."
+            },
+            "LTIProviderBase.BaseAsJSON": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "string",
+                        "description": "The id of this LTI provider."
+                    },
+                    "lms": {
+                        "type": "string",
+                        "description": "The LMS that is connected as this LTI provider."
+                    },
+                    "created_at": {
+                        "type": "string",
+                        "format": "date-time",
+                        "description": "The time this LTI provider was created."
+                    },
+                    "intended_use": {
+                        "type": "string",
+                        "description": "Who will use this LTI provider."
+                    }
+                },
+                "required": [
+                    "id",
+                    "lms",
+                    "created_at",
+                    "intended_use"
+                ],
+                "description": "The base JSON representation for an LTI 1.1 provider."
+            },
+            "LTI1p3Provider.NonFinalizedAsJSON": {
+                "allOf": [
+                    {
+                        "$ref": "#/components/schemas/LTI1p3Provider.BaseAsJSON"
+                    },
+                    {
+                        "type": "object",
+                        "properties": {
+                            "finalized": {
+                                "type": "string",
+                                "enum": [
+                                    false
+                                ],
+                                "description": "This is a non finalized provider."
+                            },
+                            "auth_login_url": {
+                                "type": "string",
+                                "nullable": true,
+                                "description": "The auth login url, if already configured."
+                            },
+                            "auth_token_url": {
+                                "type": "string",
+                                "nullable": true,
+                                "description": "The auth token url, if already configured."
+                            },
+                            "client_id": {
+                                "type": "string",
+                                "nullable": true,
+                                "description": "The client id, if already configured."
+                            },
+                            "key_set_url": {
+                                "type": "string",
+                                "nullable": true,
+                                "description": "The url where we can download the keyset of the LMS, if already configured."
+                            },
+                            "auth_audience": {
+                                "type": "string",
+                                "nullable": true,
+                                "description": "The auth audience, if already configured."
+                            },
+                            "custom_fields": {
+                                "type": "object",
+                                "additionalProperties": {
+                                    "type": "string"
+                                },
+                                "description": "Custom fields that the LMS should provide when launching."
+                            },
+                            "public_jwk": {
+                                "type": "object",
+                                "additionalProperties": {
+                                    "type": "string"
+                                },
+                                "description": "The public JWK for this provider, this should be provided to the LMS."
+                            },
+                            "public_key": {
+                                "type": "string",
+                                "description": "The public key for this provider, this should be provided to the LMS."
+                            },
+                            "edit_secret": {
+                                "type": "string",
+                                "format": "uuid",
+                                "nullable": true,
+                                "description": "If you have the permission to edit this provider this will be a key with which you can do that."
+                            }
+                        },
+                        "required": [
+                            "finalized",
+                            "auth_login_url",
+                            "auth_token_url",
+                            "client_id",
+                            "key_set_url",
+                            "auth_audience",
+                            "custom_fields",
+                            "public_jwk",
+                            "public_key",
+                            "edit_secret"
+                        ]
+                    }
+                ],
+                "description": "A non finalized provider as JSON."
+            },
+            "LTI1p1Provider.FinalizedAsJSON": {
+                "allOf": [
+                    {
+                        "$ref": "#/components/schemas/LTI1p1Provider.BaseAsJSON"
+                    },
+                    {
+                        "type": "object",
+                        "properties": {
+                            "finalized": {
+                                "type": "string",
+                                "enum": [
+                                    true
+                                ],
+                                "description": "This is a already finalized provider and thus is actively being used."
+                            }
+                        },
+                        "required": [
+                            "finalized"
+                        ]
+                    }
+                ],
+                "description": "The JSON representation of a finalized provider."
+            },
+            "LTI1p1Provider.BaseAsJSON": {
+                "allOf": [
+                    {
+                        "$ref": "#/components/schemas/LTIProviderBase.BaseAsJSON"
+                    },
+                    {
+                        "type": "object",
+                        "properties": {
+                            "version": {
+                                "type": "string",
+                                "enum": [
+                                    "lti1.1"
+                                ],
+                                "description": "The LTI version used."
+                            }
+                        },
+                        "required": [
+                            "version"
+                        ]
+                    }
+                ],
+                "description": "The base JSON representation of a LTI 1.1 provider."
+            },
+            "LTI1p1Provider.NonFinalizedAsJSON": {
+                "allOf": [
+                    {
+                        "$ref": "#/components/schemas/LTI1p1Provider.BaseAsJSON"
+                    },
+                    {
+                        "type": "object",
+                        "properties": {
+                            "finalized": {
+                                "type": "string",
+                                "enum": [
+                                    false
+                                ],
+                                "description": "This is a non finalized provider, so it cannot yet be used for launches."
+                            },
+                            "edit_secret": {
+                                "type": "string",
+                                "format": "uuid",
+                                "nullable": true,
+                                "description": "If you have the permission to edit this provider this will be a key with which you can do that."
+                            },
+                            "lms_consumer_key": {
+                                "type": "string",
+                                "description": "The consumer key used to connect the provider to an LMS."
+                            },
+                            "lms_consumer_secret": {
+                                "type": "string",
+                                "description": "The shared secret used to connect the provider to an LMS."
+                            }
+                        },
+                        "required": [
+                            "finalized",
+                            "edit_secret",
+                            "lms_consumer_key",
+                            "lms_consumer_secret"
+                        ]
+                    }
+                ],
+                "description": "The JSON representation of a non finalized provider."
+            },
+            "CourseState": {
+                "type": "string",
+                "enum": [
+                    "visible",
+                    "archived",
+                    "deleted"
+                ],
+                "description": "Describes in what state a <span data-role=\"class\">.Course</span> is."
+            },
+            "CourseSnippet.AsJSON": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "integer",
+                        "description": "The id of this snippet."
+                    },
+                    "key": {
+                        "type": "string",
+                        "description": "The key of this snippet."
+                    },
+                    "value": {
+                        "type": "string",
+                        "description": "The value of this snippet, i.e. what this snippet should expand to."
+                    }
+                },
+                "required": [
+                    "id",
+                    "key",
+                    "value"
+                ],
+                "description": "The JSON representation of a course snippet."
+            },
+            "Course.AsJSON": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "integer",
+                        "description": "The id of this course"
+                    },
+                    "name": {
+                        "type": "string",
+                        "description": "The name of this course"
+                    },
+                    "created_at": {
+                        "type": "string",
+                        "format": "date-time",
+                        "description": "The date this course was created"
+                    },
+                    "is_lti": {
+                        "type": "boolean",
+                        "description": "Is this an LTI course? Deprecated: Use the lti\\_provider attribute (and check for null)."
+                    },
+                    "virtual": {
+                        "type": "boolean",
+                        "description": "Is this a virtual course."
+                    },
+                    "lti_provider": {
+                        "anyOf": [
+                            {
+                                "$ref": "#/components/schemas/LTI1p3Provider.FinalizedAsJSON"
+                            },
+                            {
+                                "$ref": "#/components/schemas/LTI1p3Provider.NonFinalizedAsJSON"
+                            },
+                            {
+                                "$ref": "#/components/schemas/LTI1p1Provider.FinalizedAsJSON"
+                            },
+                            {
+                                "$ref": "#/components/schemas/LTI1p1Provider.NonFinalizedAsJSON"
+                            }
+                        ],
+                        "nullable": true,
+                        "description": "The lti provider that manages this course, if null this is not a LTI course."
+                    },
+                    "state": {
+                        "oneOf": [
+                            {
+                                "$ref": "#/components/schemas/CourseState"
+                            }
+                        ],
+                        "description": "The state this course is in."
+                    }
+                },
+                "required": [
+                    "id",
+                    "name",
+                    "created_at",
+                    "is_lti",
+                    "virtual",
+                    "lti_provider",
+                    "state"
+                ],
+                "description": "The way this class will be represented in JSON."
+            },
+            "User.AsExtendedJSON": {
+                "allOf": [
+                    {
+                        "$ref": "#/components/schemas/User.AsJSON"
+                    },
+                    {
+                        "type": "object",
+                        "properties": {
+                            "email": {
+                                "type": "string",
+                                "description": "The email of the user. This will only be provided for the currently logged in user."
+                            },
+                            "hidden": {
+                                "type": "boolean",
+                                "description": "Can this user see hidden assignments at least in one course."
+                            }
+                        },
+                        "required": [
+                            "email",
+                            "hidden"
+                        ]
+                    }
+                ],
+                "description": "The extended JSON representation of a user."
+            },
+            "Group.AsJSON": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "integer",
+                        "description": "The id of this gropu"
+                    },
+                    "members": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/User.AsJSONWithoutGroup"
+                        },
+                        "description": "The members of this group."
+                    },
+                    "name": {
+                        "type": "string",
+                        "description": "The name of this group."
+                    },
+                    "group_set_id": {
+                        "type": "integer",
+                        "description": "The id of the group set that this group is connected to."
+                    },
+                    "created_at": {
+                        "type": "string",
+                        "format": "date-time",
+                        "description": "The datetime this group was created."
+                    }
+                },
+                "required": [
+                    "id",
+                    "members",
+                    "name",
+                    "group_set_id",
+                    "created_at"
+                ],
+                "description": "The group as JSON."
+            },
+            "User.AsJSONWithoutGroup": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "integer",
+                        "description": "The is the id of this user"
+                    },
+                    "name": {
+                        "type": "string",
+                        "description": "The fullname of the user. This might contain a first and last name, however this is not guaranteed."
+                    },
+                    "username": {
+                        "type": "string",
+                        "description": "The username of this user."
+                    },
+                    "is_test_student": {
+                        "type": "boolean",
+                        "description": "Is this user a test student."
+                    }
+                },
+                "required": [
+                    "id",
+                    "name",
+                    "username",
+                    "is_test_student"
+                ],
+                "description": "The JSON representation of a user without the `group` property."
+            },
+            "User.AsJSON": {
+                "allOf": [
+                    {
+                        "$ref": "#/components/schemas/User.AsJSONWithoutGroup"
+                    },
+                    {
+                        "type": "object",
+                        "properties": {
+                            "group": {
+                                "oneOf": [
+                                    {
+                                        "$ref": "#/components/schemas/Group.AsJSON"
+                                    }
+                                ],
+                                "nullable": true,
+                                "description": "If this user is a wrapper user for a group this will contain this group, otherwise it will be null."
+                            }
+                        },
+                        "required": [
+                            "group"
+                        ]
+                    }
+                ],
+                "description": "The JSON representation of a user."
+            },
+            "ResultDataPostUserLogin": {
+                "type": "object",
+                "properties": {
+                    "user": {
+                        "oneOf": [
+                            {
+                                "$ref": "#/components/schemas/User.AsExtendedJSON"
+                            }
+                        ],
+                        "description": "The user that was logged in."
+                    },
+                    "access_token": {
+                        "type": "string",
+                        "description": "A JWT token that can be used to do authenticated requests."
+                    }
+                },
+                "required": [
+                    "user",
+                    "access_token"
+                ],
+                "description": "When logging in this object will be given."
+            },
+            "LoginUserData": {
+                "anyOf": [
+                    {
+                        "type": "object",
+                        "properties": {
+                            "username": {
+                                "type": "string",
+                                "description": "Your username"
+                            },
+                            "password": {
+                                "type": "string",
+                                "format": "password",
+                                "description": "Your password"
+                            }
+                        },
+                        "required": [
+                            "username",
+                            "password"
+                        ],
+                        "description": "The data required when you want to login"
+                    },
+                    {
+                        "type": "object",
+                        "properties": {
+                            "username": {
+                                "type": "string",
+                                "description": "The username of the user you want to impersonate"
+                            },
+                            "own_password": {
+                                "type": "string",
+                                "format": "password",
+                                "description": "Your own password"
+                            }
+                        },
+                        "required": [
+                            "username",
+                            "own_password"
+                        ],
+                        "description": "The data required when you want to impersonate a user"
+                    }
+                ]
+            },
+            "AutoTestResult.AsExtendedJSON": {
+                "allOf": [
+                    {
+                        "$ref": "#/components/schemas/AutoTestResult.AsJSON"
+                    },
+                    {
+                        "type": "object",
+                        "properties": {
+                            "setup_stdout": {
+                                "type": "string",
+                                "nullable": true,
+                                "description": "The stdout produced in the student setup script."
+                            },
+                            "setup_stderr": {
+                                "type": "string",
+                                "nullable": true,
+                                "description": "The stderr produced in the student setup script."
+                            },
+                            "step_results": {
+                                "type": "array",
+                                "items": {
+                                    "$ref": "#/components/schemas/AutoTestStepResult.AsJSON"
+                                },
+                                "description": "The results for each step in this AutoTest. The ordering of this list is arbitrary, and the results for entire suites and or sets might be missing."
+                            },
+                            "approx_waiting_before": {
+                                "type": "integer",
+                                "nullable": true,
+                                "description": "If the result has not started this will contain the amount of students we expect we still need to run before this result is next. This might be incorrect and should only be used as a rough estimate."
+                            },
+                            "final_result": {
+                                "type": "boolean",
+                                "description": "If true this is the final result for the student, meaning that without teacher interaction (e.g. restarting the AutoTest) this result will not change and will be used as is to calculate the grade of the student. Reasons why this may not be the case include but are not limited to the test containing hidden steps that will only be run after the deadline."
+                            },
+                            "suite_files": {
+                                "type": "object",
+                                "additionalProperties": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/FileTree.AsJSON"
+                                    }
+                                },
+                                "description": "A mapping between suite id and the files written to the AutoTest output folder in that suite."
+                            }
+                        },
+                        "required": [
+                            "setup_stdout",
+                            "setup_stderr",
+                            "step_results",
+                            "approx_waiting_before",
+                            "final_result",
+                            "suite_files"
+                        ]
+                    }
+                ],
+                "description": "The extended JSON representation of a result."
+            },
+            "AutoTestStepResultState": {
+                "type": "string",
+                "enum": [
+                    "not_started",
+                    "running",
+                    "passed",
+                    "failed",
+                    "timed_out",
+                    "skipped"
+                ],
+                "description": "This enum represents the states the result of a step can be in.\n\nA single step result will probably be in multiple states during its existence."
+            },
+            "AutoTestStepResult.AsJSON": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "integer",
+                        "description": "The id of the result of a step"
+                    },
+                    "auto_test_step": {
+                        "oneOf": [
+                            {
+                                "$ref": "#/components/schemas/AutoTestStepBase.AsJSON"
+                            }
+                        ],
+                        "description": "The step this is the result of."
+                    },
+                    "state": {
+                        "oneOf": [
+                            {
+                                "$ref": "#/components/schemas/AutoTestStepResultState"
+                            }
+                        ],
+                        "description": "The state this result is in."
+                    },
+                    "achieved_points": {
+                        "type": "number",
+                        "description": "The amount of points achieved by the student in this step."
+                    },
+                    "log": {
+                        "type": "object",
+                        "nullable": true,
+                        "description": "The log produced by this result. The format of this log depends on the step result."
+                    },
+                    "started_at": {
+                        "type": "string",
+                        "format": "date-time",
+                        "nullable": true,
+                        "description": "The time this result was started, if null the result hasn't started yet."
+                    },
+                    "attachment_id": {
+                        "type": "string",
+                        "nullable": true,
+                        "description": "The id of the attachment produced by this result. If null no attachment was produced."
+                    }
+                },
+                "required": [
+                    "id",
+                    "auto_test_step",
+                    "state",
+                    "achieved_points",
+                    "log",
+                    "started_at",
+                    "attachment_id"
+                ],
+                "description": "The step result as JSON."
+            },
+            "FileTree.AsJSON": {
+                "allOf": [
+                    {
+                        "$ref": "#/components/schemas/FileTree._AsJSONFile"
+                    },
+                    {
+                        "type": "object",
+                        "properties": {
+                            "entries": {
+                                "type": "array",
+                                "items": {
+                                    "$ref": "#/components/schemas/FileTree.AsJSON"
+                                },
+                                "description": "The entries in this directory. This is a list that will contain all children of the directory. This key might not be present, in which case the file is not a directory."
+                            }
+                        }
+                    }
+                ],
+                "description": "The FileTree represented as JSON."
+            },
+            "FileTree._AsJSONFile": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "string",
+                        "description": "The id of the file, this can be used to retrieve it later on."
+                    },
+                    "name": {
+                        "type": "string",
+                        "description": "The name of the file, this does not include the name of any parents."
+                    }
+                },
+                "required": [
+                    "id",
+                    "name"
+                ],
+                "description": ""
+            },
+            "AutoTestResult.AsJSON": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "integer",
+                        "description": "The id of this result"
+                    },
+                    "created_at": {
+                        "type": "string",
+                        "format": "date-time",
+                        "description": "The time this result was created"
+                    },
+                    "started_at": {
+                        "type": "string",
+                        "format": "date-time",
+                        "nullable": true,
+                        "description": "The moment this result was started. If this is null the result has not yet started."
+                    },
+                    "work_id": {
+                        "type": "integer",
+                        "description": "The id of the submission (work) that was tested in this result."
+                    },
+                    "state": {
+                        "oneOf": [
+                            {
+                                "$ref": "#/components/schemas/AutoTestStepResultState"
+                            }
+                        ],
+                        "description": "The state the result is in."
+                    },
+                    "points_achieved": {
+                        "type": "number",
+                        "description": "The amount of points achieved in this step by the student."
+                    }
+                },
+                "required": [
+                    "id",
+                    "created_at",
+                    "started_at",
+                    "work_id",
+                    "state",
+                    "points_achieved"
+                ],
+                "description": "The JSON representation of a result."
+            },
+            "AutoTestStepBase.InputAsJSON": {
+                "allOf": [
+                    {
+                        "$ref": "#/components/schemas/AutoTestStepBase.AsJSONBase"
+                    },
+                    {
+                        "type": "object",
+                        "properties": {
+                            "id": {
+                                "type": "integer",
+                                "description": "The id of the step. Provide this if you want to edit an existing step. If not provided a new step will be created."
+                            }
+                        }
+                    }
+                ],
+                "description": "The input data needed for a new AutoTest step."
+            },
+            "UpdateSuiteAutoTestData": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "integer",
+                        "description": "The id of the suite you want to edit. If not provided we will create a new suite."
+                    },
+                    "steps": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/AutoTestStepBase.InputAsJSON"
+                        },
+                        "description": "The steps that should be in this suite. They will be run as the order they are provided in."
+                    },
+                    "rubric_row_id": {
+                        "type": "integer",
+                        "description": "The id of the rubric row that should be connected to this suite."
+                    },
+                    "network_disabled": {
+                        "type": "boolean",
+                        "description": "Should the network be disabled when running steps in this suite"
+                    },
+                    "submission_info": {
+                        "type": "boolean",
+                        "description": "If passed as `true` Defaults to `false` when creating new suites."
+                    },
+                    "command_time_limit": {
+                        "type": "number",
+                        "description": "The maximum amount of time a single step (or substeps) can take when running tests. If not provided the default value is depended on configuration of the instance."
+                    }
+                },
+                "required": [
+                    "steps",
+                    "rubric_row_id",
+                    "network_disabled"
+                ]
+            },
+            "RubricRowBase.InputAsJSON": {
+                "allOf": [
+                    {
+                        "$ref": "#/components/schemas/RubricRowBase.InputAsJSONBase"
+                    },
+                    {
+                        "type": "object",
+                        "properties": {
+                            "id": {
+                                "type": "integer",
+                                "description": "The id, pass this to update an existing row, omit it to create a new row."
+                            },
+                            "type": {
+                                "type": "string",
+                                "description": "The type of rubric row. Will default to \"normal\" if not passed."
+                            }
+                        }
+                    }
+                ],
+                "description": "The JSON needed to update a rubric row."
+            },
+            "RubricItem.InputAsJSON": {
+                "allOf": [
+                    {
+                        "$ref": "#/components/schemas/RubricItem.AsJSONBase"
+                    },
+                    {
+                        "type": "object",
+                        "properties": {
+                            "id": {
+                                "type": "integer",
+                                "description": "The id of this rubric item. Pass this to update an existing rubric item, omit if you want to create a new item."
+                            }
+                        }
+                    }
+                ],
+                "description": "The JSON needed to update a rubric item."
+            },
+            "RubricRowBase.InputAsJSONBase": {
+                "type": "object",
+                "properties": {
+                    "header": {
+                        "type": "string",
+                        "description": "The header of this row."
+                    },
+                    "description": {
+                        "type": "string",
+                        "description": "The description of this row."
+                    },
+                    "items": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/RubricItem.InputAsJSON"
+                        },
+                        "description": "The items in this row."
+                    }
+                },
+                "required": [
+                    "header",
+                    "description",
+                    "items"
+                ],
+                "description": "The required part of the input data for a rubric row."
+            },
+            "PutRubricAssignmentData": {
+                "type": "object",
+                "properties": {
+                    "max_points": {
+                        "type": "number",
+                        "nullable": true,
+                        "description": "The maximum amount of points you need to get for this rubric for full mark (i.e. a 10). By passing `null` you reset this value, by not passing it you keep its current value.'"
+                    },
+                    "rows": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/RubricRowBase.InputAsJSON"
+                        },
+                        "description": "The rubric rows of this assignment. This will be the entire rubric, so to delete a row simply don't pass it in this list."
+                    }
+                }
+            },
+            "CopyRubricAssignmentData": {
+                "type": "object",
+                "properties": {
+                    "old_assignment_id": {
+                        "type": "integer",
+                        "description": "The id of the assignment from which you want to copy the rubric."
+                    }
+                },
+                "required": [
+                    "old_assignment_id"
+                ]
+            },
+            "UpdateSetAutoTestData": {
+                "type": "object",
+                "properties": {
+                    "stop_points": {
+                        "type": "number",
+                        "description": "The minimum percentage a student should have achieved before the next tests will be run."
+                    }
+                }
+            },
+            "AutoTestRun.AsExtendedJSON": {
+                "allOf": [
+                    {
+                        "$ref": "#/components/schemas/AutoTestRun.AsJSON"
+                    },
+                    {
+                        "type": "object",
+                        "properties": {
+                            "results": {
+                                "type": "array",
+                                "items": {
+                                    "$ref": "#/components/schemas/AutoTestResult.AsJSON"
+                                },
+                                "description": "The results in this run. This will only contain the result for the latest submissions."
+                            },
+                            "setup_stdout": {
+                                "type": "string",
+                                "description": "The stdout output of the run\\_setup\\_script"
+                            },
+                            "setup_stderr": {
+                                "type": "string",
+                                "description": "The stderr output of the run\\_setup\\_script"
+                            }
+                        },
+                        "required": [
+                            "results",
+                            "setup_stdout",
+                            "setup_stderr"
+                        ]
+                    }
+                ],
+                "description": "The run as extended JSON."
+            },
+            "CopyAutoTestData": {
+                "type": "object",
+                "properties": {
+                    "assignment_id": {
+                        "type": "integer",
+                        "description": "The id of the assignment into which you want to copy this AutoTest."
+                    }
+                },
+                "required": [
+                    "assignment_id"
+                ]
+            },
+            "CourseRegistrationLink.AsJSON": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "string",
+                        "format": "uuid",
+                        "description": "The id of this link"
+                    },
+                    "expiration_date": {
+                        "type": "string",
+                        "format": "date-time",
+                        "description": "The moment this link will stop working"
+                    },
+                    "role": {
+                        "oneOf": [
+                            {
+                                "$ref": "#/components/schemas/CourseRole.AsJSON"
+                            }
+                        ],
+                        "description": "The role new users will get"
+                    },
+                    "allow_register": {
+                        "type": "boolean",
+                        "description": "Can users register with this link"
+                    }
+                },
+                "required": [
+                    "id",
+                    "expiration_date",
+                    "role",
+                    "allow_register"
+                ],
+                "description": "The JSON representation of a course registration link."
+            },
+            "CourseRole.AsJSON": {
+                "allOf": [
+                    {
+                        "$ref": "#/components/schemas/AbstractRole.AsJSON"
+                    },
+                    {
+                        "type": "object",
+                        "properties": {
+                            "course": {
+                                "oneOf": [
+                                    {
+                                        "$ref": "#/components/schemas/Course.AsJSON"
+                                    }
+                                ],
+                                "description": "The course this role is connected to"
+                            },
+                            "hidden": {
+                                "type": "boolean",
+                                "description": "Is this role hidden"
+                            }
+                        },
+                        "required": [
+                            "course",
+                            "hidden"
+                        ]
+                    }
+                ],
+                "description": "The JSON representation of a course role."
+            },
+            "AbstractRole.AsJSON": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "integer",
+                        "description": "The id of the role"
+                    },
+                    "name": {
+                        "type": "string",
+                        "description": "The name of the role"
+                    }
+                },
+                "required": [
+                    "id",
+                    "name"
+                ],
+                "description": "The JSON representation of a role."
+            },
+            "PutEnrollLinkCourseData": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "string",
+                        "format": "uuid",
+                        "description": "The id of the link to edit, omit to create a new link."
+                    },
+                    "role_id": {
+                        "type": "integer",
+                        "description": "The id of the role that users should get when enrolling with this link."
+                    },
+                    "expiration_date": {
+                        "type": "string",
+                        "format": "date-time",
+                        "description": "The date this link should stop working."
+                    },
+                    "allow_register": {
+                        "type": "boolean",
+                        "description": "Should students be allowed to register a new account using this link. For registration to actually work this feature should be enabled."
+                    }
+                },
+                "required": [
+                    "role_id",
+                    "expiration_date"
+                ]
+            },
+            "AssignmentStateEnum": {
+                "type": "string",
+                "enum": [
+                    "hidden",
+                    "open",
+                    "done"
+                ],
+                "description": "Describes in what state an <span data-role=\"class\">.Assignment</span> is."
+            },
+            "AssignmentDoneType": {
+                "type": "string",
+                "enum": [
+                    "assigned_only",
+                    "all_graders"
+                ],
+                "description": "Describes what type of reminder should be sent."
+            },
+            "PatchAssignmentData": {
+                "type": "object",
+                "properties": {
+                    "state": {
+                        "description": "The new state of the assignment",
+                        "allOf": [
+                            {
+                                "$ref": "#/components/schemas/AssignmentStateEnum"
+                            }
+                        ]
+                    },
+                    "name": {
+                        "type": "string",
+                        "description": "The new name of the assignment"
+                    },
+                    "deadline": {
+                        "type": "string",
+                        "format": "date-time",
+                        "description": "The new deadline of the assignment"
+                    },
+                    "max_grade": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "nullable": true,
+                        "description": "The maximum possible grade for this assignment. You can reset this by passing `null` as value"
+                    },
+                    "group_set_id": {
+                        "type": "integer",
+                        "nullable": true,
+                        "description": "The group set id for this assignment. Set to `null` to make this assignment not a group assignment"
+                    },
+                    "available_at": {
+                        "type": "string",
+                        "format": "date-time",
+                        "nullable": true,
+                        "description": "The time the assignment should become available"
+                    },
+                    "send_login_links": {
+                        "type": "boolean",
+                        "description": "Should we send login links to students before the assignment opens. This is only available for assignments with 'kind' equal to 'exam'"
+                    },
+                    "kind": {
+                        "description": "The new kind of assignment",
+                        "allOf": [
+                            {
+                                "$ref": "#/components/schemas/AssignmentKind"
+                            }
+                        ]
+                    },
+                    "files_upload_enabled": {
+                        "type": "boolean",
+                        "description": "Should students be allowed to make submissions by uploading files"
+                    },
+                    "webhook_upload_enabled": {
+                        "type": "boolean",
+                        "description": "Should students be allowed to make submissions using git webhooks"
+                    },
+                    "max_submissions": {
+                        "type": "integer",
+                        "minimum": 1,
+                        "nullable": true,
+                        "description": "The maximum amount of submissions a user may create."
+                    },
+                    "cool_off_period": {
+                        "type": "number",
+                        "description": "The amount of time in seconds there should be between `amount_in_cool_off_period + 1` submissions."
+                    },
+                    "amount_in_cool_off_period": {
+                        "type": "integer",
+                        "minimum": 1,
+                        "description": "The maximum amount of submissions that can be made within `cool_off_period` seconds. This should be higher than or equal to 1."
+                    },
+                    "ignore": {
+                        "anyOf": [
+                            {
+                                "type": "string"
+                            },
+                            {
+                                "$ref": "#/components/schemas/SubmissionValidator.InputData"
+                            }
+                        ],
+                        "description": "The ignore file to use"
+                    },
+                    "ignore_version": {
+                        "type": "string",
+                        "enum": [
+                            "EmptySubmissionFilter",
+                            "IgnoreFilterManager",
+                            "SubmissionValidator"
+                        ],
+                        "description": "The ignore version to use, defaults to \"IgnoreFilterManager\"."
+                    },
+                    "done_type": {
+                        "description": "How to determine grading is done for this assignment, this value is not used when `reminder_time` is `null`.",
+                        "allOf": [
+                            {
+                                "$ref": "#/components/schemas/AssignmentDoneType",
+                                "nullable": true
+                            }
+                        ]
+                    },
+                    "reminder_time": {
+                        "type": "string",
+                        "format": "date-time",
+                        "nullable": true,
+                        "description": "At what time should we send the reminder emails to the graders. This value is not used wehn `done_type` is `null`."
+                    },
+                    "done_email": {
+                        "type": "string",
+                        "nullable": true,
+                        "description": "A list of emails that should receive an email when grading is done. This value has no effect when `done_type` is set to `null`."
+                    }
+                }
+            },
+            "JsonPatchAutoTest": {
+                "type": "object",
+                "properties": {
+                    "setup_script": {
+                        "type": "string",
+                        "description": "The new setup script (per student) of the auto test."
+                    },
+                    "run_setup_script": {
+                        "type": "string",
+                        "description": "The new run setup script (global) of the auto test."
+                    },
+                    "has_new_fixtures": {
+                        "type": "boolean",
+                        "description": "If true all other files in the request will be used as new fixtures"
+                    },
+                    "grade_calculation": {
+                        "type": "string",
+                        "description": "The way to do grade calculation for this AutoTest."
+                    },
+                    "results_always_visible": {
+                        "type": "boolean",
+                        "nullable": true,
+                        "description": "Should results be visible for students before the assignment is set to \"done\"?"
+                    },
+                    "prefer_teacher_revision": {
+                        "type": "boolean",
+                        "nullable": true,
+                        "description": "If `true` we will use the teacher revision if available when running tests."
+                    },
+                    "fixtures": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/FixtureLike"
+                        },
+                        "description": "A list of old fixtures you want to keep"
+                    }
+                }
+            },
+            "PatchAutoTestData": {
+                "type": "object",
+                "properties": {
+                    "json": {
+                        "$ref": "#/components/schemas/JsonPatchAutoTest"
+                    },
+                    "fixture": {
+                        "type": "array",
+                        "items": {
+                            "type": "string",
+                            "format": "binary"
+                        }
+                    }
+                },
+                "required": [
+                    "json"
+                ]
+            },
+            "ResultDataGetAutoTestGet": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "integer",
+                        "description": "This id of this AutoTest"
+                    },
+                    "fixtures": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/AutoTestFixture.AsJSON"
+                        },
+                        "description": "The fixtures connected to this AutoTest"
+                    },
+                    "run_setup_script": {
+                        "type": "string",
+                        "description": "The setup script that will be executed before any test starts."
+                    },
+                    "setup_script": {
+                        "type": "string",
+                        "description": "The setup script that will be executed for each student. In this script the submission of the student is available."
+                    },
+                    "finalize_script": {
+                        "type": "string",
+                        "description": "Unused"
+                    },
+                    "grade_calculation": {
+                        "type": "string",
+                        "nullable": true,
+                        "description": "The way the grade is calculated in this AutoTest. This is null if the options is still unset. This can be 'full' or 'partial'."
+                    },
+                    "sets": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/AutoTestSet.AsJSON"
+                        },
+                        "description": "The sets in this AutoTest. In the UI these are called levels."
+                    },
+                    "assignment_id": {
+                        "type": "integer",
+                        "description": "The id of the assignment to which this AutoTest belongs."
+                    },
+                    "runs": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/AutoTestRun.AsExtendedJSON"
+                        },
+                        "description": "The runs done with this AutoTest. This is list is always of length 0 or 1"
+                    },
+                    "results_always_visible": {
+                        "type": "boolean",
+                        "nullable": true,
+                        "description": "If true This is null if the options is still unset."
+                    },
+                    "prefer_teacher_revision": {
+                        "type": "boolean",
+                        "nullable": true,
+                        "description": "If true This is null if the options is still unset."
+                    }
+                },
+                "required": [
+                    "id",
+                    "fixtures",
+                    "run_setup_script",
+                    "setup_script",
+                    "finalize_script",
+                    "grade_calculation",
+                    "sets",
+                    "assignment_id",
+                    "runs",
+                    "results_always_visible",
+                    "prefer_teacher_revision"
+                ],
+                "description": "An AutoTest as JSON."
+            },
+            "PatchCourseData": {
+                "type": "object",
+                "properties": {
+                    "name": {
+                        "type": "string",
+                        "description": "The new name of the course"
+                    },
+                    "state": {
+                        "description": "The new state of the course, currently you cannot set the state of a course to 'deleted'",
+                        "allOf": [
+                            {
+                                "$ref": "#/components/schemas/CourseState"
+                            }
+                        ]
+                    }
+                }
+            },
+            "Group.AsExtendedJSON": {
+                "allOf": [
+                    {
+                        "$ref": "#/components/schemas/Group.AsJSON"
+                    },
+                    {
+                        "type": "object",
+                        "properties": {
+                            "virtual_user": {
+                                "oneOf": [
+                                    {
+                                        "$ref": "#/components/schemas/User.AsJSONWithoutGroup"
+                                    }
+                                ],
+                                "description": "The virtual user connected to this course. It will not contain the group key as this would lead to an infinite recursion."
+                            }
+                        },
+                        "required": [
+                            "virtual_user"
+                        ]
+                    }
+                ],
+                "description": "The group as extended JSON."
+            }
+        },
+        "securitySchemes": {
+            "bearerAuth": {
+                "type": "http",
+                "scheme": "bearer",
+                "bearerFormat": "JWT"
+            }
+        },
+        "responses": {
+            "IncorrectParametersError": {
+                "description": "Some parameters were wrong",
+                "content": {
+                    "application/json": {
+                        "schema": {
+                            "$ref": "#/components/schemas/BaseError"
+                        }
+                    }
+                }
+            },
+            "IncorrectPermissionsError": {
+                "description": "You do not have the necessary permission to this",
+                "content": {
+                    "application/json": {
+                        "schema": {
+                            "$ref": "#/components/schemas/BaseError"
+                        }
+                    }
+                }
+            },
+            "UnauthorizedError": {
+                "description": "Access token is missing or invalid",
+                "content": {
+                    "application/json": {
+                        "schema": {
+                            "$ref": "#/components/schemas/BaseError"
+                        }
+                    }
+                }
+            },
+            "UnknownError": {
+                "description": "Something unknown error",
+                "content": {
+                    "application/json": {
+                        "schema": {
+                            "$ref": "#/components/schemas/BaseError"
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
