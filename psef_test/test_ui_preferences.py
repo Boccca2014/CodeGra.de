@@ -1,6 +1,10 @@
 import psef.models as m
 
 
+def test_ui_setting_name():
+    assert m.UIPreference.get_setting_name() == 'ui_preferences'
+
+
 def test_get_ui_preferences(
     test_client, session, logged_in, admin_user, describe, error_template
 ):
