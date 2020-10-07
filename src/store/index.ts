@@ -18,12 +18,14 @@ import fileTrees from './modules/file_trees';
 import { RootState } from './state';
 
 import { onDone as coursesOnDone } from './modules/courses';
+import { onDone as uiPrefsOnDone } from './modules/ui_prefs';
 
 export { NotificationStore } from './modules/notification';
 export { FeedbackStore } from './modules/feedback';
 export { PeerFeedbackStore } from './modules/peer_feedback';
 export { AssignmentsStore } from './modules/assignments';
 export { CoursesStore } from './modules/courses';
+export { UIPrefsStore } from './modules/ui_prefs';
 
 Vue.use(Vuex);
 
@@ -146,3 +148,4 @@ if (useLocalStorage()) {
 }
 
 coursesOnDone(store);
+uiPrefsOnDone(store);

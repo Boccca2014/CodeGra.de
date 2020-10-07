@@ -76,6 +76,33 @@ context('Rubric Editor', () => {
                 .should('not.be.visible');
         });
 
+        it('should show the preferred ui message once', () => {
+            // The switch link at the bottom should not exist if the alert at
+            // the top is visible.
+            cy.get('.preferred-ui a.ui-switcher')
+                .should('not.exist');
+
+            // Clicking the link in the alert should hide the alert.
+            cy.get('.preferred-ui')
+                .should('exist')
+                .contains('a.inline-link', 'try the new version')
+                .click();
+
+            cy.get('.preferred-ui')
+                .contains('a.inline-link', 'try the new version')
+                .should('not.exist');
+
+            // Even after a reload.
+            cy.reload();
+            cy.get('.preferred-ui')
+                .contains('a.inline-link', 'try the new version')
+                .should('not.exist');
+
+            // The switch link at the bottom should now be visible.
+            cy.get('.preferred-ui a.ui-switcher')
+                .should('exist');
+        });
+
         it('should be an option when an assignment has no rubric', () => {
             cy.get('.rubric-editor')
                 .contains('.wizard-button', 'Create new rubric')
@@ -89,14 +116,11 @@ context('Rubric Editor', () => {
             cy.get('.rubric-editor')
                 .contains('.btn', 'Go back')
                 .should('be.visible');
-            cy.get('.rubric-editor .nav-item.add-row')
+            cy.get('.rubric-editor .btn.add-row.normal')
                 .click();
             cy.get('.rubric-editor')
                 .contains('.btn', 'Go back')
                 .should('not.exist');
-            cy.get('.rubric-editor')
-                .contains('.wizard-button', 'Discrete')
-                .click();
             cy.get('.rubric-editor')
                 .find('.submit-button.delete-category')
                 .submit('success', {
@@ -117,12 +141,13 @@ context('Rubric Editor', () => {
                 .contains('.wizard-button', 'Create new rubric')
                 .click();
 
-            cy.get('.rubric-editor .nav-tabs .nav-item')
-                .should('have.length', 1)
-                .should('have.class', 'add-row');
-            cy.get('.rubric-editor .tab-pane')
-                .should('have.length', 1)
-                .should('contain', 'Click the \'+\' above to add a category.');
+            cy.get('.rubric-editor .category-item')
+                .should('not.exist');
+            cy.get('.rubric-editor .btn.add-row')
+                .should('be.visible')
+                .should('have.length', 2);
+            cy.get('.rubric-editor .no-categories')
+                .should('be.visible');
             cy.get('.rubric-editor input.max-points')
                 .should('have.value', '');
         });
@@ -133,9 +158,7 @@ context('Rubric Editor', () => {
                 .click();
 
             cy.get('.rubric-editor .submit-button.submit-rubric')
-                .submit('error', {
-                    popoverMsg: 'This rubric is empty, you should create at least one category.',
-                });
+                .should('be.disabled');
         });
     });
 
@@ -205,13 +228,14 @@ context('Rubric Editor', () => {
             for (let i = 0; i < rubric.length; i++) {
                 const row = rubric[i];
 
-                cy.get(`.rubric-editor .tab-pane:nth-child(${i + 1}) .rubric-editor-row`)
+                cy.get(`.rubric-editor .category-item:nth(${i})`)
                     .as('row')
+                    .click();
                 cy.get('@row')
                     .find('.category-name')
                     .should('have.value', row.header);
                 cy.get('@row')
-                    .find('.category-description')
+                    .find('.category-description textarea')
                     .should('have.value', row.description);
 
                 for (let j = 0; j < row.items.length; j++) {
@@ -219,9 +243,12 @@ context('Rubric Editor', () => {
                     cy.get('@row')
                         .find(`.rubric-item:nth-child(${j + 1})`)
                         .within(() => {
-                            cy.get('.points').should('have.value', item.points.toString());
-                            cy.get('.header').should('have.value', item.header);
-                            cy.get('.description').should('have.value', item.description);
+                            cy.get('.points')
+                                .should('have.value', item.points.toString());
+                            cy.get('.header')
+                                .should('have.value', item.header);
+                            cy.get('.description textarea')
+                                .should('have.value', item.description);
                         });
                 }
             }
@@ -245,13 +272,14 @@ context('Rubric Editor', () => {
             for (let i = 0; i < rubric.length; i++) {
                 const row = rubric[i];
 
-                cy.get(`.rubric-editor .tab-pane:nth-child(${i + 1}) .rubric-editor-row`)
+                cy.get(`.rubric-editor .category-item:nth(${i})`)
                     .as('row')
+                    .click();
                 cy.get('@row')
                     .find('.category-name')
                     .should('have.value', row.header);
                 cy.get('@row')
-                    .find('.category-description')
+                    .find('.category-description textarea')
                     .should('have.value', row.description);
                 cy.get('@row')
                     .find('.points')
@@ -264,75 +292,69 @@ context('Rubric Editor', () => {
         const rubricPoints = [[1], [0, 1, 2, 3], [2], [0, 4, 5, 6]];
         const rubric = new Rubric(...rubricPoints);
 
-        function addRow() {
-            cy.get('.rubric-editor .nav-tabs .nav-item:last-child')
-                .should('have.class', 'add-row')
+        function addRow(type) {
+            cy.get(`.rubric-editor .btn.add-row.${type}`)
                 .click();
+            cy.get('.rubric-editor .category-item:last')
+                .should('contain', 'Unnamed')
+                .should('not.have.class', 'rubric-row-enter-active');
         }
 
         function addNormalRow(header, description) {
-            addRow();
-
-            cy.get('.rubric-editor')
-                .contains('.wizard-button', 'Discrete')
-                .click();
+            addRow('normal');
 
             if (header != null) {
-                cy.get('.rubric-editor .category-name:visible')
+                cy.get('.rubric-editor-row:last .category-name')
                     .type(header);
             }
 
             if (description != null) {
-                cy.get('.rubric-editor .category-description:visible')
+                cy.get('.rubric-editor-row:last .category-description textarea')
                     .type(description);
             }
         }
 
         function addContinuousRow(header, description, points) {
-            addRow();
-
-            cy.get('.rubric-editor')
-                .contains('.wizard-button', 'Continuous')
-                .click();
+            addRow('continuous');
 
             if (header != null) {
-                cy.get('.rubric-editor .category-name:visible')
+                cy.get('.rubric-editor-row:last .category-name')
                     .type(header);
             }
 
             if (description != null) {
-                cy.get('.rubric-editor .category-description:visible')
+                cy.get('.rubric-editor-row:last .category-description textarea')
                     .type(description);
             }
 
             if (points != null) {
-                cy.get('.rubric-editor .points:visible')
+                cy.get('.rubric-editor-row:last .points')
                     .type(points.toString());
             }
         }
 
-        function addItem(points, header, description) {
-            cy.get('.rubric-editor .rubric-item.add-button:visible')
-                .click();
+        function addItem(points, header, description, row=null) {
+            row = row == null ? 'last' : `nth(${row})`;
+
+            cy.get(`.rubric-editor-row:${row}`).as('row');
+            cy.get('@row').find('.rubric-item.add-button').click();
+            cy.get('@row').find('.rubric-item:nth-last-child(2)').as('item');
 
             if (points != null) {
-                cy.get('.rubric-item:visible:nth-last-child(2) .points')
-                    .type(points.toString());
+                cy.get('@item').find('.points').type(points.toString());
             }
 
             if (header != null) {
-                cy.get('.rubric-item:visible:nth-last-child(2) .header')
-                    .type(header);
+                cy.get('@item').find('.header').type(header);
             }
 
             if (description != null) {
-                cy.get('.rubric-item:visible:nth-last-child(2) .description')
-                    .type(description);
+                cy.get('@item').find('.description textarea').type(description);
             }
         }
 
         function getRow(name) {
-            return cy.get('.rubric-editor').contains('.nav-item', name);
+            return cy.get('.rubric-editor').contains('.category-item', name);
         }
 
         function showRow(name) {
@@ -340,8 +362,8 @@ context('Rubric Editor', () => {
         }
 
         function deleteRow(name) {
-            showRow(name);
-            cy.get('.rubric-editor .submit-button.delete-category:visible')
+            getRow(name)
+                .find('.submit-button.delete-category')
                 .submit('success', {
                     hasConfirm: true,
                     waitForDefault: false,
@@ -351,6 +373,7 @@ context('Rubric Editor', () => {
 
         function submit(...args) {
             return cy.get('.rubric-editor .submit-button.submit-rubric')
+                .should('not.be.disabled')
                 .submit(...args);
         }
 
@@ -364,7 +387,7 @@ context('Rubric Editor', () => {
                 .should('exist')
                 .find('.loader')
                 .should('not.be.visible');
-            return cy.get('.rubric-editor .loader')
+            cy.get('.rubric-editor .loader')
                 .should('not.be.visible');
         }
 
@@ -389,11 +412,12 @@ context('Rubric Editor', () => {
             submit('success');
             loadPage(true);
 
-            showRow('Normal Row');
-            cy.get('.rubric-editor .category-name:visible')
-                .should('have.value', 'Normal Row');
-            cy.get('.rubric-editor .category-description:visible')
-                .should('have.value', 'Description');
+            showRow('Normal Row').within(() => {
+                cy.get('.category-name')
+                    .should('have.value', 'Normal Row');
+                cy.get('.category-description textarea')
+                    .should('have.value', 'Description');
+            });
         });
 
         it('should be possible to delete a normal rubric row', () => {
@@ -434,16 +458,17 @@ context('Rubric Editor', () => {
             submit('success');
             loadPage(true);
 
-            showRow('Normal Row');
-            cy.get('.rubric-editor .rubric-item:visible:nth-child(1)').within(() => {
-                cy.get('.points').should('have.value', '0');
-                cy.get('.header').should('have.value', '0 points');
-                cy.get('.description').should('have.value', '0 points');
-            });
-            cy.get('.rubric-editor .rubric-item:visible:nth-child(2)').within(() => {
-                cy.get('.points').should('have.value', '1');
-                cy.get('.header').should('have.value', '1 point');
-                cy.get('.description').should('have.value', '1 point');
+            showRow('Normal Row').within(() => {
+                cy.get('.rubric-item:nth-child(1)').within(() => {
+                    cy.get('.points').should('have.value', '0');
+                    cy.get('.header').should('have.value', '0 points');
+                    cy.get('.description textarea').should('have.value', '0 points');
+                });
+                cy.get('.rubric-item:nth-child(2)').within(() => {
+                    cy.get('.points').should('have.value', '1');
+                    cy.get('.header').should('have.value', '1 point');
+                    cy.get('.description textarea').should('have.value', '1 point');
+                });
             });
         });
 
@@ -454,9 +479,10 @@ context('Rubric Editor', () => {
             submit('success');
             loadPage(true);
 
-            showRow('Normal Row');
-            cy.get('.rubric-editor .rubric-item:visible:nth-child(1) .points')
-                .should('have.value', '-1');
+            showRow('Normal Row').within(() => {
+                cy.get('.rubric-item:nth-child(1) .points')
+                    .should('have.value', '-1');
+            });
         });
 
         it('should be possible to delete items from a normal rubric row', () => {
@@ -466,19 +492,21 @@ context('Rubric Editor', () => {
             submit('success');
             loadPage(true);
 
-            showRow('Normal Row');
-            cy.get('.rubric-editor .rubric-item:visible:nth-child(1) .delete-item')
-                .click();
-            cy.get('.rubric-editor .rubric-item:visible:not(.add-button)')
-                .should('have.length', 1);
+            showRow('Normal Row').within(() => {
+                cy.get('.rubric-item:nth-child(1) .delete-item')
+                    .click();
+                cy.get('.rubric-item:not(.add-button)')
+                    .should('have.length', 1);
+            });
             submit('success', {
                 hasConfirm: true,
             });
             loadPage(true);
 
-            showRow('Normal Row');
-            cy.get('.rubric-editor .rubric-item:visible:not(.add-button)')
-                .should('have.length', 1);
+            showRow('Normal Row').within(() => {
+                cy.get('.rubric-item:not(.add-button)')
+                    .should('have.length', 1);
+            });
         });
 
         it('should be possible to add a continuous rubric row', () => {
@@ -486,13 +514,14 @@ context('Rubric Editor', () => {
             submit('success');
             loadPage(true);
 
-            showRow('Continuous Row');
-            cy.get('.rubric-editor .category-name:visible')
-                .should('have.value', 'Continuous Row');
-            cy.get('.rubric-editor .category-description:visible')
-                .should('have.value', 'Description');
-            cy.get('.rubric-editor .points:visible')
-                .should('have.value', '10');
+            showRow('Continuous Row').within(() => {
+                cy.get('.category-name')
+                    .should('have.value', 'Continuous Row');
+                cy.get('.category-description textarea')
+                    .should('have.value', 'Description');
+                cy.get('.points')
+                    .should('have.value', '10');
+            });
         });
 
         it('should be possible to delete a continuous rubric row', () => {
@@ -522,8 +551,60 @@ context('Rubric Editor', () => {
             getRow('Continuous Row').should('exist');
         });
 
+        it('should be possible to reorder rows', () => {
+            cy.get('.rubric-editor').within(() => {
+                cy.get('.category-item:nth(0) .drag-handle')
+                    .dragTo('.category-item:nth(1) .drag-handle');
+
+                cy.get('.category-item:nth(0)')
+                    .find('.category-name')
+                    .should('have.value', 'rubric row 1');
+
+                cy.get('.category-item:nth(1)')
+                    .find('.category-name')
+                    .should('have.value', 'rubric row 0');
+            });
+
+            submit('success');
+            loadPage(true);
+
+            cy.get('.rubric-editor').within(() => {
+                cy.get('.category-item:nth(0)')
+                    .find('.category-name')
+                    .should('have.value', 'rubric row 1');
+
+                cy.get('.category-item:nth(1)')
+                    .find('.category-name')
+                    .should('have.value', 'rubric row 0');
+            });
+        });
+
+        it('should not be possible to reorder rows by dragging anything else than the drag handle', () => {
+            function checkNoDrag(selector) {
+                cy.get('.rubric-editor').within(() => {
+                    cy.get('.category-item:nth(0)')
+                        .find(selector)
+                        .dragTo('.category-item:nth(1) .drag-handle');
+
+                    cy.get('.category-item:nth(0)')
+                        .find('.category-name')
+                        .should('have.value', 'rubric row 0');
+
+                    cy.get('.category-item:nth(1)')
+                        .find('.category-name')
+                        .should('have.value', 'rubric row 1');
+                });
+            }
+
+            cy.get('.category-item:nth(0)').click();
+
+            checkNoDrag('.card-header');
+            checkNoDrag('textarea:first');
+            checkNoDrag('input:first');
+        });
+
         it('should not be possible to submit a category without a name',  () => {
-            addRow();
+            addRow('continuous');
 
             submit('error', {
                 popoverMsg: 'There are unnamed categories',
@@ -639,9 +720,10 @@ context('Rubric Editor', () => {
             submit('success');
             loadPage(true);
 
-            showRow('Row With Deleted Items');
-            cy.get('.rubric-item:visible:first .delete-item')
-                .click();
+            showRow('Row With Deleted Items').within(() => {
+                cy.get('.rubric-item:first .delete-item')
+                    .click();
+            });
 
             submit('success', {
                 waitForState: false,
@@ -660,72 +742,71 @@ context('Rubric Editor', () => {
                     confirmInModal: true,
                     waitForDefault: false,
                 });
-            cy.get('.rubric-editor .wizard-button')
+            cy.get('.rubric-editor')
+                .contains('.wizard-button', 'Create new rubric')
                 .should('be.visible');
         });
 
         it('should be possible to reset the rubric to the state on the server', () => {
-            showRow('rubric row 0');
-            cy.get('.rubric-editor .tab-pane:visible .rubric-editor-row').within(() => {
+            showRow('rubric row 0').within(() => {
                 cy.get('.category-name').clear().type('XXX');
-                cy.get('.category-description').clear().type('XXX');
+                cy.get('.category-description textarea').clear().type('XXX');
                 cy.get('.points').clear().type('10');
             });
 
-            showRow('rubric row 1');
-            cy.get('.rubric-editor .tab-pane:visible .rubric-editor-row').within(() => {
+            showRow('rubric row 1').within(() => {
                 cy.get('.category-name').clear().type('XXX');
-                cy.get('.category-description').clear().type('XXX');
+                cy.get('.category-description textarea').clear().type('XXX');
                 cy.get('.rubric-item:first-child .points').clear().type('3');
                 cy.get('.rubric-item:first-child .header').clear().type('XXX');
-                cy.get('.rubric-item:first-child .description').clear().type('XXX');
+                cy.get('.rubric-item:first-child .description textarea')
+                    .clear().type('XXX');
             });
 
             deleteRow('rubric row 2');
 
             deleteRow('rubric row 3');
 
-            addRow();
+            addNormalRow('Normal row X');
 
-            cy.get('.rubric-editor .nav-tabs .nav-item:not(.add-row)')
+            cy.get('.rubric-editor .category-item')
                 .should('have.length', 3);
 
             cy.get('.rubric-editor .submit-button.reset-rubric').submit('success', {
                 hasConfirm: true,
             });
 
-            cy.get('.rubric-editor .nav-tabs .nav-item:not(.add-row)')
+            cy.get('.rubric-editor .category-item')
                 .should('have.length', 4);
 
-            cy.get('.rubric-editor .tab-pane:nth-child(1) .rubric-editor-row').within(() => {
+            showRow('rubric row 0').within(() => {
                 cy.get('.category-name').should('have.value', 'rubric row 0');
-                cy.get('.category-description').should('have.value', 'rubric row 0');
+                cy.get('.category-description textarea').should('have.value', 'rubric row 0');
                 cy.get('.points').should('have.value', '1');
             });
 
-            cy.get('.rubric-editor .tab-pane:nth-child(2) .rubric-editor-row').within(() => {
+            showRow('rubric row 1').within(() => {
                 cy.get('.category-name').should('have.value', 'rubric row 1');
-                cy.get('.category-description').should('have.value', 'rubric row 1');
+                cy.get('.category-description textarea').should('have.value', 'rubric row 1');
                 cy.get('.rubric-item:first-child .points').should('have.value', '0');
                 cy.get('.rubric-item:first-child .header').should('have.value', '0 points');
-                cy.get('.rubric-item:first-child .description').should('have.value', '0 points');
+                cy.get('.rubric-item:first-child .description textarea')
+                    .should('have.value', '0 points');
             });
 
-            cy.get('.rubric-editor .tab-pane:nth-child(3) .rubric-editor-row').within(() => {
+            showRow('rubric row 2').within(() => {
                 cy.get('.category-name').should('have.value', 'rubric row 2');
-                cy.get('.category-description').should('have.value', 'rubric row 2');
+                cy.get('.category-description textarea').should('have.value', 'rubric row 2');
                 cy.get('.points').should('have.value', '2');
             });
 
-            cy.get('.rubric-editor .tab-pane:nth-child(4) .rubric-editor-row').within(() => {
+            showRow('rubric row 3').within(() => {
                 cy.get('.category-name').should('have.value', 'rubric row 3');
-                cy.get('.category-description').should('have.value', 'rubric row 3');
+                cy.get('.category-description textarea').should('have.value', 'rubric row 3');
                 cy.get('.rubric-item:first-child .points').should('have.value', '0');
                 cy.get('.rubric-item:first-child .header').should('have.value', '0 points');
-                cy.get('.rubric-item:first-child .description').should('have.value', '0 points');
+                cy.get('.rubric-item:first-child .description textarea').should('have.value', '0 points');
             });
-
-            cy.get('.rubric-editor .tab-pane:nth-child(5)').should('not.exist');
         });
 
         it('should indicate which rows are connected to AutoTest', () => {
@@ -739,45 +820,41 @@ context('Rubric Editor', () => {
             ).then(autoTest => {
                 loadPage(true);
 
-                cy.get('.rubric-editor')
-                    .should('be.visible')
-                    .within(() => {
-                        cy.get('.nav-tabs .nav-item:nth-child(1)')
-                            .click()
-                            .contains('.badge', 'AT')
-                            .should('exist');
-                        cy.get('.rubric-editor-row:visible')
-                            .should('have.class', 'continuous')
-                            .find('.lock-icon')
-                            .should('exist');
+                getRow('rubric row 0').find('.card-header').within(() => {
+                    cy.get('.badge')
+                        .should('contain', 'AT')
+                    cy.get('.btn.delete-category')
+                        .should('be.disabled')
+                        .find('.fa-icon.lock')
+                        .should('exist');
+                });
 
-                        cy.get('.nav-tabs .nav-item:nth-child(2)')
-                            .click()
-                            .contains('.badge', 'AT')
-                            .should('not.exist');
-                        cy.get('.rubric-editor-row:visible')
-                            .should('have.class', 'continuous')
-                            .find('.lock-icon')
-                            .should('not.exist');
+                getRow('rubric row 1').find('.card-header').within(() => {
+                    cy.get('.badge')
+                        .should('not.exist')
+                    cy.get('.btn.delete-category')
+                        .should('not.be.disabled')
+                        .find('.fa-icon.lock')
+                        .should('not.exist');
+                });
 
-                        cy.get('.nav-tabs .nav-item:nth-child(3)')
-                            .click()
-                            .contains('.badge', 'AT')
-                            .should('exist');
-                        cy.get('.rubric-editor-row:visible')
-                            .should('have.class', 'normal')
-                            .find('.lock-icon')
-                            .should('exist');
+                getRow('rubric row 2').find('.card-header').within(() => {
+                    cy.get('.badge')
+                        .should('contain', 'AT')
+                    cy.get('.btn.delete-category')
+                        .should('be.disabled')
+                        .find('.fa-icon.lock')
+                        .should('exist');
+                });
 
-                        cy.get('.nav-tabs .nav-item:nth-child(4)')
-                            .click()
-                            .contains('.badge', 'AT')
-                            .should('not.exist');
-                        cy.get('.rubric-editor-row:visible')
-                            .should('have.class', 'normal')
-                            .find('.lock-icon')
-                            .should('not.exist');
-                    });
+                getRow('rubric row 3').find('.card-header').within(() => {
+                    cy.get('.badge')
+                        .should('not.exist')
+                    cy.get('.btn.delete-category')
+                        .should('not.be.disabled')
+                        .find('.fa-icon.lock')
+                        .should('not.exist');
+                });
 
                 cy.deleteAutoTest(autoTest.id);
             });
@@ -786,21 +863,36 @@ context('Rubric Editor', () => {
         it('should show a message when "max points" was changed', () => {
             const maxPoints = rubricPoints.reduce((acc, row) => acc + Math.max(...row), 0);
 
+            cy.get('.rubric-editor .advanced-collapse .collapse-toggle')
+                .click();
+
             cy.get('.rubric-editor .max-points')
                 .clear()
                 .type('1');
             cy.get('.rubric-editor .max-points-warning')
-                .should('contain', `This means that a 10 will already be achieved with 1 out of ${
-                    maxPoints
-                } rubric points`);
+                .text()
+                .should('contain', `To achieve a 10 students need to score 1 out of ${maxPoints} rubric points.`);
 
             cy.get('.rubric-editor .max-points')
                 .clear()
                 .type('100');
             cy.get('.rubric-editor .max-points-warning')
-                .should('contain', `This means that it will not be possible to achieve a 10; a ${
-                    (maxPoints / 10).toFixed(2)
-                } will be the maximum achievable grade`);
+                .text()
+                .should('contain', `It is not possible to achieve a 10 for this rubric; a ${(maxPoints / 10).toFixed(2)} is the maximum grade that can be achieved.`);
+        });
+
+        it('should expand the advanced options when "max points" is set', () => {
+            cy.get('.rubric-editor .advanced-collapse .collapse-toggle')
+                .click();
+
+            cy.get('.rubric-editor .max-points')
+                .clear()
+                .type('1');
+            submit('success');
+            loadPage(true);
+
+            cy.get('.rubric-editor .max-points')
+                .should('be.visible');
         });
     });
 
@@ -840,13 +932,11 @@ context('Rubric Editor', () => {
                 .should('not.have.class', 'editable')
                 .should('not.contain', 'There is no rubric for this assignment.')
                 .within(() => {
-                    cy.get('.nav-tabs .nav-item')
+                    cy.get('.category-item')
                         .should('have.length', rubric.length);
-                    cy.get('.rubric-item:visible')
+                    cy.get('.category-item:first .rubric-item')
                         .should('have.length', 3)
-                    cy.get('.nav-tabs .nav-item:last')
-                        .click();
-                    cy.get('.rubric-item:visible')
+                    cy.get('.category-item:last .rubric-item')
                         .should('have.length', 3);
                 });
         });
@@ -919,45 +1009,37 @@ context('Rubric Editor', () => {
             ).then(autoTest => {
                 loadPage(true);
 
-                cy.get('.rubric-editor')
-                    .should('be.visible')
-                    .within(() => {
-                        cy.get('.nav-tabs .nav-item:nth-child(1)')
-                            .click()
-                            .contains('.badge', 'AT')
-                            .should('exist');
-                        cy.get('.rubric-editor-row:visible')
-                            .should('have.class', 'continuous')
-                            .find('.fa-icon[id^="rubric-lock-"]')
-                            .should('exist');
+                cy.get('.category-item:nth(0)').within(() => {
+                    cy.get('.badge').should('contain', 'AT');
+                    cy.get('.fa-icon.lock')
+                        .should('exist');
+                    cy.get('.rubric-editor-row')
+                        .should('have.class', 'continuous')
+                });
 
-                        cy.get('.nav-tabs .nav-item:nth-child(2)')
-                            .click()
-                            .contains('.badge', 'AT')
-                            .should('not.exist');
-                        cy.get('.rubric-editor-row:visible')
-                            .should('have.class', 'continuous')
-                            .find('.fa-icon[id^="rubric-lock-"]')
-                            .should('not.exist');
+                cy.get('.category-item:nth(1)').within(() => {
+                    cy.get('.badge').should('not.exist');
+                    cy.get('.fa-icon.lock')
+                        .should('not.exist');
+                    cy.get('.rubric-editor-row')
+                        .should('have.class', 'continuous')
+                });
 
-                        cy.get('.nav-tabs .nav-item:nth-child(3)')
-                            .click()
-                            .contains('.badge', 'AT')
-                            .should('exist');
-                        cy.get('.rubric-editor-row:visible')
-                            .should('have.class', 'normal')
-                            .find('.fa-icon[id^="rubric-lock-"]')
-                            .should('exist');
+                cy.get('.category-item:nth(2)').within(() => {
+                    cy.get('.badge').should('contain', 'AT');
+                    cy.get('.fa-icon.lock')
+                        .should('exist');
+                    cy.get('.rubric-editor-row')
+                        .should('have.class', 'normal')
+                });
 
-                        cy.get('.nav-tabs .nav-item:nth-child(4)')
-                            .click()
-                            .contains('.badge', 'AT')
-                            .should('not.exist');
-                        cy.get('.rubric-editor-row:visible')
-                            .should('have.class', 'normal')
-                            .find('.fa-icon[id^="rubric-lock-"]')
-                            .should('not.exist');
-                    });
+                cy.get('.category-item:nth(3)').within(() => {
+                    cy.get('.badge').should('not.exist');
+                    cy.get('.fa-icon.lock')
+                        .should('not.exist');
+                    cy.get('.rubric-editor-row')
+                        .should('have.class', 'normal')
+                });
 
                 cy.deleteAutoTest(autoTest.id);
             });
@@ -968,11 +1050,11 @@ context('Rubric Editor', () => {
                 rubricData => cy.createRubric(assignment.id, rubricData),
             ).then(() => {
                 loadPage(true);
-                cy.get('.rubric-editor .rubric-editor-row.normal:visible p')
+                cy.get('.rubric-editor .category-item')
+                    .click({ multiple: true });
+                cy.get('.rubric-editor .rubric-editor-row.normal p')
                     .shouldNotOverflow();
-                cy.get('.rubric-editor .nav-tabs .nav-item:nth-child(2)')
-                    .click();
-                cy.get('.rubric-editor .rubric-editor-row.continuous:visible p')
+                cy.get('.rubric-editor .rubric-editor-row.continuous p')
                     .shouldNotOverflow();
             });
         });
@@ -996,7 +1078,7 @@ context('Rubric Editor', () => {
                 cy.get('.rubric-editor')
                     .should('not.have.class', 'alert')
                     .should('be.visible')
-                    .find('[id^="rubric-lock-"]:visible')
+                    .find('[id^="rubric-lock-"]:first')
                     .trigger('mouseenter');
                 cy.get('.popover')
                     .should('be.visible')

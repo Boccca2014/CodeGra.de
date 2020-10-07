@@ -8,6 +8,7 @@ import {
     setXor,
     hasAttr,
     filterMap,
+    pickKeys,
     Maybe,
     Nothing,
     Just,
@@ -20,6 +21,13 @@ import { makeCache } from '@/utils/cache';
 import { AutoTestRun, AutoTestResult } from '@/models';
 import { RubricResultValidationError, RubricRowValidationError } from './errors';
 import { Submission } from './submission';
+
+enum RubricDescriptionType {
+    'plain_text',
+    'markdown',
+}
+
+const defaultDescriptionType: RubricDescriptionType = RubricDescriptionType.markdown;
 
 interface RubricItemServerData {
     id: number;
@@ -48,21 +56,23 @@ export class RubricItem<T = number | undefined> {
             points: data.points,
             header: data.header,
             description: data.description,
-            trackingId: undefined,
         });
     }
 
     static createEmpty(): RubricItem<undefined> {
-        return new RubricItem({
-            id: undefined,
-            points: '',
-            header: '',
-            description: '',
-            trackingId: getUniqueId(),
-        });
+        return new RubricItem(
+            {
+                id: undefined,
+                points: '',
+                header: '',
+                description: '',
+            },
+            getUniqueId(),
+        );
     }
 
-    constructor(item: IRubricItem<T>) {
+    constructor(item: IRubricItem<T>, trackingId?: number) {
+        this.trackingId = trackingId;
         Object.assign(this, item);
         Object.freeze(this);
     }
@@ -72,11 +82,30 @@ export class RubricItem<T = number | undefined> {
     update(props: Partial<IRubricItem<T>>): RubricItem<T>;
 
     update<Y>(props: Partial<IRubricItem<Y>> = {}): RubricItem<Y | T> {
-        return new RubricItem(Object.assign({}, this, props));
+        return new RubricItem(
+            Object.assign(
+                {},
+                this,
+                pickKeys(props, ['id', 'points', 'header', 'description'], false),
+            ),
+            this.trackingId,
+        );
     }
 
     get nonEmptyHeader() {
         return this.header || '[No name]';
+    }
+
+    equals(other: RubricItem<T>): boolean {
+        if (!(other instanceof RubricItem)) {
+            return false;
+        }
+
+        return (
+            this.points === other.points &&
+            this.header === other.header &&
+            this.description === other.description
+        );
     }
 }
 
@@ -84,6 +113,8 @@ interface BaseRubricRowServerData {
     id: number;
     header: string;
     description: string;
+    // eslint-disable-next-line camelcase
+    description_type: keyof typeof RubricDescriptionType;
     locked: false | 'auto_test';
     items: RubricItemServerData[];
 }
@@ -106,11 +137,14 @@ interface IRubricRow<T, Y = T> {
     type: '' | keyof typeof RubricRowsTypes;
     header: string;
     description: string;
+    descriptionType: RubricDescriptionType;
     locked: false | 'auto_test';
     items: RubricItem<T>[];
 }
 
-export interface RubricRow<T> extends IRubricRow<T> {}
+export interface RubricRow<T> extends IRubricRow<T> {
+    trackingId: number;
+}
 
 export class RubricRow<T extends number | undefined | null> {
     static fromServerData(data: RubricRowServerData) {
@@ -129,6 +163,7 @@ export class RubricRow<T extends number | undefined | null> {
             type: '',
             header: '',
             description: '',
+            descriptionType: defaultDescriptionType,
             locked: false,
             items: [],
         });
@@ -137,15 +172,22 @@ export class RubricRow<T extends number | undefined | null> {
     @nonenumerable
     protected _cache = makeCache('maxPoints', 'minPoints');
 
-    constructor(row: IRubricRow<T, T>) {
+    constructor(row: IRubricRow<T, T>, trackingId?: number) {
         // eslint-disable-next-line @typescript-eslint/no-use-before-define
         if (row.type && !(this instanceof RubricRowsTypes[row.type])) {
             throw new Error('You cannot make a base row with a non empty type.');
         }
+
+        this.trackingId = trackingId ?? getUniqueId();
+
         Object.assign(this, row);
         Object.freeze(this.items);
 
         Object.freeze(this);
+    }
+
+    get isMarkdown(): boolean {
+        return this.descriptionType === RubricDescriptionType.markdown;
     }
 
     get minPoints(): number {
@@ -185,8 +227,22 @@ export class RubricRow<T extends number | undefined | null> {
         });
     }
 
-    private update(this: RubricRow<T>, props = {}): RubricRow<T | undefined> {
-        return new (this.constructor as any)(Object.assign({}, this, props));
+    private update(
+        this: RubricRow<T>,
+        props: Partial<RubricRow<T | null | undefined>> = {},
+    ): RubricRow<T | null | undefined> {
+        return new (this.constructor as any)(
+            Object.assign(
+                {},
+                this,
+                pickKeys(
+                    props,
+                    ['id', 'type', 'header', 'description', 'descriptionType', 'locked', 'items'],
+                    false,
+                ),
+            ),
+            this.trackingId,
+        );
     }
 
     updateItem(
@@ -195,7 +251,7 @@ export class RubricRow<T extends number | undefined | null> {
         prop: Exclude<keyof RubricItem, 'id'>,
         // eslint-disable-next-line no-undef
         value: RubricItem[typeof prop],
-    ): NormalRubricRow<T | undefined>;
+    ): NormalRubricRow<T | null | undefined>;
 
     updateItem(
         this: ContinuousRubricRow<T>,
@@ -203,7 +259,7 @@ export class RubricRow<T extends number | undefined | null> {
         prop: Exclude<keyof RubricItem, 'id'>,
         // eslint-disable-next-line no-undef
         value: RubricItem[typeof prop],
-    ): ContinuousRubricRow<T | undefined>;
+    ): ContinuousRubricRow<T | null | undefined>;
 
     updateItem(
         this: RubricRow<T>,
@@ -211,8 +267,8 @@ export class RubricRow<T extends number | undefined | null> {
         prop: Exclude<keyof RubricItem, 'id'>,
         // eslint-disable-next-line no-undef
         value: RubricItem[typeof prop],
-    ): RubricRow<T | undefined> {
-        const items: RubricItem<undefined | null | number>[] = this.items.slice();
+    ): RubricRow<T | null | undefined> {
+        const items: RubricItem<undefined | null | T>[] = this.items.slice();
         if (idx < 0 || idx >= items.length) {
             throw new ReferenceError('Invalid index');
         }
@@ -227,6 +283,7 @@ export class RubricRow<T extends number | undefined | null> {
         return this.update({ items });
     }
 
+    // TODO: Remove setType once the RubricEditorV1 has been removed.
     setType(type: 'continuous'): ContinuousRubricRow<undefined>;
 
     setType(type: 'normal'): NormalRubricRow<undefined>;
@@ -361,6 +418,25 @@ export class RubricRow<T extends number | undefined | null> {
 
         return errors;
     }
+
+    equals(other: RubricRow<T>): boolean {
+        if (!(other instanceof this.constructor)) {
+            return false;
+        }
+
+        if (this.items.length !== other.items.length) {
+            return false;
+        }
+
+        return (
+            this.type === other.type &&
+            this.header === other.header &&
+            this.description === other.description &&
+            this.descriptionType === other.descriptionType &&
+            this.locked === other.locked &&
+            this.items.every((item, i) => item.equals(other.items[i]))
+        );
+    }
 }
 
 export class NormalRubricRow<T extends number | undefined | null> extends RubricRow<T> {
@@ -378,6 +454,7 @@ export class NormalRubricRow<T extends number | undefined | null> extends Rubric
             type: data.type,
             header: data.header,
             description: data.description,
+            descriptionType: RubricDescriptionType[data.description_type],
             locked: data.locked,
             items: data.items.map(item => RubricItem.fromServerData(item)),
         });
@@ -389,6 +466,7 @@ export class NormalRubricRow<T extends number | undefined | null> extends Rubric
             type: 'normal',
             header: '',
             description: '',
+            descriptionType: defaultDescriptionType,
             locked: false,
             items: [],
         });
@@ -433,6 +511,7 @@ export class ContinuousRubricRow<T extends number | undefined | null> extends Ru
             type: data.type,
             header: data.header,
             description: data.description,
+            descriptionType: RubricDescriptionType[data.description_type],
             locked: data.locked,
             items: data.items.map(item => RubricItem.fromServerData(item)),
         });
@@ -444,6 +523,7 @@ export class ContinuousRubricRow<T extends number | undefined | null> extends Ru
             type: 'continuous',
             header: '',
             description: '',
+            descriptionType: defaultDescriptionType,
             locked: false,
             items: [RubricItem.createEmpty().update({ header: 'Continuous' })],
         });
@@ -469,6 +549,8 @@ const RubricRowsTypes = <const>{
     [NormalRubricRow.tag]: NormalRubricRow,
     [ContinuousRubricRow.tag]: ContinuousRubricRow,
 };
+
+type RubricRowType = keyof typeof RubricRowsTypes;
 
 type RubricServerData = RubricRowServerData[];
 
@@ -519,8 +601,26 @@ export class Rubric<T extends number | undefined | null> {
         }, {});
     }
 
-    createRow() {
-        const rows = [...this.rows, RubricRow.createEmpty()];
+    createRow(type?: RubricRowType) {
+        // TODO: Make 'type' argument non-nullable once RubricEditorV1 is
+        // removed.
+
+        let newRow;
+
+        if (type == null) {
+            newRow = RubricRow.createEmpty();
+        } else {
+            // eslint-disable-next-line @typescript-eslint/no-use-before-define
+            const cls = RubricRowsTypes[type];
+
+            if (cls == null) {
+                throw new TypeError(`Invalid row type: ${type}`);
+            } else {
+                newRow = cls.createEmpty();
+            }
+        }
+
+        const rows = [...this.rows, newRow];
         return new Rubric(rows);
     }
 
@@ -541,6 +641,23 @@ export class Rubric<T extends number | undefined | null> {
         const rows = this.rows.slice();
         rows[idx] = rowData;
         return new Rubric(rows);
+    }
+
+    // eslint-disable-next-line class-methods-use-this
+    setRows(rows: ReadonlyArray<RubricRow<T>>) {
+        return new Rubric(rows);
+    }
+
+    equals(other: Rubric<T>): boolean {
+        if (!(other instanceof Rubric)) {
+            return false;
+        }
+
+        if (this.rows.length !== other.rows.length) {
+            return false;
+        }
+
+        return this.rows.every((row, i) => row.equals(other.rows[i]));
     }
 }
 

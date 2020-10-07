@@ -51,7 +51,7 @@ const initialCourses = [
 
 function setInitialState() {
     return CoursesStore.addCourses({
-            courses: initialCourses,
+        courses: initialCourses,
     });
 };
 
