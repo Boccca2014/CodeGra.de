@@ -23,15 +23,21 @@ export default tsx.component({
     },
 
     computed: {
-        rubric() {
+        rubric(): null | models.Rubric<number> {
             const allRubrics = store.getters['rubrics/rubrics'];
             const rubric = allRubrics[this.assignment.id];
             return rubric === NONEXISTENT ? null : rubric;
         },
+
+        hideSwitcher(): boolean {
+            // Don't hide the switcher when editable, as otherwhise the switcher
+            // will popup the moment you save a newly created rubric.
+            return !this.editable && this.rubric == null;
+        },
     },
 
     render(h) {
-        return <comp.PreferredUI hideSwitcher={!this.editable && this.rubric == null}
+        return <comp.PreferredUI hideSwitcher={this.hideSwitcher}
                                  prefName={models.UIPreference.RubricEditorV2}
                                  componentName="rubric interface">
             <template slot="ifUnset">
