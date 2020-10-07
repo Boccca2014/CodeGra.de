@@ -2626,6 +2626,14 @@
                         "nullable": true,
                         "description": "The description of this row."
                     },
+                    "description_type": {
+                        "oneOf": [
+                            {
+                                "$ref": "#/components/schemas/RubricDescriptionType"
+                            }
+                        ],
+                        "description": "The type of descriptions in this row."
+                    },
                     "items": {
                         "type": "array",
                         "items": {
@@ -2654,11 +2662,20 @@
                     "id",
                     "header",
                     "description",
+                    "description_type",
                     "items",
                     "locked",
                     "type"
                 ],
                 "description": "The JSON representation of a rubric row."
+            },
+            "RubricDescriptionType": {
+                "type": "string",
+                "enum": [
+                    "plain_text",
+                    "markdown"
+                ],
+                "description": "The type of formatting used for the description of a rubric row or item."
             },
             "RubricItem.AsJSON": {
                 "allOf": [
