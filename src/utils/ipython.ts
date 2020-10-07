@@ -23,16 +23,7 @@ type IPythonRawCell = IPythonBaseCell & {
 
 type IPythonCodeCell = IPythonBaseCell & {
     cell_type: 'code';
-    outputs: (
-        | {
-              output_type?: Exclude<'stream', string>;
-              text?: string | string[];
-          }
-        | {
-              output_type: 'stream';
-              text: string | string[];
-          }
-    )[];
+    outputs: IPythonCodeCellOutput[];
 };
 
 type IPythonGenericCell = IPythonBaseCell & {
@@ -51,17 +42,72 @@ type CGIPythonCodeCell = CGIPythonBaseDataCell & {
     source: string[];
 };
 
-type CGIPythonCodeCellOutput =
-    | {
-          output_type?: Exclude<'stream', string>;
-          feedback_offset: number;
-          text?: string;
-      }
-    | {
-          feedback_offset: number;
-          output_type: 'stream';
-          text: string;
-      };
+// The order in this array is important, as if multiple bundles are present we
+// will render the first found here.
+export const IPythonV4MimeDataString = <const>[
+    // 'application/javascript', <- No support for javascript output, as sanitizing is not possible.
+    // 'text/html', <- No support for html output, as sanitizing is not possible
+    'text/markdown',
+    'text/latex',
+    // 'image/svg+xml', <- No support for html output, as sanitizing is not possible
+    'image/gif',
+    'image/png',
+    'image/jpeg',
+    'application/pdf',
+    'text/plain',
+];
+
+export const IPythonV3MimeDataString = <const>[
+    'markdown',
+    'latex',
+    'gif',
+    'png',
+    'jpeg',
+    'pdf',
+    'text',
+];
+
+type IPythonV4MimeData = {
+    data: {
+        [typ in typeof IPythonV4MimeDataString[number]]?: string | string[];
+    } & {
+        'application/json'?: any;
+    };
+};
+
+type IPythonV3MimeData = {
+    [typ in typeof IPythonV3MimeDataString[number]]?: string | string[];
+};
+
+export type IPythonMimeData = OneOrOther<IPythonV4MimeData, IPythonV3MimeData>;
+
+export type IPythonDisplayDataOutput = IPythonMimeData & {
+    output_type: 'display_data';
+} & IPythonMimeData;
+
+export type IPythonExecuteResultOuput = IPythonMimeData & {
+    output_type: 'execute_result' | 'pyout';
+} & OneOrOther<{ execution_count: number }, { prompt_number: number }>;
+
+export type IPythonStreamOutput = {
+    output_type: 'stream';
+    text: string;
+} & OneOrOther<{ name: 'stdout' | 'stderr' }, { stream: 'stdout' | 'stdout' }>;
+
+export type IPythonErrorOutput = {
+    output_type: 'error' | 'pyerr';
+    ename: string;
+    evalue: string;
+    traceback: string[];
+};
+
+type IPythonCodeCellOutput =
+    | IPythonStreamOutput
+    | IPythonDisplayDataOutput
+    | IPythonExecuteResultOuput
+    | IPythonErrorOutput;
+
+export type CGIPythonCodeCellOutput = IPythonCodeCellOutput & { feedback_offset: number };
 
 type CGIPythonGenericCell = CGIPythonBaseDataCell & {
     cell_type?: Exclude<'raw' | 'code', string>;
@@ -130,25 +176,10 @@ export function getOutputCells(
                 feedback_offset: initialOffset,
                 source: highlight(splitted, language, initialOffset),
                 outputs: cell.outputs.map(out => {
-                    let newOut: CGIPythonCodeCellOutput;
-                    if (out.output_type === 'stream') {
-                        newOut = {
-                            ...out,
-                            text: maybeJoinText(out.text),
-                            feedback_offset: curOffset,
-                        };
-                    } else {
-                        newOut = {
-                            ...out,
-                            feedback_offset: curOffset,
-                            text: undefined,
-                        };
-                        if (out.text != null) {
-                            // The `?? ''` case can never happen but is
-                            // necessary for Typescript.
-                            newOut.text = maybeJoinText(out.text ?? '');
-                        }
-                    }
+                    const newOut: CGIPythonCodeCellOutput = {
+                        ...out,
+                        feedback_offset: curOffset,
+                    };
                     curOffset += 1;
                     return processOther(newOut);
                 }),

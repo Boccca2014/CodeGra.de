@@ -17,14 +17,19 @@ import regex as re
 import structlog
 from sqlalchemy import event
 from sqlalchemy.types import JSON
+from typing_extensions import TypedDict
 from werkzeug.datastructures import FileStorage
 
 import psef
+import cg_enum
 import cg_junit
 import cg_logger
+import cg_object_storage
+from cg_maybe import Maybe, Nothing
 from cg_dt_utils import DatetimeWithTimezone
 from cg_flask_helpers import callback_after_this_request
-from cg_sqlalchemy_helpers.types import DbType, ColumnProxy
+from cg_sqlalchemy_helpers import hybrid_property, hybrid_expression
+from cg_sqlalchemy_helpers.types import DbType, DbColumn, ColumnProxy
 from cg_sqlalchemy_helpers.mixins import IdMixin, TimestampMixin
 
 from . import Base, db
@@ -73,17 +78,24 @@ def _ensure_program(program: str) -> None:
         )
 
 
-class AutoTestStepResultState(enum.Enum):
+class AutoTestStepResultState(cg_enum.CGEnum):
     """This enum represents the states the result of a step can be in.
 
     A single step result will probably be in multiple states during its
     existence.
     """
+    #: The step has not yet started running.
     not_started = enum.auto()
+    #: The step is currently running
     running = enum.auto()
+    #: The step has passed, this does not mean necessarily that the student has
+    #: achieved any points.
     passed = enum.auto()
+    #: The step has failed, the student will not receive any points.
     failed = enum.auto()
+    #: The step has exceeded the time limit.
     timed_out = enum.auto()
+    #: The step has been skipped for whatever reason.
     skipped = enum.auto()
 
     @classmethod
@@ -220,23 +232,56 @@ class AutoTestStepBase(Base, TimestampMixin, IdMixin):
             'command_time_limit': self.command_time_limit,
         }
 
-    def __to_json__(self) -> t.Mapping[str, object]:
-        res = {
+    class AsJSONBase(TypedDict):
+        """The base JSON for a step, used for both input and output.
+        """
+        #: The name of this step.
+        name: str
+        #: The type of AutoTest step. We constantly add new step types, so
+        #: don't try to store this as an enum.
+        type: str
+        #: The amount of weight this step should have.
+        weight: float
+        #: Is this step hidden? If ``true`` in most cases students will not be
+        #: able to see this step and its details.
+        hidden: bool
+        #: The data used to run this step. The data shape is dependent on your
+        #: permissions and the step type.
+        data: t.Any
+
+    class AsJSON(AsJSONBase):
+        """The step as JSON.
+        """
+        #: The id of this step
+        id: int
+
+    AsJSON.__cg_extends__ = AsJSONBase  # type: ignore
+
+    class InputAsJSON(AsJSONBase, total=False):
+        """The input data needed for a new AutoTest step.
+        """
+        #: The id of the step. Provide this if you want to edit an existing
+        #: step. If not provided a new step will be created.
+        id: int
+
+    InputAsJSON.__cg_extends__ = AsJSONBase  # type: ignore
+
+    def __to_json__(self) -> AsJSON:
+        try:
+            auth.ensure_can_view_autotest_step_details(self)
+        except exceptions.PermissionException:
+            data = self.remove_data_details()
+        else:
+            data = self.data
+
+        return {
             'id': self.id,
             'name': self.name,
             'type': self._test_type,
             'weight': self.weight,
             'hidden': self.hidden,
-            'data': {},
+            'data': data,
         }
-        try:
-            auth.ensure_can_view_autotest_step_details(self)
-        except exceptions.PermissionException:
-            res['data'] = self.remove_data_details()
-        else:
-            res['data'] = self.data
-
-        return res
 
     @abc.abstractmethod
     def validate_data(self, data: JSONType) -> None:
@@ -1014,8 +1059,22 @@ class AutoTestStepResult(Base, TimestampMixin, IdMixin):
         'log', JSON, nullable=True, default=None
     )
 
-    attachment_filename = db.Column(
+    _attachment_filename = db.Column(
         'attachment_filename', db.Unicode, nullable=True, default=None
+    )
+
+    def _get_has_attachment(self) -> bool:
+        return self.attachment.is_just
+
+    @hybrid_expression
+    def _get_has_attachment_expr(cls: t.Type['AutoTestStepResult']
+                                 ) -> DbColumn[bool]:
+        # pylint: disable=no-self-argument
+        return cls._attachment_filename.isnot(None)
+
+    #: Check if this step has an attachment
+    has_attachment = hybrid_property(
+        _get_has_attachment, expr=_get_has_attachment_expr
     )
 
     @property
@@ -1042,6 +1101,17 @@ class AutoTestStepResult(Base, TimestampMixin, IdMixin):
         """
         return self.step.get_amount_achieved_points(self)
 
+    @property
+    def attachment(self) -> Maybe[cg_object_storage.File]:
+        """Maybe the attachment of this step.
+
+        The step might not have an attachment in which case ``Nothing`` is
+        returned.
+        """
+        if self._attachment_filename is None:
+            return Nothing
+        return current_app.file_storage.get(self._attachment_filename)
+
     def schedule_attachment_deletion(self) -> None:
         """Delete the attachment of this result after the current request.
 
@@ -1050,17 +1120,10 @@ class AutoTestStepResult(Base, TimestampMixin, IdMixin):
 
         :returns: Nothing.
         """
-        old_filename = self.attachment_filename
-        if old_filename is not None:
-            old_path = psef.files.safe_join(
-                current_app.config['UPLOAD_DIR'], old_filename
-            )
-
-            def after_req() -> None:
-                if os.path.isfile(old_path):
-                    os.unlink(old_path)
-
-            callback_after_this_request(after_req)
+        old_attachment = self.attachment
+        if old_attachment.is_just:
+            deleter = old_attachment.value.delete
+            callback_after_this_request(deleter)
 
     def update_attachment(self, stream: FileStorage) -> None:
         """Update the attachment of this step.
@@ -1077,24 +1140,52 @@ class AutoTestStepResult(Base, TimestampMixin, IdMixin):
             )
 
         self.schedule_attachment_deletion()
-        self.attachment_filename = psef.files.save_stream(stream)
+        max_size = current_app.max_single_file_size
+        with current_app.file_storage.putter() as putter:
+            new_file = putter.from_stream(stream.stream, max_size=max_size)
+        if new_file.is_nothing:  # pragma: no cover
+            raise helpers.make_file_too_big_exception(max_size, True)
 
-    def __to_json__(self) -> t.Mapping[str, object]:
-        res = {
-            'id': self.id,
-            'auto_test_step': self.step,
-            'state': self.state.name,
-            'achieved_points': self.achieved_points,
-            'log': self.log,
-            'started_at': self.started_at and self.started_at.isoformat(),
-            'attachment_id': self.attachment_filename,
-        }
+        self._attachment_filename = new_file.value.name
+
+    class AsJSON(TypedDict):
+        """The step result as JSON.
+        """
+        #: The id of the result of a step
+        id: int
+        #: The step this is the result of.
+        auto_test_step: AutoTestStepBase
+        #: The state this result is in.
+        state: AutoTestStepResultState
+        #: The amount of points achieved by the student in this step.
+        achieved_points: float
+        #: The log produced by this result. The format of this log depends on
+        #: the step result.
+        log: t.Optional[t.Any]
+        #: The time this result was started, if ``null`` the result hasn't
+        #: started yet.
+        started_at: t.Optional[DatetimeWithTimezone]
+        #: The id of the attachment produced by this result. If ``null`` no
+        #: attachment was produced.
+        attachment_id: t.Optional[str]
+
+    def __to_json__(self) -> AsJSON:
         try:
             auth.ensure_can_view_autotest_step_details(self.step)
         except exceptions.PermissionException:
-            res['log'] = self.step.remove_step_details(self.log)
+            log = self.step.remove_step_details(self.log)
+        else:
+            log = self.log
 
-        return res
+        return {
+            'id': self.id,
+            'auto_test_step': self.step,
+            'state': self.state,
+            'achieved_points': self.achieved_points,
+            'log': log,
+            'started_at': self.started_at,
+            'attachment_id': self._attachment_filename,
+        }
 
 
 @event.listens_for(AutoTestStepResult, 'after_delete')

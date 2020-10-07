@@ -3,23 +3,29 @@ APIs are used to create, start, and request information about AutoTests.
 
 SPDX-License-Identifier: AGPL-3.0-only
 """
-import json
 import typing as t
 
 import flask
 import werkzeug
 import structlog
 from flask import Response, request, make_response
+from typing_extensions import Literal, TypedDict
+from werkzeug.datastructures import FileStorage
+
+import cg_request_args as rqa
+from cg_json import (
+    JSONResponse, ExtendedJSONResponse, MultipleExtendedJSONResponse, jsonify,
+    extended_jsonify
+)
+from cg_maybe import Maybe
 
 from . import api
 from .. import app, auth, files, tasks, models, helpers, registry, exceptions
 from ..models import db
 from ..helpers import (
-    JSONResponse, EmptyResponse, ExtendedJSONResponse, jsonify, get_or_404,
-    add_warning, jsonify_options, ensure_json_dict, extended_jsonify,
-    make_empty_response, filter_single_or_404, get_files_from_request,
-    get_from_map_transaction, get_json_dict_from_request,
-    callback_after_this_request
+    EmptyResponse, get_or_404, add_warning, jsonify_options,
+    make_empty_response, filter_single_or_404, get_from_map_transaction,
+    get_json_dict_from_request, callback_after_this_request
 )
 from ..features import Feature, feature_required
 from ..exceptions import APICodes, APIWarnings, APIException
@@ -71,45 +77,99 @@ def _get_result_by_ids(
     return get_or_404(models.AutoTestResult, result_id, also_error=also_error)
 
 
-def _update_auto_test(
-    auto_test: models.AutoTest, json_dict: t.Mapping[str, helpers.JSONType]
-) -> None:
-    with get_from_map_transaction(json_dict) as [_, optional_get]:
-        old_fixtures = optional_get('fixtures', list, None)
-        setup_script = optional_get('setup_script', str, None)
-        run_setup_script = optional_get('run_setup_script', str, None)
-        has_new_fixtures = optional_get('has_new_fixtures', bool, False)
-        grade_calculation = optional_get('grade_calculation', str, None)
-        results_always_visible = optional_get(
-            'results_always_visible', (bool, type(None)), None
-        )
-        prefer_teacher_revision = optional_get(
-            'prefer_teacher_revision', (bool, type(None)), None
-        )
+class FixtureLike(TypedDict):
+    """A AutoTest fixture where only the id is required.
+    """
+    #: The id of the fixture
+    id: str
 
-    if old_fixtures is not None:
-        old_fixture_set = set(int(f['id']) for f in old_fixtures)
+
+_ATUpdateMap = rqa.FixedMapping(
+    rqa.OptionalArgument(
+        'setup_script', rqa.SimpleValue.str,
+        'The new setup script (per student) of the auto test.'
+    ),
+    rqa.OptionalArgument(
+        'run_setup_script', rqa.SimpleValue.str,
+        'The new run setup script (global) of the auto test.'
+    ),
+    rqa.OptionalArgument(
+        'has_new_fixtures',
+        rqa.SimpleValue.bool,
+        'If true all other files in the request will be used as new fixtures',
+    ),
+    rqa.OptionalArgument(
+        'grade_calculation',
+        rqa.SimpleValue.str,
+        'The way to do grade calculation for this AutoTest.',
+    ),
+    rqa.OptionalArgument(
+        'results_always_visible',
+        rqa.Nullable(rqa.SimpleValue.bool),
+        """
+        Should results be visible for students before the assignment is set to
+        "done"?
+        """,
+    ),
+    rqa.OptionalArgument(
+        'prefer_teacher_revision',
+        rqa.Nullable(rqa.SimpleValue.bool),
+        """
+        If ``true`` we will use the teacher revision if available when running
+        tests.
+        """,
+    ),
+    rqa.OptionalArgument(
+        'fixtures',
+        rqa.List(rqa.BaseFixedMapping.from_typeddict(FixtureLike)),
+        'A list of old fixtures you want to keep',
+    ),
+)
+
+
+def _update_auto_test(
+    auto_test: models.AutoTest,
+    new_fixtures: t.Sequence[FileStorage],
+    old_fixtures: Maybe[t.List[FixtureLike]],
+    setup_script: Maybe[str],
+    run_setup_script: Maybe[str],
+    has_new_fixtures: Maybe[bool],
+    grade_calculation: Maybe[str],
+    results_always_visible: Maybe[t.Optional[bool]],
+    prefer_teacher_revision: Maybe[t.Optional[bool]],
+) -> None:
+    if old_fixtures.is_just:
+        old_fixture_set = set(int(f['id']) for f in old_fixtures.value)
         for f in auto_test.fixtures:
             if f.id not in old_fixture_set:
                 f.delete_fixture()
+        auto_test.fixtures = [
+            f for f in auto_test.fixtures if f.id in old_fixture_set
+        ]
 
-    if has_new_fixtures:
-        new_fixtures = get_files_from_request(
-            max_size=app.max_large_file_size,
-            keys=['fixture'],
-            only_start=True,
-        )
-
-        for new_fixture in new_fixtures:
-            new_file_name, filename = files.random_file_path()
-            assert new_fixture.filename is not None
-            new_fixture.save(new_file_name)
-            auto_test.fixtures.append(
-                models.AutoTestFixture(
-                    name=files.escape_logical_filename(new_fixture.filename),
-                    filename=filename,
+    if has_new_fixtures.or_default(False):
+        with app.file_storage.putter() as putter:
+            max_size = app.max_single_file_size
+            for new_fixture in new_fixtures:
+                assert new_fixture.filename is not None
+                backing_file = putter.from_stream(
+                    new_fixture.stream, max_size=max_size
                 )
-            )
+                # This is already checked when getting the files from the
+                # request.
+                if backing_file.is_nothing:  # pragma: no cover
+                    raise helpers.make_file_too_big_exception(
+                        app.max_single_file_size, single_file=True
+                    )
+                auto_test.fixtures.append(
+                    models.AutoTestFixture(
+                        name=files.escape_logical_filename(
+                            new_fixture.filename
+                        ),
+                        backing_file=backing_file.value,
+                    )
+                )
+
         renames = files.fix_duplicate_filenames(auto_test.fixtures)
         if renames:
             logger.info('Fixtures were renamed', renamed_fixtures=renames)
@@ -120,12 +180,14 @@ def _update_auto_test(
                 ), APIWarnings.RENAMED_FIXTURE
             )
 
-    if setup_script is not None:
-        auto_test.setup_script = setup_script
-    if run_setup_script is not None:
-        auto_test.run_setup_script = run_setup_script
-    if grade_calculation is not None:
-        calc = registry.auto_test_grade_calculators.get(grade_calculation)
+    if setup_script.is_just:
+        auto_test.setup_script = setup_script.value
+    if run_setup_script.is_just:
+        auto_test.run_setup_script = run_setup_script.value
+    if grade_calculation.is_just:
+        calc = registry.auto_test_grade_calculators.get(
+            grade_calculation.value
+        )
         if calc is None:
             raise APIException(
                 'The given grade_calculation strategy is not found', (
@@ -134,16 +196,24 @@ def _update_auto_test(
                 ), APICodes.OBJECT_NOT_FOUND, 404
             )
         auto_test.grade_calculator = calc
-    if prefer_teacher_revision is not None:
-        auto_test.prefer_teacher_revision = prefer_teacher_revision
-    if results_always_visible is not None:
-        auto_test.results_always_visible = results_always_visible
+    if (
+        prefer_teacher_revision.is_just and
+        prefer_teacher_revision.value is not None
+    ):
+        auto_test.prefer_teacher_revision = prefer_teacher_revision.value
+    if (
+        results_always_visible.is_just and
+        results_always_visible.value is not None
+    ):
+        auto_test.results_always_visible = results_always_visible.value
 
 
 @api.route('/auto_tests/', methods=['POST'])
 @feature_required(Feature.AUTO_TEST)
+@rqa.swaggerize('create')
+@auth.login_required
 def create_auto_test() -> JSONResponse[models.AutoTest]:
-    """Create a new auto test configuration.
+    """Create a new AutoTest configuration.
 
     .. :quickref: AutoTest; Create a new AutoTest configuration.
 
@@ -153,13 +223,26 @@ def create_auto_test() -> JSONResponse[models.AutoTest]:
     :>json run_setup_script: The setup for the entire run (OPTIONAL).
     :returns: The newly created AutoTest.
     """
-    json_dict = get_json_dict_from_request()
-    with get_from_map_transaction(json_dict) as [get, _]:
-        assignment_id = get('assignment_id', int)
+    data, request_files = rqa.MultipartUpload(
+        _ATUpdateMap.combine(
+            rqa.FixedMapping(
+                rqa.RequiredArgument(
+                    'assignment_id',
+                    rqa.SimpleValue.int,
+                    """
+            The id of the assignment in which you want to create this
+            AutoTest. This assignment should have a rubric.
+            """,
+                ),
+            ),
+        ),
+        file_key='fixture',
+        multiple=True,
+    ).from_flask()
 
     assignment = filter_single_or_404(
         models.Assignment,
-        models.Assignment.id == assignment_id,
+        models.Assignment.id == data.assignment_id,
         models.Assignment.is_visible,
         with_for_update=True
     )
@@ -181,7 +264,17 @@ def create_auto_test() -> JSONResponse[models.AutoTest]:
             APICodes.INVALID_STATE, 409
         )
 
-    _update_auto_test(auto_test, json_dict)
+    _update_auto_test(
+        auto_test,
+        request_files,
+        data.fixtures,
+        data.setup_script,
+        data.run_setup_script,
+        data.has_new_fixtures,
+        data.grade_calculation,
+        data.results_always_visible,
+        data.prefer_teacher_revision,
+    )
 
     db.session.commit()
     return jsonify(auto_test)
@@ -189,6 +282,8 @@ def create_auto_test() -> JSONResponse[models.AutoTest]:
 
 @api.route('/auto_tests/<int:auto_test_id>', methods=['DELETE'])
 @feature_required(Feature.AUTO_TEST)
+@rqa.swaggerize('delete')
+@auth.login_required
 def delete_auto_test(auto_test_id: int) -> EmptyResponse:
     """Delete the given AutoTest.
 
@@ -289,6 +384,8 @@ def hide_or_open_fixture(at_id: int, fixture_id: int) -> EmptyResponse:
 
 @api.route('/auto_tests/<int:auto_test_id>', methods=['PATCH'])
 @feature_required(Feature.AUTO_TEST)
+@rqa.swaggerize('patch')
+@auth.login_required
 def update_auto_test(auto_test_id: int) -> JSONResponse[models.AutoTest]:
     """Update the settings of an AutoTest configuration.
 
@@ -305,6 +402,12 @@ def update_auto_test(auto_test_id: int) -> JSONResponse[models.AutoTest]:
     :param auto_test_id: The id of the AutoTest you want to update.
     :returns: The updated AutoTest.
     """
+    data, request_files = rqa.MultipartUpload(
+        _ATUpdateMap,
+        file_key='fixture',
+        multiple=True,
+    ).from_flask()
+
     auto_test = get_or_404(
         models.AutoTest,
         auto_test_id,
@@ -313,12 +416,17 @@ def update_auto_test(auto_test_id: int) -> JSONResponse[models.AutoTest]:
     auth.AutoTestPermissions(auto_test).ensure_may_edit()
     auto_test.ensure_no_runs()
 
-    content = ensure_json_dict(
-        ('json' in request.files and json.load(request.files['json'])) or
-        request.get_json()
+    _update_auto_test(
+        auto_test,
+        request_files,
+        data.fixtures,
+        data.setup_script,
+        data.run_setup_script,
+        data.has_new_fixtures,
+        data.grade_calculation,
+        data.results_always_visible,
+        data.prefer_teacher_revision,
     )
-
-    _update_auto_test(auto_test, content)
     db.session.commit()
 
     return jsonify(auto_test)
@@ -326,6 +434,8 @@ def update_auto_test(auto_test_id: int) -> JSONResponse[models.AutoTest]:
 
 @api.route('/auto_tests/<int:auto_test_id>/sets/', methods=['POST'])
 @feature_required(Feature.AUTO_TEST)
+@rqa.swaggerize('add_set', no_data=True)
+@auth.login_required
 def create_auto_test_set(auto_test_id: int
                          ) -> JSONResponse[models.AutoTestSet]:
     """Create a new set within an AutoTest
@@ -356,6 +466,8 @@ def create_auto_test_set(auto_test_id: int
     methods=['PATCH']
 )
 @feature_required(Feature.AUTO_TEST)
+@rqa.swaggerize('update_set')
+@auth.login_required
 def update_auto_test_set(auto_test_id: int, auto_test_set_id: int
                          ) -> JSONResponse[models.AutoTestSet]:
     """Update the given :class:`.models.AutoTestSet`.
@@ -371,16 +483,22 @@ def update_auto_test_set(auto_test_id: int, auto_test_set_id: int
         should be updated.
     :returns: The updated set.
     """
+    data = rqa.FixedMapping(
+        rqa.OptionalArgument(
+            'stop_points', rqa.SimpleValue.float, """
+            The minimum percentage a student should have achieved before the
+            next tests will be run.
+            """
+        )
+    ).from_flask()
 
     auto_test_set = _get_at_set_by_ids(auto_test_id, auto_test_set_id)
     auth.AutoTestPermissions(auto_test_set.auto_test).ensure_may_edit()
 
     auto_test_set.auto_test.ensure_no_runs()
 
-    with get_from_map_transaction(get_json_dict_from_request()) as [_, opt]:
-        stop_points = opt('stop_points', (int, float), None)
-
-    if stop_points is not None:
+    if data.stop_points.is_just:
+        stop_points = data.stop_points.value
         if stop_points < 0:
             raise APIException(
                 'You cannot set stop points to lower than 0',
@@ -405,6 +523,8 @@ def update_auto_test_set(auto_test_id: int, auto_test_set_id: int
     methods=['DELETE']
 )
 @feature_required(Feature.AUTO_TEST)
+@rqa.swaggerize('delete_set')
+@auth.login_required
 def delete_auto_test_set(
     auto_test_id: int, auto_test_set_id: int
 ) -> EmptyResponse:
@@ -429,60 +549,89 @@ def delete_auto_test_set(
 
 
 @api.route(
-    '/auto_tests/<int:auto_test_id>/sets/<int:auto_test_set_id>/suites/',
+    '/auto_tests/<int:auto_test_id>/sets/<int:set_id>/suites/',
     methods=['PATCH']
 )
 @feature_required(Feature.AUTO_TEST)
-def update_or_create_auto_test_suite(auto_test_id: int, auto_test_set_id: int
+@rqa.swaggerize('update_suite')
+@auth.login_required
+def update_or_create_auto_test_suite(auto_test_id: int, set_id: int
                                      ) -> JSONResponse[models.AutoTestSuite]:
     """Update or create a :class:`.models.AutoTestSuite` (also known as
         category)
 
     .. :quickref: AutoTest; Update an AutoTest suite/category.
 
-    :>json steps: The steps of this AutoTest. See the documentation of
-        :class:`.models.AutoTestStepBase` and its subclasses to see the exact
-        format this list should be in.
-    :>json rubric_row_id: The id of the rubric row this suite is should be
-        connected to.
-    :>json network_disabled: Should the network be disabled during the
-        execution of this suite.
-    :>json submission_info: (Optional) Should submission information be
-        included in the environment.
-    :>json id: The id of the suite, if not given a new suite will be created
-        (OPTIONAL).
-    :>json command_time_limit: The maximum amount of time a single command may
-        take in this suite. If not given the site default will be used
-        (OPTIONAL).
-
     :param auto_test_id: The id of the :class:`.models.AutoTest` in which this
         suite should be created.
-    :param auto_test_set_id: The id the :class:`.models.AutoTestSet` in which
+    :param set_id: The id the :class:`.models.AutoTestSet` in which
         this suite should be created.
     :returns: The just updated or created :class:`.models.AutoTestSuite`.
     """
-    auto_test_set = _get_at_set_by_ids(auto_test_id, auto_test_set_id)
+    data = rqa.FixedMapping(
+        rqa.OptionalArgument(
+            'id',
+            rqa.SimpleValue.int,
+            """
+            The id of the suite you want to edit. If not provided we will
+            create a new suite.
+            """,
+        ),
+        rqa.RequiredArgument(
+            'steps',
+            rqa.List(
+                rqa.BaseFixedMapping.from_typeddict(
+                    models.AutoTestStepBase.InputAsJSON
+                )
+            ),
+            """
+            The steps that should be in this suite. They will be run as the
+            order they are provided in.
+            """,
+        ),
+        rqa.RequiredArgument(
+            'rubric_row_id', rqa.SimpleValue.int,
+            'The id of the rubric row that should be connected to this suite.'
+        ),
+        rqa.RequiredArgument(
+            'network_disabled', rqa.SimpleValue.bool,
+            'Should the network be disabled when running steps in this suite'
+        ),
+        rqa.OptionalArgument(
+            'submission_info',
+            rqa.SimpleValue.bool,
+            """
+            If passed as ``true`` we will provide information about the current
+            submission while running steps. Defaults to ``false`` when creating
+            new suites.
+            """,
+        ),
+        rqa.OptionalArgument(
+            'command_time_limit',
+            rqa.SimpleValue.float,
+            """
+            The maximum amount of time a single step (or substeps) can take
+            when running tests. If not provided the default value is depended
+            on configuration of the instance.
+            """,
+        ),
+    ).from_flask()
+    auto_test_set = _get_at_set_by_ids(auto_test_id, set_id)
     auth.AutoTestPermissions(auto_test_set.auto_test).ensure_may_edit()
 
     auto_test_set.auto_test.ensure_no_runs()
 
-    with get_from_map_transaction(get_json_dict_from_request()) as [get, opt]:
-        steps = get('steps', list)
-        rubric_row_id = get('rubric_row_id', int)
-        network_disabled = get('network_disabled', bool)
-        submission_info = opt('submission_info', bool, False)
-        suite_id = opt('id', int, None)
-        time_limit = opt('command_time_limit', (float, int), None)
-
-    if suite_id is None:
-        # Make sure the time_limit is always set when creating a new suite
-        if time_limit is None:
-            time_limit = models.AdminSetting.get_option(
-                'AUTO_TEST_MAX_TIME_COMMAND'
-            ).total_seconds()
-        suite = models.AutoTestSuite(auto_test_set=auto_test_set)
+    if data.id.is_just:
+        time_limit = data.command_time_limit.or_default(None)
+        suite = get_or_404(models.AutoTestSuite, data.id.value)
     else:
-        suite = get_or_404(models.AutoTestSuite, suite_id)
+        # Make sure the time_limit is always set when creating a new suite
+        time_limit = data.command_time_limit.or_default_lazy(
+            lambda: models.AdminSetting.get_option(
+                'AUTO_TEST_MAX_TIME_COMMAND',
+            ).total_seconds()
+        )
+        suite = models.AutoTestSuite(auto_test_set=auto_test_set)
 
     if time_limit is not None:
         if time_limit < 1:
@@ -494,22 +643,23 @@ def update_or_create_auto_test_suite(auto_test_id: int, auto_test_set_id: int
             )
         suite.command_time_limit = time_limit
 
-    suite.network_disabled = network_disabled
+    suite.network_disabled = data.network_disabled
 
-    suite.submission_info = submission_info
+    if data.submission_info.is_just:
+        suite.submission_info = data.submission_info.value
 
-    if suite.rubric_row_id != rubric_row_id:
+    if suite.rubric_row_id != data.rubric_row_id:
         assig = suite.auto_test_set.auto_test.assignment
         rubric_row = get_or_404(
             models.RubricRow,
-            rubric_row_id,
+            data.rubric_row_id,
             also_error=lambda row: row.assignment != assig,
         )
 
-        if rubric_row_id in assig.locked_rubric_rows:
+        if rubric_row.id in assig.locked_rubric_rows:
             raise APIException(
                 'This rubric is already in use by another suite',
-                f'The rubric row "{rubric_row_id}" is already in use',
+                f'The rubric row "{rubric_row.id}" is already in use',
                 APICodes.INVALID_STATE, 409
             )
 
@@ -520,7 +670,7 @@ def update_or_create_auto_test_suite(auto_test_id: int, auto_test_set_id: int
             )
         suite.rubric_row = rubric_row
 
-    suite.set_steps(steps)
+    suite.set_steps(data.steps)
 
     db.session.commit()
     return jsonify(suite)
@@ -531,6 +681,8 @@ def update_or_create_auto_test_suite(auto_test_id: int, auto_test_set_id: int
     methods=['DELETE']
 )
 @feature_required(Feature.AUTO_TEST)
+@rqa.swaggerize('delete_suite')
+@auth.login_required
 def delete_suite(test_id: int, set_id: int, suite_id: int) -> EmptyResponse:
     """Delete a :class:`.models.AutoTestSuite`.
 
@@ -559,7 +711,11 @@ def delete_suite(test_id: int, set_id: int, suite_id: int) -> EmptyResponse:
 
 @api.route('/auto_tests/<int:auto_test_id>', methods=['GET'])
 @feature_required(Feature.AUTO_TEST)
-def get_auto_test(auto_test_id: int) -> ExtendedJSONResponse[models.AutoTest]:
+@rqa.swaggerize('get')
+@auth.login_required
+def get_auto_test(
+    auto_test_id: int,
+) -> MultipleExtendedJSONResponse[models.AutoTest, models.AutoTestRun]:
     """Get the extended version of an :class:`.models.AutoTest` and its runs.
 
     .. :quickref: AutoTest; Get the extended version of an AutTest.
@@ -573,8 +729,8 @@ def get_auto_test(auto_test_id: int) -> ExtendedJSONResponse[models.AutoTest]:
 
     jsonify_options.get_options(
     ).latest_only = helpers.request_arg_true('latest_only')
-    return extended_jsonify(
-        test, use_extended=(models.AutoTest, models.AutoTestRun)
+    return MultipleExtendedJSONResponse.make(
+        test, use_extended=models.AutoTestRun
     )
 
 
@@ -606,8 +762,10 @@ def get_auto_test_run(auto_test_id: int,
 
 @api.route('/auto_tests/<int:auto_test_id>/runs/', methods=['POST'])
 @feature_required(Feature.AUTO_TEST)
+@rqa.swaggerize('start_run', no_data=True)
+@auth.login_required
 def start_auto_test_run(auto_test_id: int) -> t.Union[JSONResponse[
-    t.Mapping[None, None]], ExtendedJSONResponse[models.AutoTestRun]]:
+    t.Mapping[str, Literal['']]], ExtendedJSONResponse[models.AutoTestRun]]:
     """Start a run for the given :class:`AutoTest`.
 
     .. :quickref: AutoTest; Start a run for a given AutoTest.
@@ -651,8 +809,10 @@ def start_auto_test_run(auto_test_id: int) -> t.Union[JSONResponse[
     '/auto_tests/<int:auto_test_id>/runs/<int:run_id>', methods=['DELETE']
 )
 @feature_required(Feature.AUTO_TEST)
+@rqa.swaggerize('stop_run')
+@auth.login_required
 def delete_auto_test_runs(auto_test_id: int, run_id: int) -> EmptyResponse:
-    """Delete the given :class:`.models.AutoTestRun`.
+    """Delete an AutoTest run, this makes it possible to edit the AutoTest.
 
     .. :quickref: AutoTest; Delete the the given AutoTest run.
 
@@ -692,6 +852,8 @@ def delete_auto_test_runs(auto_test_id: int, run_id: int) -> EmptyResponse:
     methods=['GET']
 )
 @feature_required(Feature.AUTO_TEST)
+@rqa.swaggerize('get_results_by_user')
+@auth.login_required
 def get_auto_test_results_for_user(
     auto_test_id: int, run_id: int, user_id: int
 ) -> JSONResponse[t.List[models.AutoTestResult]]:
@@ -740,6 +902,8 @@ def get_auto_test_results_for_user(
     methods=['GET']
 )
 @feature_required(Feature.AUTO_TEST)
+@rqa.swaggerize('get_result')
+@auth.login_required
 def get_auto_test_result(auto_test_id: int, run_id: int, result_id: int
                          ) -> ExtendedJSONResponse[models.AutoTestResult]:
     """Get the extended version of an AutoTest result.
@@ -764,6 +928,8 @@ def get_auto_test_result(auto_test_id: int, run_id: int, result_id: int
     methods=['POST']
 )
 @feature_required(Feature.AUTO_TEST)
+@rqa.swaggerize('restart_result', no_data=True)
+@auth.login_required
 def restart_auto_test_result(auto_test_id: int, run_id: int, result_id: int
                              ) -> ExtendedJSONResponse[models.AutoTestResult]:
     """Restart an AutoTest result.
@@ -799,16 +965,25 @@ def restart_auto_test_result(auto_test_id: int, run_id: int, result_id: int
 
 @api.route('/auto_tests/<int:auto_test_id>/copy', methods=['POST'])
 @feature_required(Feature.AUTO_TEST)
+@rqa.swaggerize('copy')
+@auth.login_required
 def copy_auto_test(auto_test_id: int) -> JSONResponse[models.AutoTest]:
     """Copy the given AutoTest configuration.
 
     .. :quickref: AutoTest; Copy an AutoTest config to another assignment.
 
-    :>json assignment_id: The id of the assignment which should own the copied
-        AutoTest config.
     :param auto_test_id: The id of the AutoTest config which should be copied.
     :returns: The copied AutoTest configuration.
     """
+    data = rqa.FixedMapping(
+        rqa.RequiredArgument(
+            'assignment_id',
+            rqa.SimpleValue.int,
+            """
+            The id of the assignment into which you want to copy this AutoTest.
+            """,
+        )
+    ).from_flask()
     test = get_or_404(
         models.AutoTest,
         auto_test_id,
@@ -822,12 +997,9 @@ def copy_auto_test(auto_test_id: int) -> JSONResponse[models.AutoTest]:
         for step in suite.steps:
             auth.ensure_can_view_autotest_step_details(step)
 
-    with get_from_map_transaction(get_json_dict_from_request()) as [get, _]:
-        assignment_id = get('assignment_id', int)
-
     assignment = filter_single_or_404(
         models.Assignment,
-        models.Assignment.id == assignment_id,
+        models.Assignment.id == data.assignment_id,
         with_for_update=True
     )
     auth.ensure_permission(CPerm.can_edit_autotest, assignment.course_id)
@@ -848,7 +1020,9 @@ def copy_auto_test(auto_test_id: int) -> JSONResponse[models.AutoTest]:
 
     db.session.flush()
 
-    assignment.auto_test = test.copy(mapping)
+    with app.file_storage.putter() as putter:
+        assignment.auto_test = test.copy(mapping, putter)
+        db.session.flush()
     db.session.commit()
     return jsonify(assignment.auto_test)
 
@@ -915,6 +1089,7 @@ def get_auto_test_result_proxy(
     methods=['GET']
 )
 @feature_required(Feature.AUTO_TEST)
+@auth.login_required
 def get_auto_test_step_result_attachment(
     auto_test_id: int, run_id: int, step_result_id: int
 ) -> Response:
@@ -951,16 +1126,14 @@ def get_auto_test_step_result_attachment(
     auth.AutoTestResultPermissions(step_result.result).ensure_may_see()
     auth.ensure_can_view_autotest_step_details(step_result.step)
 
-    if step_result.attachment_filename is None:
+    if step_result.attachment.is_nothing:
         raise APIException(
             'This step did not produce an attachment',
             f'The step result {step_result.id} does not contain an attachment',
             APICodes.OBJECT_NOT_FOUND, 404
         )
 
-    res = flask.send_from_directory(
-        app.config['UPLOAD_DIR'],
-        step_result.attachment_filename,
+    return flask.send_file(
+        step_result.attachment.value.open(),
+        mimetype='application/octet-stream'
     )
-    res.headers['Content-Type'] = 'application/octet-stream'
-    return res

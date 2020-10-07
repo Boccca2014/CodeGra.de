@@ -2,7 +2,6 @@
 
 SPDX-License-Identifier: AGPL-3.0-only
 """
-import copy
 import enum
 import uuid
 import typing as t
@@ -75,10 +74,22 @@ class CourseRegistrationLink(Base, mixins.UUIDMixin, mixins.TimestampMixin):
         server_default='true'
     )
 
-    def __to_json__(self) -> t.Mapping[str, object]:
+    class AsJSON(TypedDict):
+        """The JSON representation of a course registration link.
+        """
+        #: The id of this link
+        id: uuid.UUID
+        #: The moment this link will stop working
+        expiration_date: DatetimeWithTimezone
+        #: The role new users will get
+        role: 'psef.models.CourseRole'
+        #: Can users register with this link
+        allow_register: bool
+
+    def __to_json__(self) -> AsJSON:
         return {
-            'id': str(self.id),
-            'expiration_date': self.expiration_date.isoformat(),
+            'id': self.id,
+            'expiration_date': self.expiration_date,
             'role': self.course_role,
             'allow_register': self.allow_register,
         }
@@ -117,7 +128,15 @@ class CourseSnippet(Base):
 
     __table_args__ = (db.UniqueConstraint(course_id, key), )
 
-    def __to_json__(self) -> t.Mapping[str, t.Any]:
+    class AsJSON(TypedDict):
+        """The JSON representation of a course snippet.
+        """
+        id: int  #: The id of this snippet.
+        key: str  #: The key of this snippet.
+        #: The value of this snippet, i.e. what this snippet should expand to.
+        value: str
+
+    def __to_json__(self) -> AsJSON:
         """Creates a JSON serializable representation of this object.
         """
         return {
@@ -237,8 +256,11 @@ class Course(NotEqualMixin, Base, mixins.TimestampMixin, mixins.IdMixin):
     class AsExtendedJSON(AsJSON, total=True):
         """The way this class will be represented in extended JSON.
         """
+        #: The assignments connected to this assignment.
         assignments: t.Sequence['psef.models.Assignment']
+        #: The groups sets of this course.
         group_sets: t.Sequence['psef.models.GroupSet']
+        #: The snippets of this course.
         snippets: t.Sequence[CourseSnippet]
 
     def __to_json__(self) -> AsJSON:
@@ -483,7 +505,7 @@ class Course(NotEqualMixin, Base, mixins.TimestampMixin, mixins.IdMixin):
             is_lti=False
         )
         self.assignments.append(assig)
-        for child in copy.copy(tree.values):
+        for child in list(tree.values):
             # This is done before we wrap single files to get better author
             # names.
             work = work_models.Work(
@@ -493,9 +515,7 @@ class Course(NotEqualMixin, Base, mixins.TimestampMixin, mixins.IdMixin):
 
             subdir: psef.files.ExtractFileTreeBase
             if isinstance(child, psef.files.ExtractFileTreeFile):
-                subdir = psef.files.ExtractFileTreeDirectory(
-                    name='top', values=[child], parent=None
-                )
+                subdir = psef.files.ExtractFileTreeDirectory(name='top')
                 tree.forget_child(child)
                 subdir.add_child(child)
             else:

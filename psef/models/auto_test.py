@@ -2,21 +2,22 @@
 
 SPDX-License-Identifier: AGPL-3.0-only
 """
-import os
 import math
 import uuid
 import typing as t
-import numbers
 import itertools
 
 import structlog
 from sqlalchemy import orm, distinct
+from typing_extensions import Literal, TypedDict
 from sqlalchemy.sql.expression import or_, and_, case, nullsfirst
 
 import psef
 import cg_helpers
+import cg_object_storage
 from cg_dt_utils import DatetimeWithTimezone
 from cg_flask_helpers import callback_after_this_request
+from cg_typing_extensions import make_typed_dict_extender
 from cg_sqlalchemy_helpers import UUIDType
 from cg_sqlalchemy_helpers import func as sql_func
 from cg_sqlalchemy_helpers import deferred, hybrid_property
@@ -114,7 +115,24 @@ class AutoTestSuite(Base, TimestampMixin, IdMixin):
             'submission_info': self.submission_info,
         }
 
-    def __to_json__(self) -> t.Mapping[str, object]:
+    class AsJSON(TypedDict):
+        """The set as JSON.
+        """
+        #: The id of this suite (or "category")
+        id: int
+        #: The steps that will be executed in this suite.
+        steps: t.Sequence['psef.models.AutoTestStepBase']
+        #: The rubric row this category is connected to.
+        rubric_row: 'psef.models.RubricRow'
+        #: Is the network disabled while running this category.
+        network_disabled: bool
+        #: Will submission info be available while running this step.
+        submission_info: bool
+        #: The maximum amount of time in seconds a step (or substep) may
+        #: take. If ``null`` the instance default will be used.
+        command_time_limit: t.Optional[float]
+
+    def __to_json__(self) -> AsJSON:
         return {
             'id': self.id,
             'steps': self.steps,
@@ -124,52 +142,39 @@ class AutoTestSuite(Base, TimestampMixin, IdMixin):
             'command_time_limit': self.command_time_limit,
         }
 
-    def set_steps(self, steps: t.List['psef.helpers.JSONType']) -> None:
+    def set_steps(
+        self,
+        steps: t.List['auto_test_step_models.AutoTestStepBase.InputAsJSON'],
+    ) -> None:
         """Set the steps of this suite.
 
-        :param steps: The json data that should be parsed into the steps of
-            this suite. They will be checked by this function.
+        :param steps: The new steps of this suite.
         :returns: Nothing
         """
         new_steps = []
         for idx, step_data in enumerate(steps):
-            with psef.helpers.get_from_map_transaction(
-                psef.helpers.ensure_json_dict(step_data)
-            ) as [get, opt]:
-
-                step_id = opt('id', int, None)
-                # data gets validated in the `step.update_data_from_json`
-                data = get('data', dict)
-                typ_str = get('type', str)
-                name = get('name', str)
-                hidden = get('hidden', bool)
-                weight = t.cast(
-                    float,
-                    get('weight', numbers.Real)  # type: ignore
-                )
-
             try:
-                step_type = auto_test_handlers[typ_str]
+                step_type = auto_test_handlers[step_data['type']]
             except KeyError as exc:
                 raise APIException(
                     'The given test type is not valid',
-                    f'The given test type "{typ_str}" is not known',
+                    f'The given test type "{step_data["type"]}" is not known',
                     APICodes.INVALID_PARAM, 400
                 ) from exc
 
-            if step_id is None:
+            if step_data.get('id') is None:
                 step = step_type()
                 db.session.add(step)
             else:
-                step = psef.helpers.get_or_404(step_type, step_id)
+                step = psef.helpers.get_or_404(step_type, step_data['id'])
                 assert isinstance(step, step_type)
 
-            step.hidden = hidden
+            step.hidden = step_data['hidden']
             step.order = idx
-            step.name = name
-            step.weight = weight
+            step.name = step_data['name']
+            step.weight = step_data['weight']
 
-            step.update_data_from_json(data)
+            step.update_data_from_json(step_data['data'])
             new_steps.append(step)
 
         self.steps = new_steps
@@ -225,7 +230,20 @@ class AutoTestSet(Base, TimestampMixin, IdMixin):
             'stop_points': self.stop_points,
         }
 
-    def __to_json__(self) -> t.Mapping[str, object]:
+    class AsJSON(TypedDict):
+        """The result as JSON.
+        """
+        #: The id of this set.
+        id: int
+        #: The suites connected to this set. In the UI these are called
+        #: "categories"
+        suites: t.Sequence[AutoTestSuite]
+        #: A floating indicating the minimum percentage of points a student
+        #: should achieve after this set (or "level"). If this percentage is
+        #: not achieved the AutoTest will stop running.
+        stop_points: float
+
+    def __to_json__(self) -> AsJSON:
         return {
             'id': self.id,
             'suites': self.suites,
@@ -489,7 +507,53 @@ class AutoTestResult(Base, TimestampMixin, IdMixin, NotEqualMixin):
 
         return achieved, possible
 
-    def __to_json__(self) -> t.Mapping[str, object]:
+    class AsJSON(TypedDict):
+        """The JSON representation of a result.
+        """
+        #: The id of this result
+        id: int
+        #: The time this result was created
+        created_at: DatetimeWithTimezone
+        #: The moment this result was started. If this is ``null`` the result
+        #: has not yet started.
+        started_at: t.Optional[DatetimeWithTimezone]
+        #: The id of the submission (work) that was tested in this result.
+        work_id: int
+        #: The state the result is in.
+        state: 'psef.models.AutoTestStepResultState'
+        #: The amount of points achieved in this step by the student.
+        points_achieved: float
+
+    class AsExtendedJSON(AsJSON):
+        """The extended JSON representation of a result.
+        """
+        #: The stdout produced in the student setup script.
+        setup_stdout: t.Optional[str]
+        #: The stderr produced in the student setup script.
+        setup_stderr: t.Optional[str]
+        #: The results for each step in this AutoTest. The ordering of this
+        #: list is arbitrary, and the results for entire suites and or sets
+        #: might be missing.
+        step_results: t.List['psef.models.AutoTestStepResult']
+        #: If the result has not started this will contain the amount of
+        #: students we expect we still need to run before this result is
+        #: next. This might be incorrect and should only be used as a rough
+        #: estimate.
+        approx_waiting_before: t.Optional[int]
+        #: If ``true`` this is the final result for the student, meaning that
+        #: without teacher interaction (e.g. restarting the AutoTest) this
+        #: result will not change and will be used as is to calculate the grade
+        #: of the student. Reasons why this may not be the case include but are
+        #: not limited to the test containing hidden steps that will only be
+        #: run after the deadline.
+        final_result: bool
+        #: A mapping between suite id and the files written to the AutoTest
+        #: output folder in that suite.
+        suite_files: t.Mapping[int,
+                               t.Sequence['psef.files.FileTree[uuid.UUID]'],
+                               ]
+
+    def __to_json__(self) -> AsJSON:
         """Convert this result to a json object.
         """
         points_achieved, _ = self.get_amount_points_in_suites(
@@ -498,14 +562,14 @@ class AutoTestResult(Base, TimestampMixin, IdMixin, NotEqualMixin):
 
         return {
             'id': self.id,
-            'created_at': self.created_at.isoformat(),
-            'started_at': self.started_at and self.started_at.isoformat(),
+            'created_at': self.created_at,
+            'started_at': self.started_at,
             'work_id': self.work_id,
-            'state': self.state.name,
+            'state': self.state,
             'points_achieved': points_achieved,
         }
 
-    def __extended_to_json__(self) -> t.Mapping[str, object]:
+    def __extended_to_json__(self) -> AsExtendedJSON:
         approx_before: t.Optional[int] = None
         if (
             self.state ==
@@ -532,15 +596,16 @@ class AutoTestResult(Base, TimestampMixin, IdMixin, NotEqualMixin):
                 if entries:
                     suite_files[f.auto_test_suite_id] = entries
 
-        return {
-            **self.__to_json__(),
-            'setup_stdout': self.setup_stdout,
-            'setup_stderr': self.setup_stderr,
-            'step_results': step_results,
-            'approx_waiting_before': approx_before,
-            'final_result': final_result,
-            'suite_files': suite_files,
-        }
+        return make_typed_dict_extender(
+            self.__to_json__(), self.AsExtendedJSON
+        )(
+            setup_stdout=self.setup_stdout,
+            setup_stderr=self.setup_stderr,
+            step_results=step_results,
+            approx_waiting_before=approx_before,
+            final_result=final_result,
+            suite_files=suite_files,
+        )
 
     @classmethod
     def get_results_by_user(cls, student_id: int) -> 'MyQuery[AutoTestResult]':
@@ -1042,15 +1107,39 @@ class AutoTestRun(Base, TimestampMixin, IdMixin):
             'created_at': result.work.created_at.isoformat(),
         }
 
-    def __to_json__(self) -> t.Mapping[str, object]:
+    class AsJSON(TypedDict):
+        """The run as JSON.
+        """
+        #: The id of this run.
+        id: int
+        #: The moment the run was created.
+        created_at: DatetimeWithTimezone
+        #: The state it is in. This is only kept for backwards compatibility
+        #: reasons, it will always be "running".
+        state: Literal['running']
+        #: Also not used anymore, will always be ``false``.
+        is_continuous: bool
+
+    class AsExtendedJSON(AsJSON, TypedDict):
+        """The run as extended JSON.
+        """
+        #: The results in this run. This will only contain the result for the
+        #: latest submissions.
+        results: t.List[AutoTestResult]
+        #: The stdout output of the ``run_setup_script``
+        setup_stdout: str
+        #: The stderr output of the ``run_setup_script``
+        setup_stderr: str
+
+    def __to_json__(self) -> AsJSON:
         return {
             'id': self.id,
-            'created_at': self.created_at.isoformat(),
+            'created_at': self.created_at,
             'state': 'running',
             'is_continuous': False,
         }
 
-    def __extended_to_json__(self) -> t.Mapping[str, object]:
+    def __extended_to_json__(self) -> AsExtendedJSON:
         all_results: t.Iterable[AutoTestResult]
         if psef.helpers.jsonify_options.get_options().latest_only:
             all_results = self.get_results_latest_submissions()
@@ -1063,12 +1152,13 @@ class AutoTestRun(Base, TimestampMixin, IdMixin):
         ]
 
         # TODO: Check permissions for setup_stdout/setup_stderr
-        return {
-            **self.__to_json__(),
-            'results': results,
-            'setup_stdout': self.setup_stdout or '',
-            'setup_stderr': self.setup_stderr or '',
-        }
+        return make_typed_dict_extender(
+            self.__to_json__(), self.AsExtendedJSON
+        )(
+            results=results,
+            setup_stdout=self.setup_stdout or '',
+            setup_stderr=self.setup_stderr or '',
+        )
 
     def delete_and_clear_rubric(self) -> None:
         """Delete this AutoTestRun and clear all the results and rubrics.
@@ -1081,27 +1171,23 @@ class AutoTestRun(Base, TimestampMixin, IdMixin):
 
         ATResult = auto_test_step_models.AutoTestStepResult  # pylint: disable=invalid-name
 
-        attachments = db.session.query(ATResult.attachment_filename).filter(
-            ATResult.attachment_filename.isnot(None),
+        results_with_attachment = ATResult.query.filter(
+            ATResult.has_attachment,
             ATResult.auto_test_result_id.in_(
                 [result.id for result in self.results]
             )
         ).all()
 
-        if attachments:
+        if results_with_attachment:
+            attachments = [r.attachment for r in results_with_attachment]
 
             def after_req() -> None:
-                for attachment, in attachments:
-                    # This is never the case as we filter the attachments in
-                    # the query, but mypy doesn't understand that.
-                    if attachment is None:  # pragma: no cover
-                        continue
-
-                    path = psef.files.safe_join(
-                        psef.app.config['UPLOAD_DIR'], attachment
-                    )
-                    if os.path.isfile(path):
-                        os.unlink(path)
+                for attachment in attachments:
+                    try:
+                        attachment.if_just(lambda a: a.delete())
+                    # pylint: disable=broad-except
+                    except BaseException:  # pragma: no cover
+                        pass
 
             callback_after_this_request(after_req)
 
@@ -1520,7 +1606,40 @@ class AutoTest(Base, TimestampMixin, IdMixin):
                 lambda: psef.tasks.adjust_amount_runners(run_id)
             )
 
-    def __to_json__(self) -> t.Mapping[str, object]:
+    class AsJSON(TypedDict):
+        """An AutoTest as JSON.
+        """
+        #: This id of this AutoTest
+        id: int
+        #: The fixtures connected to this AutoTest
+        fixtures: t.Sequence['psef.models.AutoTestFixture']
+        #: The setup script that will be executed before any test starts.
+        run_setup_script: str
+        #: The setup script that will be executed for each student. In this
+        #: script the submission of the student is available.
+        setup_script: str
+        #: Unused
+        finalize_script: str
+        #: The way the grade is calculated in this AutoTest. This is ``null``
+        #: if the options is still unset. This can be 'full' or 'partial'.
+        grade_calculation: t.Optional[str]
+        #: The sets in this AutoTest. In the UI these are called levels.
+        sets: t.List[AutoTestSet]
+        #: The id of the assignment to which this AutoTest belongs.
+        assignment_id: int
+        #: The runs done with this AutoTest. This is list is always of length 0
+        #: or 1
+        runs: t.List[AutoTestRun]
+        #: If ``true`` the results are visible for students before the
+        #: deadline. This is also called "continuous feedback mode". This is
+        #: ``null`` if the options is still unset.
+        results_always_visible: t.Optional[bool]
+        #: If ``true`` the teacher revision will be used for testing if it is
+        #: available for a student. This is ``null`` if the options is still
+        #: unset.
+        prefer_teacher_revision: t.Optional[bool]
+
+    def __to_json__(self) -> AsJSON:
         """Covert this AutoTest to json.
         """
         fixtures = [
@@ -1547,12 +1666,14 @@ class AutoTest(Base, TimestampMixin, IdMixin):
         rubric_mapping: (
             t.Mapping['psef.models.RubricRow', 'psef.models.RubricRow']
         ),
+        putter: cg_object_storage.Putter,
     ) -> 'AutoTest':
         """Copy this AutoTest configuration.
 
         :param rubric_mapping: The mapping how the rubric was copied, if suite
             ``A`` was copied to suite ``B`` then suite ``B`` is connected to
             rubric row ``rubric_mapping[A.rubric_row]``.
+        :param putter: The putter used to copy fixtures.
         :returns: The copied AutoTest config.
 
         .. note::
@@ -1562,7 +1683,7 @@ class AutoTest(Base, TimestampMixin, IdMixin):
         """
         res = AutoTest(
             sets=[s.copy() for s in self.sets],
-            fixtures=[fixture.copy() for fixture in self.fixtures],
+            fixtures=[fixture.copy(putter) for fixture in self.fixtures],
             setup_script=self.setup_script,
             run_setup_script=self.run_setup_script,
             finalize_script=self.finalize_script,

@@ -486,7 +486,7 @@ def test_update_rubric_item(
 
 @pytest.mark.parametrize(
     'row_type',
-    [err404(None), 'normal', err404('unknown')]
+    [err400(None), 'normal', err404('unknown')]
 )
 @pytest.mark.parametrize('item_description', [err400(None), 'You did well'])
 @pytest.mark.parametrize('item_header', [err400(None), 'You very well'])
@@ -832,16 +832,12 @@ def test_updating_wrong_rubric(
         )
 
 
-@pytest.mark.parametrize(
-    'max_points', [http_err(error=400)('err'),
-                   http_err(error=400)(-1), 10, 2]
-)
+@pytest.mark.parametrize('max_points', [http_err(error=400)(-1), 10, 2])
 @pytest.mark.parametrize(
     'named_user', [
         http_err(error=403)('Student1'),
-        http_err(error=401)('NOT_LOGGED_IN'), 'Robin'
-    ],
-    indirect=True
+        'Robin',
+    ], indirect=True
 )
 @pytest.mark.parametrize('filename', ['test_flake8.tar.gz'], indirect=True)
 def test_set_fixed_max_points(
@@ -1133,11 +1129,12 @@ def test_archive_with_symlinks(
         file = session.query(
             m.File
         ).filter(m.File.id == tree['entries'][0]['id']).first()
-        file = os.path.join(app.config['UPLOAD_DIR'], file.filename)
 
-        assert os.path.exists(file)
-        assert not os.path.islink(file)
-        assert open(file).read() != ''
+        assert file.backing_file.unsafe_extract().exists
+        assert not any(
+            os.path.islink(f) for f in os.listdir(app.config['UPLOAD_DIR'])
+        )
+        assert file.open().read() != b''
 
 
 @pytest.mark.parametrize('name', ['single_file_archive.tar.gz'])
@@ -1300,8 +1297,8 @@ def test_upload_archive_with_dev_file(
             },
             result=error_template
         )
-        assert res['message'].startswith(
-            'The given archive contains invalid or too many'
+        assert res['message'] == (
+            'The given archive contains invalid or too many files'
         )
 
 
@@ -2724,9 +2721,8 @@ def test_ignored_upload_files(
                 )
             },
             result={
+                **error_template,
                 'code': 'NO_FILES_SUBMITTED',
-                'message': str,
-                'description': str,
             }
         )
 
@@ -2739,9 +2735,8 @@ def test_ignored_upload_files(
                     (get_submission_archive(f'{name}{ext}'), f'{name}{ext}')
             },
             result={
+                **error_template,
                 'code': 'NO_FILES_SUBMITTED',
-                'message': str,
-                'description': str,
             }
         )
 
@@ -3195,9 +3190,6 @@ def test_grader_done(
 @pytest.mark.parametrize(
     'with_type,with_time,with_email', [
         (True, True, True),
-        (True, True, False),
-        (False, True, True),
-        (True, False, False),
         (True, 'wrong', True),
         ('wrong', True, True),
         (True, True, 'wrong'),
@@ -3290,16 +3282,6 @@ def test_reminder_email(
     }
     code = 204
 
-    if not with_type:
-        del data['done_type']
-        code = 400
-    if not with_time:
-        del data['reminder_time']
-        code = 400
-    if not with_email:
-        del data['done_email']
-        code = 400
-
     if with_type == 'wrong':
         data['done_type'] = 'WRONG_TYPE'
         code = 400
@@ -3312,7 +3294,9 @@ def test_reminder_email(
 
     marker = request.node.get_closest_marker('http_err')
     if marker is not None:
-        code = marker.kwargs['error']
+        new_code = marker.kwargs['error']
+        if new_code == 401 or code == 204:
+            code = new_code
 
     err = code >= 400
 
@@ -4348,7 +4332,7 @@ def test_setting_cgignore(
         test_client.req(
             'patch',
             f'/api/v1/assignments/{assignment.id}',
-            404,
+            400,
             data={
                 'ignore': [],
                 'ignore_version': 'NotKnown',
@@ -4403,8 +4387,8 @@ def test_upload_files_with_duplicate_filenames(
                     'other_name',
                 ),
                 'file4': (
-                    get_submission_archive('single_file_archive.zip'),
-                    f'duplicate_name.zip (2)',
+                    get_submission_archive('multiple_dir_archive.zip'),
+                    f'duplicate_name (2).zip',
                 ),
                 'file5': (
                     get_submission_archive('single_file_archive.zip'),
@@ -4430,26 +4414,50 @@ def test_upload_files_with_duplicate_filenames(
             result={
                 'entries': [
                     {
-                        'name': 'duplicate_name.zip',
-                        'entries': [{'id': str, 'name': 'single_file_work'}],
-                        'id': str,
-                    },
-                    {
-                        'name': 'duplicate_name.zip (1)',
+                        'name': 'duplicate_name (1).zip',
                         'entries':
                             [{'id': str, 'name': 'single_file_work'},
                              {'id': str, 'name': 'single_file_work_copy'}],
                         'id': str,
                     },
                     {
-                        'name': 'duplicate_name.zip (2)',
+                        'name': 'duplicate_name (2).zip',
                         # This has no entries as its original name was
                         # `duplicate_name.zip (2)` so it is not detected as
                         # .zip file.
                         'id': str,
+                        'entries': [
+                            {
+                                'id': str,
+                                'name': 'dir',
+                                'entries': [
+                                    {'id': str, 'name': 'single_file_work'},
+                                    {
+                                        'id': str,
+                                        'name': 'single_file_work_copy',
+                                    },
+                                ],
+                            },
+                            {
+                                'id': str,
+                                'name': 'dir2',
+                                'entries': [
+                                    {'id': str, 'name': 'single_file_work'},
+                                    {
+                                        'id': str,
+                                        'name': 'single_file_work_copy',
+                                    },
+                                ],
+                            },
+                        ],
                     },
                     {
-                        'name': 'duplicate_name.zip (3)',
+                        'name': 'duplicate_name (3).zip',
+                        'entries': [{'id': str, 'name': 'single_file_work'}],
+                        'id': str,
+                    },
+                    {
+                        'name': 'duplicate_name.zip',
                         'entries': [{'id': str, 'name': 'single_file_work'}],
                         'id': str,
                     },

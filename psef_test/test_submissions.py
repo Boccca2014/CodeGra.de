@@ -1112,13 +1112,19 @@ def test_add_file(
 ):
     assignment, work = assignment_real_works
     work_id = work['id']
+    session.query(
+        m.Assignment
+    ).filter_by(id=m.Work.query.get(work_id).assignment_id).update({
+        'deadline': DatetimeWithTimezone.utcnow() - datetime.timedelta(days=1)
+    })
+    session.commit()
 
     def get_file_by_id(file_id):
         res = test_client.get(f'/api/v1/code/{file_id}')
         assert res.status_code == 200
         return res.get_data(as_text=True)
 
-    with logged_in(student_user):
+    with logged_in(ta_user):
         test_client.req(
             'get',
             f'/api/v1/submissions/{work_id}/files/',
@@ -1214,178 +1220,58 @@ def test_add_file(
         )
         assert get_file_by_id(res['id']) == 'NEW_FILE'
         assert res['size'] == len('NEW_FILE')
-        assert res['is_directory'] == False
+        assert not res['is_directory']
 
-    with logged_in(ta_user):
-        test_client.req(
-            'post',
-            f'/api/v1/submissions/{work_id}/files/',
-            403,
-            query={'path': '/single_dir_archive.zip/dir/dir2/file'},
-            result=error_template,
-            real_data='TEAER_FILE',
-        )
-
-        session.query(
-            m.Assignment
-        ).filter_by(id=m.Work.query.get(work_id).assignment_id).update({
-            'deadline':
-                DatetimeWithTimezone.utcnow() - datetime.timedelta(days=1)
-        })
-        session.commit()
-
-        test_client.req(
-            'post',
-            f'/api/v1/submissions/{work_id}/files/',
-            400,
-            query={
-                'path': '/single_dir_archive.zip/dir/dir2/file', 'owner':
-                    'auto'
+        res = test_client.req(
+            'get',
+            f'/api/v1/submissions/{work_id}/files/?owner=teacher',
+            200,
+            result={
+                'name': 'single_dir_archive.zip',
+                'id': str,
+                'entries': [
+                    {
+                        'name': 'dir',
+                        'id': str,
+                        'entries': [{
+                            'name': 'dir2',
+                            'id': str,
+                            'entries': [
+                                {
+                                    'name': 'dir3',
+                                    'id': str,
+                                    'entries': [{
+                                        'name': 'file',
+                                        'id': str,
+                                    }],
+                                },
+                                {
+                                    'name': 'file',
+                                    'id': str,
+                                },
+                                {
+                                    'name': 'wow',
+                                    'id': str,
+                                    'entries': [{
+                                        'name': 'dit',
+                                        'id': str,
+                                        'entries': [],
+                                    }],
+                                },
+                            ],
+                        }],
+                    },
+                    {
+                        'name': 'single_file_work',
+                        'id': str,
+                    },
+                    {
+                        'name': 'single_file_work_copy',
+                        'id': str,
+                    },
+                ],
             },
-            real_data='TEAEST_FILE',
         )
-
-        res = test_client.req(
-            'post',
-            f'/api/v1/submissions/{work_id}/files/',
-            200,
-            query={'path': '/single_dir_archive.zip/dir/dir2/file2'},
-            real_data='TEAEST_FILE',
-        )
-        assert get_file_by_id(res['id']) == 'TEAEST_FILE'
-        assert res['size'] == len('TEAEST_FILE')
-        assert res['is_directory'] is False
-
-    with logged_in(student_user):
-        test_client.req(
-            'post',
-            f'/api/v1/submissions/{work_id}/files/',
-            403,
-            query={'path': '/single_dir_archive.zip/dir/dir2/wow2/'},
-            real_data='TEAEST_FILE',
-            result=error_template,
-        )
-
-    with logged_in(ta_user):
-        session.query(
-            m.Assignment
-        ).filter_by(id=m.Work.query.get(work_id).assignment_id).update({
-            'deadline':
-                DatetimeWithTimezone.utcnow() + datetime.timedelta(days=1)
-        })
-
-    with logged_in(student_user):
-        test_client.req(
-            'post',
-            f'/api/v1/submissions/{work_id}/files/',
-            200,
-            query={'path': '/single_dir_archive.zip/dir/dir2/file2'},
-            real_data='STUDENT_FILE',
-        )
-        from pprint import pprint
-        pprint(
-            test_client.req(
-                'get', f'/api/v1/submissions/{work_id}/files/', 200
-            )
-        )
-
-        res = test_client.req(
-            'get',
-            f'/api/v1/submissions/{work_id}/files/',
-            200,
-            result={
-                'name': 'single_dir_archive.zip', 'id': str, 'entries': [{
-                    'name': 'dir',
-                    'id': str,
-                    'entries': [{
-                        'name': 'dir2',
-                        'id': str,
-                        'entries': [{
-                            'name': 'dir3',
-                            'id': str,
-                            'entries': [{
-                                'name': 'file',
-                                'id': str,
-                            }],
-                        }, {
-                            'name': 'file',
-                            'id': str,
-                        }, {
-                            'name': 'file2',
-                            'id': str,
-                        },
-                                    {
-                                        'name': 'wow',
-                                        'id': str,
-                                        'entries': [{
-                                            'name': 'dit',
-                                            'id': str,
-                                            'entries': [],
-                                        }],
-                                    }],
-                    }],
-                }, {
-                    'name': 'single_file_work',
-                    'id': str,
-                }, {
-                    'name': 'single_file_work_copy',
-                    'id': str,
-                }]
-            }
-        )
-
-    with logged_in(ta_user):
-        res = test_client.req(
-            'get',
-            f'/api/v1/submissions/{work_id}/files/',
-            200,
-            result={
-                'name': 'single_dir_archive.zip', 'id': str, 'entries': [{
-                    'name': 'dir',
-                    'id': str,
-                    'entries': [{
-                        'name': 'dir2',
-                        'id': str,
-                        'entries': [{
-                            'name': 'dir3',
-                            'id': str,
-                            'entries': [{
-                                'name': 'file',
-                                'id': str,
-                            }],
-                        }, {
-                            'name': 'file',
-                            'id': str,
-                        }, {
-                            'name': 'file2',
-                            'id': str,
-                        },
-                                    {
-                                        'name': 'wow',
-                                        'id': str,
-                                        'entries': [{
-                                            'name': 'dit',
-                                            'id': str,
-                                            'entries': [],
-                                        }],
-                                    }],
-                    }],
-                }, {
-                    'name': 'single_file_work',
-                    'id': str,
-                }, {
-                    'name': 'single_file_work_copy',
-                    'id': str,
-                }]
-            }
-        )
-
-        session.query(
-            m.Assignment
-        ).filter_by(id=m.Work.query.get(work_id).assignment_id).update({
-            'deadline':
-                DatetimeWithTimezone.utcnow() + datetime.timedelta(days=1)
-        })
 
 
 @pytest.mark.parametrize('with_works', [True], indirect=True)
@@ -1610,7 +1496,7 @@ def test_update_test_submission_grader(
 )
 def test_delete_submission(
     named_user, request, test_client, logged_in, error_template, teacher_user,
-    assignment_real_works, session, monkeypatch_celery
+    assignment_real_works, session, monkeypatch_celery, app
 ):
     assignment, work = assignment_real_works
     work_id = work['id']
@@ -1628,14 +1514,17 @@ def test_delete_submission(
     assert files
     code = m.File.query.filter_by(work_id=work_id, is_directory=False).first()
 
-    diskname = code.get_diskname()
-    assert os.path.isfile(diskname)
+    found_file = code.backing_file
+    assert found_file.is_just
+    assert found_file.value.exists
 
     other_code = m.File.query.filter_by(
         work_id=other_work.id, is_directory=False
     ).first()
 
-    p_run = m.PlagiarismRun(assignment=assignment, json_config='')
+    p_run = m.PlagiarismRun(
+        assignment=assignment, json_config='[]', old_assignments=[]
+    )
     p_case = m.PlagiarismCase(
         work1_id=work_id, work2_id=other_work.id, match_avg=50, match_max=50
     )
@@ -1675,7 +1564,7 @@ def test_delete_submission(
         )
 
     if error:
-        assert os.path.isfile(diskname)
+        assert code.backing_file.value.exists
         for f in files:
             assert m.File.query.get(f)
         assert not m.Work.query.get(work_id).deleted

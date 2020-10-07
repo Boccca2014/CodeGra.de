@@ -5,20 +5,17 @@ the database.
 
 SPDX-License-Identifier: AGPL-3.0-only
 """
-import os
 from datetime import timedelta
 
 import werkzeug
-from flask import request, safe_join, send_from_directory
-from werkzeug.exceptions import NotFound
-
-from cg_dt_utils import DatetimeWithTimezone
+from flask import request, send_file
 
 from . import api
-from .. import app, auth, files, tasks
+from .. import app, auth, tasks
 from ..auth import APICodes, APIException
 from ..helpers import (
-    JSONResponse, jsonify, get_request_start_time, callback_after_this_request
+    JSONResponse, jsonify, get_request_start_time, callback_after_this_request,
+    make_file_too_big_exception
 )
 
 _MAX_AGE = timedelta(minutes=2)
@@ -41,28 +38,19 @@ def post_file() -> JSONResponse[str]:
                           size. (REQUEST_TOO_LARGE)
     :raises PermissionException: If there is no logged in user. (NOT_LOGGED_IN)
     """
-    if (
-        request.content_length and
-        request.content_length > app.max_single_file_size
-    ):
-        raise APIException(
-            'Uploaded file is too big.',
-            'Request is bigger than maximum upload size of {}.'.format(
-                app.max_single_file_size
-            ), APICodes.REQUEST_TOO_LARGE, 400
-        )
+    max_size = app.max_single_file_size
+    with app.mirror_file_storage.putter() as putter:
+        result = putter.from_stream(request.stream, max_size=max_size)
 
-    path, name = files.random_file_path(True)
-    with open(path, 'wb') as f:
-        files.limited_copy(request.stream, f, app.max_single_file_size)
+    if result.is_nothing:
+        raise make_file_too_big_exception(max_size, True)
 
-    tasks.delete_file_at_time(
-        filename=name,
-        in_mirror_dir=True,
+    tasks.delete_mirror_file_at_time(
+        name=result.value.name,
         deletion_time=(get_request_start_time() + _MAX_AGE).isoformat(),
     )
 
-    return jsonify(name, status_code=201)
+    return jsonify(result.value.name, status_code=201)
 
 
 @api.route('/files/<file_name>', methods=['GET'])
@@ -84,40 +72,32 @@ def get_file(
     """
     name = request.args.get('name', name)
 
-    directory = app.config['MIRROR_UPLOAD_DIR']
-    error = False
+    wanted_file = app.mirror_file_storage.get(file_name)
 
-    @callback_after_this_request
-    def __delete_file() -> None:
-        # Make sure we don't delete when receiving HEAD requests
-        if request.method == 'GET' and not error:
-            filename = safe_join(directory, file_name)
-            os.unlink(filename)
+    too_old = wanted_file.map(
+        lambda f: (get_request_start_time() - f.creation_time) > _MAX_AGE
+    ).or_default(False)
 
-    try:
-        full_path = files.safe_join(directory, file_name)
-        if os.path.isfile(full_path):
-            mtime = os.path.getmtime(full_path)
-            age = get_request_start_time(
-            ) - DatetimeWithTimezone.utcfromtimestamp(mtime)
-            if age > _MAX_AGE:
-                raise NotFound
-
-        mimetype = request.args.get('mime', None)
-        as_attachment = request.args.get('not_as_attachment', False)
-        return send_from_directory(
-            directory,
-            file_name,
-            attachment_filename=name,
-            as_attachment=as_attachment,
-            mimetype=mimetype,
-            cache_timeout=-1,
-        )
-    except NotFound as exc:
-        error = True
+    if wanted_file.is_nothing or too_old:
         raise APIException(
             'The specified file was not found',
             f'The file with name "{file_name}" was not found or is deleted.',
             APICodes.OBJECT_NOT_FOUND,
             404,
-        ) from exc
+        )
+
+    @callback_after_this_request
+    def __delete_file() -> None:
+        # Make sure we don't delete when receiving HEAD requests
+        if request.method == 'GET' and wanted_file.is_just:
+            wanted_file.value.delete()
+
+    mimetype = request.args.get('mime', None)
+    as_attachment = request.args.get('not_as_attachment', False)
+    return send_file(
+        wanted_file.value.open(),
+        attachment_filename=name,
+        as_attachment=as_attachment,
+        mimetype=mimetype,
+        cache_timeout=-1,
+    )

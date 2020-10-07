@@ -15,8 +15,10 @@ import structlog
 import flask_jwt_extended as flask_jwt
 from flask import Flask
 from werkzeug.local import LocalProxy
+from werkzeug.utils import cached_property
 
 import cg_logger
+import cg_object_storage
 import cg_cache.inter_request
 from cg_json import jsonify
 
@@ -85,8 +87,59 @@ class PsefFlask(Flask):
             )
         )
 
+        self.file_storage: cg_object_storage.Storage
+        self.file_storage = cg_object_storage.LocalStorage(
+            self.config['UPLOAD_DIR'],
+        )
+        self.mirror_file_storage: cg_object_storage.Storage
+        self.mirror_file_storage = cg_object_storage.LocalStorage(
+            self.config['MIRROR_UPLOAD_DIR'],
+        )
+
+    @property
+    def max_single_file_size(self) -> cg_object_storage.FileSize:
+        """The maximum allowed size for a single file.
+        """
+        return cg_object_storage.FileSize(
+            psef.models.AdminSetting.get_option('MAX_FILE_SIZE')
+        )
+
+    @property
+    def max_file_size(self) -> cg_object_storage.FileSize:
+        """The maximum allowed size for normal files.
+
+        .. note:: An individual file has a different limit!
+        """
+        return cg_object_storage.FileSize(
+            psef.models.AdminSetting.get_option('MAX_NORMAL_UPLOAD_SIZE')
+        )
+
+    @property
+    def max_large_file_size(self) -> cg_object_storage.FileSize:
+        """The maximum allowed size for large files (such as blackboard zips).
+
+        .. note:: An individual file has a different limit!
+        """
+        return cg_object_storage.FileSize(
+            psef.models.AdminSetting.get_option('MAX_LARGE_UPLOAD_SIZE')
+        )
+
+    @property
+    def do_sanity_checks(self) -> bool:
+        """Should we do sanity checks for this app.
+
+        :returns: ``True`` if ``debug`` or ``testing`` is enabled.
+        """
+        return getattr(self, 'debug', False) or getattr(self, 'testing', False)
+
+    # Lazy initialization of the app. The `cached_property` from werkzeug
+    # caches across requests which is something we want here.
+    @cached_property
+    def inter_request_cache(self) -> '_PsefInterProcessCache':
+        """Get all inter process cache stores.
+        """
         redis_conn = redis.from_url(self.config['REDIS_CACHE_URL'])
-        self._inter_request_cache = _PsefInterProcessCache(
+        return _PsefInterProcessCache(
             lti_access_tokens=cg_cache.inter_request.RedisBackend(
                 'lti_access_tokens',
                 timedelta(seconds=600),
@@ -100,57 +153,13 @@ class PsefFlask(Flask):
             )
         )
 
-    @property
-    def max_single_file_size(self) -> 'psef.archive.FileSize':
-        """The maximum allowed size for a single file.
-        """
-        return archive.FileSize(
-            psef.models.AdminSetting.get_option('MAX_FILE_SIZE')
-        )
-
-    @property
-    def max_file_size(self) -> 'psef.archive.FileSize':
-        """The maximum allowed size for normal files.
-
-        .. note:: An individual file has a different limit!
-        """
-        return archive.FileSize(
-            psef.models.AdminSetting.get_option('MAX_NORMAL_UPLOAD_SIZE')
-        )
-
-    @property
-    def max_large_file_size(self) -> 'psef.archive.FileSize':
-        """The maximum allowed size for large files (such as blackboard zips).
-
-        .. note:: An individual file has a different limit!
-        """
-        return archive.FileSize(
-            psef.models.AdminSetting.get_option('MAX_LARGE_UPLOAD_SIZE')
-        )
-
-    @property
-    def do_sanity_checks(self) -> bool:
-        """Should we do sanity checks for this app.
-
-        :returns: ``True`` if ``debug`` or ``testing`` is enabled.
-        """
-        return getattr(self, 'debug', False) or getattr(self, 'testing', False)
-
-    @property
-    def inter_request_cache(self) -> _PsefInterProcessCache:
-        """Get all inter process cache stores.
-        """
-        return self._inter_request_cache
-
 
 logger = structlog.get_logger()
 
-app: 'PsefFlask' = current_app  # pylint: disable=invalid-name
+app: PsefFlask = current_app  # pylint: disable=invalid-name
 
 _current_tester = None  # pylint: disable=invalid-name
 current_tester = LocalProxy(lambda: _current_tester)  # pylint: disable=invalid-name
-
-from . import archive  # isort:skip, pylint: disable=wrong-import-position
 
 
 def enable_testing() -> None:
@@ -225,9 +234,6 @@ def create_app(  # pylint: disable=too-many-statements
 
     from . import auth
     auth.init_app(resulting_app)
-
-    from . import parsers
-    parsers.init_app(resulting_app)
 
     from . import tasks
     tasks.init_app(resulting_app)
