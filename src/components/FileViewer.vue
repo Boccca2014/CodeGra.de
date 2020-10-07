@@ -37,8 +37,9 @@
         </b-alert>
 
         <b-alert v-if="!showInlineFeedback"
-                 show
+                 :show="!inlineFeedbackWarningDismissed"
                  dismissible
+                 @dismissed="inlineFeedbackWarningDismissed = true"
                  variant="warning"
                  class="mb-0 rounded-0">
             Inline feedback is currently hidden.
@@ -148,6 +149,7 @@ export default {
             forcedFileComponent: null,
             fileContent: undefined,
             loadingCode: false,
+            inlineFeedbackWarningDismissed: false,
             fileTypes: [
                 {
                     cond: () =>
