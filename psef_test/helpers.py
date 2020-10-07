@@ -552,7 +552,6 @@ def get_simple_rubric():
         'rows': [{
             'header': 'My header',
             'description': 'My description',
-            'description_type': 'markdown',
             'items': [
                 {
                     'description': 'item description',
