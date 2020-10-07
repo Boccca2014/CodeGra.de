@@ -10,7 +10,6 @@ import uuid
 import typing as t
 import inspect
 import datetime
-import textwrap
 import contextlib
 import collections
 from enum import Enum, EnumMeta
@@ -67,6 +66,7 @@ def _to_camelcase(string: str) -> str:
 
 def _clean_comment(comment: str) -> str:
     return _doc_without_sphinx(comment)
+
 
 def _doc_without_sphinx(doc: str) -> str:
     res = []
