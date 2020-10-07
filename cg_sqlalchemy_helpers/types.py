@@ -224,8 +224,8 @@ class MyDb:  # pragma: no cover
     ) -> _ForeignKey:
         ...
 
-    def TIMESTAMP(self, *, timezone: Literal[True]
-                  ) -> DbType[DatetimeWithTimezone]:
+    def TIMESTAMP(self, *,
+                  timezone: Literal[True]) -> DbType[DatetimeWithTimezone]:
         ...
 
     def Table(self, name: str, *args: T) -> RawTable:
@@ -604,17 +604,20 @@ class DbColumn(t.Generic[T]):  # pragma: no cover
         ...
 
     def __ge__(
-        self, other: t.Union[T, 'DbColumn[T]', 'DbColumn[t.Optional[T]]']
+        self, other: t.Union[T, 'DbColumn[T]', 'DbColumn[t.Optional[T]]',
+                             'MyNonOrderableQuery[T]']
     ) -> 'DbColumn[bool]':
         ...
 
     def __gt__(
-        self, other: t.Union[T, 'DbColumn[T]', 'DbColumn[t.Optional[T]]']
+        self, other: t.Union[T, 'DbColumn[T]', 'DbColumn[t.Optional[T]]',
+                             'MyNonOrderableQuery[T]']
     ) -> 'DbColumn[bool]':
         ...
 
     def __lt__(
-        self, other: t.Union[T, 'DbColumn[T]', 'DbColumn[t.Optional[T]]']
+        self, other: t.Union[T, 'DbColumn[T]', 'DbColumn[t.Optional[T]]',
+                             'MyNonOrderableQuery[T]']
     ) -> 'DbColumn[bool]':
         ...
 
@@ -882,8 +885,7 @@ if t.TYPE_CHECKING and MYPY:
 
     CIText = DbType[str]()
 
-    def TIMESTAMP(*, timezone: Literal[True]
-                  ) -> DbType[DatetimeWithTimezone]:
+    def TIMESTAMP(*, timezone: Literal[True]) -> DbType[DatetimeWithTimezone]:
         ...
 
     class ARRAY(t.Generic[T], DbType[t.Tuple[T, ...]]):

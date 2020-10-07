@@ -715,7 +715,7 @@ class Job(Base, mixins.TimestampMixin, mixins.IdMixin):
         amount_running = Runner.query.filter(
             Runner.job_id == cls.id,
             Runner.see_as_running_job,
-        ).with_entities(func.count())
+        ).with_entities(func.count()).as_scalar()
         return amount_running < cls.wanted_runners
 
     needs_more_runners = hybrid_property(
@@ -767,7 +767,7 @@ class Job(Base, mixins.TimestampMixin, mixins.IdMixin):
         }
 
     def add_runners_to_job(
-        self, unassigned_runners: t.List[Runner], startable: int
+        self, unassigned_runners: t.Sequence[Runner], startable: int
     ) -> int:
         """Add runners to the given job.
 
@@ -784,16 +784,12 @@ class Job(Base, mixins.TimestampMixin, mixins.IdMixin):
         needed = max(0, self.wanted_runners - len(self.get_active_runners()))
         to_start: t.List[uuid.UUID] = []
         created: t.List[Runner] = []
-
-        if needed > 0 and unassigned_runners:
-            # We will assign runner that were previously unassigned, so we
-            # might need to start some extra runners.
-            callback_after_this_request(
-                cg_broker.tasks.start_needed_unassigned_runners.delay
-            )
+        unassigned_runners = list(unassigned_runners)
+        used_unassigned = False
 
         for _ in range(needed):
             if unassigned_runners:
+                used_unassigned = True
                 self.runners.append(unassigned_runners.pop())
             elif startable > 0:
                 runner = Runner.create_of_type(app.config['AUTO_TEST_TYPE'])
@@ -810,6 +806,8 @@ class Job(Base, mixins.TimestampMixin, mixins.IdMixin):
             to_start.append(runner.id)
 
         def start_runners() -> None:
+            if used_unassigned:
+                cg_broker.tasks.start_needed_unassigned_runners.delay()
             for runner_id in to_start:
                 cg_broker.tasks.start_runner.delay(runner_id.hex)
 
