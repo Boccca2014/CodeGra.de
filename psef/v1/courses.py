@@ -990,6 +990,7 @@ def delete_registration_link(
 
 @api.route('/courses/<int:course_id>/registration_links/', methods=['PUT'])
 @rqa.swaggerize('put_enroll_link')
+@auth.login_required
 def create_or_edit_registration_link(
     course_id: int
 ) -> JSONResponse[models.CourseRegistrationLink]:

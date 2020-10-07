@@ -58,7 +58,7 @@ async def get_all(
 
 
 async def put_enroll_link(
-    *, client: "Client", course_id: "int", json_body: PutEnrollLinkCourseData,
+    *, client: "AuthenticatedClient", course_id: "int", json_body: PutEnrollLinkCourseData,
 ) -> Union[
     CourseRegistrationLinkAsJSON,
 ]:

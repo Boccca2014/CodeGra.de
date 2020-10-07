@@ -62,7 +62,7 @@ def get_all(
 def put_enroll_link(
     json_body: PutEnrollLinkCourseData,
     *,
-    client: "Client",
+    client: "AuthenticatedClient",
     course_id: "int",
     extra_parameters: Mapping[str, str] = None,
 ) -> Union[
