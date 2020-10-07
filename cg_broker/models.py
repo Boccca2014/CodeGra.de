@@ -709,24 +709,17 @@ class Job(Base, mixins.TimestampMixin, mixins.IdMixin):
             # the backend probably already thinks it has the right to use this
             # runner.
             return False
-
-        # In this case we have enough running runners for this job.
-        if not self.needs_more_runners:
+        elif not self.needs_more_runners:
             logger.info('Too many runners assigned to job')
             return False
-
-        # We want more, but this should only be given if the runner is not
-        # needed elsewhere.
-
-        # Runner is unassigned, so get it.
-        if runner.job is None:
+        elif runner.job is None:  # Runner is unassigned, so get it.
             self._use_runner(runner)
             return True
         elif self._can_steal_runner(runner):
             logger.info(
                 'Stealing runner from job',
-                new_job_id=self.id,
-                other_job_id=runner.job.id,
+                new_job=self,
+                other_job=runner.job,
                 runner=runner,
             )
             self._use_runner(runner)
