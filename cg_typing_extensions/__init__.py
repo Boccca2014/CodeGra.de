@@ -4,7 +4,6 @@ SPDX-License-Identifier: AGPL-3.0-only
 """
 import typing as t
 
-T = t.TypeVar('T')
 T_DICT = t.TypeVar('T_DICT', bound=dict)  # pylint: disable=invalid-name
 
 
