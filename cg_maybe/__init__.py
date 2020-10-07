@@ -122,6 +122,19 @@ class _Nothing(t.Generic[_T]):
     def __repr__(self) -> str:
         return 'Nothing'
 
+    @classmethod
+    def is_nothing_instance(cls, obj: object) -> bool:
+        """Check if the given object is a Nothing object.
+
+        >>> Nothing.is_nothing_instance(5)
+        False
+        >>> Nothing.is_nothing_instance(Nothing)
+        True
+        >>> Nothing.is_nothing_instance(Just(5))
+        False
+        """
+        return isinstance(obj, cls)
+
     # pylint: enable=no-self-use,missing-function-docstring
 
 

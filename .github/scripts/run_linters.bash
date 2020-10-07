@@ -1,6 +1,16 @@
 #!/bin/bash
 set -o xtrace
 
+pip install -r test_requirements.txt
+
+make build_swagger || exit 1
+make build_api_libs || exit 1
+git add api_libs
+if [[ -n "$(git diff-index --name-only HEAD)" ]]; then
+    echo "You forgot to update the API libs!"
+    exit 1;
+fi
+
 # Opacity with a percentage gets changed by our css optimizer, and will always
 # be 1%, so we disallow using percentages and simply require a fraction.
 if grep -r 'opacity:.*%' ./src; then
@@ -16,8 +26,6 @@ external_url = http://localhost:1234
 proxy_base_domain = test.com
 redis_cache_url = redis://localhost:6379/cg_cache
 EOF
-
-pip install -r test_requirements.txt
 
 make pylint &
 PYLINT_PID="$!"

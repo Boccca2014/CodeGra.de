@@ -12,11 +12,10 @@ import copy
 import typing as t
 import tarfile
 import zipfile
-import dataclasses
 from collections import Counter, defaultdict
 
 import structlog
-from typing_extensions import Protocol
+from typing_extensions import Protocol, TypedDict
 from werkzeug.datastructures import FileStorage
 
 import psef
@@ -206,7 +205,6 @@ def escape_logical_filename(name: str) -> str:
 T = t.TypeVar('T')
 
 
-@dataclasses.dataclass
 class FileTree(t.Generic[T]):
     """A class representing a file tree as stored in the database.
 
@@ -216,21 +214,45 @@ class FileTree(t.Generic[T]):
     :param entries: If not ``None`` this file is a directory, and contains
         these files as direct children.
     """
-    __slots__ = ('name', 'id', 'entries')
-    name: str
-    id: T
-    entries: t.Optional[t.Sequence['FileTree[T]']]
+    __slots__ = ('name', 'file_id', 'entries')
 
-    def __to_json__(
-        self
-    ) -> t.Mapping[str, t.Union[str, t.Sequence['FileTree[T]']]]:
-        res: t.Dict[str, t.Union[str, t.Sequence['FileTree[T]']]] = {
-            'name': self.name,
-            'id': str(self.id)
-        }
+    def __init__(
+        self,
+        name: str,
+        file_id: T,
+        entries: t.Optional[t.Sequence['FileTree[T]']],
+    ) -> None:
+        self.name = name
+        self.file_id = file_id
+        self.entries = entries
+
+    class _AsJSONFile(TypedDict):
+        #: The id of the file, this can be used to retrieve it later on.
+        id: str
+        #: The name of the file, this does not include the name of any parents.
+        name: str
+
+    class AsJSON(_AsJSONFile, total=False):
+        """The FileTree represented as JSON.
+        """
+        #: The entries in this directory. This is a list that will contain all
+        #: children of the directory. This key might not be present, in which
+        #: case the file is not a directory.
+        entries: t.Sequence['psef.files.FileTree']
+
+    AsJSON.__cg_extends__ = _AsJSONFile  # type: ignore
+
+    def __to_json__(self) -> AsJSON:
         if self.entries is not None:
-            res['entries'] = self.entries
-        return res
+            return {
+                'id': str(self.file_id),
+                'name': self.name,
+                'entries': self.entries,
+            }
+        return {
+            'id': str(self.file_id),
+            'name': self.name,
+        }
 
 
 class IgnoredFilesException(APIException):
@@ -315,23 +337,23 @@ def search_path_in_filetree(filetree: FileTree[T], path: str) -> T:
     ...        entries = [to_ftree(entry) for entry in dct['entries']]
     ...    return FileTree(**{**dct, 'entries': entries})
     >>> filetree = {
-    ...    "id": 1,
+    ...    "file_id": 1,
     ...    "name": "rootdir",
     ...    "entries": [
     ...        {
-    ...            "id": 2,
+    ...            "file_id": 2,
     ...            "name": "file1.txt"
     ...        },
     ...        {
-    ...            "id": 3,
+    ...            "file_id": 3,
     ...            "name": "subdir",
     ...            "entries": [
     ...                {
-    ...                    "id": 4,
+    ...                    "file_id": 4,
     ...                    "name": "file2.txt"
     ...                },
     ...                {
-    ...                    "id": 5,
+    ...                    "file_id": 5,
     ...                    "name": "file3.txt"
     ...                }
     ...            ],
@@ -365,7 +387,7 @@ def search_path_in_filetree(filetree: FileTree[T], path: str) -> T:
                 break
         else:
             raise KeyError(f'Path ({path}) not in tree')
-    return cur.id
+    return cur.file_id
 
 
 def rename_directory_structure(

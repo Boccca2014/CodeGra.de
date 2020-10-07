@@ -47,10 +47,13 @@ def get_all_roles() -> JSONResponse[t.Sequence[t.Mapping[str, t.Any]]]:
 
     res = []
     for role in roles:
-        json_role = role.__to_json__()
-        json_role['perms'] = GPerm.create_map(role.get_all_permissions())
-        json_role['own'] = current_user.role_id == role.id
-        res.append(json_role)
+        res.append(
+            {
+                **role.__to_json__(),
+                'perms': GPerm.create_map(role.get_all_permissions()),
+                'own': current_user.role_id == role.id,
+            }
+        )
 
     return jsonify(res)
 
