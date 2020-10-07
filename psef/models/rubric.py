@@ -560,6 +560,7 @@ class RubricRowBase(helpers.NotEqualMixin, Base):
         self = cls(
             header=json['header'],
             description=json['description'],
+            description_type=RubricDescriptionType.markdown,
             position=position,
         )
         self.update_items_from_json(json['items'])
