@@ -2049,7 +2049,8 @@ def test_lti_roles(
                 'lis_person_name_full': user_id,
                 'lis_person_contact_email_primary': 'a@a.nl',
                 'oauth_consumer_key': oauth_key,
-                'lis_outcome_service_url': 'NON_EXISTING2!',
+                'lis_outcome_service_url': 'https://example.com',
+                'custom_component_display_name': 'Edx Name',
                 'lis_result_sourcedid': 'NON_EXISTING2!',
             }
             res = test_client.post('/api/v1/lti/launch/1', data=data)
@@ -2170,7 +2171,7 @@ def test_lti_roles(
         "it interprets Moodle's and Sakai's roles without a urn: prefix"
         " correctly"
     ):
-        for lms in ['moodle', 'sakai']:
+        for lms in ['moodle', 'sakai', 'open_edx']:
             for srole in lti.LTIGlobalRole._LOOKUP:
                 do_lti_launch(
                     f'urn:lti:instrole:ims/lis/{srole},Learner',
@@ -2182,6 +2183,16 @@ def test_lti_roles(
                     crole='Teacher',
                     oauth_key=f'{lms}_lti',
                 )
+                do_lti_launch(
+                    f'urn:lti:instrole:ims/lis/{srole},Instructor',
+                    crole='Teacher',
+                    oauth_key=f'{lms}_lti',
+                )
+
+    with describe('It interprets Student bare role correctly for Open edX'):
+        do_lti_launch('Student', crole='Student', oauth_key='open_edx_lti')
+        # Moodle doesn't do this
+        do_lti_launch('Student', crole='New LTI Role', oauth_key='moodle_lti')
 
     with describe(
         'it interprets Brightspace roles as both sysroles and course roles '
