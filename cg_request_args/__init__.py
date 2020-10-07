@@ -926,7 +926,9 @@ class BaseFixedMapping(
         elif typ == t.Any:
             return AnyValue()
         else:  # pragma: no cover
-            raise AssertionError(f'Could not convert: {typ}')
+            raise AssertionError(
+                f'Could not convert: {typ} (origin: {origin})'
+            )
 
     @classmethod
     def from_typeddict(cls, typeddict: t.Type) -> BaseFixedMapping[t.Any]:

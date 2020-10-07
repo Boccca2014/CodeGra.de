@@ -689,7 +689,7 @@ class OpenAPISchema:
         result: t.Dict[str, t.Any] = {
             'responses': dict(responses),
             'summary': ' '.join(o.title() for o in operation_id.split('_')),
-            'description': self.make_comment(endpoint_func.__doc__),
+            'description': self.make_comment(endpoint_func.__doc__ or ''),
             'tags': tags,
             'operationId': f'{tags[0].lower()}_{operation_id}',
         }

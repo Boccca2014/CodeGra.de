@@ -77,7 +77,9 @@ def _get_result_by_ids(
     return get_or_404(models.AutoTestResult, result_id, also_error=also_error)
 
 
-class _FixtureLike(TypedDict):
+class FixtureLike(TypedDict):
+    """A AutoTest fixture where only the id is required.
+    """
     #: The id of the fixture
     id: str
 
@@ -119,7 +121,7 @@ _ATUpdateMap = rqa.FixedMapping(
     ),
     rqa.OptionalArgument(
         'fixtures',
-        rqa.List(rqa.BaseFixedMapping.from_typeddict(_FixtureLike)),
+        rqa.List(rqa.BaseFixedMapping.from_typeddict(FixtureLike)),
         'A list of old fixtures you want to keep',
     ),
 )
@@ -128,7 +130,7 @@ _ATUpdateMap = rqa.FixedMapping(
 def _update_auto_test(
     auto_test: models.AutoTest,
     new_fixtures: t.Sequence[FileStorage],
-    old_fixtures: Maybe[t.List[_FixtureLike]],
+    old_fixtures: Maybe[t.List[FixtureLike]],
     setup_script: Maybe[str],
     run_setup_script: Maybe[str],
     has_new_fixtures: Maybe[bool],
