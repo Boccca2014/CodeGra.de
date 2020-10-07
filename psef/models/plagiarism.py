@@ -609,7 +609,7 @@ class PlagiarismRun(Base):
             os.mkdir(parent)
             file_lookup_tree[sub.id] = files.FileTree(
                 name=dir_name,
-                id=-1,
+                file_id=-1,
                 entries=[
                     psef.models.File.restore_directory_structure(
                         parent,

@@ -4,10 +4,9 @@ SPDX-License-Identifier: AGPL-3.0-only
 """
 import enum
 import typing as t
-import numbers
 
 from sqlalchemy import select
-from mypy_extensions import TypedDict
+from typing_extensions import TypedDict
 
 import psef
 import cg_enum
@@ -213,17 +212,32 @@ class RubricItem(helpers.NotEqualMixin, Base):
     # This variable is generated from the backref from RubricRowBase
     rubricrow: ColumnProxy['RubricRowBase']
 
-    class JSONBaseSerialization(TypedDict, total=True):
+    class AsJSONBase(TypedDict, total=True):
         """The base serialization of a rubric item.
         """
+        #: The description of this item
         description: str
+        #: The header of the item.
         header: str
-        points: numbers.Real
+        #: The amount of points a user gets when this item is selected.
+        points: float
 
-    class AsJSON(JSONBaseSerialization, total=True):
-        """Serialization of rubric items for outgoing requests.
+    class InputAsJSON(AsJSONBase, total=False):
+        """The JSON needed to update a rubric item.
         """
+        #: The id of this rubric item. Pass this to update an existing rubric
+        #: item, omit if you want to create a new item.
         id: int
+
+    InputAsJSON.__cg_extends__ = AsJSONBase  # type: ignore
+
+    class AsJSON(AsJSONBase, total=True):
+        """The JSON representation of a rubric item.
+        """
+        #: The id of this rubric item.
+        id: int
+
+    AsJSON.__cg_extends__ = AsJSONBase  # type: ignore
 
     def __to_json__(self) -> AsJSON:
         """Creates a JSON serializable representation of this object.
@@ -234,7 +248,7 @@ class RubricItem(helpers.NotEqualMixin, Base):
             'header': self.header,
             # A float is a ``Real``, mypy issue:
             # https://github.com/python/mypy/issues/2636
-            'points': t.cast(numbers.Real, self.points),
+            'points': self.points,
         }
 
     def copy(self) -> 'RubricItem':
@@ -396,15 +410,47 @@ class RubricRowBase(helpers.NotEqualMixin, Base):
             return False
         return self.assignment.locked_rubric_rows.get(self.id, False)
 
-    class AsJSON(TypedDict, total=True):
-        """JSON serialization of a rubric row.
+    class InputAsJSONBase(TypedDict):
+        """The required part of the input data for a rubric row.
         """
-        id: int
+        #: The header of this row.
         header: str
-        description: t.Optional[str]
+        #: The description of this row.
+        description: str
+        #: The type of descriptions in this row.
         description_type: RubricDescriptionType
-        items: t.List[RubricItem]
-        locked: t.Union[RubricLockReason, bool]
+        #: The items in this row.
+        items: t.Sequence[RubricItem.InputAsJSON]
+
+    class InputAsJSON(InputAsJSONBase, total=False):
+        """The JSON needed to update a rubric row.
+        """
+        #: The id, pass this to update an existing row, omit it to create a new
+        #: row.
+        id: int
+        #: The type of rubric row. Will default to "normal" if not passed.
+        type: str
+
+    InputAsJSON.__cg_extends__ = InputAsJSONBase  # type: ignore
+
+    class AsJSON(TypedDict):
+        """The JSON representation of a rubric row.
+        """
+        #: The id of this row, used for updating
+        id: int
+        #: The header of this row.
+        header: str
+        #: The description of this row.
+        description: t.Optional[str]
+        #: The type of descriptions in this row.
+        description_type: RubricDescriptionType
+        #: The item in this row. The length will always be 1 for continuous
+        #: rubric rows.
+        items: t.Sequence[RubricItem]
+        #: Is this row locked. If it is locked you cannot update it, nor can
+        #: you manually select items in it.
+        locked: t.Union[bool, RubricLockReason]
+        #: The type of rubric row.
         type: str
 
     def __to_json__(self) -> AsJSON:
@@ -421,7 +467,7 @@ class RubricRowBase(helpers.NotEqualMixin, Base):
         }
 
     def update_items_from_json(
-        self, items: t.List[RubricItem.JSONBaseSerialization]
+        self, items: t.Sequence[RubricItem.InputAsJSON]
     ) -> None:
         """Update the items of this row in place.
 
@@ -440,7 +486,7 @@ class RubricRowBase(helpers.NotEqualMixin, Base):
             self.locked == RubricLockReason.auto_test and self.assignment and
             self.assignment.auto_test and self.assignment.auto_test.run
         ):
-            new_ids = set(t.cast(dict, item).get('id', None) for item in items)
+            new_ids = set(item.get('id', None) for item in items)
             old_ids = set(item.id for item in self.items)
             if new_ids != old_ids:
                 row_name = self.header
@@ -462,11 +508,10 @@ class RubricRowBase(helpers.NotEqualMixin, Base):
         for item in items:
             item_description: str = item['description']
             item_header: str = item['header']
-            points: numbers.Real = item['points']
+            points: float = item['points']
 
             if 'id' in item:
-                helpers.ensure_keys_in_dict(item, [('id', int)])
-                item_id = t.cast(int, item['id'])  # type: ignore
+                item_id: int = item['id']
                 rubric_item = self._get_item(item_id)
                 rubric_item.header = item_header
                 rubric_item.description = item_description
@@ -483,13 +528,7 @@ class RubricRowBase(helpers.NotEqualMixin, Base):
 
         self.items = new_items
 
-    def update_from_json(
-        self,
-        header: str,
-        description: str,
-        position: int,
-        items: t.List[RubricItem.JSONBaseSerialization],
-    ) -> None:
+    def update_from_json(self, data: InputAsJSON, position: int) -> None:
         """Update this rubric in place.
 
         .. warning::
@@ -497,25 +536,19 @@ class RubricRowBase(helpers.NotEqualMixin, Base):
             All items not present in the given ``items`` list will be deleted
             from the rubric row.
 
-        :param header: The new header of the row.
-        :param description: The new description of the row.
-        :param items: The items that should be in this row (see warning). The
-            format is the same as the items passed to
-            :meth:`.RubricRowBase.update_items_from_json`.
+        :param data: The data to update with
         :returns: Nothing.
         """
-        self.header = header
-        self.description = description
+        self.header = data['header']
+        self.description = data['description']
         self.position = position
-        self.update_items_from_json(items)
+        self.update_items_from_json(data['items'])
 
     @classmethod
     def create_from_json(
         cls: t.Type['RubricRowBase'],
-        header: str,
-        description: str,
+        json: InputAsJSON,
         position: int,
-        items: t.List[RubricItem.JSONBaseSerialization],
     ) -> 'RubricRowBase':
         """Create a new rubric row for an assignment.
 
@@ -527,12 +560,12 @@ class RubricRowBase(helpers.NotEqualMixin, Base):
         :returns: The newly created row.
         """
         self = cls(
-            header=header,
-            description=description,
-            description_type=RubricDescriptionType.markdown,
+            header=json['header'],
+            description=json['description'],
+            description_type=json['description_type'],
             position=position,
         )
-        self.update_items_from_json(items)
+        self.update_items_from_json(json['items'])
 
         return self
 
@@ -635,7 +668,7 @@ class _ContinuousRubricRow(RubricRowBase):
         )
 
     def update_items_from_json(
-        self, items: t.List[RubricItem.JSONBaseSerialization]
+        self, items: t.Sequence[RubricItem.InputAsJSON]
     ) -> None:
         if len(items) != 1:
             raise APIException(

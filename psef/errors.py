@@ -11,6 +11,7 @@ import structlog
 from flask import Response, g, request
 
 import psef
+import cg_request_args as rqa
 from cg_json import JSONResponse, jsonify
 
 from .exceptions import APICodes, APIWarnings, APIException
@@ -41,8 +42,7 @@ def init_app(app: t.Any) -> None:
     :param app: The app to initialize
     """
 
-    @app.errorhandler(APIException)
-    def handle_api_error(error: APIException) -> Response:  # pylint: disable=unused-variable
+    def handle_api_error(error: APIException) -> Response:
         """Handle an :class:`APIException` by converting it to a
         :class:`flask.Response`.
 
@@ -50,7 +50,7 @@ def init_app(app: t.Any) -> None:
         :returns: A response with the JSON serialized error as content.
         :rtype: flask.Response
         """
-        response = t.cast(t.Any, jsonify(error))
+        response = jsonify(error)
         response.status_code = error.status_code
         logger.warning(
             'APIException occurred',
@@ -61,6 +61,22 @@ def init_app(app: t.Any) -> None:
         psef.models.db.session.rollback()
 
         return response
+
+    app.register_error_handler(APIException, handle_api_error)
+
+    def handle_parse_error(error: rqa.SimpleParseError) -> Response:
+        return handle_api_error(
+            APIException(
+                'The request body contained invalid data',
+                str(error),
+                APICodes.INVALID_PARAM,
+                400,
+                parse_error=error.to_dict(),
+            ),
+        )
+
+    app.register_error_handler(rqa.SimpleParseError, handle_parse_error)
+    app.register_error_handler(rqa.MultipleParseErrors, handle_parse_error)
 
     # Coverage is disabled for the next to handlers as they should never
     # run. When they run there is a bug in the application so we cant really

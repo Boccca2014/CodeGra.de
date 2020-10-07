@@ -211,6 +211,7 @@ def test_modify_others_snippet(named_user, ta_user, test_client, logged_in):
                 'message': str,
                 'description': str,
                 'code': APICodes.INCORRECT_PERMISSION.name,
+                'request_id': str,
             }
         )
         test_client.req(
@@ -222,5 +223,6 @@ def test_modify_others_snippet(named_user, ta_user, test_client, logged_in):
                 'message': str,
                 'description': str,
                 'code': APICodes.INCORRECT_PERMISSION.name,
+                'request_id': str,
             }
         )

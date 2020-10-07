@@ -51,6 +51,10 @@ Updates
   now no longer allowed to edit their submissions using the CodeGrade
   filesystem. We can now guarantee that the student revision of a submission
   never changes.
+- The API documentation has been revamped `(#1481)
+  <https://github.com/CodeGra-de/CodeGra.de/pull/1481>`__. This makes it easier
+  for to start using our API. Please note that we haven't migrated all routes
+  just yet, if you are missing a route please let us know!
 - The Jupyter Notebook viewer now supports more output types and colors `(#1479)
   <https://github.com/CodeGra-de/CodeGra.de/pull/1479>`__. If a Jupyter Notebook
   contains ANSI colored output we will display these colors in all their glory.
