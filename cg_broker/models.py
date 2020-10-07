@@ -680,6 +680,7 @@ class Job(Base, mixins.TimestampMixin, mixins.IdMixin):
 
     @hybrid_expression
     def _get_needs_more_runners_expr(cls: t.Type['Job']) -> DbColumn[bool]:
+        # pylint: disable=no-self-argument
         amount_running = Runner.query.filter(
             Runner.job_id == cls.id,
             Runner.state == RunnerState.running,
