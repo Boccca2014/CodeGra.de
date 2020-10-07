@@ -569,3 +569,8 @@ def test_send_login_links(
         )
         assert not stub_mail.called
         assert task_result.state.is_finished
+
+
+def test_run_plagiarism_control_non_existing_run(describe):
+    with describe('run with wrong id'):
+        psef.tasks._run_plagiarism_control_1(-1)

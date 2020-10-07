@@ -148,7 +148,7 @@ def get_lti_config() -> werkzeug.wrappers.Response:
     """
     helpers.ensure_keys_in_dict(flask.request.args, [('lms', str)])
     lms: str = flask.request.args.get('lms', '')
-    cls = lti_v1_1.lti_classes.get(lms)
+    cls = registry.lti_1_1_providers.get(lms)
     if cls is None:
         raise errors.APIException(
             f'The given LMS "{lms}" was not found',
@@ -490,7 +490,7 @@ def get_lti1_3_config(lti_provider_id: str) -> helpers.JSONResponse[object]:
     return jsonify(lti_provider.get_json_config())
 
 
-@api.route('/lti1.3/providers/', methods=['get'])
+@api.route('/lti1.3/providers/', methods=['GET'])
 @auth.login_required
 def list_lti1p3_provider(
 ) -> helpers.JSONResponse[t.List[models.LTI1p3Provider]]:
@@ -505,27 +505,32 @@ def list_lti1p3_provider(
     providers = [
         prov for prov in models.LTI1p3Provider.query.order_by(
             models.LTI1p3Provider.created_at.asc(),
-        ) if auth.LTI1p3ProviderPermissions(prov).ensure_may_see.as_bool()
+        ) if auth.LTIProviderPermissions(prov).ensure_may_see.as_bool()
     ]
     return jsonify(providers)
 
 
-@api.route('/lti1.3/providers/', methods=['POST'])
+@api.route('/lti/providers/', methods=['GET'])
 @auth.login_required
-def create_lti1p3_provider() -> helpers.JSONResponse[models.LTI1p3Provider]:
-    """Create a new LTI 1.3 provider.
+def list_lti_providers(
+) -> helpers.JSONResponse[t.Sequence[models.LTIProviderBase]]:
+    """List all known LTI providers for this instance.
 
-    .. :quickref: LTI; Create a new LTI 1.3 provider.
+    .. :quickref: LTI; List all known LTI providers.
 
     This route is part of the public API.
 
-    :<json str iss: The iss of the new provider.
-    :<json str lms: The LMS of the new provider, this should be known LMS.
-    :<json str indented_use: The intended use of the provider. Like which
-        organization will be using the provider, this can be any string.
-
-    :returns: The just created provider.
+    :returns: A list of all known LTI providers.
     """
+    providers = [
+        prov for prov in models.LTIProviderBase.query.order_by(
+            models.LTIProviderBase.created_at.asc(),
+        ) if auth.LTIProviderPermissions(prov).ensure_may_see.as_bool()
+    ]
+    return jsonify(providers)
+
+
+def _create_lti1p3_provider(intended_use: str) -> models.LTI1p3Provider:
     with helpers.get_from_request_transaction() as [get, _]:
         iss = get('iss', str)
         caps = get(
@@ -533,25 +538,102 @@ def create_lti1p3_provider() -> helpers.JSONResponse[models.LTI1p3Provider]:
             registry.lti_1_3_lms_capabilities,
             transform=lambda x: x[1],
         )
-        intended_use = get('intended_use', str)
 
-    if intended_use == '' or iss == '':
+    if iss == '':
         raise exceptions.APIException(
-            'Both "intended_use" and "iss" must be non empty',
-            f'Either iss={iss} or intended_use={intended_use} was empty',
+            'The "iss" must be non empty', f'The iss={iss} was empty',
             exceptions.APICodes.INVALID_PARAM, 400
         )
 
-    lti_provider = models.LTI1p3Provider.create_and_generate_keys(
+    return models.LTI1p3Provider.create_and_generate_keys(
         iss=iss,
         lms_capabilities=caps,
         intended_use=intended_use,
     )
-    auth.LTI1p3ProviderPermissions(lti_provider).ensure_may_add()
 
+
+def _create_lti1p1_provider(intended_use: str) -> models.LTI1p1Provider:
+    with helpers.get_from_request_transaction() as [get, _]:
+        lms = get(
+            'lms',
+            registry.lti_1_1_providers,
+            transform=lambda x: x[0],
+        )
+
+    return models.LTI1p1Provider(
+        lms=lms,
+        intended_use=intended_use,
+    )
+
+
+@api.route('/lti1.3/providers/', methods=['POST'])
+@api.route('/lti/providers/', methods=['POST'])
+@auth.login_required
+def create_lti_provider() -> helpers.JSONResponse[models.LTIProviderBase]:
+    """Create a new LTI 1.1 or 1.3 provider.
+
+    .. :quickref: LTI; Create a new LTI 1.1 or 1.3 provider.
+
+    This route is part of the public API.
+
+    :<json lti_version: The LTI version of the new provider, defaults to
+        ``lti1.3``. Allowed values: ``lti1.1``, ``lti1.3``.
+    :<json str lms: The LMS of the new provider, this should be a known LMS.
+    :<json str indented_use: The intended use of the provider. Like which
+        organization will be using the provider, this can be any string, but
+        cannot be empty.
+    :<json str iss: The iss of the new provider, only required when
+        ``lti_version`` is not given or is ``lti1.3``. When required this
+        cannot be empty.
+
+    :returns: The just created provider.
+    """
+    with helpers.get_from_request_transaction() as [get, opt_get]:
+        lti_version = opt_get('lti_version', str, 'lti1.3')
+        intended_use = get('intended_use', str)
+
+    if not intended_use:
+        raise exceptions.APIException(
+            'The "intended_use" must be non empty',
+            f'The intended_use={intended_use} was empty',
+            exceptions.APICodes.INVALID_PARAM, 400
+        )
+
+    lti_provider: models.LTIProviderBase
+    if lti_version == 'lti1.3':
+        lti_provider = _create_lti1p3_provider(intended_use)
+    elif lti_version == 'lti1.1':
+        lti_provider = _create_lti1p1_provider(intended_use)
+    else:
+        assert False
+
+    auth.LTIProviderPermissions(lti_provider).ensure_may_add()
     db.session.add(lti_provider)
     db.session.commit()
 
+    return jsonify(lti_provider)
+
+
+@api.route('/lti/providers/<lti_provider_id>', methods=['GET'])
+def get_lti_provider(lti_provider_id: str
+                     ) -> helpers.JSONResponse[models.LTIProviderBase]:
+    """Get a LTI provider.
+
+    .. :quickref: LTI; Get a LTI 1.1 or 1.3 provider by id.
+
+    This route is part of the public API.
+
+    :param lti_provider_id: The id of the provider you want to get.
+
+    :returns: The requested LTI 1.1 or 1.3 provider.
+    """
+    lti_provider: models.LTIProviderBase = helpers.filter_single_or_404(
+        # We may only provide concrete classes when a type is expected.
+        models.LTIProviderBase,  # type: ignore[misc]
+        models.LTIProviderBase.id == lti_provider_id,
+    )
+    secret = flask.request.args.get('secret')
+    auth.LTIProviderPermissions(lti_provider, secret=secret).ensure_may_see()
     return jsonify(lti_provider)
 
 
@@ -572,9 +654,30 @@ def get_lti1p3_provider(lti_provider_id: str
         models.LTI1p3Provider, models.LTI1p3Provider.id == lti_provider_id
     )
     secret = flask.request.args.get('secret')
-    auth.LTI1p3ProviderPermissions(
-        lti_provider, secret=secret
-    ).ensure_may_see()
+    auth.LTIProviderPermissions(lti_provider, secret=secret).ensure_may_see()
+    return jsonify(lti_provider)
+
+
+@api.route('/lti1.1/providers/<lti_provider_id>/finalize', methods=['POST'])
+def finalize_lti1p1_provider(lti_provider_id: str
+                             ) -> helpers.JSONResponse[models.LTI1p1Provider]:
+    """Finalize the given LTI 1.1 provider.
+
+    .. :quickref: LTI; Finalize a LTI 1.1 provider.
+
+    This route is part of the public api.
+
+    :param lti_provider_id: The id of the provider you want to finalize.
+    """
+    lti_provider = helpers.filter_single_or_404(
+        models.LTI1p1Provider,
+        models.LTI1p1Provider.id == lti_provider_id,
+    )
+    secret = flask.request.args.get('secret')
+    auth.LTIProviderPermissions(lti_provider, secret=secret).ensure_may_edit()
+
+    lti_provider.finalize()
+    db.session.commit()
     return jsonify(lti_provider)
 
 
@@ -605,9 +708,7 @@ def update_lti1p3_provider(lti_provider_id: str
         models.LTI1p3Provider, models.LTI1p3Provider.id == lti_provider_id
     )
     secret = flask.request.args.get('secret')
-    auth.LTI1p3ProviderPermissions(
-        lti_provider, secret=secret
-    ).ensure_may_edit()
+    auth.LTIProviderPermissions(lti_provider, secret=secret).ensure_may_edit()
 
     with helpers.get_from_request_transaction() as [_, opt_get]:
         iss = opt_get('iss', str, None)
