@@ -28,7 +28,7 @@ from cg_timers import timed_code
 from cg_dt_utils import DatetimeWithTimezone
 from cg_flask_helpers import callback_after_this_request
 from cg_sqlalchemy_helpers import (
-    JSONB, types, mixins, expression, hybrid_property, hybrid_expression
+    JSONB, func, types, mixins, expression, hybrid_property, hybrid_expression
 )
 from cg_sqlalchemy_helpers.types import DbColumn
 
@@ -715,7 +715,7 @@ class Job(Base, mixins.TimestampMixin, mixins.IdMixin):
         amount_running = Runner.query.filter(
             Runner.job_id == cls.id,
             Runner.see_as_running_job,
-        ).count()
+        ).with_entities(func.count())
         return amount_running < cls.wanted_runners
 
     needs_more_runners = hybrid_property(
