@@ -76,6 +76,33 @@ context('Rubric Editor', () => {
                 .should('not.be.visible');
         });
 
+        it('should show the preferred ui message once', () => {
+            // The switch link at the bottom should not exist if the alert at
+            // the top is visible.
+            cy.get('.preferred-ui a.ui-switcher')
+                .should('not.exist');
+
+            // Clicking the link in the alert should hide the alert.
+            cy.get('.preferred-ui')
+                .should('exist')
+                .contains('a.inline-link', 'try the new version')
+                .click();
+
+            cy.get('.preferred-ui')
+                .contains('a.inline-link', 'try the new version')
+                .should('not.exist');
+
+            // Even after a reload.
+            cy.reload();
+            cy.get('.preferred-ui')
+                .contains('a.inline-link', 'try the new version')
+                .should('not.exist');
+
+            // The switch link at the bottom should now be visible.
+            cy.get('.preferred-ui a.ui-switcher')
+                .should('exist');
+        });
+
         it('should be an option when an assignment has no rubric', () => {
             cy.get('.rubric-editor')
                 .contains('.wizard-button', 'Create new rubric')
