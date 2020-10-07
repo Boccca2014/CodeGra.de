@@ -1283,7 +1283,7 @@ class OpenEdX(_BareRolesLTIProvider):
         return 'Open edX'
 
     @property
-    def _bare_roles(self) -> t.Collection[str]:
+    def _bare_roles(self) -> t.Mapping[str, str]:
         return {
             **super()._bare_roles,
             'Administrator': 'Administrator',
