@@ -3,7 +3,7 @@ set -o xtrace
 
 pip install -r test_requirements.txt
 
-make build_swagger || exit
+make build_swagger || exit 1
 make build_api_libs || exit 1
 git add api_libs
 if [[ -n "$(git diff-index --name-only HEAD)" ]]; then
