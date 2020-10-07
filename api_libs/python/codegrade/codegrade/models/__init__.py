@@ -60,6 +60,7 @@ from .put_enroll_link_course_data import PutEnrollLinkCourseData
 from .put_rubric_assignment_data import PutRubricAssignmentData
 from .result_data_get_auto_test_get import ResultDataGetAutoTestGet
 from .result_data_post_user_login import ResultDataPostUserLogin
+from .rubric_description_type import RubricDescriptionType
 from .rubric_item_as_json import RubricItemAsJSON
 from .rubric_item_as_json_base import RubricItemAsJSONBase
 from .rubric_item_input_as_json import RubricItemInputAsJSON

@@ -33,11 +33,6 @@
         <hr/>
 
         <h5 class="text-center mb-3">
-            <icon class="expand-all-btn float-left text-muted"
-                  :name="this.expandedSteps.length ? 'minus-square' : 'plus-square'"
-                  @click.native="toggleAllSteps"
-                  v-b-popover.hover.top="`${this.expandedSteps.length ? 'Collapse' : 'Expand'} all steps.`" />
-
             Steps
         </h5>
 
@@ -56,20 +51,26 @@
                 <SlickItem v-for="step, i in internalValue.steps"
                            :index="i"
                            :key="step.trackingId"
-                           class="slick-item d-flex pb-3"
+                           class="slick-item d-flex flex-row pb-3"
                            :class="slickItemMoving ? 'no-text-select' : ''" >
                     <div v-handle class="drag-handle d-flex align-self-stretch pr-3 text-muted">
                         <icon class="align-self-center" name="bars"/>
                     </div>
 
                     <auto-test-step v-model="internalValue.steps[i]"
-                                    class="w-100"
+                                    class="w-100 flex-grow-1"
                                     :index="i + 1"
                                     :test-types="stepTypes"
                                     :assignment="assignment"
                                     :auto-test="autoTest"
                                     @delete="internalValue.removeItem(i)"
                                     editable/>
+
+                    <icon class="expand-all-btn text-muted mt-3 ml-3"
+                          :name="expandedSteps.length ? 'compress' : 'expand'"
+                          @click.native="toggleAllSteps"
+                          v-b-popover.hover.top="`${expandedSteps.length ? 'Collapse' : 'Expand'} all steps.`" />
+
                 </SlickItem>
             </transition-group>
         </SlickList>
@@ -685,6 +686,7 @@ export default {
 .expand-all-btn {
     cursor: pointer;
     opacity: 0.8;
+    transform: rotate(-45deg);
 
     &:hover {
         opacity: 1;

@@ -6,6 +6,8 @@ export const NEW_SNIPPET = 'NEW_SNIPPET';
 export const UPDATE_SNIPPET = 'UPDATE_SNIPPET';
 export const REMOVE_SNIPPET = 'REMOVE_SNIPPET';
 export const UPDATE_USER_INFO = 'UPDATE_USER_INFO';
+export const UPDATE_UI_PREFS = 'UPDATE_UI_PREFS';
+export const UPDATE_UI_PREF = 'UPDATE_UI_PREF';
 export const CLEAR_CACHE = 'CLEAR_CACHE';
 export const SET_ACCESS_TOKEN = 'SET_ACCESS_TOKEN';
 

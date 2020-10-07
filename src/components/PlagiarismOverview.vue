@@ -16,7 +16,7 @@
             Plagiarism overview for assignment &quot;{{assignment.name}}&quot; of &quot;{{assignment.course.name}}&quot;
         </template>
 
-        <b-button class="download-btn"
+        <b-button class="download-btn text-nowrap"
                   variant="secondary"
                   @click="downloadLog">
             Download log

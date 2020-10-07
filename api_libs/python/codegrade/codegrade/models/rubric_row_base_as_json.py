@@ -6,6 +6,7 @@ from io import StringIO
 from typing import Any, Dict, List, Optional, Union, cast
 
 from ..utils import maybe_to_dict
+from .rubric_description_type import RubricDescriptionType
 from .rubric_item_as_json import RubricItemAsJSON
 from .rubric_lock_reason import RubricLockReason
 from .types import File
@@ -18,6 +19,7 @@ class RubricRowBaseAsJSON:
     id: "int"
     header: "str"
     description: "Optional[str]"
+    description_type: "Union[RubricDescriptionType]"
     items: "List[RubricItemAsJSON]"
     locked: "Union[bool, RubricLockReason]"
     type: "str"
@@ -33,6 +35,10 @@ class RubricRowBaseAsJSON:
         res["header"] = header
         description = self.description
         res["description"] = description
+        if isinstance(self.description_type, RubricDescriptionType):
+            description_type = self.description_type.value
+
+        res["description_type"] = description_type
         items = []
         for items_item_data in self.items:
             items_item = maybe_to_dict(items_item_data)
@@ -60,6 +66,14 @@ class RubricRowBaseAsJSON:
 
         description = d["description"]
 
+        def _parse_description_type(data: Dict[str, Any]) -> Union[RubricDescriptionType]:
+            description_type: Union[RubricDescriptionType] = d["description_type"]
+            description_type = RubricDescriptionType(description_type)
+
+            return description_type
+
+        description_type = _parse_description_type(d["description_type"])
+
         items = []
         for items_item_data in d["items"]:
             items_item = RubricItemAsJSON.from_dict(items_item_data)
@@ -79,5 +93,13 @@ class RubricRowBaseAsJSON:
         type = d["type"]
 
         return RubricRowBaseAsJSON(
-            **base, id=id, header=header, description=description, items=items, locked=locked, type=type, raw_data=d,
+            **base,
+            id=id,
+            header=header,
+            description=description,
+            description_type=description_type,
+            items=items,
+            locked=locked,
+            type=type,
+            raw_data=d,
         )

@@ -917,6 +917,8 @@ class BaseFixedMapping(
             return Nullable(res) if has_none else res
         elif origin == Literal:
             return StringEnum(*typ.__args__)
+        elif isinstance(typ, enum.EnumMeta):
+            return EnumValue(typ)
         elif origin == dict:
             key, value = typ.__args__
             assert key == str, (
