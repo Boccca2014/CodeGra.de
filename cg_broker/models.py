@@ -655,11 +655,11 @@ class Job(Base, mixins.TimestampMixin, mixins.IdMixin):
         ]
 
     def _use_runner(self, runner: Runner) -> None:
+        self.runners.append(runner)
         active_runners = self.get_active_runners()
         before_assigned = set(RunnerState.get_before_assigned_states())
 
-        self.runners.append(runner)
-        too_many_active = len(active_runners) + 1 > self.wanted_runners
+        too_many_active = len(active_runners) > self.wanted_runners
         if too_many_active:
             unneeded_runner = next(
                 (r for r in active_runners if r.state in before_assigned),
