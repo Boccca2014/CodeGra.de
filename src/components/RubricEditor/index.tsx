@@ -31,7 +31,7 @@ export default tsx.component({
     },
 
     render(h) {
-        return <comp.PreferredUI hideSwitcher={this.rubric == null}
+        return <comp.PreferredUI hideSwitcher={!this.editable && this.rubric == null}
                                  prefName={models.UIPreference.RubricEditorV2}
                                  componentName="rubric interface">
             <template slot="ifUnset">
