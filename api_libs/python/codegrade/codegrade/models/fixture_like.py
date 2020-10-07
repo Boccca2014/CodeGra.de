@@ -10,8 +10,8 @@ from .types import File
 
 
 @dataclass
-class _FixtureLike:
-    """"""
+class FixtureLike:
+    """A AutoTest fixture where only the id is required."""
 
     id: "str"
 
@@ -26,8 +26,8 @@ class _FixtureLike:
         return res
 
     @staticmethod
-    def from_dict(d: Dict[str, Any]) -> _FixtureLike:
+    def from_dict(d: Dict[str, Any]) -> FixtureLike:
         base = {}
         id = d["id"]
 
-        return _FixtureLike(**base, id=id, raw_data=d,)
+        return FixtureLike(**base, id=id, raw_data=d,)

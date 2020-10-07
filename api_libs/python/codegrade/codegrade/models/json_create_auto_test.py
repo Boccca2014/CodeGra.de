@@ -6,7 +6,7 @@ from io import StringIO
 from typing import Any, Dict, List, Optional, cast
 
 from ..utils import maybe_to_dict
-from ._fixture_like import _FixtureLike
+from .fixture_like import FixtureLike
 from .types import File
 
 
@@ -21,7 +21,7 @@ class JsonCreateAutoTest:
     grade_calculation: "Optional[str]" = None
     results_always_visible: "Optional[bool]" = None
     prefer_teacher_revision: "Optional[bool]" = None
-    fixtures: "Optional[List[_FixtureLike]]" = None
+    fixtures: "Optional[List[FixtureLike]]" = None
 
     raw_data: Optional[Dict[str, Any]] = None
 
@@ -81,7 +81,7 @@ class JsonCreateAutoTest:
 
         fixtures = []
         for fixtures_item_data in d.get("fixtures") or []:
-            fixtures_item = _FixtureLike.from_dict(fixtures_item_data)
+            fixtures_item = FixtureLike.from_dict(fixtures_item_data)
 
             fixtures.append(fixtures_item)
 

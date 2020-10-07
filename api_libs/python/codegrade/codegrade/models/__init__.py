@@ -1,6 +1,5 @@
 """ Contains all the data models used in inputs/outputs """
 
-from ._fixture_like import _FixtureLike
 from .abstract_role_as_json import AbstractRoleAsJSON
 from .api_codes import APICodes
 from .assignment_as_json import AssignmentAsJSON
@@ -36,6 +35,7 @@ from .file_rule_input_data import FileRuleInputData
 from .file_tree_as_json import FileTreeAsJSON
 from .file_tree_as_json_file import FileTree_AsJSONFile
 from .file_type import FileType
+from .fixture_like import FixtureLike
 from .group_as_extended_json import GroupAsExtendedJSON
 from .group_as_json import GroupAsJSON
 from .group_set_as_json import GroupSetAsJSON
