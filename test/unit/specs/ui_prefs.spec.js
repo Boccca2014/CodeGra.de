@@ -25,18 +25,20 @@ describe('UI preferences', () => {
 
     beforeAll(() => {
         api.uiPrefs.getUIPreferences
-            .mockName('api.uiPrefs.getUIPreferences')
-            .mockResolvedValue({ data: { [RubricEditorV2]: utils.Nothing } });
+            .mockName('api.uiPrefs.getUIPreferences');
 
         api.uiPrefs.patchUIPreference
-            .mockName('api.uiPrefs.patchUIPreference')
-            .mockResolvedValue({ data: null });
+            .mockName('api.uiPrefs.patchUIPreference');
     });
 
     beforeEach(() => {
         UIPrefsStore.commitClear();
-        api.uiPrefs.getUIPreferences.mockClear();
-        api.uiPrefs.patchUIPreference.mockClear();
+        api.uiPrefs.getUIPreferences
+            .mockClear()
+            .mockResolvedValue({ data: { [RubricEditorV2]: utils.Nothing } });
+        api.uiPrefs.patchUIPreference
+            .mockClear()
+            .mockResolvedValue({ data: null });
     });
 
     describe('store getters', () => {
@@ -167,27 +169,22 @@ describe('UI preferences', () => {
                 expect(api.uiPrefs.patchUIPreference).toBeCalledTimes(2);
             });
 
-            it('should not update the store directly', async () => {
+            it('should update the store', async () => {
                 await UIPrefsStore.loadUIPreferences();
                 let storePrefs = UIPrefsStore.uiPrefs();
                 expect(storePrefs.extract()[RubricEditorV2]).toBeNothing();
 
-                let res = await UIPrefsStore.patchUIPreference({
+                await UIPrefsStore.patchUIPreference({
                     name: RubricEditorV2,
                     value: false,
                 });
                 storePrefs = UIPrefsStore.uiPrefs();
-                expect(storePrefs.extract()[RubricEditorV2]).toBeNothing();
-
-                res.onAfterSuccess(res);
-                storePrefs = UIPrefsStore.uiPrefs();
                 expect(storePrefs.extract()[RubricEditorV2].extract()).toBeFalse();
 
-                res = await UIPrefsStore.patchUIPreference({
+                await UIPrefsStore.patchUIPreference({
                     name: RubricEditorV2,
                     value: true,
                 });
-                res.onAfterSuccess(res);
                 storePrefs = UIPrefsStore.uiPrefs();
                 expect(storePrefs.extract()[RubricEditorV2].extract()).toBeTrue();
             });
@@ -200,7 +197,6 @@ describe('UI preferences', () => {
                     name: RubricEditorV2,
                     value: false,
                 });
-                res.onAfterSuccess(res);
                 storePrefs = UIPrefsStore.uiPrefs();
 
                 expect(storePrefs).toBeJust();
@@ -233,22 +229,14 @@ describe('UI preferences', () => {
             await comp.$nextTick();
         }
 
-        it('should render the ifUnset slot when no value is set', async () => {
-            await mount(null);
+        it.each([
+            [ null, /unset/ ],
+            [ false, /false/ ],
+            [ true, /true/ ],
+        ])('should render the correct slot', async (val, toMatch) => {
+            await mount(val);
 
-            expect(comp.$el.textContent).toMatch(/unset/);
-        });
-
-        it('should render the ifFalse slot when the value is set to false', async () => {
-            await mount(false);
-
-            expect(comp.$el.textContent).toMatch(/false/);
-        });
-
-        it('should render the ifFalse slot when the value is set to false', async () => {
-            await mount(true);
-
-            expect(comp.$el.textContent).toMatch(/true/);
+            expect(comp.$el.textContent).toMatch(toMatch);
         });
 
         it('should not render the switcher at the bottom when no value is set', async () => {
@@ -257,14 +245,10 @@ describe('UI preferences', () => {
             expect(comp.$el.querySelector('.ui-switcher')).toBeNull();
         });
 
-        it('should render the switcher at the bottom when the value is set to false', async () => {
-            await mount(false);
-
-            expect(comp.$el.querySelector('.ui-switcher')).not.toBeNull();
-        });
-
-        it('should render the switcher at the bottom when the value is set to false', async () => {
-            await mount(true);
+        it.each(
+            [ true, false ],
+        )('should render the switcher at the bottom when a value is set', async (val) => {
+            await mount(val);
 
             expect(comp.$el.querySelector('.ui-switcher')).not.toBeNull();
         });

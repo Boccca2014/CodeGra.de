@@ -113,8 +113,9 @@ export default tsx.component({
             return utils.ifJustOrEmpty(
                 this.prefValue,
                 value => <div class="mt-3 text-right">
-                    <a href="#" onClick={m.prevent(this.togglePreference)}
-                        class="inline-link">
+                    <a href="#"
+                       onClick={m.prevent(this.togglePreference)}
+                       class="ui-switcher inline-link">
                         {value
                         ? 'Switch back to the old interface'
                         : 'Switch to the new interface'
