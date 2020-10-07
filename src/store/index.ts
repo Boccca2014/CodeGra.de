@@ -107,7 +107,6 @@ export function disablePersistance() {
         // Even on an error we try to clear all the remaining keys.
         try {
             window.localStorage.removeItem(key);
-            window.localStorage.setItem(key, '""');
         } catch (e) {
             error = e;
         }
@@ -138,7 +137,7 @@ if (useLocalStorage()) {
     const newState = pathsToPersist.reduce((acc, [ns, path]) => {
         const key = makePersistanceKey(ns, path);
         const res = window.localStorage.getItem(key);
-        if (res) {
+        if (res != null) {
             acc[ns] = Object.assign({}, acc[ns], { [path]: JSON.parse(res) });
         }
         return acc;
