@@ -447,14 +447,14 @@ class TransipRunner(Runner):
 
     @staticmethod
     def _retry_vps_action(
-        action_name: str, func: t.Callable[[], object], max_tries: int = 50
+        action_name: str, fn: t.Callable[[], object], max_tries: int = 50
     ) -> None:
         with bound_to_logger(
             action=action_name,
         ), timed_code('_retry_vps_action'):
             for idx in range(max_tries):
                 try:
-                    func()
+                    fn()
                 except WebFault:
                     logger.info('Could not perform action yet', exc_info=True)
                     time.sleep(idx)
