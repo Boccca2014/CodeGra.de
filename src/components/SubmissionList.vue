@@ -385,6 +385,7 @@ export default {
                     sortBy: this.sortBy,
                     sortAsc: this.sortAsc,
                     page: this.currentPage,
+                    showInlineFeedback: this.$route.query.showInlineFeedback,
                 },
             };
         },

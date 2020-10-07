@@ -625,6 +625,7 @@ export default {
                     sortBy: this.$route.query.sortBy,
                     sortAsc: this.$route.query.sortAsc,
                     page: this.$route.query.page || undefined,
+                    showInlineFeedback: this.$route.query.showInlineFeedback,
                 },
                 hash: this.isPeerFeedback ? '#peer-feedback' : undefined,
             };

@@ -185,7 +185,11 @@ export default {
             langLoading: false,
             whiteLoading: false,
             selectedLanguage: -1,
-            inlineFeedback: true,
+            inlineFeedback: this.$utils.parseBool(this.$utils.getProps(
+                this.$route.query,
+                true,
+                'showInlineFeedback',
+            )),
             minLoadTime: 200,
             popoverDisabled: false,
         };
@@ -218,11 +222,6 @@ export default {
 
         loadValues(fileId) {
             this.loading = true;
-
-            // Reset the inline feedback option each time the current file changes,
-            // so users can't hide feedback, forget about it, and wonder where all
-            // their feedback has gone.
-            this.inlineFeedback = true;
 
             return Promise.all([this.loadWhitespace(fileId), this.loadLanguage(fileId)]).then(
                 () => {
@@ -296,8 +295,16 @@ export default {
             }
         },
 
-        inlineFeedback(show) {
-            this.$emit('inline-feedback', show);
+        inlineFeedback: {
+            immediate: true,
+            handler(show) {
+                this.$emit('inline-feedback', show);
+                this.$router.replace({
+                    query: Object.assign({}, this.$route.query, {
+                        showInlineFeedback: show,
+                    }),
+                });
+            },
         },
 
         selectedLanguage(lang, old) {
