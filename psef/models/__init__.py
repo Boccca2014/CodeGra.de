@@ -206,8 +206,8 @@ if True:  # pylint: disable=using-constant-test
     )
     from .notification import Notification, NotificationReasons
     from .user_setting import (
-        SettingBase, NotificationsSetting, EmailNotificationTypes,
-        NotificationSettingJSON, UIPreferenceName, UIPreference
+        SettingBase, UIPreferenceName, UIPreference, NotificationsSetting,
+        EmailNotificationTypes, NotificationSettingJSON
     )
     from .saml_provider import Saml2Provider, UserSamlProvider
     from .auto_test_step import (
