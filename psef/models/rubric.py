@@ -417,8 +417,6 @@ class RubricRowBase(helpers.NotEqualMixin, Base):
         header: str
         #: The description of this row.
         description: str
-        #: The type of descriptions in this row.
-        description_type: RubricDescriptionType
         #: The items in this row.
         items: t.Sequence[RubricItem.InputAsJSON]
 
@@ -562,7 +560,6 @@ class RubricRowBase(helpers.NotEqualMixin, Base):
         self = cls(
             header=json['header'],
             description=json['description'],
-            description_type=json['description_type'],
             position=position,
         )
         self.update_items_from_json(json['items'])
