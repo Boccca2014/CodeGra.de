@@ -1238,16 +1238,22 @@ class _BareRolesLTIProvider(BareBonesLTIProvider):
     any namespace, but they should be considered course roles.
     """
 
+    @property
+    def _bare_roles(self) -> t.Mapping[str, str]:
+        return {'Instructor': 'Instructor', 'Learner': 'Learner'}
+
     def _get_unsorted_roles(self, key: str, role_type: t.Type[T_LTI_ROLE]
                             ) -> t.List[T_LTI_ROLE]:
         roles: t.List[T_LTI_ROLE] = []
 
+        bare_roles = self._bare_roles
         for role in self.launch_params[key].split(','):
-            if role in {
-                'Instructor', 'Learner'
-            } and role_type == LTICourseRole:
+            if role_type == LTICourseRole and role in bare_roles:
                 roles.append(
-                    t.cast(T_LTI_ROLE, LTICourseRole(name=role, subnames=[]))
+                    t.cast(
+                        T_LTI_ROLE,
+                        LTICourseRole(name=bare_roles[role], subnames=[])
+                    )
                 )
             try:
                 roles.append(role_type.parse(role))
@@ -1275,6 +1281,14 @@ class OpenEdX(_BareRolesLTIProvider):
     @classmethod
     def get_lms_name(cls) -> str:
         return 'Open edX'
+
+    @property
+    def _bare_roles(self) -> t.Collection[str]:
+        return {
+            **super()._bare_roles,
+            'Administrator': 'Administrator',
+            'Student': 'Learner',
+        }
 
     def __init__(
         self,
