@@ -156,14 +156,10 @@ def test_get_course_data(
             'virtual': False,
             'lti_provider': canvas_lti1p1_provider if add_lti else None,
             'state': 'visible',
+            'assignments': list,
+            'group_sets': [],
+            'snippets': [],
         }
-
-        if extended:
-            result.update({
-                'assignments': list,
-                'group_sets': [],
-                'snippets': [],
-            })
 
         if via_assignment:
             # Doesn't support this legacy
@@ -248,6 +244,9 @@ def test_add_course(
                     'virtual': False,
                     'lti_provider': None,
                     'state': 'visible',
+                    'assignments': list,
+                    'group_sets': [],
+                    'snippets': [],
                 }
             )
 
@@ -1880,6 +1879,7 @@ def test_fail_conditions_email_course_members(
                     'code': 'MAILING_FAILED',
                     'description': 'Failed to mail some users',
                     'message': 'Failed to email every user',
+                    'request_id': str,
                 },
             }
         )

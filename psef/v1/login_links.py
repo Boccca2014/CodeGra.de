@@ -8,7 +8,7 @@ from datetime import timedelta
 import structlog
 
 import cg_helpers
-from cg_json import JSONResponse, ExtendedJSONResponse
+from cg_json import JSONResponse, MultipleExtendedJSONResponse
 from cg_helpers import humanize
 
 from . import api
@@ -44,8 +44,9 @@ def get_login_link(login_link_id: uuid.UUID
 
 
 @api.route('/login_links/<uuid:login_link_id>/login', methods=['POST'])
-def login_with_link(login_link_id: uuid.UUID
-                    ) -> ExtendedJSONResponse[models.User.LoginResponse]:
+def login_with_link(
+    login_link_id: uuid.UUID
+) -> MultipleExtendedJSONResponse[models.User.LoginResponse, models.User]:
     """Login with the given login link.
 
     .. :quickref: Login link; Login with a login link.
@@ -135,7 +136,7 @@ def login_with_link(login_link_id: uuid.UUID
     auth.AssignmentPermissions(assignment).ensure_may_see()
     jsonify_options.get_options().add_permissions_to_user = login_link.user
 
-    return ExtendedJSONResponse.make(
+    return MultipleExtendedJSONResponse.make(
         {
             'user': login_link.user,
             'access_token':

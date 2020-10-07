@@ -379,7 +379,17 @@ def test_create_auto_test_suite(basic, test_client, logged_in, describe):
 
     with describe('students should not be able to create suite'
                   ), logged_in(student):
-        test_client.req('patch', f'{url}/sets/{set_id}/suites/', 403)
+        test_client.req(
+            'patch',
+            f'{url}/sets/{set_id}/suites/',
+            403,
+            data={
+                'steps': [],
+                'rubric_row_id': rubric[0]['id'],
+                'network_disabled': False,
+                'submission_info': False,
+            },
+        )
         with describe('No suite should be created'), logged_in(teacher):
             test_client.req('get', url, 200, result=test)
 
@@ -611,9 +621,8 @@ def test_update_auto_test(
                     data[key] = new_data.pop(key)
             data['json'] = (
                 io.BytesIO(
-                    json.dumps(
-                        {**test, **new_data, 'has_new_fixtures': bool(data)}
-                    ).encode()
+                    json.dumps({**new_data, 'has_new_fixtures':
+                        bool(data)}).encode()
                 ), 'json'
             )
 
@@ -890,6 +899,7 @@ def test_run_auto_test(
         )
         thread.start()
         thread.join()
+        session.expire_all()
 
         with logged_in(teacher, yield_token=True) as token:
             response = requests.get(
@@ -1937,6 +1947,7 @@ def test_output_dir(
         )
         thread.start()
         thread.join()
+        session.expire_all()
 
         res = session.query(m.AutoTestResult).filter_by(work_id=work['id']
                                                         ).one().id
@@ -2326,6 +2337,7 @@ def test_continuous_rubric(
         )
         thread.start()
         thread.join()
+        session.expire_all()
 
     with describe('Rubric should be filled in correctly'), logged_in(teacher):
         rubric_result = test_client.req(
@@ -2456,6 +2468,7 @@ def test_runner_harakiri(
         )
         thread.start()
         thread.join()
+        session.expire_all()
 
         assert not t.run.runners
         assert runners_in_start.get()
@@ -2644,15 +2657,12 @@ def test_prefer_teacher_revision_option(
 
     with describe('start_auto_test'):
         t = m.AutoTest.query.get(test['id'])
-        with logged_in(teacher), tempfile.NamedTemporaryFile() as f:
-            f.write(b'echo student\n')
-            f.flush()
-
+        with logged_in(teacher):
             work = helpers.create_submission(
                 test_client,
                 assig_id,
                 for_user=student.username,
-                submission_data=(f.name, 'script.sh'),
+                submission_data=(io.BytesIO(b'echo student\n'), 'script.sh'),
             )
 
             if with_teacher_revision:
@@ -2660,6 +2670,11 @@ def test_prefer_teacher_revision_option(
                     'get',
                     f'/api/v1/submissions/{work["id"]}/files/',
                     200,
+                    result={
+                        'entries': [{'name': 'script.sh', 'id': str}],
+                        'name': 'top',
+                        'id': str,
+                    },
                 )['entries'][0]['id']
                 test_client.req(
                     'patch',
@@ -2678,6 +2693,7 @@ def test_prefer_teacher_revision_option(
         )
         thread.start()
         thread.join()
+        session.expire_all()
 
         res = session.query(m.AutoTestResult).filter_by(work_id=work['id']
                                                         ).one()
@@ -2774,6 +2790,7 @@ def test_running_old_submission(
         )
         thread.start()
         thread.join()
+        session.expire_all()
 
         assert session.query(
             m.AutoTestResult
@@ -2870,6 +2887,7 @@ def test_submission_info_env_vars(
         )
         thread.start()
         thread.join()
+        session.expire_all()
 
         res = session.query(m.AutoTestResult).filter_by(work_id=work['id']
                                                         ).one()
@@ -3014,6 +3032,7 @@ def test_update_step_attachment(
         )
         thread.start()
         thread.join()
+        session.expire_all()
 
         res = session.query(m.AutoTestResult).filter_by(
             work_id=work['id'],

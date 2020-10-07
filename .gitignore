@@ -33,3 +33,5 @@ PRIVACY_STATEMENT.md
 .#*
 /src/userConfig.ts
 /static/commitHash
+/swagger.json
+/swagger.yaml

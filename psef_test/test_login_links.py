@@ -20,7 +20,7 @@ def test_enabling_login_links(
         assig = helpers.create_assignment(test_client)
         assig_id = helpers.get_id(assig)
         course = helpers.get_id(assig['course'])
-        url = f'/api/v1/assignments/{assig_id}'
+        url = f'/api/v1/assignments/{assig_id}?no_course_in_assignment=t'
         teacher = helpers.create_user_with_perms(
             session, [
                 CPerm.can_see_assignments,
