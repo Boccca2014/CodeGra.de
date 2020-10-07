@@ -6,19 +6,24 @@ SPDX-License-Identifier: AGPL-3.0-only
 import abc
 import typing as t
 
-from flask import current_app
 from sqlalchemy.orm import selectinload
+from typing_extensions import TypedDict
 from sqlalchemy.orm.collections import attribute_mapped_collection
 
+from cg_typing_extensions import make_typed_dict_extender
 from cg_sqlalchemy_helpers.types import MyQuery, ColumnProxy
 
 from . import Base, MyQuery, db
 from . import course as course_models
+from .. import current_app, current_user
 from .permission import Permission
 from .link_tables import roles_permissions, course_permissions
 from ..permissions import BasePermission, CoursePermission, GlobalPermission
 
 _T = t.TypeVar('_T', bound=BasePermission)  # pylint: disable=invalid-name
+
+if t.TYPE_CHECKING:  # pragma: no cover
+    import psef  # pylint: disable=unused-import
 
 
 class AbstractRole(t.Generic[_T]):
@@ -132,7 +137,15 @@ class AbstractRole(t.Generic[_T]):
             for p in perms
         }
 
-    def __to_json__(self) -> t.MutableMapping[str, t.Any]:
+    class AsJSON(TypedDict):
+        """The JSON representation of a role.
+        """
+        #: The id of the role
+        id: int
+        #: The name of the role
+        name: str
+
+    def __to_json__(self) -> AsJSON:
         """Creates a JSON serializable representation of a role.
 
         This object will look like this:
@@ -246,13 +259,42 @@ class CourseRole(AbstractRole[CoursePermission], Base):
             self.course_id = course.id
         self.hidden = hidden
 
-    def __to_json__(self) -> t.MutableMapping[str, t.Any]:
+    class AsJSON(AbstractRole.AsJSON):
+        """The JSON representation of a course role.
+        """
+        #: The course this role is connected to
+        course: 'psef.models.Course'
+        #: Is this role hidden
+        hidden: bool
+
+    AsJSON.__cg_extends__ = AbstractRole.AsJSON  # type: ignore
+
+    class AsJSONWithPerms(AsJSON):
+        """The JSON representation of a role including the permissions the role
+        has.
+        """
+        #: The permissions this role has
+        perms: t.Mapping[str, bool]
+        #: Is the currently logged in user enrolled in the course as this role.
+        own: bool
+
+    AsJSONWithPerms.__cg_extends__ = AsJSON  # type: ignore
+
+    def __to_json__(self) -> AsJSON:
         """Creates a JSON serializable representation of this object.
         """
-        res = super().__to_json__()
-        res['course'] = self.course
-        res['hidden'] = self.hidden
-        return res
+        return make_typed_dict_extender(super().__to_json__(), self.AsJSON)(
+            course=self.course,
+            hidden=self.hidden,
+        )
+
+    def __to_json_with_perms__(self) -> AsJSONWithPerms:
+        return make_typed_dict_extender(
+            self.__to_json__(), self.AsJSONWithPerms
+        )(
+            perms=CoursePermission.create_map(self.get_all_permissions()),
+            own=current_user.courses.get(self.course_id) == self
+        )
 
     @classmethod
     def get_initial_course_role(

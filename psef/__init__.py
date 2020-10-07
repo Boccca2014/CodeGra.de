@@ -15,6 +15,7 @@ import structlog
 import flask_jwt_extended as flask_jwt
 from flask import Flask
 from werkzeug.local import LocalProxy
+from werkzeug.utils import cached_property
 
 import cg_logger
 import cg_object_storage
@@ -86,21 +87,6 @@ class PsefFlask(Flask):
             )
         )
 
-        redis_conn = redis.from_url(self.config['REDIS_CACHE_URL'])
-        self._inter_request_cache = _PsefInterProcessCache(
-            lti_access_tokens=cg_cache.inter_request.RedisBackend(
-                'lti_access_tokens',
-                timedelta(seconds=600),
-                redis_conn,
-            ),
-            lti_public_keys=cg_cache.inter_request.RedisBackend(
-                'lti_public_keys', timedelta(hours=1), redis_conn
-            ),
-            saml2_ipds=cg_cache.inter_request.RedisBackend(
-                'saml2_ipds', timedelta(days=1), redis_conn
-            )
-        )
-
         self.file_storage: cg_object_storage.Storage
         self.file_storage = cg_object_storage.LocalStorage(
             self.config['UPLOAD_DIR'],
@@ -142,11 +128,26 @@ class PsefFlask(Flask):
         """
         return getattr(self, 'debug', False) or getattr(self, 'testing', False)
 
-    @property
-    def inter_request_cache(self) -> _PsefInterProcessCache:
+    # Lazy initialization of the app. The `cached_property` from werkzeug
+    # caches across requests which is something we want here.
+    @cached_property
+    def inter_request_cache(self) -> '_PsefInterProcessCache':
         """Get all inter process cache stores.
         """
-        return self._inter_request_cache
+        redis_conn = redis.from_url(self.config['REDIS_CACHE_URL'])
+        return _PsefInterProcessCache(
+            lti_access_tokens=cg_cache.inter_request.RedisBackend(
+                'lti_access_tokens',
+                timedelta(seconds=600),
+                redis_conn,
+            ),
+            lti_public_keys=cg_cache.inter_request.RedisBackend(
+                'lti_public_keys', timedelta(hours=1), redis_conn
+            ),
+            saml2_ipds=cg_cache.inter_request.RedisBackend(
+                'saml2_ipds', timedelta(days=1), redis_conn
+            )
+        )
 
 
 logger = structlog.get_logger()
@@ -229,9 +230,6 @@ def create_app(  # pylint: disable=too-many-statements
 
     from . import auth
     auth.init_app(resulting_app)
-
-    from . import parsers
-    parsers.init_app(resulting_app)
 
     from . import tasks
     tasks.init_app(resulting_app)

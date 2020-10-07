@@ -101,7 +101,7 @@ def get_groups(group_set_id: int
     else:
         groups = group_set.groups
 
-    return extended_jsonify(groups, use_extended=models.Group)
+    return ExtendedJSONResponse.make_list(groups, use_extended=models.Group)
 
 
 @api.route('/group_sets/<int:group_set_id>', methods=['GET'])

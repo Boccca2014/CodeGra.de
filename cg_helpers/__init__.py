@@ -195,3 +195,21 @@ def maybe_wrap_in_list(maybe_lst: t.Union[t.List[T], T]) -> t.List[T]:
     if isinstance(maybe_lst, list):
         return maybe_lst
     return [maybe_lst]
+
+
+def readable_join(lst: t.Sequence[str]) -> str:
+    """Join a list using comma's and the word "and"
+
+    >>> readable_join(['a', 'b', 'c'])
+    'a, b, and c'
+    >>> readable_join(['a'])
+    'a'
+    >>> readable_join(['a', 'b'])
+    'a and b'
+
+    :param lst: The list to join.
+    :returns: The list joined as described above.
+    """
+    if len(lst) < 3:
+        return ' and '.join(lst)
+    return ', '.join(lst[:-1]) + ', and ' + lst[-1]

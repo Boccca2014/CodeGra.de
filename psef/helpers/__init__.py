@@ -42,7 +42,9 @@ from cg_json import (
     JSONResponse, ExtendedJSONResponse, jsonify, extended_jsonify
 )
 from cg_timers import timed_code
-from cg_helpers import flatten, handle_none, on_not_none, maybe_wrap_in_list
+from cg_helpers import (
+    flatten, handle_none, on_not_none, readable_join, maybe_wrap_in_list
+)
 from cg_dt_utils import DatetimeWithTimezone
 from cg_flask_helpers import (
     EmptyResponse, make_empty_response, callback_after_this_request
@@ -75,10 +77,6 @@ Z = t.TypeVar('Z', bound='Comparable')
 DIV = t.TypeVar('DIV', bound='Dividable')
 Y = t.TypeVar('Y', bound='Base')
 T_Type = t.TypeVar('T_Type', bound=t.Type)  # pylint: disable=invalid-name
-T_TypedDict = t.TypeVar(  # pylint: disable=invalid-name
-    'T_TypedDict',
-    bound=t.Mapping,
-)
 T_Hashable = t.TypeVar('T_Hashable', bound='Hashable')  # pylint: disable=invalid-name
 
 IsInstanceType = t.Union[t.Type, t.Tuple[t.Type, ...]]  # pylint: disable=invalid-name
@@ -110,7 +108,7 @@ def init_app(app: 'psef.Flask') -> None:
 
     @app.before_request
     def __set_warnings() -> None:
-        g.request_warnings = []
+        g.request_warnings = set()
 
     @app.after_request
     def __maybe_add_warning(res: flask.Response) -> flask.Response:
@@ -137,8 +135,8 @@ def add_warning(warning: str, code: psef.exceptions.APIWarnings) -> None:
     1
     """
     if not hasattr(g, 'request_warnings'):
-        g.request_warnings = []
-    g.request_warnings.append(psef.errors.make_warning(warning, code))
+        g.request_warnings = set()
+    g.request_warnings.add(psef.errors.make_warning(warning, code))
 
 
 def add_deprecate_warning(warning: str) -> None:
@@ -152,11 +150,9 @@ def add_deprecate_warning(warning: str) -> None:
         deprecation_warning=True,
         warning_msg=warning,
     )
-    g.request_warnings.append(
-        psef.errors.make_warning(
-            f'This API is deprecated: {warning}',
-            psef.exceptions.APIWarnings.DEPRECATED,
-        )
+    add_warning(
+        f'This API is deprecated: {warning}',
+        psef.exceptions.APIWarnings.DEPRECATED,
     )
 
 
@@ -757,34 +753,6 @@ def filter_users_by_name(
     ).limit(limit)
 
 
-def coerce_json_value_to_typeddict(
-    obj: JSONType, typeddict: t.Type[T_TypedDict]
-) -> T_TypedDict:
-    """Coerce a json object to a typed dict.
-
-    .. warning::
-
-        All types of the typed dict must be types that can be used with
-        :func:`isinstance`.
-
-    .. note::
-
-        The original object is returned, this only checks if all values are
-        valid.
-
-    :param obj: The object to coerce:
-    :param typeddict: The typeddict type that ``obj`` should be coerced to.
-    :returns: The given value ``obj``.
-    """
-    mapping = ensure_json_dict(obj)
-    annots = list(typeddict.__annotations__.items())
-    assert all(
-        isinstance(t, type) for _, t in annots
-    ), "This function only supports checking for basic types"
-    ensure_keys_in_dict(mapping, annots)
-    return t.cast(T_TypedDict, mapping)
-
-
 def ensure_on_test_server() -> None:
     """Make sure we are on a test server.
     """
@@ -803,30 +771,6 @@ def _get_type_name(
         return 'UnionOf[{}]'.format(', '.join(map(str, typ.keys())))
     else:
         return typ.__name__
-
-
-def get_key_from_dict(
-    mapping: t.Mapping[T, object], key: T, default: TT
-) -> TT:
-    """Get a key from a mapping of a specific type.
-
-    :param mapping: The mapping to get the key from.
-    :param key: The key in the mapping.
-    :param default: The default value used if the key is not in the dict.
-    :returns: The found value of the given default.
-    :raises APIException: If the found value is of a different type than the
-        given default.
-    """
-    val = mapping.get(key, default)
-    if not isinstance(val, type(default)):
-        raise psef.errors.APIException(
-            f'The given object contains the wrong type for the key "{key}"', (
-                f'A value of type "{_get_type_name(type(default))} is'
-                f' required, but "{val}" was given, which is a'
-                f' "{_get_type_name(type(val))}"'
-            ), psef.errors.APICodes.MISSING_REQUIRED_PARAM, 400
-        )
-    return val
 
 
 class TransactionGet(Protocol[K]):
@@ -1743,24 +1687,6 @@ def format_list(lst: t.List[str], **formatting: str) -> t.List[str]:
     :returns: A new fresh formatted list.
     """
     return [part.format(**formatting) for part in lst]
-
-
-def readable_join(lst: t.Sequence[str]) -> str:
-    """Join a list using comma's and the word "and"
-
-    >>> readable_join(['a', 'b', 'c'])
-    'a, b, and c'
-    >>> readable_join(['a'])
-    'a'
-    >>> readable_join(['a', 'b'])
-    'a and b'
-
-    :param lst: The list to join.
-    :returns: The list joined as described above.
-    """
-    if len(lst) < 3:
-        return ' and '.join(lst)
-    return ', '.join(lst[:-1]) + ', and ' + lst[-1]
 
 
 def contains_duplicate(it_to_check: t.Iterable[T_Hashable]) -> bool:

@@ -29,6 +29,14 @@ from sphinx.search import IndexBuilder
 
 sys.path.insert(0, os.path.abspath('../'))
 sys.path.append(os.path.abspath('./_ext'))
+swagger_path = os.path.join(
+    os.path.dirname(__file__), '_static', 'swagger.json'
+)
+if not os.path.isfile(swagger_path):
+    raise AssertionError('Could not find swagger file')
+with open(swagger_path, 'r') as f:
+    if not f.read():
+        raise AssertionError('Swagger file seems to be empty')
 
 # -- General configuration ------------------------------------------------
 
@@ -83,8 +91,9 @@ author = 'CodeGrade Team'
 # built documents.
 #
 # The short X.Y version.
-version = subprocess.check_output(['git', 'describe', '--abbrev=0',
-                                   '--tags', 'origin/stable']).decode('utf-8').strip()
+version = subprocess.check_output([
+    'git', 'describe', '--abbrev=0', '--tags', 'origin/stable'
+]).decode('utf-8').strip()
 # The full version, including alpha/beta/rc tags.
 release = version
 
@@ -98,7 +107,10 @@ language = 'en'
 # List of patterns, relative to source directory, that match files and
 # directories to ignore when looking for source files.
 # This patterns also effect to html_static_path and html_extra_path
-exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store', '']
+exclude_patterns = [
+    '_build', 'Thumbs.db', '.DS_Store', '', 'running.rst', 'building.rst',
+    'code.rst', 'psef_api/psef.rst'
+]
 
 # The name of the Pygments (syntax highlighting) style to use.
 pygments_style = 'sphinx'

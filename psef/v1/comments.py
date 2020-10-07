@@ -9,7 +9,7 @@ import typing as t
 
 import flask
 
-from cg_json import ExtendedJSONResponse
+from cg_json import ExtendedJSONResponse, MultipleExtendedJSONResponse
 from cg_flask_helpers import EmptyResponse
 
 from . import api
@@ -22,7 +22,9 @@ from ..exceptions import APIWarnings
 
 
 @api.route('/comments/', methods=['PUT'])
-def add_comment() -> ExtendedJSONResponse[CommentBase]:
+def add_comment(
+) -> MultipleExtendedJSONResponse[CommentBase, t.
+                                  Union[CommentBase, CommentReply]]:
     """Create a new comment base, or retrieve an existing one.
 
     .. :quickref: Comment; Create a new comment base.
@@ -48,13 +50,16 @@ def add_comment() -> ExtendedJSONResponse[CommentBase]:
         db.session.add(base)  # type: ignore[unreachable]
         db.session.commit()
 
-    return ExtendedJSONResponse.make(
+    return MultipleExtendedJSONResponse.make(
         base, use_extended=(CommentBase, CommentReply)
     )
 
 
 @api.route('/comments/<int:comment_base_id>/replies/', methods=['POST'])
-def add_reply(comment_base_id: int) -> ExtendedJSONResponse[CommentReply]:
+def add_reply(
+    comment_base_id: int
+) -> MultipleExtendedJSONResponse[CommentReply, t.
+                                  Union[CommentBase, CommentReply]]:
     """Add a reply to a comment base.
 
     .. :quickref: Comment; Add a reply to a comment base.
@@ -119,7 +124,7 @@ def add_reply(comment_base_id: int) -> ExtendedJSONResponse[CommentReply]:
 
     db.session.commit()
 
-    return ExtendedJSONResponse.make(
+    return MultipleExtendedJSONResponse.make(
         reply, use_extended=(CommentBase, CommentReply)
     )
 
@@ -165,7 +170,7 @@ def update_reply(comment_base_id: int,
     methods=['GET']
 )
 def get_reply_edits(comment_base_id: int, reply_id: int
-                    ) -> ExtendedJSONResponse[t.List[CommentReplyEdit]]:
+                    ) -> ExtendedJSONResponse[t.Sequence[CommentReplyEdit]]:
     """Get the edits of a reply.
 
     .. :quickref: Comment; Get the edits of an inline feedback reply.
@@ -182,7 +187,7 @@ def get_reply_edits(comment_base_id: int, reply_id: int
     )
     FeedbackReplyPermissions(reply).ensure_may_see_edits()
 
-    return ExtendedJSONResponse.make(
+    return ExtendedJSONResponse.make_list(
         reply.edits.all(), use_extended=CommentReplyEdit
     )
 

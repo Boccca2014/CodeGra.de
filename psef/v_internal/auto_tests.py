@@ -22,7 +22,6 @@ from ..helpers import (
     request_arg_true, make_empty_response, filter_single_or_404,
     get_from_map_transaction, get_json_dict_from_request
 )
-from ..parsers import parse_enum
 from ..features import Feature, feature_required
 from ..exceptions import APICodes, APIException, PermissionException
 
@@ -315,7 +314,7 @@ def update_result(auto_test_id: int,
     with get_from_map_transaction(get_json_dict_from_request()) as [
         _, opt_get
     ]:
-        state = opt_get('state', str, None)
+        state = opt_get('state', models.AutoTestStepResultState, None)
         setup_stdout = opt_get('setup_stdout', str, None)
         setup_stderr = opt_get('setup_stderr', str, None)
 
@@ -346,10 +345,7 @@ def update_result(auto_test_id: int,
     if setup_stderr is not None:
         result.setup_stderr = setup_stderr
     if state is not None:
-        new_state = parse_enum(state, models.AutoTestStepResultState)
-        assert new_state is not None
-
-        if new_state in {
+        if state in {
             models.AutoTestStepResultState.not_started,
             models.AutoTestStepResultState.running,
             models.AutoTestStepResultState.passed,
@@ -359,10 +355,10 @@ def update_result(auto_test_id: int,
                 lambda: tasks.update_latest_results_in_broker(run_id)
             )
 
-        if new_state == models.AutoTestStepResultState.not_started:
+        if state == models.AutoTestStepResultState.not_started:
             result.clear()
         else:
-            result.state = new_state
+            result.state = state
 
     db.session.commit()
     return jsonify({'taken': False})
@@ -394,7 +390,7 @@ def update_step_result(auto_test_id: int, result_id: int
     )
 
     with get_from_map_transaction(content) as [get, opt_get]:
-        state = get('state', str)
+        state = get('state', models.AutoTestStepResultState)
         log = get('log', dict)
         auto_test_step_id = get('auto_test_step_id', int)
         res_id = opt_get('id', int, None)
@@ -424,9 +420,7 @@ def update_step_result(auto_test_id: int, result_id: int
         assert step_result.auto_test_result_id == result.id
         assert step_result.auto_test_step_id == auto_test_step_id
 
-    new_state = parse_enum(state, models.AutoTestStepResultState)
-    assert new_state is not None
-    step_result.state = new_state
+    step_result.state = state
 
     step_result.log = log
 

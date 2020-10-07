@@ -2562,7 +2562,7 @@ def test_list_providers(
         assert len(result) > 0
         assert all(r['version'] == 'lti1.1' for r in result)
         assert all(r['finalized'] for r in result)
-        assert all(r['edit_secret'] is None for r in result)
+        assert all('edit_secret' not in r for r in result)
 
     with describe('admin can see 1.3 providers when avail'
                   ), logged_in(admin_user):

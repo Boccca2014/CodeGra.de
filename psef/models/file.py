@@ -12,7 +12,7 @@ from collections import defaultdict
 import structlog
 from sqlalchemy import event
 from sqlalchemy_utils import UUIDType
-from typing_extensions import Literal
+from typing_extensions import Literal, TypedDict
 
 import psef
 import cg_maybe
@@ -20,6 +20,7 @@ import cg_flask_helpers
 import cg_object_storage
 from cg_enum import CGEnum
 from cg_dt_utils import DatetimeWithTimezone
+from cg_typing_extensions import make_typed_dict_extender
 from cg_sqlalchemy_helpers import expression, hybrid_property
 from cg_sqlalchemy_helpers.types import (
     MyQuery, ColumnProxy, FilterColumn, ImmutableColumnProxy
@@ -190,7 +191,16 @@ class FileMixin(t.Generic[T]):
         """
         self._get_deleter()()
 
-    def __to_json__(self) -> t.Mapping[str, object]:
+    class AsJSON(TypedDict):
+        """The base JSON representation of a file.
+        """
+        #: The id of this file
+        id: str
+        #: The local name of this file, this does **not** include any parent
+        #: directory names, nor does it include trailing slashes for directories.
+        name: str
+
+    def __to_json__(self) -> AsJSON:
         return {
             'id': str(self.get_id()),
             'name': self.name,
@@ -207,7 +217,7 @@ class FileMixin(t.Generic[T]):
                 for c in cache[self.get_id()]
             ]
         return psef.files.FileTree(
-            name=self.name, id=self.get_id(), entries=entries
+            name=self.name, file_id=self.get_id(), entries=entries
         )
 
 
@@ -366,10 +376,14 @@ class NestedFileMixin(FileMixin[T]):
                 child._restore_directory_structure(out, cache)  # pylint: disable=protected-access
                 for child in cache[self.get_id()]
             ]
-            return FileTree(name=self.name, id=self.get_id(), entries=subtree)
+            return FileTree(
+                name=self.name, file_id=self.get_id(), entries=subtree
+            )
         else:  # this is a file
             backing_file.value.save_to_disk(out)
-            return FileTree(name=self.name, id=self.get_id(), entries=None)
+            return FileTree(
+                name=self.name, file_id=self.get_id(), entries=None
+            )
 
 
 class File(NestedFileMixin[int], Base):
@@ -567,26 +581,21 @@ class File(NestedFileMixin[int], Base):
 
         self.name = new_name
 
-    def __to_json__(self) -> t.Mapping[str, object]:
+    class AsJSON(FileMixin.AsJSON, TypedDict):
+        """A file as JSON.
+        """
+        #: Is this file a directory or a normal file.
+        is_directory: bool
+
+    AsJSON.__cg_extends__ = FileMixin.AsJSON  # type: ignore
+
+    def __to_json__(self) -> AsJSON:
         """Creates a JSON serializable representation of this object.
-
-
-        This object will look like this:
-
-        .. code:: python
-
-            {
-                'name': str, # The name of the file or directory.
-                'id': str, # The id of this file.
-                'is_directory': bool, # Is this file a directory.
-            }
-
         :returns: A object as described above.
         """
-        return {
-            **super().__to_json__(),
-            'is_directory': self.is_directory,
-        }
+        return make_typed_dict_extender(super().__to_json__(), File.AsJSON)(
+            is_directory=self.is_directory,
+        )
 
 
 class AutoTestFixture(FileMixin[int], TimestampMixin, Base):
@@ -632,11 +641,18 @@ class AutoTestFixture(FileMixin[int], TimestampMixin, Base):
         innerjoin=True,
     )
 
-    def __to_json__(self) -> t.Mapping[str, object]:
-        return {
-            **super().__to_json__(),
-            'hidden': self.hidden,
-        }
+    class AsJSON(FileMixin.AsJSON, TypedDict):
+        """The fixture as JSON.
+        """
+        #: Is this fixture hidden.
+        hidden: bool
+
+    AsJSON.__cg_extends__ = FileMixin.AsJSON  # type: ignore
+
+    def __to_json__(self) -> AsJSON:
+        return make_typed_dict_extender(
+            super().__to_json__(), AutoTestFixture.AsJSON
+        )(hidden=self.hidden)
 
     def copy(self, putter: cg_object_storage.Putter) -> 'AutoTestFixture':
         """Copy this AutoTest fixture.

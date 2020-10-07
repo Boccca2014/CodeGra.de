@@ -738,7 +738,7 @@ class LinterRunner:
                 for entry in tree.entries:
                     __do(entry, parent)
             elif parent in temp_res:
-                res[tree.id] = temp_res[parent]
+                res[tree.file_id] = temp_res[parent]
                 del temp_res[parent]
 
         __do(tree_root, '')

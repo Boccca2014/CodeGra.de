@@ -197,7 +197,6 @@ def create_lti1p3_provider(
             'version': 'lti1.3',
             'iss': iss,
             'capabilities': dict,
-            'edit_secret': None,
             'finalized': True,
             'created_at': str,
         },
@@ -449,8 +448,16 @@ def create_group(test_client, group_set_id, member_ids):
 
 def create_error_template():
     return {
-        'code': str, 'message': str, 'description': str,
-        '?missing_permissions?': list
+        'code': str,
+        'message': str,
+        'description': str,
+        'request_id': str,
+        '?missing_permissions?': list,
+        '?parse_error?': {
+            'found': object,
+            'expected': str,
+            '?sub_errors?': list,
+        },
     }
 
 
