@@ -14,7 +14,7 @@ from .types import File
 
 @dataclass
 class SubmissionValidatorInputData:
-    """  """
+    """The input data for the SubmissionValidator ignore type."""
 
     policy: "Policy"
     rules: "List[FileRuleInputData]"

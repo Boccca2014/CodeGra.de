@@ -12,7 +12,7 @@ from .types import File
 
 @dataclass
 class PutRubricAssignmentData:
-    """  """
+    """"""
 
     max_points: "Optional[float]" = None
     rows: "Optional[List[RubricRowBaseInputAsJSON]]" = None

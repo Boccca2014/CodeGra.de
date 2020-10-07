@@ -14,7 +14,7 @@ from .types import File
 
 @dataclass
 class LTI1p1ProviderBaseAsJSON(LTIProviderBaseBaseAsJSON):
-    """  """
+    """The base JSON representation of a LTI 1.1 provider."""
 
     version: 'Literal["lti1.1", None]' = None
 

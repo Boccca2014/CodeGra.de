@@ -11,7 +11,7 @@ from .types import File
 
 @dataclass
 class FileMixinAsJSON:
-    """  """
+    """The base JSON representation of a file."""
 
     id: "str"
     name: "str"

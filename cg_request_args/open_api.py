@@ -66,10 +66,31 @@ def _to_camelcase(string: str) -> str:
 
 
 def _clean_comment(comment: str) -> str:
-    return ' '.join(
-        line.strip() for line in textwrap.dedent(comment).splitlines()
-        if line.strip()
-    )
+    return _doc_without_sphinx(comment)
+
+def _doc_without_sphinx(doc: str) -> str:
+    res = []
+    doc = inspect.cleandoc(doc)
+    in_sphinx = False
+
+    for line in doc.splitlines():
+        if line.startswith('.. :'):
+            continue
+        note_match = re.match(r'^\.\. [^:]+:: *(.*)', line)
+        if note_match is not None:
+            line = note_match.group(1).strip()
+            if not line:
+                continue
+
+        if line.startswith(':'):
+            in_sphinx = True
+            continue
+        if in_sphinx and line.startswith(' '):
+            continue
+        in_sphinx = False
+        res.append(line.strip())
+
+    return '\n'.join(res)
 
 
 def _first_docstring_line(doc: t.Optional[str]) -> str:
@@ -105,7 +126,7 @@ class OpenAPISchema:
 
         The comment is converted to markdown, and any newlines are removed.
         """
-        comment = _clean_comment(comment)
+        comment = _doc_without_sphinx(comment)
         if self._no_pandoc:
             return comment.strip()
         else:
@@ -115,10 +136,7 @@ class OpenAPISchema:
             # isort will complain if we import it toplevel.
             import pypandoc  # pylint: disable=import-error,import-outside-toplevel
             res = pypandoc.convert_text(
-                comment,
-                'markdown_strict',
-                format='rst',
-                extra_args=['--wrap=none']
+                comment, 'gfm', format='rst', extra_args=['--wrap=none']
             ).strip()
             return re.sub(r'`[^`]*\.([^.]+)`', r'`\1`', res)
 
@@ -334,8 +352,16 @@ class OpenAPISchema:
             elif hasattr(typ, '__cg_extends__'):
                 base_as_json = typ.__cg_extends__
 
-            if base_as_json is not None:
-
+            if base_as_json is None:
+                result = {
+                    'type': 'object', 'properties': properties, 'required': [
+                        p for p in typ.__annotations__.keys()
+                        if p in typ.__required_keys__
+                    ], 'description': self.make_comment(typ.__doc__ or '')
+                }
+                if not result['required']:
+                    result.pop('required')
+            else:
                 base = self.add_schema(
                     base_as_json, done=done, do_extended=do_extended
                 )
@@ -353,23 +379,15 @@ class OpenAPISchema:
                 }
                 if not extra_items['required']:
                     extra_items.pop('required')
-                result = {'allOf': [base, extra_items]}
-            else:
                 result = {
-                    'type': 'object',
-                    'properties': properties,
-                    'required': [
-                        p for p in typ.__annotations__.keys()
-                        if p in typ.__required_keys__
-                    ],
+                    'allOf': [base, extra_items],
+                    'description': self.make_comment(typ.__doc__ or ''),
                 }
-                if not result['required']:
-                    result.pop('required')
         elif isinstance(_typ, EnumMeta):
             enum: t.Type[Enum] = _typ
             result = {
-                'type': 'string',
-                'enum': [e.name for e in enum],
+                'type': 'string', 'enum': [e.name for e in enum],
+                'description': self.make_comment(enum.__doc__ or '')
             }
         else:
             raise AssertionError('Cannot make scheme for {}'.format(_typ))
@@ -668,11 +686,10 @@ class OpenAPISchema:
             }
             responses.move_to_end(200, last=False)
 
-        docstring_line = _first_docstring_line(endpoint_func.__doc__)
-        summary = self.make_comment(docstring_line)
         result: t.Dict[str, t.Any] = {
             'responses': dict(responses),
-            'summary': summary,
+            'summary': ' '.join(o.title() for o in operation_id.split('_')),
+            'description': self.make_comment(endpoint_func.__doc__),
             'tags': tags,
             'operationId': f'{tags[0].lower()}_{operation_id}',
         }

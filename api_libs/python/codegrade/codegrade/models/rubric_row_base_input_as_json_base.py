@@ -12,7 +12,7 @@ from .types import File
 
 @dataclass
 class RubricRowBaseInputAsJSONBase:
-    """  """
+    """The required part of the input data for a rubric row."""
 
     header: "str"
     description: "str"

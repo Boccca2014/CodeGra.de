@@ -14,7 +14,7 @@ from .types import File
 
 @dataclass
 class AutoTestStepResultAsJSON:
-    """  """
+    """The step result as JSON."""
 
     id: "int"
     auto_test_step: "Union[AutoTestStepBaseAsJSON]"

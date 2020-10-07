@@ -12,7 +12,7 @@ from .types import File
 
 @dataclass
 class FileTreeAsJSON(FileTree_AsJSONFile):
-    """  """
+    """The FileTree represented as JSON."""
 
     entries: "Optional[List[FileTreeAsJSON]]" = None
 

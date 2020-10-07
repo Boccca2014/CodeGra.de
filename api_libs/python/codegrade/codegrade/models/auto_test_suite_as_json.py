@@ -13,7 +13,7 @@ from .types import File
 
 @dataclass
 class AutoTestSuiteAsJSON:
-    """  """
+    """The set as JSON."""
 
     id: "int"
     steps: "List[AutoTestStepBaseAsJSON]"

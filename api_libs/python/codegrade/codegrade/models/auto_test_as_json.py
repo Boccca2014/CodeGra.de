@@ -14,7 +14,7 @@ from .types import File
 
 @dataclass
 class AutoTestAsJSON:
-    """  """
+    """An AutoTest as JSON."""
 
     id: "int"
     fixtures: "List[AutoTestFixtureAsJSON]"

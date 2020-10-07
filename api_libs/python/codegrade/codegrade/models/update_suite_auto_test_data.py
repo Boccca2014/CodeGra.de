@@ -12,7 +12,7 @@ from .types import File
 
 @dataclass
 class UpdateSuiteAutoTestData:
-    """  """
+    """"""
 
     steps: "List[AutoTestStepBaseInputAsJSON]"
     rubric_row_id: "int"

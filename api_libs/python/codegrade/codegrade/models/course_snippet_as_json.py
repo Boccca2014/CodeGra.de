@@ -11,7 +11,7 @@ from .types import File
 
 @dataclass
 class CourseSnippetAsJSON:
-    """  """
+    """The JSON representation of a course snippet."""
 
     id: "int"
     key: "str"

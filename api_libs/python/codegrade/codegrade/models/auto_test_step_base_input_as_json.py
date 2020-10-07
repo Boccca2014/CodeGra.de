@@ -12,7 +12,7 @@ from .types import File
 
 @dataclass
 class AutoTestStepBaseInputAsJSON(AutoTestStepBaseAsJSONBase):
-    """  """
+    """The input data needed for a new AutoTest step."""
 
     id: "Optional[int]" = None
 

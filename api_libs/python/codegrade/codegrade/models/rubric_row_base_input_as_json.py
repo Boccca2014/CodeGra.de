@@ -12,7 +12,7 @@ from .types import File
 
 @dataclass
 class RubricRowBaseInputAsJSON(RubricRowBaseInputAsJSONBase):
-    """  """
+    """The JSON needed to update a rubric row."""
 
     id: "Optional[int]" = None
     type: "Optional[str]" = None

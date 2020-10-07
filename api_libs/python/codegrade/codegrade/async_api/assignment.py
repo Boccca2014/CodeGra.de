@@ -26,7 +26,7 @@ async def get_all(
     List[AssignmentAsJSON],
 ]:
 
-    """  """
+    """ Get all the <span data-role=\"class\">.models.Assignment</span> objects that the current user can see. """
     url = "{}/api/v1/assignments/".format(client.base_url,)
 
     headers: Dict[str, Any] = client.get_headers()
@@ -63,7 +63,7 @@ async def get_rubric(
     List[RubricRowBaseAsJSON],
 ]:
 
-    """  """
+    """ Return the rubric corresponding to the given `assignment_id`. """
     url = "{}/api/v1/assignments/{assignmentId}/rubrics/".format(client.base_url, assignmentId=assignment_id,)
 
     headers: Dict[str, Any] = client.get_headers()
@@ -100,7 +100,7 @@ async def put_rubric(
     List[RubricRowBaseAsJSON],
 ]:
 
-    """  """
+    """ Add or update rubric of an assignment. """
     url = "{}/api/v1/assignments/{assignmentId}/rubrics/".format(client.base_url, assignmentId=assignment_id,)
 
     headers: Dict[str, Any] = client.get_headers()
@@ -139,7 +139,7 @@ async def delete_rubric(
     None,
 ]:
 
-    """  """
+    """ Delete the rubric for the given assignment. """
     url = "{}/api/v1/assignments/{assignmentId}/rubrics/".format(client.base_url, assignmentId=assignment_id,)
 
     headers: Dict[str, Any] = client.get_headers()
@@ -176,7 +176,7 @@ async def get_course(
     CourseAsExtendedJSON,
 ]:
 
-    """  """
+    """ Get the course connected to an assignment. """
     url = "{}/api/v1/assignments/{assignmentId}/course".format(client.base_url, assignmentId=assignment_id,)
 
     headers: Dict[str, Any] = client.get_headers()
@@ -213,7 +213,7 @@ async def copy_rubric(
     List[RubricRowBaseAsJSON],
 ]:
 
-    """  """
+    """ Import a rubric from a different assignment. """
     url = "{}/api/v1/assignments/{assignmentId}/rubric".format(client.base_url, assignmentId=assignment_id,)
 
     headers: Dict[str, Any] = client.get_headers()
@@ -252,7 +252,7 @@ async def patch(
     AssignmentAsJSON,
 ]:
 
-    """  """
+    """ Update the given assignment with new values. """
     url = "{}/api/v1/assignments/{assignmentId}".format(client.base_url, assignmentId=assignment_id,)
 
     headers: Dict[str, Any] = client.get_headers()

@@ -11,7 +11,7 @@ from .types import File
 
 @dataclass
 class AutoTestStepBaseAsJSONBase:
-    """  """
+    """The base JSON for a step, used for both input and output."""
 
     name: "str"
     type: "str"

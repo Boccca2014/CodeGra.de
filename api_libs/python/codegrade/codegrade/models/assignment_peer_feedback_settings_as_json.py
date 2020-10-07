@@ -11,7 +11,7 @@ from .types import File
 
 @dataclass
 class AssignmentPeerFeedbackSettingsAsJSON:
-    """  """
+    """The serialization of an <span data-role="class">.AssignmentPeerFeedbackSettings</span>."""
 
     amount: "int"
     time: "Optional[float]"

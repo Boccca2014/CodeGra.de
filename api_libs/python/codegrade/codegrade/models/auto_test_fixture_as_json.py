@@ -12,7 +12,7 @@ from .types import File
 
 @dataclass
 class AutoTestFixtureAsJSON(FileMixinAsJSON):
-    """  """
+    """The fixture as JSON."""
 
     hidden: "Optional[bool]" = None
 

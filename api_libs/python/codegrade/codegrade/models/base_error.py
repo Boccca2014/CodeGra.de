@@ -12,7 +12,7 @@ from .types import File
 
 @dataclass
 class BaseError(Exception):
-    """  """
+    """"""
 
     message: "Optional[str]" = None
     description: "Optional[str]" = None

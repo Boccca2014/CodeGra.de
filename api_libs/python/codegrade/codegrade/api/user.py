@@ -24,7 +24,7 @@ def get(
     Union[UserAsExtendedJSON, UserAsJSON, Dict[str, Any]],
 ]:
 
-    """  """
+    """Get the info of the currently logged in user."""
     url = "{}/api/v1/login".format(client.base_url)
 
     headers: Dict[str, Any] = client.get_headers()
@@ -69,7 +69,7 @@ def login(
     ResultDataPostUserLogin,
 ]:
 
-    """  """
+    """Login using your username and password."""
     url = "{}/api/v1/login".format(client.base_url)
 
     headers: Dict[str, Any] = client.get_headers()

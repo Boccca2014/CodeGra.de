@@ -11,7 +11,7 @@ from .types import File
 
 @dataclass
 class UserAsJSONWithoutGroup:
-    """  """
+    """The JSON representation of a user without the `group` property."""
 
     id: "int"
     name: "str"

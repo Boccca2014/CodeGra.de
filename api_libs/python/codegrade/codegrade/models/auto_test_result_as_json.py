@@ -13,7 +13,7 @@ from .types import File
 
 @dataclass
 class AutoTestResultAsJSON:
-    """  """
+    """The JSON representation of a result."""
 
     id: "int"
     created_at: "datetime.datetime"

@@ -12,7 +12,7 @@ from .types import File
 
 @dataclass
 class PutEnrollLinkCourseData:
-    """  """
+    """"""
 
     role_id: "int"
     expiration_date: "datetime.datetime"

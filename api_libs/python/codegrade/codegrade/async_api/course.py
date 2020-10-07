@@ -26,7 +26,7 @@ async def get_all(
     List[CourseAsExtendedJSON],
 ]:
 
-    """  """
+    """ Return all Course objects the current user is a member of. """
     url = "{}/api/v1/courses/".format(client.base_url,)
 
     headers: Dict[str, Any] = client.get_headers()
@@ -63,7 +63,7 @@ async def put_enroll_link(
     CourseRegistrationLinkAsJSON,
 ]:
 
-    """  """
+    """ Create or edit an enroll link. """
     url = "{}/api/v1/courses/{courseId}/registration_links/".format(client.base_url, courseId=course_id,)
 
     headers: Dict[str, Any] = client.get_headers()
@@ -102,7 +102,7 @@ async def get_group_sets(
     List[GroupSetAsJSON],
 ]:
 
-    """  """
+    """ Get the all the group sets of a given course. """
     url = "{}/api/v1/courses/{courseId}/group_sets/".format(client.base_url, courseId=course_id,)
 
     headers: Dict[str, Any] = client.get_headers()
@@ -139,7 +139,7 @@ async def get_snippets(
     List[CourseSnippetAsJSON],
 ]:
 
-    """  """
+    """ Get all snippets (<span data-role=\"class\">.models.CourseSnippet</span>) of the given """
     url = "{}/api/v1/courses/{courseId}/snippets/".format(client.base_url, courseId=course_id,)
 
     headers: Dict[str, Any] = client.get_headers()
@@ -176,7 +176,7 @@ async def delete_role(
     None,
 ]:
 
-    """  """
+    """ Remove a CourseRole from the given Course. """
     url = "{}/api/v1/courses/{courseId}/roles/{roleId}".format(client.base_url, courseId=course_id, roleId=role_id,)
 
     headers: Dict[str, Any] = client.get_headers()
@@ -213,7 +213,7 @@ async def get(
     CourseAsExtendedJSON,
 ]:
 
-    """  """
+    """ Return course data for a given <span data-role=\"class\">.models.Course</span>. """
     url = "{}/api/v1/courses/{courseId}".format(client.base_url, courseId=course_id,)
 
     headers: Dict[str, Any] = client.get_headers()
@@ -250,7 +250,7 @@ async def patch(
     CourseAsExtendedJSON,
 ]:
 
-    """  """
+    """ Update the given <span data-role=\"class\">.models.Course</span> with new values. """
     url = "{}/api/v1/courses/{courseId}".format(client.base_url, courseId=course_id,)
 
     headers: Dict[str, Any] = client.get_headers()

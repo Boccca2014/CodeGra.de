@@ -32,7 +32,7 @@ async def create(
     AutoTestAsJSON,
 ]:
 
-    """  """
+    """ Create a new AutoTest configuration. """
     url = "{}/api/v1/auto_tests/".format(client.base_url,)
 
     headers: Dict[str, Any] = client.get_headers()
@@ -69,7 +69,7 @@ async def restart_result(
     AutoTestResultAsExtendedJSON,
 ]:
 
-    """  """
+    """ Restart an AutoTest result. """
     url = "{}/api/v1/auto_tests/{autoTestId}/runs/{runId}/results/{resultId}/restart".format(
         client.base_url, autoTestId=auto_test_id, runId=run_id, resultId=result_id,
     )
@@ -108,7 +108,9 @@ async def get_results_by_user(
     List[AutoTestResultAsJSON],
 ]:
 
-    """  """
+    """ Get all AutoTest results for a given user.
+
+If you don't have permission to see the results of the requested user an empty list will be returned. """
     url = "{}/api/v1/auto_tests/{autoTestId}/runs/{runId}/users/{userId}/results/".format(
         client.base_url, autoTestId=auto_test_id, runId=run_id, userId=user_id,
     )
@@ -147,7 +149,7 @@ async def get_result(
     AutoTestResultAsExtendedJSON,
 ]:
 
-    """  """
+    """ Get the extended version of an AutoTest result. """
     url = "{}/api/v1/auto_tests/{autoTestId}/runs/{runId}/results/{resultId}".format(
         client.base_url, autoTestId=auto_test_id, runId=run_id, resultId=result_id,
     )
@@ -186,7 +188,7 @@ async def delete_suite(
     None,
 ]:
 
-    """  """
+    """ Delete a <span data-role=\"class\">.models.AutoTestSuite</span>. """
     url = "{}/api/v1/auto_tests/{testId}/sets/{setId}/suites/{suiteId}".format(
         client.base_url, testId=test_id, setId=set_id, suiteId=suite_id,
     )
@@ -225,7 +227,7 @@ async def update_suite(
     AutoTestSuiteAsJSON,
 ]:
 
-    """  """
+    """ Update or create a <span data-role=\"class\">.models.AutoTestSuite</span> (also known as category) """
     url = "{}/api/v1/auto_tests/{autoTestId}/sets/{setId}/suites/".format(
         client.base_url, autoTestId=auto_test_id, setId=set_id,
     )
@@ -266,7 +268,7 @@ async def delete_set(
     None,
 ]:
 
-    """  """
+    """ Delete an <span data-role=\"class\">.models.AutoTestSet</span>. """
     url = "{}/api/v1/auto_tests/{autoTestId}/sets/{autoTestSetId}".format(
         client.base_url, autoTestId=auto_test_id, autoTestSetId=auto_test_set_id,
     )
@@ -305,7 +307,7 @@ async def update_set(
     AutoTestSetAsJSON,
 ]:
 
-    """  """
+    """ Update the given <span data-role=\"class\">.models.AutoTestSet</span>. """
     url = "{}/api/v1/auto_tests/{autoTestId}/sets/{autoTestSetId}".format(
         client.base_url, autoTestId=auto_test_id, autoTestSetId=auto_test_set_id,
     )
@@ -346,7 +348,9 @@ async def stop_run(
     None,
 ]:
 
-    """  """
+    """ Delete an AutoTest run, this makes it possible to edit the AutoTest.
+
+This also clears the rubric categories filled in by the AutoTest. """
     url = "{}/api/v1/auto_tests/{autoTestId}/runs/{runId}".format(
         client.base_url, autoTestId=auto_test_id, runId=run_id,
     )
@@ -385,7 +389,7 @@ async def add_set(
     AutoTestSetAsJSON,
 ]:
 
-    """  """
+    """ Create a new set within an AutoTest """
     url = "{}/api/v1/auto_tests/{autoTestId}/sets/".format(client.base_url, autoTestId=auto_test_id,)
 
     headers: Dict[str, Any] = client.get_headers()
@@ -422,7 +426,7 @@ async def start_run(
     Union[AutoTestRunAsExtendedJSON, Dict[str, Any]],
 ]:
 
-    """  """
+    """ Start a run for the given <span data-role=\"class\">AutoTest</span>. """
     url = "{}/api/v1/auto_tests/{autoTestId}/runs/".format(client.base_url, autoTestId=auto_test_id,)
 
     headers: Dict[str, Any] = client.get_headers()
@@ -464,7 +468,7 @@ async def copy(
     AutoTestAsJSON,
 ]:
 
-    """  """
+    """ Copy the given AutoTest configuration. """
     url = "{}/api/v1/auto_tests/{autoTestId}/copy".format(client.base_url, autoTestId=auto_test_id,)
 
     headers: Dict[str, Any] = client.get_headers()
@@ -503,7 +507,7 @@ async def get(
     ResultDataGetAutoTestGet,
 ]:
 
-    """  """
+    """ Get the extended version of an <span data-role=\"class\">.models.AutoTest</span> and its runs. """
     url = "{}/api/v1/auto_tests/{autoTestId}".format(client.base_url, autoTestId=auto_test_id,)
 
     headers: Dict[str, Any] = client.get_headers()
@@ -540,7 +544,9 @@ async def delete(
     None,
 ]:
 
-    """  """
+    """ Delete the given AutoTest.
+
+This route fails if the AutoTest has any runs, which should be deleted separately. """
     url = "{}/api/v1/auto_tests/{autoTestId}".format(client.base_url, autoTestId=auto_test_id,)
 
     headers: Dict[str, Any] = client.get_headers()
@@ -577,7 +583,7 @@ async def patch(
     AutoTestAsJSON,
 ]:
 
-    """  """
+    """ Update the settings of an AutoTest configuration. """
     url = "{}/api/v1/auto_tests/{autoTestId}".format(client.base_url, autoTestId=auto_test_id,)
 
     headers: Dict[str, Any] = client.get_headers()

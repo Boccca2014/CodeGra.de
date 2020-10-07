@@ -19,4 +19,4 @@ with app.app_context():
     base = os.path.join(os.path.dirname(__file__), '..')
 
     with open(sys.argv[1], 'w') as f:
-        json.dump(res, f)
+        json.dump(res, f, indent=4)

@@ -11,7 +11,7 @@ from .types import File
 
 @dataclass
 class FileTree_AsJSONFile:
-    """  """
+    """"""
 
     id: "str"
     name: "str"

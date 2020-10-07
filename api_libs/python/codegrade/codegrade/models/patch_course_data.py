@@ -12,7 +12,7 @@ from .types import File
 
 @dataclass
 class PatchCourseData:
-    """  """
+    """"""
 
     name: "Optional[str]" = None
     state: "Optional[CourseState]" = None

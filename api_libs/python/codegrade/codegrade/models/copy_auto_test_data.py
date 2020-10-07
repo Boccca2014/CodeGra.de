@@ -11,7 +11,7 @@ from .types import File
 
 @dataclass
 class CopyAutoTestData:
-    """  """
+    """"""
 
     assignment_id: "int"
 

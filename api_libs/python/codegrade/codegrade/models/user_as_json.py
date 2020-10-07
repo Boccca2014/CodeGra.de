@@ -13,7 +13,7 @@ from .user_as_json_without_group import UserAsJSONWithoutGroup
 
 @dataclass
 class UserAsJSON(UserAsJSONWithoutGroup):
-    """  """
+    """The JSON representation of a user."""
 
     group: "Optional[Union[Optional[GroupAsJSON]]]" = None
 

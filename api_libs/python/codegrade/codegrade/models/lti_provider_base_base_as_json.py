@@ -12,7 +12,7 @@ from .types import File
 
 @dataclass
 class LTIProviderBaseBaseAsJSON:
-    """  """
+    """The base JSON representation for an LTI 1.1 provider."""
 
     id: "str"
     lms: "str"

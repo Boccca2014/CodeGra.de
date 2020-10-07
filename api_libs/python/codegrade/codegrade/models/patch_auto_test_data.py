@@ -12,7 +12,7 @@ from .types import File
 
 @dataclass
 class PatchAutoTestData:
-    """  """
+    """"""
 
     json: "JsonPatchAutoTest"
     fixture: "Optional[List[File]]" = None

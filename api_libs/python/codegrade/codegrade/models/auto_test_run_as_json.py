@@ -14,7 +14,7 @@ from .types import File
 
 @dataclass
 class AutoTestRunAsJSON:
-    """  """
+    """The run as JSON."""
 
     id: "int"
     created_at: "datetime.datetime"

@@ -12,7 +12,7 @@ from .types import File
 
 @dataclass
 class CreateAutoTestData:
-    """  """
+    """"""
 
     json: "JsonCreateAutoTest"
     fixture: "Optional[List[File]]" = None

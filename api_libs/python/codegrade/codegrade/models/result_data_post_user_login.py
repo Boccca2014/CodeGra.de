@@ -12,7 +12,7 @@ from .user_as_extended_json import UserAsExtendedJSON
 
 @dataclass
 class ResultDataPostUserLogin:
-    """  """
+    """When logging in this object will be given."""
 
     user: "Union[UserAsExtendedJSON]"
     access_token: "str"

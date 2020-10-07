@@ -13,7 +13,7 @@ from .types import File
 
 @dataclass
 class CourseRegistrationLinkAsJSON:
-    """  """
+    """The JSON representation of a course registration link."""
 
     id: "str"
     expiration_date: "datetime.datetime"

@@ -13,7 +13,7 @@ from .types import File
 
 @dataclass
 class CourseRoleAsJSON(AbstractRoleAsJSON):
-    """  """
+    """The JSON representation of a course role."""
 
     course: "Optional[Union[Optional[CourseAsJSON]]]" = None
     hidden: "Optional[bool]" = None

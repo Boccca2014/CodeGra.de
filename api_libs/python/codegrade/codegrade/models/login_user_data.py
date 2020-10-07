@@ -11,7 +11,7 @@ from .types import File
 
 @dataclass
 class LoginUserData_1:
-    """ The data required when you want to login """
+    """The data required when you want to login"""
 
     username: "str"
     password: "str"
@@ -40,7 +40,7 @@ class LoginUserData_1:
 
 @dataclass
 class LoginUserData_2:
-    """ The data required when you want to impersonate a user """
+    """The data required when you want to impersonate a user"""
 
     username: "str"
     own_password: "str"

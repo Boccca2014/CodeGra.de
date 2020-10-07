@@ -14,7 +14,7 @@ from .types import File
 
 @dataclass
 class LTI1p3ProviderNonFinalizedAsJSON(LTI1p3ProviderBaseAsJSON):
-    """  """
+    """A non finalized provider as JSON."""
 
     finalized: "Literal[False, None]" = None
     auth_login_url: "Optional[str]" = None

@@ -15,7 +15,7 @@ from .types import File
 
 @dataclass
 class CourseAsExtendedJSON(CourseAsJSON):
-    """  """
+    """The way this class will be represented in extended JSON."""
 
     assignments: "Optional[List[AssignmentAsJSON]]" = None
     group_sets: "Optional[List[GroupSetAsJSON]]" = None

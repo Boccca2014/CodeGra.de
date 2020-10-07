@@ -11,7 +11,7 @@ from .types import File
 
 @dataclass
 class RubricItemAsJSONBase:
-    """  """
+    """The base serialization of a rubric item."""
 
     description: "str"
     header: "str"

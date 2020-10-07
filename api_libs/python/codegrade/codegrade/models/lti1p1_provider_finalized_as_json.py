@@ -14,7 +14,7 @@ from .types import File
 
 @dataclass
 class LTI1p1ProviderFinalizedAsJSON(LTI1p1ProviderBaseAsJSON):
-    """  """
+    """The JSON representation of a finalized provider."""
 
     finalized: "Literal[True, None]" = None
 

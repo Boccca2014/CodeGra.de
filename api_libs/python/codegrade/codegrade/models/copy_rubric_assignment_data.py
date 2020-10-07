@@ -11,7 +11,7 @@ from .types import File
 
 @dataclass
 class CopyRubricAssignmentData:
-    """  """
+    """"""
 
     old_assignment_id: "int"
 

@@ -11,7 +11,7 @@ from .types import File
 
 @dataclass
 class _FixtureLike:
-    """  """
+    """"""
 
     id: "str"
 

@@ -13,7 +13,7 @@ from .user_as_json_without_group import UserAsJSONWithoutGroup
 
 @dataclass
 class GroupAsJSON:
-    """  """
+    """The group as JSON."""
 
     id: "int"
     members: "List[UserAsJSONWithoutGroup]"

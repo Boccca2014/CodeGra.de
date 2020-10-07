@@ -11,7 +11,7 @@ from .types import File
 
 @dataclass
 class GroupSetAsJSON:
-    """  """
+    """The way this class will be represented in JSON."""
 
     id: "int"
     minimum_size: "int"

@@ -11,7 +11,7 @@ from .types import File
 
 @dataclass
 class AbstractRoleAsJSON:
-    """  """
+    """The JSON representation of a role."""
 
     id: "int"
     name: "str"

@@ -12,7 +12,7 @@ from .types import File
 
 @dataclass
 class JsonPatchAutoTest:
-    """  """
+    """"""
 
     setup_script: "Optional[str]" = None
     run_setup_script: "Optional[str]" = None

@@ -13,7 +13,7 @@ from .types import File
 
 @dataclass
 class RubricRowBaseAsJSON:
-    """  """
+    """The JSON representation of a rubric row."""
 
     id: "int"
     header: "str"

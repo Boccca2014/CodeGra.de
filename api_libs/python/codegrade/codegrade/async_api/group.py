@@ -19,7 +19,7 @@ async def get(
     GroupAsExtendedJSON,
 ]:
 
-    """  """
+    """ Get a group by id. """
     url = "{}/api/v1/groups/{groupId}".format(client.base_url, groupId=group_id,)
 
     headers: Dict[str, Any] = client.get_headers()

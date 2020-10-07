@@ -12,7 +12,7 @@ from .types import File
 
 @dataclass
 class OptionsInputData:
-    """  """
+    """The input data for a single option for the SubmissionValidator."""
 
     key: "Key"
     value: "bool"

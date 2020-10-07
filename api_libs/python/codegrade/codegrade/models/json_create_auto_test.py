@@ -12,7 +12,7 @@ from .types import File
 
 @dataclass
 class JsonCreateAutoTest:
-    """  """
+    """"""
 
     assignment_id: "int"
     setup_script: "Optional[str]" = None

@@ -17,7 +17,7 @@ from .types import File
 
 @dataclass
 class CourseAsJSON:
-    """  """
+    """The way this class will be represented in JSON."""
 
     id: "int"
     name: "str"

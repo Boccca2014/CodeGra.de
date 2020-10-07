@@ -13,7 +13,7 @@ from .types import File
 
 @dataclass
 class FileRuleInputData:
-    """  """
+    """The input data for a single file rule for the SubmissionValidator."""
 
     rule_type: "RuleType"
     file_type: "FileType"

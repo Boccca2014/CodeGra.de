@@ -17,7 +17,7 @@ from .types import File
 
 @dataclass
 class PatchAssignmentData:
-    """  """
+    """"""
 
     state: "Optional[AssignmentStateEnum]" = None
     name: "Optional[str]" = None

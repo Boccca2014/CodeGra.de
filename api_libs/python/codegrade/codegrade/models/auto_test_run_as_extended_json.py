@@ -13,7 +13,7 @@ from .types import File
 
 @dataclass
 class AutoTestRunAsExtendedJSON(AutoTestRunAsJSON):
-    """  """
+    """The run as extended JSON."""
 
     results: "Optional[List[AutoTestResultAsJSON]]" = None
     setup_stdout: "Optional[str]" = None

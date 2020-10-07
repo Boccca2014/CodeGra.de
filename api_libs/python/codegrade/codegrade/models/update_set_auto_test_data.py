@@ -11,7 +11,7 @@ from .types import File
 
 @dataclass
 class UpdateSetAutoTestData:
-    """  """
+    """"""
 
     stop_points: "Optional[float]" = None
 

@@ -12,7 +12,7 @@ from .user_as_json import UserAsJSON
 
 @dataclass
 class UserAsExtendedJSON(UserAsJSON):
-    """  """
+    """The extended JSON representation of a user."""
 
     email: "Optional[str]" = None
     hidden: "Optional[bool]" = None

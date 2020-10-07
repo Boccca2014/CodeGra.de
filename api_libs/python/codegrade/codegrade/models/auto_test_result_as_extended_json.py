@@ -13,7 +13,7 @@ from .types import File
 
 @dataclass
 class AutoTestResultAsExtendedJSON(AutoTestResultAsJSON):
-    """  """
+    """The extended JSON representation of a result."""
 
     setup_stdout: "Optional[str]" = None
     setup_stderr: "Optional[str]" = None

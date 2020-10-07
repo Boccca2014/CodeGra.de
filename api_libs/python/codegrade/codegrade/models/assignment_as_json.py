@@ -16,7 +16,9 @@ from .types import File
 
 @dataclass
 class AssignmentAsJSON:
-    """  """
+    """The serialization of an assignment.
+
+See the comments in the source code for the meaning of each field."""
 
     id: "int"
     state: "str"
