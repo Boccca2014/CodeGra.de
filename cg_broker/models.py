@@ -28,7 +28,7 @@ from cg_timers import timed_code
 from cg_dt_utils import DatetimeWithTimezone
 from cg_flask_helpers import callback_after_this_request
 from cg_sqlalchemy_helpers import (
-    JSONB, types, mixins, hybrid_property, hybrid_expression
+    JSONB, types, mixins, expression, hybrid_property, hybrid_expression
 )
 from cg_sqlalchemy_helpers.types import DbColumn
 
@@ -351,6 +351,37 @@ class Runner(Base, mixins.TimestampMixin, mixins.UUIDMixin):
         """Verify the password in the current request, if this runner type
         needs a correct password.
         """
+
+    def _get_see_as_running_job(self) -> bool:
+        if self.state.is_running:
+            return True
+
+        now = DatetimeWithTimezone.utcnow()
+        grace_period = Setting.get(PossibleSetting.assigned_grace_period)
+        if (
+            self.state.is_assigned and
+            (self.updated_at - now) < timedelta(seconds=grace_period)
+        ):
+            return True
+        return False
+
+    @hybrid_expression
+    def _get_see_as_running_job_expr(cls: t.Type['Runner']) -> DbColumn[bool]:
+        # pylint: disable=no-self-argument
+        now = DatetimeWithTimezone.utcnow()
+        grace_period = Setting.get(PossibleSetting.assigned_grace_period)
+
+        return expression.or_(
+            cls.state == RunnerState.running,
+            expression.and_(
+                cls.state == RunnerState.assigned,
+                (cls.updated_at - now) < timedelta(seconds=grace_period),
+            ),
+        )
+
+    see_as_running_job = hybrid_property(
+        _get_see_as_running_job, expr=_get_see_as_running_job_expr
+    )
 
     __mapper_args__ = {
         'polymorphic_on': _runner_type,
@@ -675,7 +706,7 @@ class Job(Base, mixins.TimestampMixin, mixins.IdMixin):
         less or equal to assigned amount) compared to the amount of wanted
         runners.
         """
-        amount_running = sum(1 for r in self.runners if r.state.is_running)
+        amount_running = sum(1 for r in self.runners if r.see_as_running_job)
         return amount_running < self.wanted_runners
 
     @hybrid_expression
@@ -683,7 +714,7 @@ class Job(Base, mixins.TimestampMixin, mixins.IdMixin):
         # pylint: disable=no-self-argument
         amount_running = Runner.query.filter(
             Runner.job_id == cls.id,
-            Runner.state == RunnerState.running,
+            Runner.see_as_running_job,
         ).count()
         return amount_running < cls.wanted_runners
 
@@ -820,6 +851,12 @@ class PossibleSetting(enum.Enum):
         type_convert=int,
         input_type='number',
         after_update=_after_update_minimum_amount_extra_runners,
+    )
+    assigned_grace_period = _PossibleSetting(
+        default_value=20,
+        type_convert=int,
+        input_type='number',
+        after_update=lambda: None,
     )
 
 
