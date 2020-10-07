@@ -5,6 +5,7 @@ SPDX-License-Identifier: AGPL-3.0-only
 """
 import html
 import typing as t
+import email.utils
 
 import html2text
 import structlog
@@ -87,6 +88,7 @@ def send_whopie_done_email(assig: models.Assignment) -> None:
     :param assig: The assignment to send the mail for.
     :returns: Nothing
     """
+    assert assig.done_email is not None, 'No done email set'
     html_body = current_app.config['DONE_TEMPLATE'].replace(
         '\n\n',
         '<br><br>',
@@ -97,7 +99,7 @@ def send_whopie_done_email(assig: models.Assignment) -> None:
         course_id=assig.course_id,
     )
 
-    recipients = psef.parsers.parse_email_list(assig.done_email)
+    recipients = email.utils.getaddresses([assig.done_email.strip()])
     _send_mail(
         html_body,
         (

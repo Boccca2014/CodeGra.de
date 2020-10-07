@@ -6,6 +6,8 @@ SPDX-License-Identifier: AGPL-3.0-only
 import typing as t
 from enum import IntEnum, unique
 
+import flask
+
 if t.TYPE_CHECKING and getattr(
     t, 'SPHINX', False
 ) is not True:  # pragma: no cover
@@ -122,6 +124,7 @@ class APIException(Exception):
         ret['message'] = self.message
         ret['description'] = self.description
         ret['code'] = self.api_code.name
+        ret['request_id'] = str(getattr(flask.g, 'request_id', ''))
         return ret
 
     def __str__(self) -> str:
@@ -179,16 +182,3 @@ class InvalidStateException(Exception):
     def __init__(self, reason: str) -> None:
         super().__init__(self, reason)
         self.reason = reason
-
-
-class InvalidAssignmentState(APIException):
-    """Exception used to signal the assignment state is invalid.
-    """
-
-    def __init__(self, state: str) -> None:
-        super().__init__(
-            'The selected state is not valid',
-            'The state {} is not a valid state'.format(state),
-            APICodes.INVALID_PARAM, 400
-        )
-        self._state = state

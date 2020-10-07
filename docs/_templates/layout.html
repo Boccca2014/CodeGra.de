@@ -1,4 +1,64 @@
+{% if pagename == "api" %}
+<!doctype html> <!-- Important: must specify -->
+<html>
+<head>
+  <meta charset="utf-8"> <!-- Important: rapi-doc uses utf8 charecters -->
+  <script type="module" src="https://unpkg.com/rapidoc/dist/rapidoc-min.js"></script>
+  <style>
+      #nav-logo {
+          display: none;
+          padding: .809em;
+          padding-bottom: 0;
+          z-index: 200;
+          text-align: center;
+          color: #fcfcfc;
+      }
+      .api-logo-link {
+          display: inline-block;
+          padding: 4px 6px;
+          margin-bottom: 1rem;
+      }
+      .api-logo {
+          display: block;
+          padding: 5px;
+          width: 100px !important;
+          max-width: 100px !important;
+          height: auto;
+          vertical-align: middle;
+          margin: 0 auto;
+      }
+      .api-logo:hover {
+          background: hsla(0,0%,100%,.1);
+      }
+
+      .release {
+          padding: 4px 6px;
+          color: hsla(0,0%,100%,.3);
+      }
+      .back {
+          padding: 4px 6px;
+      }
+      .back a {
+          color: hsl(221deg 100% 75% / 51%);
+      }
+  </style>
+  <script>
+      window.addEventListener("DOMContentLoaded", function() {
+          document.getElementById("rapi-api-doc").addEventListener("spec-loaded", function () {
+              var el = document.getElementById("nav-logo");
+              console.log(el);
+              el.setAttribute("style", "display: block;");
+          });
+      });
+</script>
+</head>
+<body>
+    {% extends "../api.html" %}
+</body>
+</html>
+{% else %}
 {% extends "!layout.html" %}
 {% block extrahead %}
     <link href="{{ pathto("_static/style.css", True) }}" rel="stylesheet" type="text/css">
 {% endblock %}
+{% endif %}

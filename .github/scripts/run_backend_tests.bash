@@ -59,6 +59,7 @@ pytest --cov cg_worker_pool \
        --cov cg_maybe \
        --cov cg_object_storage \
        --cov cg_junit \
+       --cov cg_request_args \
        --cov-report term-missing \
        "$(pwd)/cg_worker_pool/tests/" \
        "$(pwd)/cg_threading_utils/tests/" \
@@ -69,6 +70,7 @@ pytest --cov cg_worker_pool \
        "$(pwd)/cg_maybe/tests/" \
        "$(pwd)/cg_object_storage/tests/" \
        "$(pwd)/cg_junit/tests/" \
+       "$(pwd)/cg_request_args/tests/" \
        -vvvv
 res1="$?"
 if [[ "$res1" -ne 0 ]]; then
@@ -84,6 +86,7 @@ timeout -k 900 900 \
         --cov cg_sqlalchemy_helpers \
         --cov cg_register \
         --cov cg_object_storage \
+       --cov cg_request_args \
         --cov-append \
         -x \
         --postgresql="GENERATE" \

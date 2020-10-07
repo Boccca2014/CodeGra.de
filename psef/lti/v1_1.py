@@ -834,6 +834,7 @@ class LTI(AbstractLTIConnector):  # pylint: disable=too-many-public-methods
         logger.info(
             'Doing LTI grade passback',
             consumer_key=key,
+            consumer_secret=secret,
             lti_outcome_service_url=service_url,
             url=url,
             grade=grade,
@@ -1238,16 +1239,22 @@ class _BareRolesLTIProvider(BareBonesLTIProvider):
     any namespace, but they should be considered course roles.
     """
 
+    @property
+    def _bare_roles(self) -> t.Mapping[str, str]:
+        return {'Instructor': 'Instructor', 'Learner': 'Learner'}
+
     def _get_unsorted_roles(self, key: str, role_type: t.Type[T_LTI_ROLE]
                             ) -> t.List[T_LTI_ROLE]:
         roles: t.List[T_LTI_ROLE] = []
 
+        bare_roles = self._bare_roles
         for role in self.launch_params[key].split(','):
-            if role in {
-                'Instructor', 'Learner'
-            } and role_type == LTICourseRole:
+            if role_type == LTICourseRole and role in bare_roles:
                 roles.append(
-                    t.cast(T_LTI_ROLE, LTICourseRole(name=role, subnames=[]))
+                    t.cast(
+                        T_LTI_ROLE,
+                        LTICourseRole(name=bare_roles[role], subnames=[])
+                    )
                 )
             try:
                 roles.append(role_type.parse(role))
@@ -1275,6 +1282,14 @@ class OpenEdX(_BareRolesLTIProvider):
     @classmethod
     def get_lms_name(cls) -> str:
         return 'Open edX'
+
+    @property
+    def _bare_roles(self) -> t.Mapping[str, str]:
+        return {
+            **super()._bare_roles,
+            'Administrator': 'Administrator',
+            'Student': 'Learner',
+        }
 
     def __init__(
         self,
@@ -1616,7 +1631,11 @@ class OutcomeRequest:
         )
 
         if outcome.message_ref_identifier != self.message_identifier:
-            log.error('Received wrong "message_ref_identifier" in request')
+            log.error(
+                'Received wrong "message_ref_identifier" in request',
+                found=outcome.message_ref_identifier,
+                correct=self.message_identifier
+            )
 
         if outcome.is_failure:  # pragma: no cover
             log.error('Posting outcome failed')
@@ -1757,7 +1776,6 @@ class OutcomeResponse:
         self.code_major: t.Optional[str] = None
         self.severity: t.Optional[str] = None
         self.description: t.Optional[str] = None
-        self.operation: t.Optional[str] = None
         self.message_ref_identifier: t.Optional[str] = None
 
         self.__process_xml(input_xml)
@@ -1835,9 +1853,6 @@ class OutcomeResponse:
             self.description = get_text(status_node, 'xmlns:imsx_description')
             self.message_ref_identifier = get_text(
                 status_node, 'xmlns:imsx_messageRefIdentifier'
-            )
-            self.operation = get_text(
-                status_node, 'xmlns:imsx_operationRefIdentifier'
             )
         except (WrongValueException, ET.ParseError):
             logger.error(
