@@ -556,13 +556,11 @@ context('Rubric Editor', () => {
                 cy.get('.category-item:nth(0) .drag-handle')
                     .dragTo('.category-item:nth(1) .drag-handle');
 
-                cy.get('.category-item:nth(0)')
-                    .find('.category-name')
-                    .should('have.value', 'rubric row 1');
+                cy.get('.category-item:nth(0) .card-header')
+                    .should('contain', 'rubric row 1');
 
-                cy.get('.category-item:nth(1)')
-                    .find('.category-name')
-                    .should('have.value', 'rubric row 0');
+                cy.get('.category-item:nth(1) .card-header')
+                    .should('contain', 'rubric row 0');
             });
 
             submit('success');
