@@ -152,7 +152,7 @@ export default {
 
     /* Checkerboard pattern. */
     background-size: 1rem;
-    background-image: url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyIDIi PjxyZWN0IGZpbGw9IiNmNGY0ZjQiIHg9IjAiIHk9IjAiIHdpZHRoPSIxIiBoZWlnaHQ9IjEiLz48 cmVjdCBmaWxsPSIjZjRmNGY0IiB4PSIxIiB5PSIxIiB3aWR0aD0iMSIgaGVpZ2h0PSIxIi8+PC9z dmc+Cg==');
+    background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 2 2"><rect fill="rgba(0, 0, 0, 0.0625)" x="0" y="0" width="1" height="1"/><rect fill="rgba(0, 0, 0, 0.0625)" x="1" y="1" width="1" height="1"/></svg>');
 }
 
 .image-viewer .Pane {
