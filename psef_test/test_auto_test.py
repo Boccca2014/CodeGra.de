@@ -2912,6 +2912,7 @@ def test_submission_info_env_vars(
             else:
                 assert output == {}
 
+
 def test_restart_auto_test_on_old_submission(
     monkeypatch_celery, monkeypatch_broker, basic, test_client, logged_in,
     describe, live_server, monkeypatch, app, session, stub_function_class,
@@ -2953,7 +2954,8 @@ def test_restart_auto_test_on_old_submission(
         thread.join()
         session.expire_all()
 
-    with describe('should not be possible to restart old submissions'), logged_in(teacher):
+    with describe('should not be possible to restart old submissions'
+                  ), logged_in(teacher):
         # Submit new work for student so that previous isn't their latest.
         work2 = helpers.create_submission(
             test_client, assig_id, for_user=student.username
@@ -2968,9 +2970,10 @@ def test_restart_auto_test_on_old_submission(
             400,
         )
 
-    with describe('should be possible to restart new submission'), logged_in(teacher):
+    with describe('should be possible to restart new submission'
+                  ), logged_in(teacher):
         res2 = session.query(m.AutoTestResult).filter_by(work_id=work2['id']
-                                                        ).one()
+                                                         ).one()
 
         test_client.req(
             'post',
