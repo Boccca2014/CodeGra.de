@@ -41,6 +41,19 @@ code {
     .default-alter-danger-colors;
 }
 
+.alert-light {
+    border: 1px solid @border-color;
+    color: @text-color;
+}
+
+.alert-dark {
+    @{dark-mode} {
+        background-color: @color-primary;
+        color: @text-color-dark;
+        border-color: @color-primary-darker;
+    }
+}
+
 .collapse-wrapper {
     .default-collapse-wrapper-colors;
 }
@@ -297,6 +310,7 @@ body {
         &::before {
             content: attr(data-whitespace);
             user-select: none;
+            pointer-events: none;
             position: absolute;
             top: 0;
             left: 0;

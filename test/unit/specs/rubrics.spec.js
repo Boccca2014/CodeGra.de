@@ -348,19 +348,43 @@ describe('The rubric store', () => {
         describe('createRow', () => {
             it('should return a new copy', () => {
                 const rubric = Rubric.fromServerData(mockRubric);
-                const newRubric = rubric.createRow();
+                const newRubric = rubric.createRow('normal');
 
                 expect(newRubric).not.toBe(rubric);
             });
 
-            it('should insert a row', () => {
+            it('should insert a normal row', () => {
                 const rubric = Rubric.fromServerData(mockRubric);
-                const newRubric = rubric.createRow();
+                const newRubric = rubric.createRow('normal');
                 const newRow = newRubric.rows[newRubric.rows.length - 1];
 
                 expect(newRubric.rows.length).toBe(rubric.rows.length + 1);
-                expect(newRow.type).toBe('');
                 expect(newRow.items.length).toBe(0);
+            });
+
+            it('should insert a continuous row', () => {
+                const rubric = Rubric.fromServerData(mockRubric);
+                const newRubric = rubric.createRow('continuous');
+                const newRow = newRubric.rows[newRubric.rows.length - 1];
+
+                expect(newRubric.rows.length).toBe(rubric.rows.length + 1);
+                expect(newRow.type).toBe('continuous');
+                expect(newRow.items.length).toBe(1);
+            });
+
+            // TODO: Unskip this test after removing the old rubric editor.
+            it.skip('should throw an error when no type is passed', () => {
+                const rubric = Rubric.fromServerData(mockRubric);
+                expect(() => {
+                    rubric.createRow();
+                }).toThrow(TypeError);
+            });
+
+            it('should throw an error when an invalid type is passed', () => {
+                const rubric = Rubric.fromServerData(mockRubric);
+                expect(() => {
+                    rubric.createRow('xxx');
+                }).toThrow(TypeError);
             });
         });
 
@@ -465,42 +489,6 @@ describe('The rubric store', () => {
 
             it('should update the given props', () => {
                 expect(row_upd.header).toBe(props.header);
-            });
-        });
-
-        describe('setType', () => {
-            let row, row_norm, row_cont;
-
-            beforeEach(() => {
-                row = new RubricRow(Object.assign({}, mockRubric[0], {type: null}));
-                row_norm = row.setType('normal');
-                row_cont = row.setType('continuous');
-            });
-
-            it('should return a new copy', () => {
-                expect(row).not.toBe(row_norm);
-                expect(row).not.toBe(row_cont);
-            });
-
-            it('should throw an error if the type was already set', () => {
-                expect(() => row_cont.setType('normal')).toThrow();
-                expect(() => row_norm.setType('continuous')).toThrow();
-            });
-
-            it('should set the correct type', () => {
-                expect(row_norm.type).toBe('normal');
-                expect(row_cont.type).toBe('continuous');
-
-                expect(row_norm).toBeInstanceOf(NormalRubricRow);
-                expect(row_cont).toBeInstanceOf(ContinuousRubricRow);
-            });
-
-            it('should not insert a single item if the new type is "normal"', () => {
-                expect(row_norm.items.length).toBe(0);
-            });
-
-            it('should insert a single item if the new type is "continuous"', () => {
-                expect(row_cont.items.length).toBe(1);
             });
         });
 

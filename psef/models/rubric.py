@@ -9,6 +9,7 @@ from sqlalchemy import select
 from typing_extensions import TypedDict
 
 import psef
+import cg_enum
 import cg_json
 from cg_dt_utils import DatetimeWithTimezone
 from cg_sqlalchemy_helpers import hybrid_property, hybrid_expression
@@ -175,6 +176,16 @@ class WorkRubricItem(helpers.NotEqualMixin, Base):
     points = hybrid_property(_get_points, expr=_get_points_expr)
 
 
+@enum.unique
+class RubricDescriptionType(cg_enum.CGEnum):
+    """The type of formatting used for the description of a rubric row or item.
+    """
+    #: The description is plain text.
+    plain_text = enum.auto()
+    #: The description should be interpreted as markdown.
+    markdown = enum.auto()
+
+
 class RubricLockReason(cg_json.SerializableEnum, enum.Enum):
     auto_test = enum.auto()
 
@@ -281,11 +292,18 @@ class RubricRowBase(helpers.NotEqualMixin, Base):
     )
     header = db.Column('header', db.Unicode, nullable=False)
     description = db.Column('description', db.Unicode, default='')
+    description_type = db.Column(
+        'description_type',
+        db.Enum(RubricDescriptionType),
+        nullable=False,
+        server_default=RubricDescriptionType.plain_text.name,
+    )
     created_at = db.Column(
         'created_at',
         db.TIMESTAMP(timezone=True),
         default=DatetimeWithTimezone.utcnow
     )
+    position = db.Column('position', db.Integer, nullable=False)
     items = db.relationship(
         lambda: RubricItem,
         backref=db.backref("rubricrow"),
@@ -352,10 +370,12 @@ class RubricRowBase(helpers.NotEqualMixin, Base):
         return RubricRowBase(
             created_at=DatetimeWithTimezone.utcnow(),
             description=self.description,
+            description_type=self.description_type,
             header=self.header,
             assignment_id=self.assignment_id,
             items=[item.copy() for item in self.items],
             rubric_row_type=self.rubric_row_type,
+            position=self.position,
         )
 
     def is_selected(self) -> bool:
@@ -420,6 +440,8 @@ class RubricRowBase(helpers.NotEqualMixin, Base):
         header: str
         #: The description of this row.
         description: t.Optional[str]
+        #: The type of descriptions in this row.
+        description_type: RubricDescriptionType
         #: The item in this row. The length will always be 1 for continuous
         #: rubric rows.
         items: t.Sequence[RubricItem]
@@ -436,6 +458,7 @@ class RubricRowBase(helpers.NotEqualMixin, Base):
             'id': self.id,
             'header': self.header,
             'description': self.description,
+            'description_type': self.description_type,
             'items': self.items,
             'locked': self.locked,
             'type': self.rubric_row_type,
@@ -503,7 +526,7 @@ class RubricRowBase(helpers.NotEqualMixin, Base):
 
         self.items = new_items
 
-    def update_from_json(self, data: InputAsJSON) -> None:
+    def update_from_json(self, data: InputAsJSON, position: int) -> None:
         """Update this rubric in place.
 
         .. warning::
@@ -516,11 +539,14 @@ class RubricRowBase(helpers.NotEqualMixin, Base):
         """
         self.header = data['header']
         self.description = data['description']
+        self.position = position
         self.update_items_from_json(data['items'])
 
     @classmethod
     def create_from_json(
-        cls: t.Type['RubricRowBase'], json: InputAsJSON
+        cls: t.Type['RubricRowBase'],
+        json: InputAsJSON,
+        position: int,
     ) -> 'RubricRowBase':
         """Create a new rubric row for an assignment.
 
@@ -531,7 +557,12 @@ class RubricRowBase(helpers.NotEqualMixin, Base):
             :meth:`.RubricRowBase.update_items_from_json`.
         :returns: The newly created row.
         """
-        self = cls(header=json['header'], description=json['description'])
+        self = cls(
+            header=json['header'],
+            description=json['description'],
+            description_type=RubricDescriptionType.markdown,
+            position=position,
+        )
         self.update_items_from_json(json['items'])
 
         return self

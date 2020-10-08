@@ -637,13 +637,13 @@ export function cmpNoCaseMany(...opts: [string, string][]) {
     return res;
 }
 
-export function readableJoin(arr: readonly string[]): string {
+export function readableJoin(arr: readonly string[], sep: string = 'and'): string {
     if (arr.length === 0) {
         return '';
     } else if (arr.length === 1) {
         return arr[0];
     }
-    return `${arr.slice(0, -1).join(', ')}, and ${arr[arr.length - 1]}`;
+    return `${arr.slice(0, -1).join(', ')}, ${sep} ${arr[arr.length - 1]}`;
 }
 
 export function numberToTimes(number: number): string {
@@ -920,16 +920,30 @@ export function getPropMaybe(obj: any, prop: any): any {
     }
 }
 
-export function pickKeys<T, K extends keyof T>(obj: T, keys: readonly K[]): Pick<T, K> {
+export function pickKeys<T, K extends keyof T>(
+    obj: T,
+    keys: readonly K[],
+    strict: false,
+): Partial<Pick<T, K>>;
+
+export function pickKeys<T, K extends keyof T>(obj: T, keys: readonly K[]): Pick<T, K>;
+
+export function pickKeys<T, K extends keyof T>(
+    obj: T,
+    keys: readonly K[],
+    strict = true,
+) {
     return keys.reduce((acc, key) => {
-        acc[key] = obj[key];
+        if (strict || hasAttr(obj, key)) {
+            acc[key] = obj[key];
+        }
         return acc;
-    }, {} as Pick<T, K>);
+    }, {} as Partial<Pick<T, K>>);
 }
 
-type EmptyVNode = { isRootInsert: false, isComment: true };
+type EmptyVNode = VNode & { isRootInsert: false, isComment: true };
 export function emptyVNode(): EmptyVNode {
-    return { isRootInsert: false, isComment: true };
+    return { isRootInsert: false, isComment: true, text: '' };
 }
 
 export function ifExpr<T, Y>(cond: boolean, then: () => T, else_: () => Y): T | Y {
@@ -945,4 +959,14 @@ export function ifOrEmpty<T extends VNode>(cond: boolean, then: () => T): T | Em
         return then();
     }
     return emptyVNode();
+}
+
+export function ifJustOrEmpty<A>(
+    maybe: Maybe<A>,
+    then: (a: A) => VNode,
+): VNode {
+    return maybe.caseOf({
+        Just: then,
+        Nothing: () => emptyVNode(),
+    });
 }

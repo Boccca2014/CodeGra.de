@@ -9,7 +9,7 @@
 </b-alert>
 
 <div v-else-if="!editable && rubric == null"
-     class="rubric-editor text-muted font-italic">
+     class="rubric-editor border rounded p-3 text-muted font-italic">
     There is no rubric for this assignment.
 </div>
 
@@ -129,7 +129,7 @@
 
             <component
                 v-else-if="row.type !== ''"
-                :is="`rubric-editor-${row.type}-row`"
+                :is="`${row.type}-row`"
                 :value="row"
                 :assignment="assignment"
                 :auto-test="autoTestConfig"
@@ -374,7 +374,7 @@
         </b-button-toolbar>
     </template>
 
-    <p class="max-points border rounded-bottom p-3 mb-3" v-else>
+    <p class="max-points border rounded-bottom p-3 mb-0" v-else>
         To get a full mark you need to score
         {{ internalFixedMaxPoints || rubricMaxPoints }} points in this rubric.
     </p>
@@ -396,8 +396,8 @@ import { Rubric } from '@/models';
 import { ValidationError } from '@/models/errors';
 import { formatGrade } from '@/utils';
 
-import RubricEditorNormalRow from './RubricEditorNormalRow';
-import RubricEditorContinuousRow from './RubricEditorContinuousRow';
+import NormalRow from './NormalRow';
+import ContinuousRow from './ContinuousRow';
 
 export default {
     name: 'rubric-editor',
@@ -805,8 +805,8 @@ export default {
     },
 
     components: {
-        RubricEditorNormalRow,
-        RubricEditorContinuousRow,
+        NormalRow,
+        ContinuousRow,
         Multiselect,
     },
 };
