@@ -557,7 +557,7 @@ export default {
             newVal.forEach(courseId => this.loadSingleCourse({ courseId }));
         },
 
-        rubric(newVal, oldVal) {
+        rubric(newVal) {
             // We may need to recalculate which categories should be collapsed
             // when the rubric changes because we either
             // * may reload the rubric, causing the tracking ids of rows to
@@ -570,25 +570,11 @@ export default {
             }
 
             const newRows = newVal.rows;
-            const oldRows = oldVal && oldVal.rows;
 
             this.collapsedCategories = this.$utils.mapToObject(
                 newRows,
                 newRow => {
                     let collapse = this.collapsedCategories[newRow.trackingId];
-
-                    // The tracking id may have changed, so check if we can
-                    // find a row with the same id, or otherwise a row with the
-                    // same content because newly added rows previously had no
-                    // id but now do have an id.
-                    if (collapse == null && oldRows != null) {
-                        const oldRow = oldRows.find(r =>
-                            r.id === newRow.id || r.equals(newRow),
-                        );
-                        if (oldRow != null) {
-                            collapse = this.collapsedCategories[oldRow.trackingId];
-                        }
-                    }
 
                     // Added but not yet submitted rows have no id and should
                     // start expanded.
@@ -997,7 +983,7 @@ export default {
 
             return this.storeUpdateRubric({
                 assignmentId: this.assignmentId,
-                rows: this.rubricRows,
+                rubric: this.rubric,
                 maxPoints: this.internalFixedMaxPoints,
             });
         },

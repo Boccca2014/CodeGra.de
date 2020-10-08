@@ -83,6 +83,22 @@ export class RubricItem<T = number | undefined> {
         );
     }
 
+    updateFromServerData(
+        this: RubricItem<T>,
+        data: Required<RubricItemServerData>,
+    ): RubricItem<number> {
+        let item = this;
+        if (item.id == null) {
+            item = new RubricItem(
+                Object.assign({}, this, {
+                    id: data.id,
+                }),
+                this.trackingId,
+            );
+        }
+        return (item as any) as RubricItem<number>;
+    }
+
     constructor(item: IRubricItem<T>, trackingId?: number) {
         this.trackingId = trackingId;
         Object.assign(this, item);
@@ -167,6 +183,15 @@ export class RubricRow<T extends number | undefined | null> {
         // eslint-disable-next-line @typescript-eslint/no-use-before-define
         const cls = RubricRowsTypes[data.type];
         return cls.fromServerData(data as any);
+    }
+
+    updateFromServerData(data: RubricRowServerData): RubricRow<number> {
+        const row = Object.assign({}, this, {
+            id: data.id,
+            locked: data.locked,
+            items: this.items.map((item, j) => item.updateFromServerData(data.items[j])),
+        });
+        return new (this.constructor as any)(row) as RubricRow<number>;
     }
 
     static createEmpty(): RubricRow<undefined> {
@@ -589,6 +614,19 @@ export class Rubric<T extends number | undefined | null> {
         });
 
         return new Rubric(rows);
+    }
+
+    updateFromServerData(data: RubricServerData): Rubric<number> {
+        // A newly created row has no id yet, but we need to know the id to be
+        // able to update a row. Unfortunately it is not possible to simply
+        // overwrite the old rubric in the store with an entirely new one
+        // created from the data sent back by the server, because then the
+        // tracking ids of the rubric rows will change, defeating the point of
+        // the tracking ids.
+
+        const rows = this.rows.map((row, i) => row.updateFromServerData(data[i]));
+
+        return new Rubric<number>(rows);
     }
 
     @nonenumerable
