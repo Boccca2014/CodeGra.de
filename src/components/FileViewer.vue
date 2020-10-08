@@ -39,7 +39,7 @@
         <b-alert v-if="!showInlineFeedback"
                  :show="!inlineFeedbackWarningDismissed"
                  dismissible
-                 @dismissed="inlineFeedbackWarningDismissed = true"
+                 @dismissed="$emit('inline-feedback-warning-dismissed')"
                  variant="warning"
                  class="mb-0 rounded-0">
             Inline feedback is currently hidden.
@@ -139,6 +139,10 @@ export default {
             type: Boolean,
             default: false,
         },
+        inlineFeedbackWarningDismissed: {
+            type: Boolean,
+            default: false,
+        },
     },
 
     data() {
@@ -149,7 +153,6 @@ export default {
             forcedFileComponent: null,
             fileContent: undefined,
             loadingCode: false,
-            inlineFeedbackWarningDismissed: false,
             fileTypes: [
                 {
                     cond: () =>

@@ -166,6 +166,8 @@
                     :can-use-snippets="canUseSnippets"
                     :show-whitespace="showWhitespace"
                     :show-inline-feedback="selectedCat === 'code' && showInlineFeedback && revision === 'student'"
+                    :inline-feedback-warning-dismissed="inlineFeedbackWarningDismissed"
+                    @inline-feedback-warning-dismissed="inlineFeedbackWarningDismissed = true"
                     :language="selectedLanguage"
                     @language="languageChanged"
                     :resizing="resizingFileViewer"/>
@@ -318,6 +320,7 @@ export default {
             showWhitespace: true,
             selectedLanguage: 'Default',
             showInlineFeedback: true,
+            inlineFeedbackWarningDismissed: false,
             currentFile: null,
             resizingFileViewer: false,
 
@@ -851,6 +854,10 @@ export default {
             this.currentFile = null;
             this.showWhitespace = true;
 
+            // Remind the user when inline feedback is hidden after switching
+            // to this new submission.
+            this.inlineFeedbackWarningDismissed = false;
+
             this.hiddenCats = new Set(
                 this.categories.filter(c => c.id !== this.selectedCat).map(c => c.id),
             );
@@ -1006,6 +1013,9 @@ export default {
 
         inlineFeedbackChanged(val) {
             this.showInlineFeedback = val;
+            // When manually hiding the inline feedback it is not necessary
+            // to show the warning immediately.
+            this.inlineFeedbackWarningDismissed = true;
         },
 
         openSidebarTab(idx) {

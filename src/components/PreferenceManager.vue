@@ -299,11 +299,13 @@ export default {
             immediate: true,
             handler(show) {
                 this.$emit('inline-feedback', show);
-                this.$router.replace({
-                    query: Object.assign({}, this.$route.query, {
-                        showInlineFeedback: show,
-                    }),
-                });
+                const query = Object.assign({}, this.$route.query);
+                if (show) {
+                    delete query.showInlineFeedback;
+                } else {
+                    query.showInlineFeedback = false;
+                }
+                this.$router.replace({ query });
             },
         },
 
