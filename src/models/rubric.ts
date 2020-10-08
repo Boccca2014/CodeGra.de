@@ -71,6 +71,18 @@ export class RubricItem<T = number | undefined> {
         );
     }
 
+    duplicate(): RubricItem<T | undefined> {
+        return new RubricItem(
+            {
+                id: undefined,
+                points: this.points,
+                header: this.header,
+                description: this.description,
+            },
+            getUniqueId(),
+        );
+    }
+
     constructor(item: IRubricItem<T>, trackingId?: number) {
         this.trackingId = trackingId;
         Object.assign(this, item);
@@ -167,6 +179,21 @@ export class RubricRow<T extends number | undefined | null> {
             locked: false,
             items: [],
         });
+    }
+
+    duplicate(): RubricRow<T | undefined> {
+        return new (this.constructor as any)(
+            {
+                id: undefined,
+                type: this.type,
+                header: this.header,
+                description: this.description,
+                descriptionType: this.descriptionType,
+                locked: false,
+                items: this.items.map(item => item.duplicate()),
+            },
+            getUniqueId(),
+        );
     }
 
     @nonenumerable
@@ -622,6 +649,16 @@ export class Rubric<T extends number | undefined | null> {
 
         const rows = [...this.rows, newRow];
         return new Rubric(rows);
+    }
+
+    duplicateRow(idx: number): Rubric<T | undefined> {
+        // Duplicate the row at the given index and insert it right after the
+        // given index.
+        const rows = this.rows as RubricRow<T | undefined>[];
+        const newRow = this.rows[idx].duplicate();
+        const newRows = rows.slice(0, idx + 1);
+        newRows.push(newRow, ...rows.slice(idx + 1));
+        return new Rubric(newRows);
     }
 
     deleteRow(idx: number) {
