@@ -15,8 +15,9 @@ import os.path
 from dataclasses import dataclass
 
 import structlog
+from typing_extensions import Literal, TypedDict
 
-from . import app, helpers
+from . import helpers
 from .helpers import register
 from .exceptions import APICodes, APIException
 from .extract_tree import (
@@ -110,7 +111,7 @@ class SubmissionFilter:
 
     @classmethod
     @abc.abstractmethod
-    def parse(cls: t.Type[T_SF], data: 'helpers.JSONType') -> T_SF:
+    def parse(cls: t.Type[T_SF], data: 'CGIgnoreInputData') -> T_SF:
         """Parse given data as submission filter
 
         :param data: The data to parse.
@@ -120,7 +121,7 @@ class SubmissionFilter:
         raise NotImplementedError
 
     @abc.abstractmethod
-    def export(self) -> 'helpers.JSONType':
+    def export(self) -> 'CGIgnoreInputData':
         """Export the this submission filter.
 
         :returns: The exported filter in such a way that when the return value
@@ -138,12 +139,15 @@ class SubmissionFilter:
         :returns: The modified tree, and a list of files that were deleted.
         """
         # pylint: disable=no-self-use
-
         changes = []
-        if len(tree.values) == 1 and tree.values[0].is_dir:
+
+        def is_dir(f: ExtractFileTreeBase) -> bool:
+            return f.is_dir
+
+        if tree.only_child.map(is_dir).or_default(False):
             tree = copy.deepcopy(tree)
 
-        while len(tree.values) == 1 and tree.values[0].is_dir:
+        while tree.only_child.map(is_dir).or_default(False):
             changes.append(
                 FileDeletion(
                     deletion_type=DeletionType.leading_directory,
@@ -162,21 +166,21 @@ class SubmissionFilter:
 
             # Copy is needed here as we modify values by doing a `.delete` call
             # on one of the children.
-            for child in copy.copy(tree.values):
+            for child in list(tree.values):
                 res.extend(self._delete_file(child))
 
-            if not tree.values:
+            if tree.is_empty:
                 deleted_tree = self.file_allowed(tree)
                 if deleted_tree is not None:
                     res.append(deleted_tree)
-                    tree.delete(app.config['UPLOAD_DIR'])
+                    tree.delete()
 
             return res
         else:
             deleted_file = self.file_allowed(cur)
             if deleted_file is None:
                 return []
-            cur.delete(app.config['UPLOAD_DIR'])
+            cur.delete()
             return [deleted_file]
 
     def process_submission(
@@ -204,7 +208,7 @@ class SubmissionFilter:
         if handle_ignore != IgnoreHandling.keep:
             # Copy is needed here as we modify values by doing a `.delete` call
             # on one of the children.
-            for child in copy.copy(tree.values):
+            for child in list(tree.values):
                 total_changes.extend(self._delete_file(child))
 
             tree, removed_top_dirs = self._remove_leading_directories(tree)
@@ -245,10 +249,10 @@ class EmptySubmissionFilter(SubmissionFilter):
     CGIGNORE_VERSION = -1
 
     @classmethod
-    def parse(cls, data: 'helpers.JSONType') -> 'EmptySubmissionFilter':
+    def parse(cls, data: 'CGIgnoreInputData') -> 'EmptySubmissionFilter':
         return cls()
 
-    def export(self) -> 'helpers.JSONType':
+    def export(self) -> str:
         return ''
 
     def file_allowed(self, f: ExtractFileTreeBase) -> t.Optional[FileDeletion]:
@@ -429,12 +433,12 @@ class IgnoreFilterManager(SubmissionFilter):
         self._filter = IgnoreFilter(global_filters)
 
     @classmethod
-    def parse(cls, data: 'helpers.JSONType') -> 'IgnoreFilterManager':
+    def parse(cls, data: 'CGIgnoreInputData') -> 'IgnoreFilterManager':
         if not isinstance(data, str):
             raise ParseError('CGIgnore version 1 should be given as a string.')
         return cls(data)
 
-    def export(self) -> 'helpers.JSONType':
+    def export(self) -> str:
         return '\n'.join(self._filter.original_input)
 
     def find_matching(self, path: str) -> t.List[Pattern]:
@@ -690,33 +694,30 @@ class FileRule:
             'rule_type': self.rule_type.name,
         }
 
+    class InputData(TypedDict):
+        """The input data for a single file rule for the SubmissionValidator.
+        """
+        #: The type of rule
+        rule_type: Literal['allow', 'deny', 'require']
+        #: The type of files this rule should apply to.
+        file_type: Literal['file', 'directory']
+        #: The pattern that describes which files this rule should apply
+        #: to. This cannot be empty.
+        name: str
+
     @classmethod
-    def parse(cls, data: 'helpers.JSONType') -> 'FileRule':
+    def parse(cls, data: InputData) -> 'FileRule':
         """Parse a file rule.
 
         :param data: The rule that should be parsed
         :returns: The parsed ``FileRule``.
         """
-        if not isinstance(data, dict):
-            raise ParseError('A rule should be given as a map.')
+        rule_type = cls.RuleType[data['rule_type']]
 
-        try:
-            rule_type = cls.RuleType[data.get('rule_type')]  # type: ignore
-        except KeyError as exc:
-            raise ParseError(
-                f'The given rule type ("{data.get("rule_type")}") is not'
-                ' valid.'
-            ) from exc
+        file_type = cls.FileType[data['file_type']]
+        filename = data['name']
 
-        if data.get('file_type') not in {'file', 'directory'}:
-            raise ParseError(
-                f'Unknown file type, got "{data.get("file_type")}"'
-                f'  but only "file" or "directory" is allowed.'
-            )
-        file_type = cls.FileType[t.cast(str, data.get('file_type'))]
-        filename = data.get('name')
-
-        if not filename or not isinstance(filename, str):
+        if not filename:
             raise ParseError(
                 'The filename of a rule should be a non empty string, but got:'
                 f' "{filename}"'
@@ -800,36 +801,27 @@ class Options:
     def __init__(self) -> None:
         self._opts: t.Dict[Options.OptionName, bool] = {}
 
-    def parse_option(self, rule: 'helpers.JSONType') -> None:
+    class InputData(TypedDict):
+        """The input data for a single option for the SubmissionValidator.
+        """
+        #: What option is this.
+        key: Literal['delete_empty_directories', 'remove_leading_directories',
+                     'allow_override']
+        #: Is this option enabled.
+        value: bool
+
+    def parse_option(self, rule: InputData) -> None:
         """Parse a option
 
         """
-        if not isinstance(rule, dict):
-            raise ParseError('An option should be given as a map.')
+        val = rule['value']
 
-        val = rule.get('value')
-        if not isinstance(val, bool):
+        option = self.OptionName[rule['key']]
+        if option in self._opts:
             raise ParseError(
-                'The "value" key was not found or was not a boolean in:'
-                f' "{rule}".',
+                f'Option "{option.name}" was specified multiple times.'
             )
-
-        option_name = rule.get('key')
-        for option in self.OptionName:
-            if option.name == option_name:
-                if option in self._opts:
-                    raise ParseError(
-                        f'Option "{option_name}" was specified multiple times.'
-                    )
-                self._opts[option] = val
-                break
-        else:
-            raise ParseError(
-                f'Option "{option_name}" is not a valid option,'
-                ' expected one of {}.'.format(
-                    ', '.join(o.name for o in self.OptionName)
-                )
-            )
+        self._opts[option] = val
 
     def get(self, option: 'Options.OptionName') -> bool:
         """Get an option returning its default value when it is not set.
@@ -855,8 +847,19 @@ class SubmissionValidator(SubmissionFilter):
         deny_all_files = enum.auto()
         allow_all_files = enum.auto()
 
+    class InputData(TypedDict):
+        """The input data for the SubmissionValidator ignore type.
+        """
+        #: The default policy of this validator.
+        policy: Literal['deny_all_files', 'allow_all_files']
+        #: The rules in this validator. If the policy is "deny_all_files" this
+        #: should not be empty.
+        rules: t.List[FileRule.InputData]
+        #: The options for this validator.
+        options: t.List[Options.InputData]
+
     @classmethod
-    def parse(cls, data: 'helpers.JSONType') -> 'SubmissionValidator':
+    def parse(cls, data: 'CGIgnoreInputData') -> 'SubmissionValidator':
         """Parse and validate the given data as a config for the validator.
 
         :param data: The data of the config file.
@@ -871,42 +874,14 @@ class SubmissionValidator(SubmissionFilter):
         opts = Options()
         rules: t.List[FileRule] = []
 
-        required_keys = ['policy', 'rules', 'options']
-        if any(key not in data.keys() for key in required_keys):
-            raise ParseError(
-                'Not all required keys are found in the given config, all of'
-                f' "{", ".join(required_keys)}" are required, but only'
-                f' "{", ".join(data.keys())}" were found.'
-            )
-
-        given_policy = data['policy']
+        policy = cls.Policy[data['policy']]
         given_options = data['options']
         given_rules = data['rules']
-
-        if given_policy == 'allow_all_files':
-            policy = cls.Policy.allow_all_files
-        elif given_policy == 'deny_all_files':
-            policy = cls.Policy.deny_all_files
-        else:
-            raise ParseError(
-                f'The policy "{given_policy}" is not known, only the'
-                ' policies "{}" are known.'.format(
-                    ', '.join(p.name for p in cls.Policy)
-                )
-            )
 
         if policy == cls.Policy.deny_all_files and not given_rules:
             raise ParseError(
                 f'When the policy is set to "{policy.name}" it is required to'
                 ' have rules that allow or require some files.'
-            )
-
-        if (
-            not isinstance(given_options, list) or
-            not isinstance(given_rules, list)
-        ):
-            raise ParseError(
-                'The rules and options should be given as a list.'
             )
 
         for given_opt in given_options:
@@ -930,15 +905,12 @@ class SubmissionValidator(SubmissionFilter):
 
         return cls(policy, opts, rules, data=data)
 
-    def export(self) -> 'helpers.JSONType':
+    def export(self) -> InputData:
         return self._data
 
     def __init__(
-        self,
-        policy: Policy,
-        options: Options,
-        rules: t.List[FileRule],
-        data: 'helpers.JSONType',
+        self, policy: Policy, options: Options, rules: t.List[FileRule],
+        data: InputData
     ) -> None:
         super().__init__()
         self.policy = policy
@@ -953,7 +925,7 @@ class SubmissionValidator(SubmissionFilter):
         :returns: If the submission is valid.
         """
         if (
-            f.is_dir and not t.cast(ExtractFileTreeDirectory, f).values and
+            isinstance(f, ExtractFileTreeDirectory) and f.is_empty and
             self.options.get(Options.OptionName.delete_empty_directories)
         ):
             return FileDeletion(
@@ -1035,3 +1007,6 @@ class SubmissionValidator(SubmissionFilter):
     @property
     def can_override_ignore_filter(self) -> bool:
         return self.options.get(Options.OptionName.allow_override)
+
+
+CGIgnoreInputData = t.Union[str, SubmissionValidator.InputData]

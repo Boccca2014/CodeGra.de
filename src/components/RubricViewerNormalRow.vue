@@ -5,22 +5,27 @@
      @mouseenter="lockPopoverVisible = true"
      @mouseleave="lockPopoverVisible = false">
     <div class="row-description d-flex border-bottom">
-        <p v-if="rubricRow.description"
-           class="flex-grow-1 my-2 px-3 text-wrap-pre">{{
-            rubricRow.description
-        }}</p>
-        <p v-else
-           class="flex-grow-1 my-2 px-3 text-muted font-italic">
-            This category has no description.
+        <p class="flex-grow-1 mb-0 pt-2 px-3">
+            <span v-if="!rubricRow.description"
+                  class="d-block mb-2 text-muted font-italic">
+                This category has no description.
+            </span>
+            <inner-markdown-viewer
+                v-else-if="rubricRow.isMarkdown"
+                :markdown="rubricRow.description"
+                class="mb-2" />
+            <span v-else
+               class="d-block text-wrap-pre mb-2"
+               >{{ rubricRow.description }}</span>
         </p>
 
         <template v-if="locked">
             <!-- Due to a rendering issue in edge, giving the icon
                  a margin-right moves it left by twice that amount... -->
-            <icon name="lock"
-                  class="rubric-lock my-2"
-                  :class="{ 'mr-3': !$root.isEdge, 'mr-2': $root.isEdge }"
-                  :id="`rubric-lock-${id}`" />
+            <fa-icon name="lock"
+                     class="rubric-lock my-2"
+                     :class="{ 'mr-3': !$root.isEdge, 'mr-2': $root.isEdge }"
+                     :id="`rubric-lock-${id}`" />
 
             <!-- We need to key this popover to make sure it actually
                  changes when the content changes. -->
@@ -40,6 +45,7 @@
              :class="{
                  selected: item.id === selectedId,
                  'border-left': i > 0,
+                 'pb-2': !hasItemsWithDescription,
                  'pb-4': showProgressMeter,
              }"
              :style="{ flex: `0 0 ${itemWidth}`, maxWidth: itemWidth  }"
@@ -47,12 +53,24 @@
             <b class="mb-2">
                 {{ item.points }} - {{ item.header }}
 
-                <icon v-if="item.id === selectedId"
-                      name="check"
-                      class="float-right mr-2" />
+                <fa-icon v-if="item.id === selectedId"
+                         name="check"
+                         class="float-right mr-2" />
             </b>
 
-            <p class="description mb-0 pb-2 pr-2 text-justify text-wrap-pre">{{ item.description }}</p>
+            <template v-if="hasItemsWithDescription">
+                <p v-if="!item.description"
+                   class="text-muted font-italic">
+                    No description.
+                </p>
+                <inner-markdown-viewer
+                    v-if="rubricRow.isMarkdown"
+                    :markdown="item.description"
+                    class="description pr-2 text-justify" />
+                <p v-else
+                   class="description mb-0 pb-2 pr-2 text-justify text-wrap-pre"
+                   >{{ item.description }}</p>
+            </template>
         </div>
 
         <div class="progress-meter"
@@ -69,11 +87,12 @@
 </template>
 
 <script>
-import Icon from 'vue-awesome/components/Icon';
 import 'vue-awesome/icons/lock';
 import 'vue-awesome/icons/check';
 
 import { AutoTestResult, RubricRow, RubricResult } from '@/models';
+
+import InnerMarkdownViewer from './InnerMarkdownViewer';
 
 export default {
     name: 'rubric-viewer-normal-row',
@@ -166,6 +185,10 @@ export default {
         itemWidth() {
             return `${100 / this.rowItems.length}%`;
         },
+
+        hasItemsWithDescription() {
+            return this.rowItems.some(item => !!item.description);
+        },
     },
 
     methods: {
@@ -182,7 +205,7 @@ export default {
     },
 
     components: {
-        Icon,
+        InnerMarkdownViewer,
     },
 };
 </script>
@@ -197,12 +220,20 @@ export default {
         cursor: pointer;
 
         &:hover {
-            background-color: rgba(0, 0, 0, 0.125);
+            background-color: darken(@card-header-background, 5%);
+
+            @{dark-mode} {
+                background-color: darken(@dark-card-header-background, 5%);
+            }
         }
     }
 
     &.selected {
-        background-color: rgba(0, 0, 0, 0.09375);
+        background-color: @card-header-background;
+
+        @{dark-mode} {
+            background-color: @dark-card-header-background;
+        }
     }
 
     .description {

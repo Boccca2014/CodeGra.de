@@ -699,6 +699,20 @@ Cypress.Commands.add('shouldReload', fn => {
     cy.window().should('not.have.property', 'beforeReload');
 });
 
+Cypress.Commands.add('dragTo', { prevSubject: 'optional' }, (subject, target, selector) => {
+    if (subject) {
+        subject = cy.wrap(subject);
+    } else {
+        subject = cy.get(selector);
+    }
+
+    subject
+        .trigger('mousedown', { which: 1 })
+    cy.get(target)
+        .trigger('mousemove')
+        .trigger('mouseup');
+});
+
 //
 //
 // -- This is a child command --

@@ -115,7 +115,7 @@ export default Vue.component('wizard-button', {
         );
 
         const wrapperArgs: VNodeData = {
-            class: `wizard-button-container ${ctx.data.staticClass || ''} ${ctx.data.class || ''}`,
+            class: `wizard-button-container d-inline-block ${ctx.data.staticClass || ''} ${ctx.data.class || ''}`,
             style: Object.assign({}, ctx.data.staticStyle, ctx.data.style),
         };
 

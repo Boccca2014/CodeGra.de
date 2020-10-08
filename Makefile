@@ -2,7 +2,7 @@
 TEST_MODULES ?= $(wildcard cg_*/tests/)
 TEST_FILE ?= $(TEST_MODULES) psef_test/
 TEST_FLAGS ?=
-DOCTEST_MODULES ?= psef cg_cache cg_helpers cg_enum cg_sqlalchemy_helpers
+DOCTEST_MODULES ?= psef cg_cache cg_helpers cg_enum cg_sqlalchemy_helpers cg_register cg_maybe
 SHELL := $(shell which bash)
 PYTHON ?= env/bin/python3
 export PYTHONPATH=$(CURDIR)
@@ -168,3 +168,25 @@ hotreload_docs:
 .PHONY: clean
 clean:
 	$(MAKE) -C docs clean
+
+.PHONY: build_docker
+build_docker:
+	docker build --tag cg_api_libs_builder -f .docker/client_libs/Dockerfile .
+
+.PHONY: build_swagger
+build_swagger: build_docker
+	docker run \
+		--user=$(shell id -u) \
+		-v $(CURDIR):/app \
+		--rm cg_api_libs_builder \
+		"python3 /app/.scripts/generate_swagger.py /app/swagger.json"
+
+.PHONY: build_api_libs
+build_api_libs: build_docker
+	-rm -rf api_libs/python/codegrade
+	docker run \
+		--user=$(shell id -u) \
+		-v $(CURDIR)/swagger.json:/app/swagger.json \
+		-v $(CURDIR)/api_libs/python/:/out \
+		--rm cg_api_libs_builder \
+		"cd /out && openapi-python-client --config ./config.yaml generate --path /app/swagger.json"

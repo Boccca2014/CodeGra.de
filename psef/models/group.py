@@ -12,6 +12,7 @@ from sqlalchemy.sql.expression import or_ as sql_or
 from sqlalchemy.sql.expression import func as sql_func
 
 import psef
+import cg_typing_extensions
 import cg_cache.intra_request
 from cg_dt_utils import DatetimeWithTimezone
 from cg_cache.intra_request import cached_property
@@ -49,7 +50,7 @@ class Group(Base):
 
     id = db.Column('id', db.Integer, primary_key=True)
     #: The name of the group. This has to be unique in a group set.
-    name = db.Column('name', db.Unicode)
+    name = db.Column('name', db.Unicode, nullable=False)
     #: The id of the :class:`.GroupSet` this group is connected to.
     group_set_id = db.Column(
         'group_set_id',
@@ -293,23 +294,40 @@ class Group(Base):
         else:
             return {member.id: True for member in self._members}
 
-    def __to_json__(self) -> t.Mapping[str, t.Any]:
+    class AsJSON(TypedDict):
+        """The group as JSON.
+        """
+        #: The id of this gropu
+        id: int
+        #: The members of this group.
+        members: t.Sequence['psef.models.User.AsJSONWithoutGroup']
+        #: The name of this group.
+        name: str
+        #: The id of the group set that this group is connected to.
+        group_set_id: int
+        #: The datetime this group was created.
+        created_at: DatetimeWithTimezone
+
+    class AsExtendedJSON(AsJSON, TypedDict):
+        """The group as extended JSON.
+        """
+        #: The virtual user connected to this course. It will not contain the
+        #: ``group`` key as this would lead to an infinite recursion.
+        virtual_user: 'psef.models.User.AsJSONWithoutGroup'
+
+    def __to_json__(self) -> AsJSON:
         return {
             'id': self.id,
-            'members': self.members,
+            'members': [u.__to_json_without_group__() for u in self.members],
             'name': self.name,
             'group_set_id': self.group_set_id,
-            'created_at': self.created_at.isoformat(),
+            'created_at': self.created_at,
         }
 
-    def __extended_to_json__(self) -> t.Mapping[str, t.Any]:
-        virt_user = self.virtual_user.__to_json__()
-        del virt_user['group']
-
-        return {
-            **self.__to_json__(),
-            'virtual_user': virt_user,
-        }
+    def __extended_to_json__(self) -> AsExtendedJSON:
+        return cg_typing_extensions.make_typed_dict_extender(
+            self.__to_json__(), Group.AsExtendedJSON
+        )(virtual_user=self.virtual_user.__to_json_without_group__())
 
 
 class GroupSet(NotEqualMixin, Base):
@@ -383,7 +401,7 @@ class GroupSet(NotEqualMixin, Base):
         #: The ids of the assignments connected to this group set.
         assignment_ids: t.Sequence[int]
 
-    def __to_json__(self) -> t.Mapping[str, t.Union[int, t.List[int]]]:
+    def __to_json__(self) -> AsJSON:
         own_assignments = set(a.id for a in self.assignments)
         visible_assigs = [
             a.id for a in self.course.get_all_visible_assignments()

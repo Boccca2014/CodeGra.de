@@ -300,6 +300,7 @@ export class AutoTestResult {
         const setResults = {};
         const suiteResults = {};
 
+        const testSkipped = this.state === 'skipped';
         const testFailed = this.state === 'failed' || this.state === 'timed_out';
         let setFailed = false;
         let totalAchieved = 0;
@@ -394,6 +395,13 @@ export class AutoTestResult {
                                 break;
                             default:
                                 break;
+                        }
+                    });
+                } else if (testSkipped) {
+                    suiteResult.finished = true;
+                    suiteResult.stepResults.forEach(s => {
+                        if (!s.finished) {
+                            s.state = 'skipped';
                         }
                     });
                 }

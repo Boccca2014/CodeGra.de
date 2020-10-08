@@ -2,7 +2,7 @@
 {% import "macros/jobs_table.j2" as macros %}
 {% block content %}
 <h1>Jobs</h1>
-<h4>Active</h4>
+<h4>Active ({{ active_jobs | length }})</h4>
 {% if active_jobs %}
 {{ macros.jobs_table(active_jobs, true) }}
 {% else %}

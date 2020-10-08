@@ -10,6 +10,7 @@ from .helpers import register
 if t.TYPE_CHECKING and not getattr(t, 'SPHINX', False):  # pragma: no cover
     # pylint: disable=unused-import
     from .models import RubricItem, WebhookBase, AutoTestStepBase
+    from .lti.v1_1 import LTI
     from .models.rubric import RubricRowBase
     from .models.analytics import BaseDataSource
     from .models.auto_test import GradeCalculator
@@ -39,4 +40,8 @@ lti_1_3_lms_capabilities = Register[str, 'LMSCapabilities'](
 
 analytics_data_sources = Register[str, t.Type['BaseDataSource']](
     'AnalyticsDataSources'
+)
+
+lti_1_1_providers: register.Register[str, t.Type['LTI']] = register.Register(
+    'LTI1p1Providers'
 )

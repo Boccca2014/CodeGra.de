@@ -5,9 +5,9 @@ from multiprocessing.sharedctypes import Value
 import pytest
 
 import psef.helpers as h
+from cg_register import Register
 from psef.helpers import RepeatedTimer, defer, deep_get, try_for_every
 from psef.exceptions import APIException
-from psef.helpers.register import Register
 
 
 def test_broker_session(monkeypatch):

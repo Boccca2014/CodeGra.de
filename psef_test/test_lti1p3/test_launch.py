@@ -600,7 +600,7 @@ def test_real_deep_link_launch(test_client, describe, logged_in, admin_user):
             data={
                 'auth_token': f'WRONG_{auth_token}',
                 'name': 'assig_name',
-                'deadline': 'NOT A DEADLINE',
+                'deadline': DatetimeWithTimezone.utcnow().isoformat(),
             },
             result={
                 '__allow_extra__': True,

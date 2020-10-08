@@ -1,20 +1,15 @@
 /* SPDX-License-Identifier: AGPL-3.0-only */
-import Vue from 'vue';
+import * as tsx from 'vue-tsx-support';
+import p from 'vue-strict-prop';
 import { getErrorMessage } from '@/utils';
 
-export default Vue.extend({
+export default tsx.component({
     name: 'cg-error',
     functional: true,
 
     props: {
-        error: {
-            type: Error,
-            required: true,
-        },
-        wrappingComponent: {
-            type: String,
-            default: 'b-alert',
-        },
+        error: p(Error).required,
+        wrappingComponent: p(String).default('b-alert'),
     },
 
     render(h, ctx) {

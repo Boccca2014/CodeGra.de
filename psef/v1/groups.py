@@ -7,6 +7,8 @@ import typing as t
 
 from flask import request
 
+import cg_request_args as rqa
+
 from . import api
 from .. import auth, models, db_locks, features
 from ..helpers import (
@@ -21,6 +23,7 @@ from ..exceptions import (
 
 @api.route('/groups/<int:group_id>', methods=['GET'])
 @features.feature_required(features.Feature.GROUPS)
+@rqa.swaggerize('get')
 @auth.login_required
 def get_group(group_id: int) -> ExtendedJSONResponse[models.Group]:
     """Get a group by id.

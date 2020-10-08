@@ -31,6 +31,7 @@ import {
     sortBy,
     toMoment,
     parseOrKeepFloat,
+    pickKeys,
 } from '@/utils/typed';
 
 import {
@@ -1168,6 +1169,10 @@ describe('utils.js', () => {
         it('should work for arrays with multiple items', () => {
             expect(readableJoin(['hello', 'by', 'whoo'])).toBe('hello, by, and whoo');
         });
+
+        it('should use its second optional sep argument', () => {
+            expect(readableJoin(['hello', 'by', 'whoo'], 'or')).toBe('hello, by, or whoo');
+        });
     });
 
     describe('buildUrl', () => {
@@ -1447,6 +1452,45 @@ describe('utils.js', () => {
             [null],
         ])('should return NaN when the input is not a number or a string: "%p"', (x) => {
             expect(parseOrKeepFloat(x)).toBeNaN();
+        });
+    });
+
+    describe('pickKeys', () => {
+        it('should return a new object', () => {
+            const a = { id: 1 };
+            const b = pickKeys(a, ['id']);
+
+            expect(b).not.toBe(a);
+            expect(b).toEqual(a);
+        });
+
+        it('should pick all the given keys', () => {
+            const a = { id: 1 };
+            const b = pickKeys(a, ['id', 'a']);
+
+            expect(b).toHaveProperty('id');
+            expect(b.id).toBe(a.id);
+
+            expect(b).toHaveProperty('a');
+            expect(b.a).toBeUndefined();
+        });
+
+        it('should not pick keys that are not present if strict is false', () => {
+            const a = { id: 1 };
+            const b = pickKeys(a, ['id', 'a'], false);
+
+            expect(b).toHaveProperty('id');
+            expect(b.id).toBe(a.id);
+
+            expect(b).not.toHaveProperty('a');
+        });
+
+        it('should pick keys that are present and have value undefined if strict is false', () => {
+            const a = { id: undefined };
+            const b = pickKeys(a, ['id'], false);
+
+            expect(b).toHaveProperty('id');
+            expect(b.a).toBeUndefined();
         });
     });
 });

@@ -258,21 +258,20 @@ def test_data(db=None):
                             f = m.File(
                                 work=work,
                                 name='Top stub dir ({})'.format(u.name),
-                                is_directory=True
+                                is_directory=True,
+                                backing_file=None,
+                                parent=None,
                             )
-                            filename = str(uuid.uuid4())
-                            shutil.copyfile(
-                                __file__,
-                                os.path.join(
-                                    app.config['UPLOAD_DIR'], filename
-                                )
-                            )
+                            path = __file__
+                            with app.file_storage.putter() as p:
+                                backing_file = p.from_file(path, move=False)
                             f.children = [
                                 m.File(
                                     work=work,
                                     name='manage.py',
                                     is_directory=False,
-                                    filename=filename
+                                    backing_file=backing_file,
+                                    parent=f,
                                 )
                             ]
                             db.session.add(f)
@@ -284,7 +283,7 @@ def test_data(db=None):
     ) as c:
         cs = json.load(c)
         for c in cs:
-            for row in c['rows']:
+            for i, row in enumerate(c['rows']):
                 assignment = m.Assignment.query.filter_by(
                     name=c['assignment']
                 ).first()
@@ -300,6 +299,7 @@ def test_data(db=None):
                             description=row['description'],
                             assignment=assignment,
                             rubric_row_type='normal',
+                            position=i,
                         )
                         db.session.add(rubric_row)
                     for item in row['items']:

@@ -6,11 +6,14 @@
     <b-tabs no-fade
             v-model="currentCategory">
         <b-tab v-for="row, i in rubric.rows"
-               :key="`rubric-${row.id}`">
+               :key="`rubric-${row.id}`"
+               title-link-class="d-flex flex-row align-items-center text-nowrap">
             <template #title>
-                <template v-if="row.header">
+                <span v-if="row.header"
+                     class="d-inline-block text-truncate"
+                     :title="row.header">
                     {{ row.header }}
-                </template>
+                </span>
 
                 <span v-else
                       class="text-muted font-italic">
@@ -267,26 +270,29 @@ export default {
 <style lang="less">
 @import '~mixins.less';
 
-.rubric-viewer-row {
-    .nav-tabs .nav-link {
-        padding: 0.25rem 0.5rem;
+.rubric-viewer {
+    .nav-link.active {
+        background-color: @card-header-background;
+        border-bottom-color: @card-header-background;
 
-        &.active {
-            background-color: rgba(0, 0, 0, 0.0625);
-            border-bottom-width: 0;
-        }
-
-        .badge {
-            transform: translateY(-2px);
+        @{dark-mode} {
+            border-bottom-color: @dark-card-header-background !important;
+            background-color: @dark-card-header-background !important;
         }
     }
+}
 
+.rubric-viewer-row {
     .row-description {
         position: relative;
         max-height: 6.66rem;
         overflow: auto;
         line-height: 1.3;
-        background-color: rgba(0, 0, 0, 0.0625);
+        background-color: @card-header-background;
+
+        @{dark-mode} {
+            background-color: @dark-card-header-background;
+        }
 
         .rubric-lock {
             position: sticky;
@@ -351,5 +357,11 @@ export default {
             }
         }
     }
+}
+</style>
+
+<style lang="less">
+.rubric-viewer .inner-markdown-viewer > :last-child {
+    margin-bottom: 0;
 }
 </style>

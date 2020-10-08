@@ -20,7 +20,7 @@
         </div>
 
         <div class="col-12" v-if="manageLtiproviders">
-            <b-card header="LTI 1.3 providers">
+            <b-card header="LTI providers">
                 <lti-providers />
             </b-card>
         </div>

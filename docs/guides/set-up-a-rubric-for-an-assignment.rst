@@ -1,5 +1,10 @@
 .. _set-up-rubric:
 
+.. note::
+
+    This is the documentation for the new rubric editor. You can find the
+    documentation for the old editor :ref:`here <set-up-rubric-old>`.
+
 Set up a rubric for an assignment
 =======================================================================
 
@@ -11,8 +16,8 @@ Set up a rubric for an assignment
         You can also duplicate a rubric from a different assignment. To do this
         click on the :fa:`copy` icon, and use the dropdown list to select the
         assignment to copy the rubric from and press **Submit**.
-4. Create a new category by pressing the :fa:`plus` icon at the top.
-5. Select a category type, for this example we will use a discrete category.
+4. Create a new category by pressing one of the ":fa:`plus` Discrete category"
+   or ":fa:`plus` Continuous category" buttons.
 
    Discrete rubric categories are traditional rubric categories. They allow you
    to create multiple levels within a category. While grading you can select the
@@ -22,11 +27,12 @@ Set up a rubric for an assignment
    give everything between 0 and the set maximum for that category. These
    categories are especially useful when using
    :ref:`AutoTest <autotest-overview>`.
-6. Set a **category name** and **category description**.
-7. You can create new levels by clicking on the empty level with a large
+5. Set a **category name** and **category description**.
+6. You can create new levels by clicking on the empty level with a large
    :fa:`plus` in it. For each level set a header, a description, and an amount of
    points.
-8. Add as many levels and categories as necessary.
+7. Add as many levels and categories as necessary. You can reorder levels by
+   dragging the :fa:`bars` handle up or down.
 
 .. warning::
 
@@ -39,3 +45,11 @@ Set up a rubric for an assignment
 
     Want to brainstorm about what a good rubric entails? Contact us at
     `support@codegrade.com <mailto:support@codegrade.com>`_.
+
+References
+----------
+
+   .. toctree::
+      :maxdepth: 1
+
+      Set up a rubric for an assignment in the old rubric editor <set-up-a-rubric-for-an-assignment-old>

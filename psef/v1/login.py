@@ -10,6 +10,10 @@ import typing as t
 from flask import request
 from flask_limiter.util import get_remote_address
 
+import cg_request_args as rqa
+from cg_json import (
+    JSONResponse, ExtendedJSONResponse, MultipleExtendedJSONResponse
+)
 from psef.exceptions import (
     APICodes, PermissionException, WeakPasswordException
 )
@@ -19,8 +23,7 @@ from .. import auth, mail, models, helpers, limiter, current_user
 from ..errors import APICodes, APIWarnings, APIException
 from ..models import db
 from ..helpers import (
-    JSONResponse, EmptyResponse, ExtendedJSONResponse, jsonify, validate,
-    add_warning, jsonify_options, ensure_json_dict, extended_jsonify,
+    EmptyResponse, validate, add_warning, jsonify_options, ensure_json_dict,
     request_arg_true, ensure_keys_in_dict, make_empty_response
 )
 from ..permissions import GlobalPermission as GPerm
@@ -39,50 +42,62 @@ def _login_rate_limit() -> t.Tuple[str, str]:
 @limiter.limit(
     '5 per minute', key_func=_login_rate_limit, deduct_on_err_only=True
 )
-def login() -> ExtendedJSONResponse[models.User.LoginResponse]:
-    """Login a :class:`.models.User` if the request is valid.
+@rqa.swaggerize('login')
+def login(
+) -> MultipleExtendedJSONResponse[models.User.LoginResponse, models.User]:
+    """Login using your username and password.
 
     .. :quickref: User; Login a given user.
 
     :returns: A response containing the JSON serialized user
 
-    :query impersonate: When set to a truthy value you can use this route to
-        login as other users. This only allowed when you have the correct
-        permissions.
-
-    :<json str username: The username of the user to log in.
-    :<json str password: The password of the user to log in. Only required when
-        `impersonate` is not `true`.
-    :<json str own_password: Your own password, only required when
-        `impersonate` is `true`.
     :query with_permissions: Setting this to true will add the key
         ``permissions`` to the user. The value will be a mapping indicating
         which global permissions this user has.
-
-    :>json user: The user that was logged in.
-    :>jsonobj user: :py:class:`~.models.User`
-    :>json str access_token: A JWT token that can be used to send requests to
-        the server logged in as the given user.
 
     :raises APIException: If no user with username exists or the password is
         wrong. (LOGIN_FAILURE)
     :raises APIException: If the user with the given username and password is
         inactive. (INACTIVE_USER)
     """
-    data = ensure_json_dict(
-        request.get_json(),
-        replace_log=lambda k, v: '<PASSWORD>' if k == 'password' else v
+    data = rqa.Union(
+        rqa.FixedMapping(
+            rqa.RequiredArgument(
+                'username',
+                rqa.SimpleValue.str,
+                'Your username',
+            ),
+            rqa.RequiredArgument(
+                'password',
+                rqa.RichValue.Password,
+                'Your password',
+            )
+        ).add_description('The data required when you want to login').add_tag(
+            'tag', 'login'
+        ),
+        rqa.FixedMapping(
+            rqa.RequiredArgument(
+                'username',
+                rqa.SimpleValue.str,
+                'The username of the user you want to impersonate',
+            ),
+            rqa.RequiredArgument(
+                'own_password',
+                rqa.RichValue.Password,
+                'Your own password',
+            ),
+        ).add_description(
+            'The data required when you want to impersonate a user'
+        ).add_tag('tag', 'impersonate')
+    ).from_flask(
+        log_replacer=lambda k, v: '<PASSWORD>' if 'password' in k else v
     )
     user: t.Optional[models.User]
 
-    if helpers.request_arg_true('impersonate'):
+    if data.tag == 'impersonate':
         auth.ensure_permission(GPerm.can_impersonate_users)
 
-        with helpers.get_from_map_transaction(data) as [get, _]:
-            username = get('username', str)
-            own_password = get('own_password', str)
-
-        if current_user.password != own_password:
+        if current_user.password != data.own_password:
             raise APIException(
                 'The supplied own password is incorrect',
                 f'The user {current_user.id} has a different password',
@@ -91,27 +106,23 @@ def login() -> ExtendedJSONResponse[models.User.LoginResponse]:
 
         user = helpers.filter_single_or_404(
             models.User,
-            models.User.username == username,
+            models.User.username == data.username,
             ~models.User.is_test_student,
             models.User.active,
         )
 
     else:
-        with helpers.get_from_map_transaction(data) as [get, _]:
-            username = get('username', str)
-            password = get('password', str)
-
         # WARNING: Do not use the `helpers.filter_single_or_404` function here
         # as we have to return the same error for a wrong email as for a wrong
         # password!
         user = db.session.query(
             models.User,
         ).filter(
-            models.User.username == username,
+            models.User.username == data.username,
             ~models.User.is_test_student,
         ).first()
 
-        if user is None or user.password != password:
+        if user is None or user.password != data.password:
             exc_msg = 'The supplied username or password is wrong.'
 
             # If the given username looks like an email we notify the user that
@@ -120,7 +131,7 @@ def login() -> ExtendedJSONResponse[models.User.LoginResponse]:
             # information about the existence of a user with the given
             # username.
             try:
-                validate.ensure_valid_email(username)
+                validate.ensure_valid_email(data.username)
             except validate.ValidationException:
                 pass
             else:
@@ -131,7 +142,7 @@ def login() -> ExtendedJSONResponse[models.User.LoginResponse]:
 
             raise APIException(
                 exc_msg, (
-                    f'The user with username "{username}" does not exist '
+                    f'The user with username "{data.username}" does not exist '
                     'or has a different password'
                 ), APICodes.LOGIN_FAILURE, 400
             )
@@ -146,7 +157,7 @@ def login() -> ExtendedJSONResponse[models.User.LoginResponse]:
         # Check if the current password is safe, and add a warning to the
         # response if it is not.
         try:
-            validate.ensure_valid_password(password, user=user)
+            validate.ensure_valid_password(data.password, user=user)
         except WeakPasswordException:
             add_warning(
                 (
@@ -161,7 +172,7 @@ def login() -> ExtendedJSONResponse[models.User.LoginResponse]:
     if request_arg_true('with_permissions'):
         jsonify_options.get_options().add_permissions_to_user = user
 
-    return extended_jsonify(
+    return MultipleExtendedJSONResponse.make(
         {
             'user': user,
             'access_token': user.make_access_token(),
@@ -171,12 +182,13 @@ def login() -> ExtendedJSONResponse[models.User.LoginResponse]:
 
 
 @api.route("/login", methods=["GET"])
+@rqa.swaggerize('get')
 @auth.login_required
-def self_information(
-) -> t.Union[JSONResponse[t.Union[models.User, t.Mapping[int, str]]],
-             ExtendedJSONResponse[models.User],
-             ]:
-    """Get the info of the currently logged in :class:`.models.User`.
+def self_information() -> t.Union[JSONResponse[models.User],
+                                  JSONResponse[t.Dict[int, str]],
+                                  ExtendedJSONResponse[models.User],
+                                  ]:
+    """Get the info of the currently logged in user.
 
     .. :quickref: User; Get information about the currently logged in user.
 
@@ -194,7 +206,7 @@ def self_information(
     """
     args = request.args
     if args.get('type') == 'roles':
-        return jsonify(
+        return JSONResponse.make(
             {
                 role.course_id: role.name
                 for role in current_user.courses.values()
@@ -204,14 +216,16 @@ def self_information(
         user = models.User.resolve(current_user)
         if request_arg_true('with_permissions'):
             jsonify_options.get_options().add_permissions_to_user = user
-        return extended_jsonify(user, use_extended=models.User)
+        return ExtendedJSONResponse.make(user, use_extended=models.User)
 
-    return jsonify(current_user)
+    return JSONResponse.make(current_user)
 
 
 @api.route('/login', methods=['PATCH'])
-def get_user_update() -> t.Union[EmptyResponse, JSONResponse[
-    t.Mapping[str, str]], JSONResponse[models.User]]:
+def get_user_update() -> t.Union[EmptyResponse,
+                                 JSONResponse[t.Mapping[str, str]],
+                                 ExtendedJSONResponse[models.User],
+                                 ]:
     """Change data of the current :class:`.models.User` and handle passsword
         resets.
 
@@ -313,7 +327,7 @@ def user_patch_handle_reset_password() -> JSONResponse[t.Mapping[str, str]]:
 
     user.reset_password(token, password)
     db.session.commit()
-    return jsonify({'access_token': user.make_access_token()})
+    return JSONResponse.make({'access_token': user.make_access_token()})
 
 
 def user_patch_handle_reset_on_lti() -> EmptyResponse:

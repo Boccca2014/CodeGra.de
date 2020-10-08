@@ -46,7 +46,10 @@
             <p>
                 Last, but not least, insert a name for the new key, something
                 like "CodeGrade" seems appropriate. Finally click the "save"
-                button at the bottom right of your screen, and
+                button at the bottom right of your screen. To trigger the
+                visibility of CodeGrade as External Tool in Canvas, now click
+                to edit the developer key again, don't change anything and
+                immediately press save. After doing that, you can now
                 <a href="#" @click.prevent="nextPage" class="inline-link">continue to the next step</a>.
             </p>
         </template>

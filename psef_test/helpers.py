@@ -197,7 +197,6 @@ def create_lti1p3_provider(
             'version': 'lti1.3',
             'iss': iss,
             'capabilities': dict,
-            'edit_secret': None,
             'finalized': True,
             'created_at': str,
         },
@@ -206,14 +205,8 @@ def create_lti1p3_provider(
 
 def create_lti_course(session, app, user=None, lms='Canvas'):
     name = f'__NEW_LTI_COURSE__-{uuid.uuid4()}'
-    for key, (found_lms, _) in app.config['LTI_CONSUMER_KEY_SECRETS'].items():
-        if found_lms == lms:
-            key = key
-            break
-    else:
-        assert False, 'Could not find requested LMS'
-
-    lti_provider = m.LTI1p1Provider(key=key)
+    prov = psef.registry.lti_1_1_providers[lms]
+    lti_provider = m.LTI1p1Provider.query.filter_by(_lti_provider=prov).first()
     assert lti_provider is not None
 
     c = m.Course.create_and_add(name=name)
@@ -455,8 +448,16 @@ def create_group(test_client, group_set_id, member_ids):
 
 def create_error_template():
     return {
-        'code': str, 'message': str, 'description': str,
-        '?missing_permissions?': list
+        'code': str,
+        'message': str,
+        'description': str,
+        'request_id': str,
+        '?missing_permissions?': list,
+        '?parse_error?': {
+            'found': object,
+            'expected': str,
+            '?sub_errors?': list,
+        },
     }
 
 

@@ -133,6 +133,7 @@ def test_disabling_files_upload(basic, test_client, logged_in, describe):
             'patch',
             url,
             200,
+            query=query,
             data={
                 'files_upload_enabled': True,
                 'webhook_upload_enabled': False,
@@ -463,7 +464,10 @@ def test_clone_git_repo(
         assert sub is not None
         assert sub.created_at == now
         with tempfile.TemporaryDirectory() as tmpdir:
-            p.files.restore_directory_structure(sub, tmpdir)
+            m.File.restore_directory_structure(
+                tmpdir,
+                m.File.make_cache(sub),
+            )
 
             root = f'{tmpdir}/{os.listdir(tmpdir)[0]}'
             print(os.listdir(root))
@@ -665,6 +669,7 @@ def test_get_warning_with_git_and_ignore_file(
 ):
     with describe('setup'):
         course, assig, teacher, student = basic
+        query = {'no_course_in_assignment': True}
         url = f'/api/v1/assignments/{assig.id}'
         ignore_data = {
             'ignore': {
@@ -688,7 +693,7 @@ def test_get_warning_with_git_and_ignore_file(
                 'patch',
                 url,
                 200,
-                query={'no_course_in_assignment': True},
+                query=query,
                 data={
                     'files_upload_enabled': False,
                     'webhook_upload_enabled': True,
@@ -699,7 +704,12 @@ def test_get_warning_with_git_and_ignore_file(
 
     with describe('enabling ignore files gives warning'), logged_in(teacher):
         _, rv = test_client.req(
-            'patch', url, 200, data=ignore_data, include_response=True
+            'patch',
+            url,
+            200,
+            data=ignore_data,
+            include_response=True,
+            query=query
         )
 
         assert 'warning' in rv.headers
@@ -710,6 +720,7 @@ def test_get_warning_with_git_and_ignore_file(
             'patch',
             url,
             200,
+            query=query,
             data={
                 'files_upload_enabled': False, 'webhook_upload_enabled': True
             },
@@ -740,13 +751,14 @@ def test_get_warning_with_git_and_ignore_file(
             data={
                 'files_upload_enabled': True, 'webhook_upload_enabled': False
             },
+            query=query,
         )
 
         _, rv = test_client.req(
             'patch',
             url,
             200,
-            query={'no_course_in_assignment': True},
+            query=query,
             data=ignore_data,
             include_response=True,
         )

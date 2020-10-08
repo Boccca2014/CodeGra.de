@@ -37,7 +37,7 @@ export POSTGRES_USERNAME=postgres
 export PGPASSWORD=postgres
 
 if [[ "$RUN_AT_ONLY" = "yes" ]]; then
-    timeout -k 900 900 \
+    timeout -k 1200 1200 \
             pytest --cov psef --cov cg_signals --cov cg_cache --cov cg_enum \
             --cov-append -x \
             --postgresql="GENERATE" \
@@ -56,6 +56,10 @@ pytest --cov cg_worker_pool \
        --cov cg_helpers \
        --cov cg_enum \
        --cov cg_sqlalchemy_helpers \
+       --cov cg_maybe \
+       --cov cg_object_storage \
+       --cov cg_junit \
+       --cov cg_request_args \
        --cov-report term-missing \
        "$(pwd)/cg_worker_pool/tests/" \
        "$(pwd)/cg_threading_utils/tests/" \
@@ -63,6 +67,10 @@ pytest --cov cg_worker_pool \
        "$(pwd)/cg_cache/tests/" \
        "$(pwd)/cg_helpers/tests/" \
        "$(pwd)/cg_enum/tests/" \
+       "$(pwd)/cg_maybe/tests/" \
+       "$(pwd)/cg_object_storage/tests/" \
+       "$(pwd)/cg_junit/tests/" \
+       "$(pwd)/cg_request_args/tests/" \
        -vvvv
 res1="$?"
 if [[ "$res1" -ne 0 ]]; then
@@ -76,7 +84,11 @@ timeout -k 900 900 \
         --cov cg_cache \
         --cov cg_enum \
         --cov cg_sqlalchemy_helpers \
-        --cov-append -x \
+        --cov cg_register \
+        --cov cg_object_storage \
+       --cov cg_request_args \
+        --cov-append \
+        -x \
         --postgresql="GENERATE" \
         --cov-report term-missing \
         "$(pwd)/psef_test/" \

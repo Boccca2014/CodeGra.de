@@ -3,6 +3,7 @@
 <div class="lti-provider-setup">
     <b-alert v-if="error"
              variant="danger"
+             class="my-3"
              show>
         {{ $utils.getErrorMessage(error) }}
     </b-alert>
@@ -10,7 +11,7 @@
                         @update-provider="ltiProvider = $event"
                         :secret="setupSecret"
                         :lti-provider="ltiProvider" />
-    <cg-loader page-loader v-else />
+    <cg-loader page-loader class="h-100" v-else />
 </div>
 </template>
 
@@ -33,7 +34,7 @@ export default class LTIProviderSetup extends Vue {
         return this.$route.query.setupSecret ?? null;
     }
 
-    ltiProvider: api.lti.LTI1p3ProviderServerData | null = null;
+    ltiProvider: api.lti.LTIProviderServerData | null = null;
 
     @Watch('ltiProviderId', { immediate: true })
     onLtiProviderIdChange() {
@@ -43,7 +44,7 @@ export default class LTIProviderSetup extends Vue {
     async load() {
         this.ltiProvider = null;
         try {
-            this.ltiProvider = (await api.lti.getLti1p3Provider(
+            this.ltiProvider = (await api.lti.getLtiProvider(
                 this.ltiProviderId,
                 this.setupSecret,
             )).data;

@@ -9,6 +9,7 @@ import copy
 import json
 import uuid
 import typing as t
+import secrets
 
 import furl
 import structlog
@@ -20,7 +21,7 @@ import pylti1p3.names_roles
 import pylti1p3.service_connector
 from sqlalchemy.types import JSON
 from sqlalchemy_utils import UUIDType
-from typing_extensions import Final
+from typing_extensions import Final, Literal, TypedDict
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import rsa
@@ -28,7 +29,8 @@ from cryptography.hazmat.primitives.asymmetric import rsa
 import psef
 from cg_helpers import handle_none
 from cg_dt_utils import DatetimeWithTimezone
-from cg_sqlalchemy_helpers import hybrid_property
+from cg_typing_extensions import make_typed_dict_extender
+from cg_sqlalchemy_helpers import ARRAY, hybrid_property
 from cg_sqlalchemy_helpers.types import DbColumn, ColumnProxy
 from cg_sqlalchemy_helpers.mixins import UUIDMixin, TimestampMixin
 
@@ -40,7 +42,9 @@ from . import assignment as assignment_models
 from .. import auth, signals, current_app
 from ..lti import v1_3 as lti_v1_3
 from ..lti.v1_3 import claims as ltiv1_3_claims
-from ..registry import lti_provider_handlers, lti_1_3_lms_capabilities
+from ..registry import (
+    lti_1_1_providers, lti_provider_handlers, lti_1_3_lms_capabilities
+)
 from ..lti.v1_3.lms_capabilities import LMSCapabilities
 
 logger = structlog.get_logger()
@@ -91,6 +95,14 @@ class LTIProviderBase(Base, TimestampMixin):
     )
     key = db.Column('key', db.Unicode, unique=False, nullable=False)
 
+    _intended_use = db.Column(
+        'intended_use',
+        db.Unicode,
+        nullable=False,
+        default='',
+        server_default='',
+    )
+
     # This is only really available for LTI1.3, however we need to define it
     # here to be able to create a unique constraint.
     if not t.TYPE_CHECKING:
@@ -110,6 +122,22 @@ class LTIProviderBase(Base, TimestampMixin):
         db.Enum(*_ALL_LTI_PROVIDERS, name='ltiproviderversion'),
         nullable=False,
         server_default='lti1.1'
+    )
+
+    _finalized = db.Column(
+        'finalized',
+        db.Boolean,
+        nullable=False,
+        default=False,
+        server_default='true'
+    )
+
+    _edit_secret = db.Column(
+        'edit_secret',
+        UUIDType,
+        default=uuid.uuid4,
+        server_default=sqlalchemy.func.uuid_generate_v4(),
+        nullable=False
     )
 
     __mapper_args__ = {
@@ -138,6 +166,18 @@ class LTIProviderBase(Base, TimestampMixin):
             return None
 
         return user_link.user
+
+    @property
+    def is_finalized(self) -> bool:
+        """Is this provider finalized and ready for use.
+        """
+        return self._finalized
+
+    @property
+    def edit_secret(self) -> uuid.UUID:
+        """The secret which you can use to edit this provider.
+        """
+        return self._edit_secret
 
     @property
     def member_sourcedid_required(self) -> bool:
@@ -288,13 +328,33 @@ class LTIProviderBase(Base, TimestampMixin):
 
         return newest_grade_history
 
-    def __to_json__(self) -> t.Mapping[str, object]:
+    class BaseAsJSON(TypedDict):
+        """The base JSON representation for an LTI 1.1 provider.
+        """
+        id: str  #: The id of this LTI provider.
+        lms: str  #: The LMS that is connected as this LTI provider.
+        #: The time this LTI provider was created.
+        created_at: DatetimeWithTimezone
+        #: Who will use this LTI provider.
+        intended_use: str
+
+    def __base_to_json__(self) -> BaseAsJSON:
         return {
             'id': str(self.id),
             'lms': self.lms_name,
-            'version': self._lti_provider_version,
-            'created_at': self.created_at.isoformat(),
+            'created_at': self.created_at,
+            'intended_use': self._intended_use,
         }
+
+    @abc.abstractmethod
+    def __to_json__(
+        self
+    ) -> t.Union['psef.models.LTI1p3Provider.FinalizedAsJSON',
+                 'psef.models.LTI1p3Provider.NonFinalizedAsJSON',
+                 'psef.models.LTI1p1Provider.FinalizedAsJSON',
+                 'psef.models.LTI1p1Provider.NonFinalizedAsJSON',
+                 ]:
+        ...
 
 
 @lti_provider_handlers.register_table
@@ -315,9 +375,37 @@ class LTI1p1Provider(LTIProviderBase):
         lazy='select',
     )
 
-    def __init__(self, key: str) -> None:
-        super().__init__()
-        self.key = key
+    _lti_provider = db.Column(
+        'lms_1p1_name',
+        db.Enum(lti_1_1_providers, name='lti1p1lmsnames'),
+    )
+
+    _lms_secrets = db.Column(
+        'lms_1p1_secret',
+        ARRAY(db.Unicode, as_tuple=True, dimensions=1),
+        nullable=True,
+    )
+
+    def __init__(self, lms: str, intended_use: str) -> None:
+        key = '_'.join(
+            [
+                *intended_use.lower().strip().split(),
+                secrets.token_hex(6),
+            ]
+        )
+        super().__init__(
+            key=key,
+            _lms_secrets=(secrets.token_hex(32), ),
+            _intended_use=intended_use,
+            _finalized=False,
+            _lti_provider=lti_1_1_providers[lms],
+        )
+
+    def finalize(self) -> None:
+        """Finalize this LTI provider.
+        """
+        assert self._lti_provider is not None
+        self._finalized = True
 
     def find_course(self,
                     lti_course_id: str) -> t.Optional['CourseLTIProvider']:
@@ -346,7 +434,70 @@ class LTI1p1Provider(LTIProviderBase):
     def lms_name(self) -> str:
         """The name of the lms connected to this provider.
         """
-        return self._lms_and_secrets[0]
+        assert self._lti_provider is not None
+        return self._lti_provider.get_lms_name()
+
+    class BaseAsJSON(LTIProviderBase.BaseAsJSON, TypedDict):
+        """The base JSON representation of a LTI 1.1 provider.
+        """
+        #: The LTI version used.
+        version: Literal['lti1.1']
+
+    BaseAsJSON.__cg_extends__ = LTIProviderBase.BaseAsJSON  # type: ignore
+
+    class FinalizedAsJSON(BaseAsJSON, TypedDict):
+        """The JSON representation of a finalized provider.
+        """
+        #: This is a already finalized provider and thus is actively being
+        #: used.
+        finalized: Literal[True]
+
+    FinalizedAsJSON.__cg_extends__ = BaseAsJSON  # type: ignore
+
+    class NonFinalizedAsJSON(BaseAsJSON, TypedDict):
+        """The JSON representation of a non finalized provider.
+        """
+        #: This is a non finalized provider, so it cannot yet be used for
+        #: launches.
+        finalized: Literal[False]
+        #: If you have the permission to edit this provider this will be a key
+        #: with which you can do that.
+        edit_secret: t.Optional[uuid.UUID]
+        #: The consumer key used to connect the provider to an LMS.
+        lms_consumer_key: str
+        #: The shared secret used to connect the provider to an LMS.
+        lms_consumer_secret: str
+
+    NonFinalizedAsJSON.__cg_extends__ = BaseAsJSON  # type: ignore
+
+    def __to_json__(self) -> t.Union[FinalizedAsJSON, NonFinalizedAsJSON]:
+        base = make_typed_dict_extender(
+            super().__base_to_json__(),
+            self.BaseAsJSON,
+        )(version='lti1.1')
+
+        if self.is_finalized:
+            return make_typed_dict_extender(base, self.FinalizedAsJSON)(
+                finalized=True,
+            )
+        else:
+            edit_secret = None
+            if auth.LTIProviderPermissions(self).ensure_may_edit.as_bool():
+                edit_secret = self.edit_secret
+
+            return make_typed_dict_extender(base, self.NonFinalizedAsJSON)(
+                finalized=False,
+                edit_secret=edit_secret,
+                lms_consumer_secret=self.secrets[-1],
+                lms_consumer_key=self.key,
+            )
+
+    @property
+    def secrets(self) -> t.Sequence[str]:
+        """The shared secrets connected to this provider.
+        """
+        assert self._lms_secrets is not None
+        return self._lms_secrets
 
     # The next methods all are handlers for signals we setup in `setup_signals`
     # at the end of the class
@@ -496,37 +647,14 @@ class LTI1p1Provider(LTIProviderBase):
             psef.helpers.try_for_every(reversed(self.secrets), try_passback)
 
     @property
-    def _lms_and_secrets(self) -> t.Tuple[str, t.List[str]]:
-        """Return the OAuth consumer secret and the name of the LMS.
-        """
-        return current_app.config['LTI_CONSUMER_KEY_SECRETS'][self.key]
-
-    @property
-    def secrets(self) -> t.List[str]:
-        """The OAuth consumer secret for this LTIProvider.
-
-        :getter: Get the OAuth secret.
-        :setter: Impossible as all secrets are fixed during startup of
-            codegra.de
-        """
-        return self._lms_and_secrets[1]
-
-    @property
     def lti_class(self) -> t.Type['psef.lti.v1_1.LTI']:
         """The name of the LTI class to be used for this LTIProvider.
 
         :getter: Get the LTI class name.
         :setter: Impossible as this is fixed during startup of CodeGrade.
         """
-        lms = self.lms_name
-        cls = psef.lti.v1_1.lti_classes.get(lms)
-        if cls is None:
-            raise psef.errors.APIException(
-                'The requested LMS is not supported',
-                f'The LMS "{lms}" is not supported',
-                psef.errors.APICodes.INVALID_PARAM, 400
-            )
-        return cls
+        assert self._lti_provider is not None
+        return self._lti_provider
 
     def supports_setting_deadline(self) -> bool:
         """Only some LMSes pass the deadline in LTI launches.
@@ -658,30 +786,6 @@ class LTI1p3Provider(LTIProviderBase):
 
     _crypto_key = db.Column('crypto_key', db.LargeBinary)
 
-    _finalized = db.Column(
-        'finalized',
-        db.Boolean,
-        nullable=False,
-        default=False,
-        server_default='true'
-    )
-
-    _intended_use = db.Column(
-        'intended_use',
-        db.Unicode,
-        nullable=False,
-        default='',
-        server_default='',
-    )
-
-    _edit_secret = db.Column(
-        'edit_secret',
-        UUIDType,
-        default=uuid.uuid4,
-        server_default=sqlalchemy.func.uuid_generate_v4(),
-        nullable=False
-    )
-
     _updates_lti1p1 = db.relationship(
         LTI1p1Provider,
         foreign_keys=LTIProviderBase._updates_lti1p1_id,
@@ -700,12 +804,6 @@ class LTI1p3Provider(LTIProviderBase):
         return self._updates_lti1p1
 
     @property
-    def edit_secret(self) -> uuid.UUID:
-        """The secret which you can use to edit this provider.
-        """
-        return self._edit_secret
-
-    @property
     def member_sourcedid_required(self) -> bool:
         """Passback works using user ids, so no sourcedids required.
         """
@@ -717,12 +815,6 @@ class LTI1p3Provider(LTIProviderBase):
         """
         assert self._lms_name is not None
         return self._lms_name
-
-    @property
-    def is_finalized(self) -> bool:
-        """Is this provider finalized and ready for use.
-        """
-        return self._finalized
 
     @property
     def key_set_url(self) -> t.Optional[str]:
@@ -1391,34 +1483,92 @@ class LTI1p3Provider(LTIProviderBase):
             'custom_fields': self._custom_fields,
         }
 
-    def __to_json__(self) -> t.Mapping[str, object]:
-        base = super().__to_json__()
+    class BaseAsJSON(LTIProviderBase.BaseAsJSON, TypedDict):
+        """The base representation of an LTI 1.3 provider.
+        """
+        #: The capabilities of this LMS
+        capabilities: LMSCapabilities
+        #: The LTI version used.
+        version: Literal['lti1.3']
+        #: The iss configured for this provider.
+        iss: str
 
-        res = {
-            **base,
-            'finalized': self._finalized,
-            'intended_use': self._intended_use,
-            'capabilities': self.lms_capabilities,
-            'edit_secret': None,
-            'iss': self.iss,
-        }
+    BaseAsJSON.__cg_extends__ = LTIProviderBase.BaseAsJSON  # type: ignore
 
-        if not self._finalized:
-            if auth.LTI1p3ProviderPermissions(self).ensure_may_edit.as_bool():
-                res['edit_secret'] = self.edit_secret
-            res = {
-                **res,
-                'auth_login_url': self._auth_login_url,
-                'auth_token_url': self._auth_token_url,
-                'client_id': self.client_id,
-                'key_set_url': self._key_set_url,
-                'auth_audience': self._auth_audience,
-                'custom_fields': self._custom_fields,
-                'public_jwk': self.get_public_jwk(),
-                'public_key': self.get_public_key(),
-            }
+    class FinalizedAsJSON(BaseAsJSON, TypedDict):
+        """A finalized provider as JSON.
+        """
+        #: This is a finalized provider.
+        finalized: Literal[True]
 
-        return res
+    FinalizedAsJSON.__cg_extends__ = BaseAsJSON  # type: ignore
+
+    class NonFinalizedAsJSON(BaseAsJSON, TypedDict):
+        """A non finalized provider as JSON.
+        """
+        #: This is a non finalized provider.
+        finalized: Literal[False]
+        #: The auth login url, if already configured.
+        auth_login_url: t.Optional[str]
+        #: The auth token url, if already configured.
+        auth_token_url: t.Optional[str]
+        #: The client id, if already configured.
+        client_id: t.Optional[str]
+        #: The url where we can download the keyset of the LMS, if already
+        #: configured.
+        key_set_url: t.Optional[str]
+        #: The auth audience, if already configured.
+        auth_audience: t.Optional[str]
+        #: Custom fields that the LMS should provide when launching.
+        custom_fields: t.Mapping[str, str]
+        #: The public JWK for this provider, this should be provided to the
+        #: LMS.
+        public_jwk: t.Mapping[str, str]
+        #: The public key for this provider, this should be provided to the
+        #: LMS.
+        public_key: str
+        #: If you have the permission to edit this provider this will be a key
+        #: with which you can do that.
+        edit_secret: t.Optional[uuid.UUID]
+
+    NonFinalizedAsJSON.__cg_extends__ = BaseAsJSON  # type: ignore
+
+    def __to_json__(self) -> t.Union[FinalizedAsJSON, NonFinalizedAsJSON]:
+        base = make_typed_dict_extender(
+            super().__base_to_json__(),
+            self.BaseAsJSON,
+        )(
+            version='lti1.3',
+            capabilities=self.lms_capabilities,
+            iss=self.iss,
+        )
+
+        if self._finalized:
+            return make_typed_dict_extender(
+                base,
+                LTI1p3Provider.FinalizedAsJSON,
+            )(finalized=True)
+        else:
+            if auth.LTIProviderPermissions(self).ensure_may_edit.as_bool():
+                edit_secret: t.Optional[uuid.UUID] = self.edit_secret
+            else:
+                edit_secret = None
+
+            return make_typed_dict_extender(
+                base,
+                LTI1p3Provider.NonFinalizedAsJSON,
+            )(
+                finalized=False,
+                edit_secret=edit_secret,
+                auth_login_url=self._auth_login_url,
+                auth_token_url=self._auth_token_url,
+                client_id=self.client_id,
+                key_set_url=self._key_set_url,
+                auth_audience=self._auth_audience,
+                custom_fields=self._custom_fields,
+                public_jwk=self.get_public_jwk(),
+                public_key=self.get_public_key(),
+            )
 
     @classmethod
     def setup_signals(cls) -> None:
