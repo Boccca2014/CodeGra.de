@@ -55,7 +55,7 @@ context('FileViewer', () => {
         cy.get('.feedback-reply.editing').should('not.exist');
     }
 
-    context.only('Floating feedback button', () => {
+    context('Floating feedback button', () => {
         it('should open a scrollable feedback area', () => {
             cy.wrap([
                 'venn1.png',
