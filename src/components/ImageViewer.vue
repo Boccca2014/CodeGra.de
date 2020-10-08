@@ -149,6 +149,10 @@ export default {
     display: block;
     min-height: 5rem;
     text-align: center;
+
+    /* Checkerboard pattern. */
+    background-size: 1rem;
+    background-image: url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyIDIi PjxyZWN0IGZpbGw9IiNmNGY0ZjQiIHg9IjAiIHk9IjAiIHdpZHRoPSIxIiBoZWlnaHQ9IjEiLz48 cmVjdCBmaWxsPSIjZjRmNGY0IiB4PSIxIiB5PSIxIiB3aWR0aD0iMSIgaGVpZ2h0PSIxIi8+PC9z dmc+Cg==');
 }
 
 .image-viewer .Pane {
