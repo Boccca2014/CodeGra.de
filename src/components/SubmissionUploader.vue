@@ -863,12 +863,12 @@ export default {
         },
 
         isArchiveError(err) {
-            const { code } = err.response.data;
+            const code = this.$utils.getProps(err, null, 'response', 'data', 'code');
             return code === 'INVALID_FILE_IN_ARCHIVE';
         },
 
         isGroupError(err) {
-            const { code } = err.response.data;
+            const code = this.$utils.getProps(err, null, 'response', 'data', 'code');
             return (
                 code === 'INSUFFICIENT_GROUP_SIZE' || code === 'ASSIGNMENT_RESULT_GROUP_NOT_READY'
             );
