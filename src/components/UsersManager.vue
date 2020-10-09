@@ -292,7 +292,6 @@ export default {
             ],
 
             registrationLinks: [],
-            UserConfig,
             currentPage: 1,
             filter: this.$route.query.filterUsers || '',
         };
@@ -302,9 +301,12 @@ export default {
         ...mapGetters('user', {
             loggedInUserId: 'id',
         }),
+        ...mapGetters('siteSettings', {
+            getSiteSetting: 'getSetting',
+        }),
 
         courseRegister() {
-            return this.$userConfig.features.course_register;
+            return this.getSiteSetting('COURSE_REGISTER_ENABLED');
         },
 
         totalRows() {

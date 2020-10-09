@@ -10,19 +10,57 @@ import typing as t
 import structlog
 from flask import request
 from requests import RequestException
+from typing_extensions import TypedDict
 
+import cg_request_args as rqa
+import cg_typing_extensions
 from cg_json import JSONResponse
 
 from . import api
-from .. import models, helpers, current_app, permissions
+from .. import models, helpers, current_app, permissions, site_settings
 from ..permissions import CoursePermission
 
 logger = structlog.get_logger()
 
 
+class LegacyFeaturesAsJSON(TypedDict):
+    AUTOMATIC_LTI_ROLE: bool
+    AUTO_TEST: bool
+    BLACKBOARD_ZIP_UPLOAD: bool
+    COURSE_REGISTER: bool
+    EMAIL_STUDENTS: bool
+    GROUPS: bool
+    INCREMENTAL_RUBRIC_SUBMISSION: bool
+    LINTERS: bool
+    LTI: bool
+    PEER_FEEDBACK: bool
+    REGISTER: bool
+    RENDER_HTML: bool
+    RUBRICS: bool
+
+
+class BaseAboutAsJSON(TypedDict):
+    version: str
+    commit: str
+    features: LegacyFeaturesAsJSON
+    settings: site_settings.Opt.FrontendOptsAsJSON
+
+
+class HealthAsJSON(TypedDict):
+    application: bool
+    database: bool
+    uploads: bool
+    broker: bool
+    mirror_uploads: bool
+    temp_dir: bool
+
+
+class AboutAsJSON(BaseAboutAsJSON, total=False):
+    health: HealthAsJSON
+
+
 @api.route('/about', methods=['GET'])
-def about(
-) -> JSONResponse[t.Mapping[str, t.Union[str, object, t.Mapping[str, bool]]]]:
+def about() -> JSONResponse[AboutAsJSON]:
     """Get the version and features of the currently running instance.
 
     .. :quickref: About; Get the version and features.
@@ -36,15 +74,30 @@ def about(
     _no_val = object()
     status_code = 200
 
-    features = {
-        key.name: bool(value)
-        for key, value in current_app.config['FEATURES'].items()
-    }
-
-    res = {
+    settings = site_settings.Opt.get_frontend_opts()
+    res: AboutAsJSON = {
         'version': current_app.config['VERSION'],
         'commit': current_app.config['CUR_COMMIT'],
-        'features': features,
+        # We include the old features here to be backwards compatible.
+        'features':
+            {
+                'AUTOMATIC_LTI_ROLE': settings['AUTOMATIC_LTI_ROLE_ENABLED'],
+                'AUTO_TEST': settings['AUTO_TEST_ENABLED'],
+                'BLACKBOARD_ZIP_UPLOAD':
+                    settings['BLACKBOARD_ZIP_UPLOAD_ENABLED'],
+                'COURSE_REGISTER': settings['COURSE_REGISTER_ENABLED'],
+                'EMAIL_STUDENTS': settings['EMAIL_STUDENTS_ENABLED'],
+                'GROUPS': settings['GROUPS_ENABLED'],
+                'INCREMENTAL_RUBRIC_SUBMISSION':
+                    settings['INCREMENTAL_RUBRIC_SUBMISSION_ENABLED'],
+                'LINTERS': settings['LINTERS_ENABLED'],
+                'LTI': settings['LTI_ENABLED'],
+                'PEER_FEEDBACK': settings['PEER_FEEDBACK_ENABLED'],
+                'REGISTER': settings['REGISTER_ENABLED'],
+                'RENDER_HTML': settings['RENDER_HTML_ENABLED'],
+                'RUBRICS': settings['RUBRICS_ENABLED'],
+            },
+        'settings': settings,
     }
 
     if request.args.get('health', _no_val) == current_app.config['HEALTH_KEY']:
@@ -77,7 +130,7 @@ def about(
             else:
                 broker_ok = True
 
-        health_value = {
+        health_value: HealthAsJSON = {
             'application': True,
             'database': database,
             'uploads': uploads,
@@ -85,8 +138,8 @@ def about(
             'mirror_uploads': mirror_uploads,
             'temp_dir': True,
         }
-        res['health'] = health_value
 
+        res['health'] = health_value
         if not all(health_value.values()):
             status_code = 500
 

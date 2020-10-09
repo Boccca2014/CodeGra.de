@@ -181,8 +181,8 @@ export default {
 
         showReleaseNote() {
             return (
-                UserConfig.release.message &&
-                this.$root.$now.diff(moment(UserConfig.release.date), 'days') < 7
+                this.$userConfig.release.message &&
+                this.$root.$now.diff(moment(this.$userConfig.release.date), 'days') < 7
             );
         },
 

@@ -123,6 +123,8 @@ class User(NotEqualMixin, Base):
             )
             now = get_request_start_time()
             expires_in = expires_at - now
+        elif expires_in is None:
+            expires_in = site_settings.Opt.JWT_ACCESS_TOKEN_EXPIRES.value
 
         return flask_jwt_extended.create_access_token(
             identity=self.id,

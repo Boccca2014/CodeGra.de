@@ -386,7 +386,7 @@ export default class LtiProviders extends Vue {
         this.$copyText(this.$utils.buildUrl(
             ['lti_providers', ltiProvider.id, 'setup'],
             {
-                baseUrl: this.$userConfig.externalUrl,
+                baseUrl: this.$utils.getExternalUrl(),
                 query: {
                     setupSecret: ltiProvider.edit_secret ?? '',
                 },

@@ -355,8 +355,13 @@ export default class AssignmentGeneralSettings extends Vue {
         ];
     }
 
+    // eslint-disable-next-line class-methods-use-this
     get loginLinksBeforeTime(): readonly string[] {
-        return SiteSettingsStore.getSetting()('LOGIN_TOKEN_BEFORE_TIME').map((time: number) => {
+        return this.$utils.sortBy(
+            SiteSettingsStore.getSetting()('LOGIN_TOKEN_BEFORE_TIME'),
+            val => [val],
+            { reverse: true },
+        ).map((time: number) => {
             const asMsecs = 1000 * time;
             return moment.duration(asMsecs).humanize();
         });
@@ -515,6 +520,7 @@ export default class AssignmentGeneralSettings extends Vue {
         );
     }
 
+    // eslint-disable-next-line class-methods-use-this
     get maxExamDuration() {
         return SiteSettingsStore.getSetting()('EXAM_LOGIN_MAX_LENGTH') / 60 / 60;
     }

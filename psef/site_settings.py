@@ -63,10 +63,8 @@ class Option(t.Generic[_T]):
         :returns: Nothing.
         """
         if not self.value:
-            logger.warning(
-                'Tried to use disabled feature', feature=feature.name
-            )
-            raise exceptions.OptionException(feature)
+            logger.warning('Tried to use disabled feature', feature=self.name)
+            raise exceptions.OptionException(self)
 
     def required(self: 'Option[bool]', f: _CallableT) -> _CallableT:
         """A decorator used to make sure the function decorated is only called
@@ -357,7 +355,7 @@ class Opt:
 
     @classmethod
     def get_frontend_opts(cls) -> FrontendOptsAsJSON:
-        lookup = models.SiteSetting.get_options(cls._FRONTEND_OPTS)
+        lookup: t.Any = models.SiteSetting.get_options(cls._FRONTEND_OPTS)
         return {
             'AUTO_TEST_MAX_TIME_COMMAND':
                 lookup[cls.AUTO_TEST_MAX_TIME_COMMAND],
@@ -438,7 +436,7 @@ class Opt:
 
     @classmethod
     def get_all_opts(cls) -> AllOptsAsJSON:
-        lookup = models.SiteSetting.get_options(cls._ALL_OPTS)
+        lookup: t.Any = models.SiteSetting.get_options(cls._ALL_OPTS)
         return {
             'AUTO_TEST_MAX_TIME_COMMAND':
                 lookup[cls.AUTO_TEST_MAX_TIME_COMMAND],

@@ -950,3 +950,8 @@ export function ifOrEmpty<T extends VNode>(cond: boolean, then: () => T): T | Em
 export function getExternalUrl(): string {
     return window.location.origin;
 }
+
+
+export function getProxyBaseDomain(): string {
+    return `proxy.${window.location.host}`;
+}

@@ -98,9 +98,6 @@ module.exports = {
         // https://github.com/typescript-eslint/typescript-eslint/pull/1684
         // 'lines-between-class-members': 'off',
         // '@typescript-eslint/lines-between-class-members': ['error', 'always'],
-        "import/no-unresolved": [
-            2, { ignore: ['userConfig$']},
-        ],
 
 
         'prettier-vue/prettier': ['error', {
@@ -122,7 +119,6 @@ module.exports = {
         ],
     },
     globals: {
-        'UserConfig': true,
         'AutoTestBaseSystems': true,
     },
 }

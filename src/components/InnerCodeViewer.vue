@@ -45,7 +45,7 @@
             :class="{
                 'normal-cursor': hasFeedback(i - 1),
                 'hover': canGiveFeedback && !hasFeedback(i - 1),
-                'linter-feedback-outer': $userConfig.features.linters && linterFeedback[i - 1 + lineFeedbackOffset],
+                'linter-feedback-outer': hasLinterFeedback(i - 1),
                 'pb-1': hasFeedback(i - 1),
             }"
             :data-line="i">
@@ -68,8 +68,9 @@
                 </span>
             </span>
 
-            <linter-feedback-area :feedback="linterFeedback[i - 1]"
-                                  v-if="$userConfig.features.linters && linterFeedback[i - 1] != null"/>
+            <linter-feedback-area
+                :feedback="linterFeedback[i - 1 + lineFeedbackOffset]"
+                v-if="hasLinterFeedback(i - 1)"/>
 
             <feedback-area
                 class="border-top border-bottom py-2 px-3 mt-1"
@@ -193,10 +194,6 @@ export default {
             type: String,
             default: 'File is empty.',
         },
-        maxLines: {
-            type: Number,
-            default: UserConfig.maxLines,
-        },
         nonEditable: {
             type: Boolean,
             default: false,
@@ -250,6 +247,8 @@ export default {
         }),
 
         ...mapGetters('pref', ['fontSize']),
+
+        ...mapGetters('siteSettings', ['getSetting']),
 
         computedStartLine() {
             return Math.max(this.startLine + 1, 1);
@@ -316,6 +315,10 @@ export default {
             return this.noLineNumbers
                 ? 0
                 : `${3 + Math.log10(this.innerCodeLines.length) * 2 / 3}em`;
+        },
+
+        maxLines() {
+            return this.getSetting('MAX_LINES');
         },
     },
 
@@ -431,6 +434,10 @@ export default {
                 this.showFeedback &&
                 this.$utils.getProps(this.feedback, null, i + this.lineFeedbackOffset) != null
             );
+        },
+
+        hasLinterFeedback(i) {
+            return this.getSetting('LINTERS_ENABLED') && this.linterFeedback[i + this.lineFeedbackOffset];
         },
     },
 };

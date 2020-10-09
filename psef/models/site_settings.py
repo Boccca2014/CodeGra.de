@@ -114,6 +114,6 @@ class _SiteSettingHistory(Base, TimestampMixin, IdMixin):
         super().__init__(
             _setting=setting,
             _setting_name=setting.name,
-            _new_value=setting.get_value(),
+            _new_value=setting.get_value().or_default(None),
             _old_value=old_value,
         )

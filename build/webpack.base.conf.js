@@ -65,6 +65,9 @@ module.exports = {
             loader: 'babel-loader',
           },
           {
+            loader: 'vue-jsx-hot-loader',
+          },
+          {
             loader: "ts-loader",
             options: {
               appendTsSuffixTo: [/\.vue$/],
@@ -120,8 +123,5 @@ const userConfig = Object.freeze(<const>${JSON.stringify(userConfig)});
 export default userConfig;
 `,
     }),
-      new webpack.ProvidePlugin({
-          'UserConfig': [resolve('src/userConfig.ts'), 'default'],
-      }),
   ],
 }

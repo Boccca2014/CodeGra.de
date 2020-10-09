@@ -34,7 +34,8 @@
       "can_manage_site_users",
       "can_impersonate_users",
       "can_manage_lti_providers",
-      "can_manage_sso_providers"
+      "can_manage_sso_providers",
+      "can_manage_site_settings"
     ]
   }
 }

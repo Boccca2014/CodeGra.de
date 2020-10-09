@@ -21,4 +21,18 @@ def get_site_settings(
 
     .. :quickref: Site settings; Get the site settings for this instance.
     """
-    return JSONResponse.make(site_settings.Opt.get_frontend_opts())
+    return JSONResponse.make(site_settings.Opt.get_all_opts())
+
+
+@api.route('/site_settings/', methods=['GET'])
+@rqa.swaggerize('get_all')
+def update_site_settings(
+) -> t.Union[JSONResponse[site_settings.Opt.AllOptsAsJSON],
+             JSONResponse[site_settings.Opt.FrontendOptsAsJSON],
+             ]:
+    """Get the settings for this CodeGrade instance.
+
+    .. :quickref: Site settings; Get the site settings for this instance.
+    """
+    data = rqa.BaseFixedMapping.from_typeddict(site_settings.Opt.AllOptsAsJSON)
+    return JSONResponse.make(site_settings.Opt.get_all_opts())

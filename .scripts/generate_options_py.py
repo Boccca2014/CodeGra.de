@@ -76,8 +76,8 @@ class Option(t.Generic[_T]):
         :returns: Nothing.
         """
         if not self.value:
-            logger.warning('Tried to use disabled feature', feature=feature.name)
-            raise exceptions.OptionException(feature)
+            logger.warning('Tried to use disabled feature', feature=self.name)
+            raise exceptions.OptionException(self)
 
     def required(self: 'Option[bool]', f: _CallableT) -> _CallableT:
         """A decorator used to make sure the function decorated is only called
@@ -222,7 +222,7 @@ def main():
         f.write('    @classmethod\n')
         f.write('    def get_frontend_opts(cls) -> FrontendOptsAsJSON:\n')
         f.write(
-            '        lookup = models.SiteSetting.get_options(cls._FRONTEND_OPTS)\n'
+            '        lookup: t.Any = models.SiteSetting.get_options(cls._FRONTEND_OPTS)\n'
         )
         f.write('        return {\n')
         for tag, *_ in all_opts:
@@ -246,7 +246,7 @@ def main():
         f.write('    @classmethod\n')
         f.write('    def get_all_opts(cls) -> AllOptsAsJSON:\n')
         f.write(
-            '        lookup = models.SiteSetting.get_options(cls._ALL_OPTS)\n'
+            '        lookup: t.Any = models.SiteSetting.get_options(cls._ALL_OPTS)\n'
         )
         f.write('        return {\n')
         for tag, *_ in all_opts:

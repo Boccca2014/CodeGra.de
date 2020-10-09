@@ -3,6 +3,8 @@ import * as Sentry from '@sentry/browser';
 import { Vue as VueIntegration } from '@sentry/integrations';
 import Vue from 'vue';
 
+import UserConfig from '@/userConfig';
+
 // Some users might want to block sentry which should be just fine.
 if (UserConfig.sentryDsn && Sentry) {
     Sentry.init({
@@ -392,7 +394,10 @@ Promise.all([
 
         methods: {
             async _loadNotifications() {
-                let sleepTime = UserConfig.notificationPollTime;
+                // The config variable is in seconds but we need to pass ms to
+                // `setTimeout`.
+                let mult = 1000;
+
                 try {
                     if (this.$store.getters['user/loggedIn']) {
                         if (this.$loadFullNotifications) {
@@ -404,12 +409,12 @@ Promise.all([
                 } catch (e) {
                     // eslint-disable-next-line
                     console.log('Loading notifications went wrong', e);
-                    sleepTime += sleepTime;
+                    mult *= 2;
                 }
 
                 setTimeout(() => {
                     this._loadNotifications();
-                }, sleepTime);
+                }, mult * this.$store.getters['siteSettings/getSetting']('NOTIFICATION_POLL_TIME'));
             },
 
             notLoggedInError(message) {

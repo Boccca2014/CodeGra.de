@@ -1,6 +1,7 @@
 /* SPDX-License-Identifier: AGPL-3.0-only */
 // @ts-nocheck
 
+export { default as CgError } from './Error';
 export { default as RelativeTime } from './RelativeTime';
 export { default as AssignmentDate } from './AssignmentDate';
 export { default as AssignmentName } from './AssignmentName';
@@ -68,6 +69,7 @@ export { default as CategorySelector } from './CategorySelector';
 export { default as GroupSetManager } from './GroupSetManager';
 export { default as IpythonViewer } from './IPythonViewer';
 export { default as MarkdownViewer } from './MarkdownViewer';
+export { default as InnerMarkdownViewer } from './InnerMarkdownViewer';
 export { default as DatetimePicker } from './DatetimePicker';
 export { default as AutoTest } from './AutoTest';
 export { default as Collapse } from './Collapse';
@@ -86,3 +88,5 @@ export { default as PeerFeedbackSettings } from './PeerFeedbackSettings';
 export { default as PeerFeedbackOverview } from './PeerFeedbackOverview';
 export { default as PeerFeedbackByUser } from './PeerFeedbackByUser';
 export { default as SsoProviders } from './SsoProviders';
+export { default as NumberInput } from './NumberInput';
+export { default as SiteSettingsEditor } from './SiteSettingsEditor';

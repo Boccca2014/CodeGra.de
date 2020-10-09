@@ -311,7 +311,7 @@ export default class MoodleSetup extends Vue {
             this.$utils.buildUrl(
                 ['api', 'v1', 'lti1.3', 'launch_to_latest_submission', this.ltiProvider.id],
                 {
-                    baseUrl: this.$userConfig.externalUrl,
+                    baseUrl: this.$utils.getExternalUrl(),
                 },
             ),
         ];
@@ -321,7 +321,7 @@ export default class MoodleSetup extends Vue {
         return this.$utils.buildUrl(
             ['api', 'v1', 'lti1.3', 'launch', this.ltiProvider.id],
             {
-                baseUrl: this.$userConfig.externalUrl,
+                baseUrl: this.$utils.getExternalUrl(),
             },
         );
     }
@@ -330,7 +330,7 @@ export default class MoodleSetup extends Vue {
         return this.$utils.buildUrl(
             ['api', 'v1', 'lti1.3', 'login', this.ltiProvider.id],
             {
-                baseUrl: this.$userConfig.externalUrl,
+                baseUrl: this.$utils.getExternalUrl(),
             },
         );
     }
@@ -339,7 +339,7 @@ export default class MoodleSetup extends Vue {
         return this.$utils.buildUrl(
             ['static', 'favicon', 'android-chrome-512x512.png'],
             {
-                baseUrl: this.$userConfig.externalUrl,
+                baseUrl: this.$utils.getExternalUrl(),
             },
         );
     }

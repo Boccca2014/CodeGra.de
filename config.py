@@ -62,8 +62,6 @@ AutoTestHosts = t.Mapping[str, AutoTestConfig]
 
 FlaskConfig = TypedDict(
     'FlaskConfig', {
-        'FEATURES': t.Mapping['psef.features.Feature', bool],
-        '__S_FEATURES': t.Mapping[str, bool],
         'IS_AUTO_TEST_RUNNER': bool,
         'AUTO_TEST_PASSWORD': str,
         'AUTO_TEST_DISABLE_ORIGIN_CHECK': bool,

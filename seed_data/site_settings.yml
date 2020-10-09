@@ -261,7 +261,7 @@
   doc: Should it be possible to email students.
 
 - tag: PEER_FEEDBACK_ENABLED
-  group: features
+  group: Features
   type: boolean
   default: false
   frontend: true

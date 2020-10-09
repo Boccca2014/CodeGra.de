@@ -27,13 +27,13 @@ export default {
     data() {
         return {
             showModal: false,
-            email: UserConfig.email,
-            version: UserConfig.release.version,
+            version: this.$userConfig.release.version,
         };
     },
 
     computed: {
         ...mapGetters('assignments', ['getAssignment']),
+        ...mapGetters('siteSettings', ['getSetting']),
 
         isStudent() {
             const assigId = this.$route.params.assignmentId;
@@ -49,6 +49,10 @@ export default {
             } else {
                 return `https://docs.codegra.de/?v=${this.version}`;
             }
+        },
+
+        email() {
+            return this.getSetting('EMAIL');
         },
     },
 

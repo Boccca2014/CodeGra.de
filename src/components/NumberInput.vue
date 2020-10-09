@@ -5,11 +5,12 @@
        @keydown.up="incValue"
        class="number-input form-control"
        :name="name"
-       type="tel"/>
+       :type="type"/>
 </template>
 
 <script lang="ts">
 import { Vue, Component, Prop, Watch } from 'vue-property-decorator';
+import * as tsx from 'vue-tsx-support';
 
 import { Either, Left, Right, Maybe, Nothing } from '@/utils';
 
@@ -21,6 +22,8 @@ export function numberInputValue(x: number | null) {
 
 @Component
 export default class NumberInput extends Vue {
+    _tsx!: tsx.DeclareProps<Pick<NumberInput, any>>;
+
     @Prop({ required: true })
     value!: NumberInputValue;
 
