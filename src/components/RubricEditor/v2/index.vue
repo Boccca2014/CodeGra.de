@@ -166,6 +166,7 @@
                                     class="flex-grow-0">
                                     <cg-submit-button
                                         v-b-popover.top.hover="'Duplicate category'"
+                                        class="duplicate-category"
                                         :submit="() => duplicateRow(i)">
                                         <fa-icon name="copy" />
                                     </cg-submit-button>

@@ -509,6 +509,35 @@ context('Rubric Editor', () => {
             });
         });
 
+        it('should be possible to duplicate a normal rubric row', () => {
+            function performCheck() {
+                cy.get(`
+                    .rubric-editor .category-item:nth(1),
+                    .rubric-editor .category-item:nth(2)
+                `).each($cat => {
+                    cy.wrap($cat).within(() => {
+                        cy.get('.card-header')
+                            .should('contain', 'rubric row 1');
+                        cy.get('.rubric-item:first input.points')
+                            .should('have.value', '0');
+                        cy.get('.rubric-item:not(.add-button):last input.points')
+                            .should('have.value', '3');
+                    });
+                });
+            }
+
+            getRow('rubric row 1').within(() => {
+                cy.get('.submit-button.duplicate-category')
+                    .submit('success');
+            });
+
+            performCheck();
+            submit('success');
+            performCheck();
+            loadPage(true);
+            performCheck();
+        });
+
         it('should be possible to add a continuous rubric row', () => {
             addContinuousRow('Continuous Row', 'Description', 10);
             submit('success');
@@ -549,6 +578,33 @@ context('Rubric Editor', () => {
             loadPage(true);
 
             getRow('Continuous Row').should('exist');
+        });
+
+        it('should be possible to duplicate a continuous rubric row', () => {
+            function performCheck() {
+                cy.get(`
+                    .rubric-editor .category-item:nth(2),
+                    .rubric-editor .category-item:nth(3)
+                `).each($cat => {
+                    cy.wrap($cat).within(() => {
+                        cy.get('.card-header')
+                            .should('contain', 'rubric row 2');
+                        cy.get('input.points')
+                            .should('have.value', '2');
+                    });
+                });
+            }
+
+            getRow('rubric row 2').within(() => {
+                cy.get('.submit-button.duplicate-category')
+                    .submit('success');
+            });
+
+            performCheck();
+            submit('success');
+            performCheck();
+            loadPage(true);
+            performCheck();
         });
 
         it('should be possible to reorder rows', () => {
