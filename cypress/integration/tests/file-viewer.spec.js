@@ -113,6 +113,9 @@ context('FileViewer', () => {
                 // The feedback area should now be scrollable.
                 cy.get('.file-viewer .row.Pane:last-child')
                     .shouldBeScrollable('y');
+
+                cy.get('.file-viewer .submit-button[name="delete-feedback"]')
+                    .submit('success', { hasConfirm: true, waitForDefault: false });
             });
         });
     });
