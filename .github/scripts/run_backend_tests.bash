@@ -43,7 +43,10 @@ if [[ "$RUN_AT_ONLY" = "yes" ]]; then
             --postgresql="GENERATE" \
             --cov-report term-missing \
             "$(pwd)/psef_test/test_auto_test.py" \
-            -vvvv
+            -vvvv | while read -r line; do
+                        # Prefix timestamp to see which test takes so long
+                        printf '%s %s\n' "$(date '+[%T]')" "$line"
+                    done
     exit "$?"
 else
     rm "$(pwd)/psef_test/test_auto_test.py"
