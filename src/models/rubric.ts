@@ -608,11 +608,7 @@ type RubricServerData = RubricRowServerData[];
 
 export class Rubric<T extends number | undefined | null> {
     static fromServerData(data: RubricServerData) {
-        const rows = (data || []).map(row => {
-            row.items.sort((x, y) => x.points - y.points);
-            return RubricRow.fromServerData(row);
-        });
-
+        const rows = Rubric.normalizeServerData(data).map(RubricRow.fromServerData);
         return new Rubric(rows);
     }
 
@@ -624,9 +620,17 @@ export class Rubric<T extends number | undefined | null> {
         // tracking ids of the rubric rows will change, defeating the point of
         // the tracking ids.
 
-        const rows = this.rows.map((row, i) => row.updateFromServerData(data[i]));
+        const norm = Rubric.normalizeServerData(data);
+        const rows = this.rows.map((row, i) => row.updateFromServerData(norm[i]));
 
         return new Rubric<number>(rows);
+    }
+
+    private static normalizeServerData(data: RubricServerData): RubricServerData {
+        return (data || []).map(row => {
+            row.items.sort((x, y) => x.points - y.points);
+            return row;
+        });
     }
 
     @nonenumerable

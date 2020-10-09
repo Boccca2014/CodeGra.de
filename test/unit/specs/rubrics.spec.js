@@ -64,9 +64,9 @@ describe('The rubric store', () => {
                 description: 'row 1',
                 description_type: 'markdown',
                 items: [
+                    { id: 5, points: 16, header: 'item 2', description: '' },
                     { id: 3, points: 4,  header: 'item 0', description: '' },
                     { id: 4, points: 8,  header: 'item 1', description: '' },
-                    { id: 5, points: 16, header: 'item 2', description: '' },
                 ],
             },
         ];
