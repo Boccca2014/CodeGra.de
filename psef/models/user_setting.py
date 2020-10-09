@@ -19,6 +19,7 @@ from cg_sqlalchemy_helpers.types import ColumnProxy
 from cg_sqlalchemy_helpers.mixins import IdMixin, TimestampMixin
 
 from . import Base, User, db
+from .. import site_settings
 from ..auth import (
     APICodes, PermissionException, NotificationPermissions, as_current_user
 )
@@ -70,7 +71,7 @@ class SettingBase(TimestampMixin, IdMixin):
         :returns: The user for which this token can change settings.
         """
         try:
-            max_age = psef.models.AdminSetting.get_option('SETTING_TOKEN_TIME')
+            max_age = site_settings.Opt.SETTING_TOKEN_TIME.value
             secret = psef.current_app.config['SECRET_KEY']
             user_id: int = URLSafeTimedSerializer(
                 secret, salt=cls._get_salt()

@@ -354,10 +354,13 @@ class OpenAPISchema:
 
             if base_as_json is None:
                 result = {
-                    'type': 'object', 'properties': properties, 'required': [
+                    'type': 'object',
+                    'properties': properties,
+                    'required': [
                         p for p in typ.__annotations__.keys()
                         if p in typ.__required_keys__
-                    ], 'description': self.make_comment(typ.__doc__ or '')
+                    ],
+                    'description': self.make_comment(typ.__doc__ or ''),
                 }
                 if not result['required']:
                     result.pop('required')
@@ -386,8 +389,9 @@ class OpenAPISchema:
         elif isinstance(_typ, EnumMeta):
             enum: t.Type[Enum] = _typ
             result = {
-                'type': 'string', 'enum': [e.name for e in enum],
-                'description': self.make_comment(enum.__doc__ or '')
+                'type': 'string',
+                'enum': [e.name for e in enum],
+                'description': self.make_comment(enum.__doc__ or ''),
             }
         else:
             raise AssertionError('Cannot make scheme for {}'.format(_typ))
@@ -545,10 +549,17 @@ class OpenAPISchema:
                     'type': 'string',
                     'enum': list(typ.__args__),
                 }
+            elif str(typ).startswith('<function NewType.<locals>.new_type'):
+                return self._typ_to_schema(
+                    typ.__supertype__,
+                    do_extended=do_extended,
+                    inline=inline,
+                    done=done,
+                )
             else:
                 raise AssertionError(
-                    'Unknown type found: {} (path: {})'.format(
-                        typ, '.'.join(map(str, done.keys()))
+                    'Unknown type found: {} (origin: {}) (path: {})'.format(
+                        typ, origin, '.'.join(map(str, done.keys()))
                     )
                 )
         finally:

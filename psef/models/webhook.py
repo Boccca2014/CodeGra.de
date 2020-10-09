@@ -22,7 +22,7 @@ from cg_sqlalchemy_helpers.mixins import UUIDMixin, TimestampMixin
 
 from . import Base, User, db
 from . import assignment as assignment_models
-from .. import auth, exceptions
+from .. import auth, exceptions, site_settings
 from ..registry import webhook_handlers
 from ..exceptions import APICodes, APIException
 
@@ -98,7 +98,7 @@ class WebhookBase(Base, UUIDMixin, TimestampMixin):
         super().__init__()
         self.assignment_id = assignment_id
         self.user_id = user_id
-        self._ssh_username = psef.models.AdminSetting.get_option('SITE_EMAIL')
+        self._ssh_username = site_settings.Opt.SITE_EMAIL.value
 
         key = rsa.generate_private_key(
             public_exponent=65537,

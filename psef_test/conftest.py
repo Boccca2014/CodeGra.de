@@ -148,10 +148,8 @@ def make_app_settings(request):
             pdb, _ = get_database_name(request)
 
             settings_override['SQLALCHEMY_DATABASE_URI'] = pdb
-            settings_override['_USING_SQLITE'] = False
         else:
             settings_override['SQLALCHEMY_DATABASE_URI'] = TEST_DATABASE_URI
-            settings_override['_USING_SQLITE'] = True
 
         return settings_override
 

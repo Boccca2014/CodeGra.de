@@ -15,14 +15,13 @@ from flask import request, send_file, make_response
 from werkzeug.wrappers import Response
 
 from . import api
-from .. import app, files, tasks, models, helpers, auto_test
+from .. import app, files, tasks, models, helpers, auto_test, site_settings
 from ..models import db
 from ..helpers import (
     JSONResponse, EmptyResponse, jsonify, get_or_404, ensure_json_dict,
     request_arg_true, make_empty_response, filter_single_or_404,
     get_from_map_transaction, get_json_dict_from_request
 )
-from ..features import Feature, feature_required
 from ..exceptions import APICodes, APIException, PermissionException
 
 logger = structlog.get_logger()
@@ -94,7 +93,7 @@ def _verify_global_header_password() -> LocalRunner:
 
 
 @api.route('/auto_tests/', methods=['GET'])
-@feature_required(Feature.AUTO_TEST)
+@site_settings.Opt.AUTO_TEST_ENABLED.required
 def get_auto_test_status(
 ) -> t.Union[JSONResponse[auto_test.RunnerInstructions], EmptyResponse]:
     """Request an AutoTest to run.
@@ -145,7 +144,7 @@ def get_auto_test_status(
 @api.route(
     '/auto_tests/<int:auto_test_id>/runs/<int:run_id>', methods=['PATCH']
 )
-@feature_required(Feature.AUTO_TEST)
+@site_settings.Opt.AUTO_TEST_ENABLED.required
 def update_run(auto_test_id: int, run_id: int) -> EmptyResponse:
     """Update the state of the given run.
 
@@ -186,7 +185,7 @@ def update_run(auto_test_id: int, run_id: int) -> EmptyResponse:
 @api.route(
     '/auto_tests/<int:auto_test_id>/results/<int:result_id>', methods=['GET']
 )
-@feature_required(Feature.AUTO_TEST)
+@site_settings.Opt.AUTO_TEST_ENABLED.required
 def get_result_data(auto_test_id: int,
                     result_id: int) -> t.Union[Response, EmptyResponse]:
     """Get the submission files for the given result_id.
@@ -256,7 +255,7 @@ def post_heartbeat(auto_test_id: int, run_id: int) -> EmptyResponse:
     '/auto_tests/<int:auto_test_id>/fixtures/<int:fixture_id>',
     methods=['GET']
 )
-@feature_required(Feature.AUTO_TEST)
+@site_settings.Opt.AUTO_TEST_ENABLED.required
 def get_fixture(
     auto_test_id: int, fixture_id: int
 ) -> werkzeug.wrappers.Response:
@@ -295,7 +294,7 @@ def get_fixture(
     '/auto_tests/<int:auto_test_id>/results/<int:result_id>',
     methods=['PATCH']
 )
-@feature_required(Feature.AUTO_TEST)
+@site_settings.Opt.AUTO_TEST_ENABLED.required
 def update_result(auto_test_id: int,
                   result_id: int) -> JSONResponse[t.Dict[str, bool]]:
     """Update the the state of a result.
@@ -368,7 +367,7 @@ def update_result(auto_test_id: int,
     '/auto_tests/<int:auto_test_id>/results/<int:result_id>/step_results/',
     methods=['PUT']
 )
-@feature_required(Feature.AUTO_TEST)
+@site_settings.Opt.AUTO_TEST_ENABLED.required
 def update_step_result(auto_test_id: int, result_id: int
                        ) -> JSONResponse[models.AutoTestStepResult]:
     """Update the result of a single step.
@@ -481,7 +480,7 @@ def get_extra_results_to_process(
     ),
     methods=['POST']
 )
-@feature_required(Feature.AUTO_TEST)
+@site_settings.Opt.AUTO_TEST_ENABLED.required
 def upload_output_files(
     auto_test_id: int, result_id: int, suite_id: int
 ) -> EmptyResponse:

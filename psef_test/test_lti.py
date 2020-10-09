@@ -716,9 +716,6 @@ def test_lti_grade_passback_blackboard(
             last_xml = body.decode('utf-8')
             return '', SUCCESS_XML
 
-    if patch:
-        monkeypatch.setitem(app.config, '_USING_SQLITE', True)
-
     patch_request = Patch()
     monkeypatch.setattr(oauth2.Client, 'request', patch_request)
 
@@ -1696,9 +1693,6 @@ def test_lti_grade_passback_moodle(
             last_xml = body.decode('utf-8')
             return '', SUCCESS_XML
 
-    if patch:
-        monkeypatch.setitem(app.config, '_USING_SQLITE', True)
-
     patch_request = Patch()
     monkeypatch.setattr(oauth2.Client, 'request', patch_request)
 
@@ -1868,9 +1862,6 @@ def test_lti_grade_passback_brightspace(
             assert isinstance(body, bytes)
             last_xml = body.decode('utf-8')
             return '', SUCCESS_XML
-
-    if patch:
-        monkeypatch.setitem(app.config, '_USING_SQLITE', True)
 
     patch_request = Patch()
     monkeypatch.setattr(oauth2.Client, 'request', patch_request)

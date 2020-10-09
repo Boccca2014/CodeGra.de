@@ -10,7 +10,7 @@ import typing as t
 from sqlalchemy.orm import joinedload
 
 from . import api
-from .. import auth, models, helpers, features
+from .. import auth, models, helpers, site_settings
 from ..models import db
 from ..helpers import (
     JSONResponse, EmptyResponse, ExtendedJSONResponse, jsonify,
@@ -19,7 +19,7 @@ from ..helpers import (
 
 
 @api.route('/linters/<linter_id>', methods=['DELETE'])
-@features.feature_required(features.Feature.LINTERS)
+@site_settings.Opt.LINTERS_ENABLED.required
 def delete_linter_output(linter_id: str) -> EmptyResponse:
     """Delete the all the output created by the
     :class:`.models.AssignmentLinter` with the given id.
@@ -51,7 +51,7 @@ def delete_linter_output(linter_id: str) -> EmptyResponse:
 
 
 @api.route('/linters/<linter_id>', methods=['GET'])
-@features.feature_required(features.Feature.LINTERS)
+@site_settings.Opt.LINTERS_ENABLED.required
 def get_linter_state(linter_id: str) -> t.Union[ExtendedJSONResponse[
     models.AssignmentLinter], JSONResponse[models.AssignmentLinter]]:
     """Get the state of the :class:`.models.AssignmentLinter` with the given
@@ -97,7 +97,7 @@ def get_linter_state(linter_id: str) -> t.Union[ExtendedJSONResponse[
     '/linters/<linter_id>/linter_instances/<linter_instance_id>',
     methods=['GET']
 )
-@features.feature_required(features.Feature.LINTERS)
+@site_settings.Opt.LINTERS_ENABLED.required
 def get_linter_instance_state(linter_id: str, linter_instance_id: str
                               ) -> ExtendedJSONResponse[models.LinterInstance]:
     """Get the state of the :class:`.models.AssignmentLinter` with the given

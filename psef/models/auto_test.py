@@ -28,11 +28,11 @@ from . import work as work_models
 from . import auto_test_step as auto_test_step_models
 from .. import auth, signals
 from .. import auto_test as auto_test_module
+from .. import site_settings
 from ..helpers import NotEqualMixin
 from ..registry import auto_test_handlers, auto_test_grade_calculators
 from ..exceptions import APICodes, APIException, InvalidStateException
 from ..permissions import CoursePermission as CPerm
-from .admin_settings import AdminSetting
 
 logger = structlog.get_logger()
 
@@ -144,7 +144,8 @@ class AutoTestSuite(Base, TimestampMixin, IdMixin):
 
     def set_steps(
         self,
-        steps: t.List['auto_test_step_models.AutoTestStepBase.InputAsJSON'],
+        steps: t.Sequence['auto_test_step_models.AutoTestStepBase.InputAsJSON',
+                          ],
     ) -> None:
         """Set the steps of this suite.
 
@@ -944,7 +945,7 @@ class AutoTestRun(Base, TimestampMixin, IdMixin):
         """Get the amount of runners this run needs.
         """
         amount_not_done = self.get_results_to_run().count()
-        max_per = AdminSetting.get_option('AUTO_TEST_MAX_JOBS_PER_RUNNER')
+        max_per = site_settings.Opt.AUTO_TEST_MAX_JOBS_PER_RUNNER.value
         return math.ceil(amount_not_done / max_per)
 
     @classmethod
@@ -979,7 +980,7 @@ class AutoTestRun(Base, TimestampMixin, IdMixin):
                 amount_runners == 0,
                 (
                     amount_results / amount_runners >
-                    AdminSetting.get_option('AUTO_TEST_MAX_JOBS_PER_RUNNER')
+                    site_settings.Opt.AUTO_TEST_MAX_JOBS_PER_RUNNER.value
                 ),
             )
         ).group_by(cls.id).order_by(
@@ -1059,9 +1060,8 @@ class AutoTestRun(Base, TimestampMixin, IdMixin):
         """Get the instructions to run this AutoTestRun.
         """
         results = self.get_results_to_run().all()
-        heartbeat_interval = round(
-            AdminSetting.get_option('AUTO_TEST_HEARTBEAT_INTERVAL'
-                                    ).total_seconds()
+        heartbeat_interval = (
+            site_settings.Opt.AUTO_TEST_HEARTBEAT_INTERVAL.value
         )
 
         return {
@@ -1075,7 +1075,7 @@ class AutoTestRun(Base, TimestampMixin, IdMixin):
             'sets': [s.get_instructions(self) for s in self.auto_test.sets],
             'fixtures': [(f.name, f.id) for f in self.auto_test.fixtures],
             'setup_script': self.auto_test.setup_script,
-            'heartbeat_interval': heartbeat_interval,
+            'heartbeat_interval': round(heartbeat_interval.total_seconds()),
             'run_setup_script': self.auto_test.run_setup_script,
             # TODO: Set this in a more intelligent way
             'poll_after_done': True,

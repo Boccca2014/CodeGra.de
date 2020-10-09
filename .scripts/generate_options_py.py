@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 import os
 import typing as t
 import datetime
@@ -10,103 +11,102 @@ T = t.TypeVar('T')
 
 CUR_DIR = os.path.dirname(__file__)
 
-PARSERS = """
-def parse_integer(value: str) -> int:
-    return int(value)
+PREAMBLE = '''
+"""This module defines all site settings used.
 
+.. note:
 
-def parse_string(value: str) -> str:
-    assert value, 'The value should not be empty'
-    return value
+    This module is automatically generated, don't edit manually.
 
-
-def parse_timedelta(value: str) -> datetime.timedelta:
-    number, opt = int(value[:-1]), value[-1]
-    if opt == 's':
-        return datetime.timedelta(seconds=number)
-    elif opt == 'm':
-        return datetime.timedelta(minutes=number)
-    elif opt == 'h':
-        return datetime.timedelta(hours=number)
-    elif opt == 'd':
-        return datetime.timedelta(days=number)
-    raise AssertionError('Unknown prefix: {}'.format(opt))
-
-_KB = 1 << 10
-_MB = _KB << 10
-_GB = _MB << 10
-
-def parse_size(value: str) -> int:
-    number, unit = int(value[:-2]), value[-2:]
-    if unit == 'kb':
-        return number * _KB
-    elif unit == 'mb':
-        return number * _MB
-    elif unit == 'gb':
-        return number * _GB
-    else:
-        raise AssertionError('Unknown limit encountered: {}'.format(unit))
-
-
-def parse_array(parse_item: t.Callable[[str], '_T']
-               ) -> '_Parser[t.Any]':
-
-    def __inner(value: str) -> t.Sequence['_T']:
-        res = tuple(parse_item(item.strip()) for item in value.split(','))
-        assert res, 'The list should at least have one item'
-        return res
-
-    return __inner
+SPDX-License-Identifier: AGPL-3.0-only
 """
-
-# The functions are also needed to parse the default values
-exec(PARSERS)
-
-PREAMBLE = f"""
 import typing as t
-import datetime
-from typing_extensions import Literal, Protocol
+from typing_extensions import Final
 import dataclasses
+import functools
+import datetime
+from typing_extensions import TypedDict
 
-from cg_sqlalchemy_helpers import JSONB
-from cg_sqlalchemy_helpers.mixins import IdMixin, TimestampMixin
-from cg_sqlalchemy_helpers.types import ColumnProxy
-from . import db, Base
-from cg_cache.intra_request import cache_within_request
+import cg_request_args as rqa
+from cg_object_storage.types import FileSize
 
-_T = t.TypeVar('_T', bool, datetime.timedelta, int, str, covariant=True)
-T = t.TypeVar('T', bool, datetime.timedelta, int, t.Sequence[datetime.timedelta], str, covariant=True)
+from . import models, PsefFlask, exceptions
 
+import structlog
+logger = structlog.get_logger()
+
+_T = t.TypeVar('_T')
+_CallableT = t.TypeVar('_CallableT', bound=t.Callable)
 
 @dataclasses.dataclass
 class _OptionCategory:
     name: str
 
 
-# Work around for https://github.com/python/mypy/issues/5485
-class _Parser(Protocol[T]):
-    def __call__(self, value: str) -> T:
-        ...
+@dataclasses.dataclass(frozen=True)
+class Option(t.Generic[_T]):
+    name: str = dataclasses.field(hash=True)
+    default: _T = dataclasses.field(init=False, hash=False)
+    default_obj: dataclasses.InitVar[object]
+    parser: rqa._Parser[_T] = dataclasses.field(hash=False)
+
+    def __post_init__(self, default_obj: object) -> None:
+        default: _T = self.parser.try_parse(default_obj)
+        object.__setattr__(self, 'default', default)
+
+    @property
+    def value(self) -> _T:
+        return models.SiteSetting.get_option(self)
+
+    class AsJSON(TypedDict):
+        name: str
+        default: t.Any
+        value: t.Any
+
+    def __to_json__(self) -> AsJSON:
+        return {
+            'name': self.name,
+            'default': self.default,
+            'value': self.value,
+        }
+
+    def ensure_enabled(self: 'Option[bool]') -> None:
+        """Check if a certain option is enabled.
+
+        :returns: Nothing.
+        """
+        if not self.value:
+            logger.warning('Tried to use disabled feature', feature=feature.name)
+            raise exceptions.OptionException(feature)
+
+    def required(self: 'Option[bool]', f: _CallableT) -> _CallableT:
+        """A decorator used to make sure the function decorated is only called
+        with a certain feature enabled.
+
+        :returns: The value of the decorated function if the given feature is
+            enabled.
+        """
+        @functools.wraps(f)
+        def __decorated_function(*args: t.Any, **kwargs: t.Any) -> t.Any:
+            self.ensure_enabled()
+            return f(*args, **kwargs)
+
+        return t.cast(_CallableT, __decorated_function)
+'''
 
 
-@dataclasses.dataclass
-class _Option(t.Generic[T]):
-    name: str
-    default: T
-    doc: str
-    parser: _Parser[T]
-    security: bool
-    stored_parsed: bool
-    category: t.Optional[_OptionCategory] = None
-
-
-{PARSERS}
-"""
-
+def write_doc(f, doc, indent_num):
+    indent = ' ' * indent_num + '#: '
+    f.write(
+        '\n'.join(
+            textwrap.wrap(doc, 79, initial_indent=indent, subsequent_indent=indent)
+        )
+    )
+    f.write('\n')
 
 def get_options():
     with open(
-        os.path.join(CUR_DIR, '..', 'seed_data', 'admin_settings.yaml'), 'r'
+        os.path.join(CUR_DIR, '..', 'seed_data', 'site_settings.yml'), 'r'
     ) as f:
         return yaml.safe_load(f)
 
@@ -119,110 +119,142 @@ def parse_type(opt):
         is_list = True
         typ = typ[:-2]
 
-    if typ == 'duration':
+    if typ == 'time-delta':
+        parser = 'rqa.RichValue.TimeDelta'
         py_type = 'datetime.timedelta'
-        parser = 'parse_timedelta'
-        can_store = False
-    elif typ == 'size':
-        py_type = 'int'
-        parser =  'parse_size'
-        can_store = True
+    elif typ == 'file-size':
+        parser = 'rqa.RichValue.FileSize'
+        py_type = 'FileSize'
     elif typ == 'integer':
+        parser = 'rqa.SimpleValue.int'
         py_type = 'int'
-        parser =  'parse_integer'
-        can_store = True
     elif typ == 'string':
+        parser = 'rqa.SimpleValue.str'
         py_type = 'str'
-        parser = 'parse_string'
-        can_store = True
+    elif typ == 'boolean':
+        parser = 'rqa.SimpleValue.bool'
+        py_type = 'bool'
     else:
         raise AssertionError(
             'Unknown type encountered at {}: {}'.format(opt['tag'], typ)
         )
 
     if is_list:
-        return f't.Sequence[{py_type}]', f'parse_array({parser})', can_store
-    return py_type, parser, can_store
+        return f'rqa.List({parser})', f't.Sequence[{py_type}]'
+    return parser, py_type
 
 
 def parse_option(opt):
     tag = opt['tag']
     assert isinstance(tag, str)
 
+    parser, py_type = parse_type(opt)
+    default = opt['default']
+
+    frontend = opt.get('frontend', False)
+    assert isinstance(frontend, bool)
+
     doc = opt['doc']
-    assert isinstance(doc, str)
 
-    security = opt.get('security', False)
-    assert isinstance(security, bool)
-
-    py_type, parser, can_store = parse_type(opt)
-    default = eval(parser)(opt['default'])
-
-    return tag, doc, security, py_type, parser, can_store, default
+    return tag, parser, py_type, default, frontend, doc
 
 
 def main():
     options = get_options()
     assert isinstance(options, list)
-    all_tags = []
     all_opts = []
-    for opt in options:
-        tag, doc, security, py_type, parser, can_store, default = parse_option(opt)
-        all_opts.append(
-            f"""
-        _Option(name={tag!r}, doc=({doc!r}), parser={parser}, security={security!r}, default={default!r}, stored_parsed={can_store!r})
-        """.strip()
-        )
-        all_tags.append((tag, py_type))
+    frontend_opts = []
+    seen_tags = set()
 
-    out_file = os.path.join(
-        CUR_DIR, '..', 'psef', 'models', 'admin_settings.py'
-    )
+    for opt in options:
+        tag, parser, py_type, default, frontend, doc = parse_option(opt)
+        assert tag not in seen_tags, f'Duplicate setting found {tag}'
+        seen_tags.add(tag)
+        all_opts.append((
+            tag,
+            f"""
+        Option(name={tag!r}, parser={parser}, default_obj={default!r},)
+        """.strip(),
+            py_type,
+            doc,
+        ))
+        if frontend:
+            frontend_opts.append(tag)
+
+    out_file = os.path.join(CUR_DIR, '..', 'psef', 'site_settings.py')
     with open(out_file, 'w') as f:
         f.write(PREAMBLE)
         f.write('\n')
-        f.write('_ALL_OPTIONS: t.Sequence[_Option] = (\n')
-        for opt in all_opts:
+
+        f.write('class Opt:\n')
+        for tag, opt, *_ in all_opts:
+            f.write('    ')
+            f.write(tag)
+            f.write(': Final = ')
             f.write(opt)
-            f.write(',\n')
-        f.write(')\n\n')
-        f.write('_OPTIONS_LOOKUP = {o.name: o for o in _ALL_OPTIONS}\n')
+            f.write('\n')
 
-        f.write(textwrap.dedent("""
-        class AdminSetting(Base, TimestampMixin):
-            _name = db.Column('name', db.Unicode, nullable=False, primary_key=True)
-            _value: ColumnProxy[t.Any]  = db.Column('value', JSONB, nullable=False)
-        """))
+        f.write('    _FRONTEND_OPTS = [')
+        for tag, *_ in all_opts:
+            if tag in frontend_opts:
+                f.write(tag)
+                f.write(',')
+        f.write(']\n')
 
-        for tag, py_type in all_tags:
-            f.write('    @t.overload\n')
-            f.write('    @classmethod\n')
-            f.write(
-                f'    def get_option(cls, name: Literal[{tag!r}]) -> {py_type}: ...\n'
-            )
+        f.write('    _ALL_OPTS = [')
+        for tag, *_ in all_opts:
+            f.write(tag)
+            f.write(',')
+        f.write(']\n')
 
-        f.write(textwrap.dedent("""
-            @classmethod
-            @cache_within_request
-            def get_option(cls, name: str) -> t.Any:
-                opt = _OPTIONS_LOOKUP[name]
-                self = cls.query.get(name)
-                if self is None:
-                    return opt.default
-                elif opt.stored_parsed:
-                    return self._value
-                return opt.parser(self._value)
+        f.write('    class FrontendOptsAsJSON(TypedDict):\n')
+        f.write('        """The JSON representation of options visible to all users."""\n')
+        for tag, _, py_type, doc in all_opts:
+            if tag not in frontend_opts:
+                continue
+            write_doc(f, doc, 8)
+            f.write('        ')
+            f.write(tag)
+            f.write(': ')
+            f.write(py_type)
+            f.write('\n')
 
-        class AdminSettingHistory(Base, TimestampMixin, IdMixin):
-            setting_name = db.Column(
-                'name',
-                db.Unicode,
-                db.ForeignKey('admin_setting.name'),
-                nullable=False,
-            )
-            old_value = db.Column('old_value', JSONB, nullable=True)
-            new_value = db.Column('new_value', JSONB, nullable=False)
-        """))
+        f.write('    @classmethod\n')
+        f.write('    def get_frontend_opts(cls) -> FrontendOptsAsJSON:\n')
+        f.write(
+            '        lookup = models.SiteSetting.get_options(cls._FRONTEND_OPTS)\n'
+        )
+        f.write('        return {\n')
+        for tag, *_ in all_opts:
+            if tag in frontend_opts:
+                f.write(f"'{tag}': lookup[cls.{tag}],")
+        f.write('}\n')
+
+        f.write('    class AllOptsAsJSON(FrontendOptsAsJSON):\n')
+        f.write('        """The JSON representation of all options."""\n')
+        for tag, _, py_type, doc in all_opts:
+            if tag in frontend_opts:
+                continue
+            write_doc(f, doc, 8)
+            f.write('        ')
+            f.write(tag)
+            f.write(': ')
+            f.write(py_type)
+            f.write('\n')
+        f.write('    AllOptsAsJSON.__cg_extends__ = FrontendOptsAsJSON  # type: ignore\n')
+
+        f.write('    @classmethod\n')
+        f.write('    def get_all_opts(cls) -> AllOptsAsJSON:\n')
+        f.write(
+            '        lookup = models.SiteSetting.get_options(cls._ALL_OPTS)\n'
+        )
+        f.write('        return {\n')
+        for tag, *_ in all_opts:
+            f.write(f"'{tag}': lookup[cls.{tag}],")
+        f.write('}\n')
+
+        f.write('def init_app(app: PsefFlask) -> None:\n')
+        f.write('    pass')
 
     subprocess.run(['isort', out_file])
     subprocess.run(['yapf', '-i', out_file])

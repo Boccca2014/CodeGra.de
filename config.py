@@ -126,7 +126,6 @@ FlaskConfig = TypedDict(
         'ESLINT_PROGRAM': t.List[str],
         'PYLINT_PROGRAM': t.List[str],
         'FLAKE8_PROGRAM': t.List[str],
-        '_USING_SQLITE': str,
         'ADMIN_USER': t.Optional[str],
         'GIT_CLONE_PROGRAM': t.List[str],
         'SESSION_COOKIE_SAMESITE': Literal['None', 'Strict', 'Lax'],
@@ -245,9 +244,6 @@ CONFIG['TESTING'] = False
 set_str(
     CONFIG, backend_ops, 'SQLALCHEMY_DATABASE_URI',
     os.getenv('SQLALCHEMY_DATABASE_URI', 'postgresql:///codegrade_dev')
-)
-CONFIG['_USING_SQLITE'] = CONFIG['SQLALCHEMY_DATABASE_URI'].startswith(
-    'sqlite'
 )
 CONFIG['DATABASE_CONNECT_OPTIONS'] = {}
 

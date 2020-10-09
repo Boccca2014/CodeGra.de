@@ -27,6 +27,7 @@ from werkzeug.datastructures import FileStorage
 import cg_maybe
 from cg_helpers import readable_join
 from cg_dt_utils import DatetimeWithTimezone
+from cg_object_storage.types import FileSize
 
 logger = structlog.get_logger()
 
@@ -666,8 +667,7 @@ class _RichUnion(t.Generic[_T, _Y], _Parser[t.Union[_T, _Y]]):
                     errors=[first_err, second_err]
                 )
 
-
-class List(t.Generic[_T], _Parser[t.List[_T]]):
+class List(t.Generic[_T], _Parser[t.Sequence[_T]]):
     """A parser for a list homogeneous values.
     """
     __slots__ = ('__el_type', )
@@ -1266,6 +1266,42 @@ class RichValue:
             )
 
     TimeDelta = _TimeDelta()
+
+    class _FileSize(_Transform[FileSize, str]):
+        _SIZE_RE = re.compile(r'^(?P<amount>\d+)(?P<unit>(?:k|m|g)?b)$')
+        _KB = 1 << 10
+        _MB = _KB << 10
+        _GB = _MB << 10
+        _SIZE_LOOKUP = {
+            'b': 1,
+            'kb': _KB,
+            'mb': _MB,
+            'gb': _GB,
+        }
+
+        def __init__(self) -> None:
+            super().__init__(
+                SimpleValue.str,
+                self.__to_size,
+                'FileSize',
+            )
+
+        def __to_size(self, value: str) -> FileSize:
+            match = self._SIZE_RE.match(value)
+            if match is None:
+                raise SimpleParseError(self, value)
+            amount = int(match.group('amount'))
+            mult = self._SIZE_LOOKUP[match.group('unit')]
+            return FileSize(mult * amount)
+
+        def _to_open_api(self,
+                         schema: 'OpenAPISchema') -> t.Mapping[str, t.Any]:
+            return {
+                **self._parser.to_open_api(schema),
+                'pattern': r'^\d+(k|m|g)?b$',
+            }
+
+    FileSize = _FileSize()
 
 
 class MultipartUpload(t.Generic[_T]):

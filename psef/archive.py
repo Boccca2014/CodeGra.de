@@ -45,7 +45,7 @@ import structlog
 from cg_maybe import Just, Maybe
 from cg_object_storage import File, Putter, FileSize
 
-from . import app, files, models
+from . import app, files, site_settings
 from .helpers import register, add_warning
 from .exceptions import APIWarnings
 from .extract_tree import ExtractFileTree
@@ -260,7 +260,7 @@ class Archive(t.Generic[TT]):  # pylint: disable=unsubscriptable-object
 
         :returns: The members of the archive.
         """
-        max_amount = models.AdminSetting.get_option('MAX_NUMBER_OF_FILES')
+        max_amount = site_settings.Opt.MAX_NUMBER_OF_FILES.value
         if not self.__max_items_check_done:
             if not self.__archive.has_less_items_than(max_amount):
                 raise UnsafeArchive(

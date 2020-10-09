@@ -33,6 +33,20 @@ class Just(t.Generic[_T]):
         """
         return Just(mapper(self.value))
 
+    def chain(self, chainer: t.Callable[[_T], 'Maybe[_TT]']) -> 'Maybe[_TT]':
+        """Transforms ``this`` with a function that returns a ``Maybe``.
+
+        >>> Just(5).chain(lambda el: Just(el * el))
+        Just(25)
+        >>> Just(5).chain(lambda _: Nothing)
+        Nothing
+        >>> Nothing.chain(lambda el: Just(el * el))
+        Nothing
+        >>> Nothing.chain(lambda _: Nothing)
+        Nothing
+        """
+        return chainer(self.value)
+
     def __repr__(self) -> str:
         return f'Just({self.value})'
 
@@ -59,9 +73,9 @@ class Just(t.Generic[_T]):
         """Get the value from a ``Just``, or return the given a default as
         produced by the given function.
 
-        >>> Just(5).or_default(lambda: [print('call'), 10][-1])
+        >>> Just(5).or_default_lazy(lambda: [print('call'), 10][-1])
         5
-        >>> Nothing.or_default(lambda: [print('call'), 10][-1])
+        >>> Nothing.or_default_lazy(lambda: [print('call'), 10][-1])
         call
         10
         """
@@ -114,6 +128,9 @@ class _Nothing(t.Generic[_T]):
     def map(self, _mapper: t.Callable[[_T], _TT]) -> '_Nothing[_TT]':
         return Nothing
 
+    def chain(self, _chainer: t.Callable[[_T], 'Maybe[_TT]']) -> '_Nothing[_TT]':
+        return Nothing
+
     def alt(self, alternative: 'Maybe[_T]') -> 'Maybe[_T]':
         return alternative
 
@@ -156,3 +173,15 @@ class _Nothing(t.Generic[_T]):
 Nothing: _Nothing[t.Any] = _Nothing()
 
 Maybe = t.Union[Just[_T], _Nothing[_T]]
+
+def from_nullable(val: t.Optional[_T]) -> Maybe[_T]:
+    """Covert a nullable to a maybe.
+
+    >>> from_nullable(5)
+    Just(5)
+    >>> from_nullable(None)
+    Nothing
+    """
+    if val is None:
+        return Nothing
+    return Just(val)

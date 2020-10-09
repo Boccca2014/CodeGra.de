@@ -54,7 +54,7 @@ export default tsx.component({
                     value: this.$utils.buildUrl(
                         ['api', 'v1', 'lti'],
                         {
-                            baseUrl: this.$userConfig.externalUrl,
+                            baseUrl: this.$utils.getExternalUrl(),
                             query: { lms: 'Canvas' },
                             addTrailingSlash: true,
                         },
@@ -69,14 +69,14 @@ export default tsx.component({
         getBrightspaceInfo(): Info[] {
             return [
                 { option: 'Name', value: 'CodeGrade' },
-                { option: 'Launch point', value: this.$userConfig.externalUrl },
+                { option: 'Launch point', value: this.$utils.getExternalUrl() },
                 { option: 'Consumer key', value: this.ltiProvider.lms_consumer_key },
                 { option: 'Shared Secret', value: this.ltiProvider.lms_consumer_secret },
                 {
                     option: 'CodeGrade URL for assignments',
                     value: this.$utils.buildUrl(
                         ['api', 'v1', 'lti', 'launch', '1'],
-                        { baseUrl: this.$userConfig.externalUrl },
+                        { baseUrl: this.$utils.getExternalUrl() },
                     ),
                 },
             ];
@@ -89,7 +89,7 @@ export default tsx.component({
                     option: 'Launch URL',
                     value: this.$utils.buildUrl(
                         ['api', 'v1', 'lti', 'launch', '1'],
-                        { baseUrl: this.$userConfig.externalUrl },
+                        { baseUrl: this.$utils.getExternalUrl() },
                     ),
                 },
                 { option: 'Consumer key (Provider Key)', value: this.ltiProvider.lms_consumer_key },
@@ -98,7 +98,7 @@ export default tsx.component({
                     option: 'Optional icon',
                     value: this.$utils.buildUrl(
                         ['static', 'img', 'blackboard-lti-icon.png'],
-                        { baseUrl: this.$userConfig.externalUrl },
+                        { baseUrl: this.$utils.getExternalUrl() },
                     ),
                 },
             ];
@@ -112,7 +112,7 @@ export default tsx.component({
                     value: this.$utils.buildUrl(
                         ['api', 'v1', 'lti'],
                         {
-                            baseUrl: this.$userConfig.externalUrl,
+                            baseUrl: this.$utils.getExternalUrl(),
                             query: { lms: 'Moodle' },
                             addTrailingSlash: true,
                         },
@@ -124,7 +124,7 @@ export default tsx.component({
                     option: 'Optional icon',
                     value: this.$utils.buildUrl(
                         ['static', 'favicon', 'android-chrome-512x512.png'],
-                        { baseUrl: this.$userConfig.externalUrl },
+                        { baseUrl: this.$utils.getExternalUrl() },
                     ),
                 },
             ];

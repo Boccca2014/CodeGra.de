@@ -31,8 +31,8 @@ from cg_sqlalchemy_helpers import expression as sql_expression
 
 from . import api
 from .. import (
-    auth, tasks, ignore, models, helpers, linters, db_locks, features,
-    registry, plagiarism
+    auth, tasks, ignore, models, helpers, linters, db_locks, registry,
+    plagiarism, site_settings
 )
 from ..permissions import CoursePermission as CPerm
 
@@ -559,7 +559,7 @@ def update_assignment(assignment_id: int) -> JSONResponse[models.Assignment]:
 
 
 @api.route('/assignments/<int:assignment_id>/rubrics/', methods=['GET'])
-@features.feature_required(features.Feature.RUBRICS)
+@site_settings.Opt.RUBRICS_ENABLED.required
 @rqa.swaggerize('get_rubric')
 @auth.login_required
 def get_assignment_rubric(assignment_id: int
@@ -606,7 +606,7 @@ def get_assignment_rubric(assignment_id: int
 
 
 @api.route('/assignments/<int:assignment_id>/rubrics/', methods=['DELETE'])
-@features.feature_required(features.Feature.RUBRICS)
+@site_settings.Opt.RUBRICS_ENABLED.required
 @rqa.swaggerize('delete_rubric')
 @auth.login_required
 def delete_rubric(assignment_id: int) -> EmptyResponse:
@@ -655,7 +655,7 @@ def delete_rubric(assignment_id: int) -> EmptyResponse:
 
 
 @api.route('/assignments/<int:assignment_id>/rubric', methods=['POST'])
-@features.feature_required(features.Feature.RUBRICS)
+@site_settings.Opt.RUBRICS_ENABLED.required
 @rqa.swaggerize('copy_rubric')
 @auth.login_required
 def import_assignment_rubric(assignment_id: int
@@ -713,7 +713,7 @@ def import_assignment_rubric(assignment_id: int
 
 
 @api.route('/assignments/<int:assignment_id>/rubrics/', methods=['PUT'])
-@features.feature_required(features.Feature.RUBRICS)
+@site_settings.Opt.RUBRICS_ENABLED.required
 @rqa.swaggerize('put_rubric')
 @auth.login_required
 def add_assignment_rubric(assignment_id: int
@@ -1412,7 +1412,7 @@ def get_all_works_for_assignment(
 
 
 @api.route("/assignments/<int:assignment_id>/submissions/", methods=['POST'])
-@features.feature_required(features.Feature.BLACKBOARD_ZIP_UPLOAD)
+@site_settings.Opt.BLACKBOARD_ZIP_UPLOAD_ENABLED.required
 def post_submissions(assignment_id: int) -> EmptyResponse:
     """Add submissions to the  given:class:`.models.Assignment` from a
     blackboard zip file as :class:`.models.Work` objects.
@@ -1552,7 +1552,7 @@ def post_submissions(assignment_id: int) -> EmptyResponse:
 
 
 @api.route('/assignments/<int:assignment_id>/linters/', methods=['GET'])
-@features.feature_required(features.Feature.LINTERS)
+@site_settings.Opt.LINTERS_ENABLED.required
 def get_linters(assignment_id: int
                 ) -> JSONResponse[t.Sequence[t.Mapping[str, t.Any]]]:
     """Get all linters for the given :class:`.models.Assignment`.
@@ -1624,7 +1624,7 @@ def get_linters(assignment_id: int
 
 
 @api.route('/assignments/<int:assignment_id>/linter', methods=['POST'])
-@features.feature_required(features.Feature.LINTERS)
+@site_settings.Opt.LINTERS_ENABLED.required
 def start_linting(assignment_id: int) -> JSONResponse[models.AssignmentLinter]:
     """Starts running a specific linter on all the latest submissions
     (:class:`.models.Work`) of the given :class:`.models.Assignment`.
@@ -1873,7 +1873,7 @@ def start_plagiarism_check(
     '/assignments/<int:assignment_id>/groups/<int:group_id>/member_states/',
     methods=['GET']
 )
-@features.feature_required(features.Feature.GROUPS)
+@site_settings.Opt.GROUPS_ENABLED.required
 @auth.login_required
 def get_group_member_states(assignment_id: int, group_id: int
                             ) -> JSONResponse[t.Mapping[int, bool]]:
@@ -1960,7 +1960,7 @@ def get_git_settings(assignment_id: int) -> JSONResponse[models.WebhookBase]:
 @api.route(
     '/assignments/<int:assignment_id>/peer_feedback_settings', methods=['PUT']
 )
-@features.feature_required(features.Feature.PEER_FEEDBACK)
+@site_settings.Opt.PEER_FEEDBACK_ENABLED.required
 @auth.login_required
 def update_peer_feedback_settings(
     assignment_id: int
@@ -2054,7 +2054,7 @@ def update_peer_feedback_settings(
     '/assignments/<int:assignment_id>/peer_feedback_settings',
     methods=['DELETE'],
 )
-@features.feature_required(features.Feature.PEER_FEEDBACK)
+@site_settings.Opt.PEER_FEEDBACK_ENABLED.required
 @auth.login_required
 def delete_peer_feedback_settings(assignment_id: int) -> EmptyResponse:
     """Disabled peer feedback for an assignment.
@@ -2092,7 +2092,7 @@ def delete_peer_feedback_settings(assignment_id: int) -> EmptyResponse:
     '/assignments/<int:assignment_id>/users/<int:user_id>/comments/',
     methods=['GET']
 )
-@features.feature_required(features.Feature.PEER_FEEDBACK)
+@site_settings.Opt.PEER_FEEDBACK_ENABLED.required
 def get_comments_by_user(assignment_id: int, user_id: int
                          ) -> JSONResponse[t.Sequence[models.CommentBase]]:
     """Get all the comments threads that a user replied on.
@@ -2144,7 +2144,7 @@ def get_comments_by_user(assignment_id: int, user_id: int
     ),
     methods=['GET']
 )
-@features.feature_required(features.Feature.PEER_FEEDBACK)
+@site_settings.Opt.PEER_FEEDBACK_ENABLED.required
 def get_peer_feedback_subjects(
     assignment_id: int, user_id: int
 ) -> JSONResponse[t.Sequence[models.AssignmentPeerFeedbackConnection]]:

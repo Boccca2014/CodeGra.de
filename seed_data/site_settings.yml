@@ -1,7 +1,7 @@
 ---
 - tag: AUTO_TEST_MAX_TIME_COMMAND
-  type: duration
-  default: 5m
+  type: time-delta
+  default: PT5M
   frontend: true
   doc:
     The default amount of time a step/substep in AutoTest can run. This can be
@@ -9,8 +9,8 @@
   minimum: 1s
 
 - tag: AUTO_TEST_HEARTBEAT_INTERVAL
-  type: duration
-  default: 10s
+  type: time-delta
+  default: PT10S
   doc:
     The amount of time there can be between two heartbeats of a runner.
     Changing this to a lower value might cause some runners to crash.
@@ -43,21 +43,22 @@
   minimum: 1
 
 - tag: EXAM_LOGIN_MAX_LENGTH
-  security: true
   frontend: true
-  type: duration
-  default: 12h
+  type: time-delta
+  default: PT12H
   doc:
-    The maximum duration an exam may take. Increasing this value also increases
+    The maximum time-delta an exam may take. Increasing this value also increases
     the maximum amount of time the login tokens send via email are
     valid. Therefore, you should make this too long.
   minimum: 1h
 
 
 - tag: LOGIN_TOKEN_BEFORE_TIME
-  type: duration[]
+  type: time-delta[]
   frontend: true
-  default: '2d,30m'
+  default:
+    - P2D
+    - PT30M
   doc:
     This determines how long before the exam we will send the login emails to
     the students (only when enabled of course).
@@ -74,9 +75,8 @@
   maximum: 4
 
 - tag: RESET_TOKEN_TIME
-  type: duration
-  security: true
-  default: 1d
+  type: time-delta
+  default: P1D
   doc:
     The amount of time a reset token is valid. You should not increase this
     value too much as users might be not be too careful with these
@@ -85,8 +85,8 @@
   minimum: 1h
 
 - tag: SETTING_TOKEN_TIME
-  type: duration
-  default: 1d
+  type: time-delta
+  default: P1D
   doc:
     The amount of time the link send in notification emails to change the
     notification preferences works to actually change the notifications.
@@ -106,7 +106,7 @@
   minimum: 1024
 
 - tag: MAX_LARGE_UPLOAD_SIZE
-  type: size
+  type: file-size
   default: 128mb
   doc:
     The maximum size of uploaded files that are mostly uploaded by "trusted"
@@ -115,7 +115,7 @@
   minimum: 1mb
 
 - tag: MAX_NORMAL_UPLOAD_SIZE
-  type: size
+  type: file-size
   default: 64mb
   doc:
     The maximum total size of uploaded files that are uploaded by normal
@@ -124,7 +124,7 @@
   minimum: 1mb
 
 - tag: MAX_FILE_SIZE
-  type: size
+  type: file-size
   default: 50mb
   doc:
     The maximum size of a single file uploaded by normal users. This limit is
@@ -133,8 +133,8 @@
   minimum: 1mb
 
 - tag: JWT_ACCESS_TOKEN_EXPIRES
-  type: duration
-  default: 30d
+  type: time-delta
+  default: P30D
   doc:
     The time a login session is valid. After this amount of time a user will
     always need to re-authenticate.
@@ -151,11 +151,118 @@
   minimum: 100
 
 - tag: NOTIFICATION_POLL_TIME
-  type: duration
-  default: 30s
+  type: time-delta
+  default: PT30S
   frontend: true
   doc:
     The amount of time to wait between two consecutive polls to see if a user
     has new notifications. Setting this value too low will cause unnecessary
     stres on the server.
   minimum: 10s
+
+- tag: BLACKBOARD_ZIP_UPLOAD_ENABLED
+  group: Features
+  type: boolean
+  default: true
+  frontend: true
+  doc:
+    If enabled teachers are allowed to bulk upload submissions (and create
+    users) using a zip file in a format created by Blackboard.
+
+- tag: RUBRICS_ENABLED
+  group: Features
+  type: boolean
+  default: true
+  frontend: true
+  doc:
+    If enabled teachers can use rubrics on CodeGrade. Disabling this feature
+    will not delete existing rubrics.
+
+- tag: AUTOMATIC_LTI_ROLE_ENABLED
+  group: Features
+  type: boolean
+  default: true
+  frontend: true
+  doc: Currently unused
+
+- tag: LTI_ENABLED
+  group: Features
+  type: boolean
+  default: true
+  frontend: true
+  doc: Should LTI be enabled.
+
+- tag: LINTERS_ENABLED
+  group: Features
+  type: boolean
+  default: true
+  frontend: true
+  doc: Should linters be enabled
+
+- tag: INCREMENTAL_RUBRIC_SUBMISSION_ENABLED
+  group: Features
+  type: boolean
+  default: true
+  frontend: true
+  doc:
+    Should rubrics be submitted incrementally, so if a user selects a item
+    should this be automatically be submitted to the server, or should it only
+    be possible to submit a complete rubric at once. This feature is useless if
+    `rubrics` is not set to `true`.
+
+- tag: REGISTER_ENABLED
+  group: Features
+  type: boolean
+  default: false
+  frontend: true
+  doc:
+    Should it be possible to register on the website. This makes it possible for
+    any body to register an account on the website.
+
+- tag: GROUPS_ENABLED
+  group: Features
+  type: boolean
+  default: false
+  frontend: true
+  doc: Should group assignments be enabled.
+
+- tag: AUTO_TEST_ENABLED
+  group: Features
+  type: boolean
+  default: false
+  frontend: true
+  doc: Should auto test be enabled.
+
+- tag: COURSE_REGISTER_ENABLED
+  group: Features
+  type: boolean
+  default: false
+  frontend: true
+  doc:
+    Should it be possible for teachers to create links that users can use to
+    register in a course. Links to enroll can be created even if this feature is
+    disabled.
+
+- tag: RENDER_HTML_ENABLED
+  group: Features
+  type: boolean
+  default: false
+  frontend: true
+  doc:
+    Should it be possible to render html files within CodeGrade. This opens up
+    more attack surfaces as it is now possible by design for students to run
+    javascript. This is all done in a sandboxed iframe but still.
+
+- tag: EMAIL_STUDENTS_ENABLED
+  group: Features
+  type: boolean
+  default: false
+  frontend: true
+  doc: Should it be possible to email students.
+
+- tag: PEER_FEEDBACK_ENABLED
+  group: features
+  type: boolean
+  default: false
+  frontend: true
+  doc: Should peer feedback be enabled.

@@ -51,6 +51,8 @@ from .lti1p3_provider_base_as_json import LTI1p3ProviderBaseAsJSON
 from .lti1p3_provider_finalized_as_json import LTI1p3ProviderFinalizedAsJSON
 from .lti1p3_provider_non_finalized_as_json import LTI1p3ProviderNonFinalizedAsJSON
 from .lti_provider_base_base_as_json import LTIProviderBaseBaseAsJSON
+from .opt_all_opts_as_json import OptAllOptsAsJSON
+from .opt_frontend_opts_as_json import OptFrontendOptsAsJSON
 from .options_input_data import OptionsInputData
 from .patch_assignment_data import PatchAssignmentData
 from .patch_auto_test_data import PatchAutoTestData

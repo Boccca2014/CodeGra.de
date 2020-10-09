@@ -4,5 +4,6 @@ import * as submissions from './submissions';
 import * as assignments from './assignments';
 import * as ssoProviders from './sso_providers';
 import * as courses from './courses';
+import * as siteSettings from './siteSettings';
 
-export { lti, submissions, assignments, ssoProviders, courses };
+export { lti, submissions, assignments, ssoProviders, courses, siteSettings };

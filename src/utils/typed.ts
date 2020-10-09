@@ -946,3 +946,7 @@ export function ifOrEmpty<T extends VNode>(cond: boolean, then: () => T): T | Em
     }
     return emptyVNode();
 }
+
+export function getExternalUrl(): string {
+    return window.location.origin;
+}

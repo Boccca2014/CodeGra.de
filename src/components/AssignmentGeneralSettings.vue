@@ -272,7 +272,7 @@ import moment from 'moment';
 import * as models from '@/models';
 import { Either, Left, Maybe, Nothing, formatNullableDate } from '@/utils';
 
-import { AssignmentsStore } from '@/store';
+import { AssignmentsStore, SiteSettingsStore } from '@/store';
 
 // @ts-ignore
 import DatetimePicker from './DatetimePicker';
@@ -355,8 +355,8 @@ export default class AssignmentGeneralSettings extends Vue {
         ];
     }
 
-    get loginLinksBeforeTime() {
-        return this.$userConfig.loginTokenBeforeTime.map((time: number) => {
+    get loginLinksBeforeTime(): readonly string[] {
+        return SiteSettingsStore.getSetting()('LOGIN_TOKEN_BEFORE_TIME').map((time: number) => {
             const asMsecs = 1000 * time;
             return moment.duration(asMsecs).humanize();
         });
@@ -516,7 +516,7 @@ export default class AssignmentGeneralSettings extends Vue {
     }
 
     get maxExamDuration() {
-        return this.$userConfig.examLoginMaxLength / 60 / 60;
+        return SiteSettingsStore.getSetting()('EXAM_LOGIN_MAX_LENGTH') / 60 / 60;
     }
 
     get isLTI() {
