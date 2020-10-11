@@ -211,5 +211,6 @@ if True:  # pylint: disable=using-constant-test
     )
     from .saml_provider import Saml2Provider, UserSamlProvider
     from .auto_test_step import (
-        AutoTestStepBase, AutoTestStepResult, AutoTestStepResultState
+        AutoTestStepBase, AutoTestStepResult, AutoTestQualityComment,
+        AutoTestStepResultState
     )

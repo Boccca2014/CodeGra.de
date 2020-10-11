@@ -763,7 +763,7 @@ class Work(Base):
         self,
         pathname: str,
         exclude: 'file_models.FileOwner',
-    ) -> t.List[DbColumn[bool]]:
+    ) -> FilterColumn:
         """Get the filters needed to search for a file in the this directory
         with a given name.
 
@@ -780,9 +780,7 @@ class Work(Base):
             if parent is not None:
                 parent = parent.c.id
 
-            parent = db.session.query(
-                t.cast(DbColumn[int], file_models.File.id)
-            ).filter(
+            parent = db.session.query(file_models.File.id).filter(
                 file_models.File.name == pathpart,
                 file_models.File.parent_id == parent,
                 file_models.File.work_id == self.id,
@@ -793,14 +791,14 @@ class Work(Base):
         if parent is not None:
             parent = parent.c.id
 
-        return [
+        return sql_expression.and_(
             file_models.File.work_id == self.id,
             file_models.File.name == patharr[-1],
             file_models.File.parent_id == parent,
             file_models.File.fileowner != exclude,
             file_models.File.is_directory == is_dir,
             ~file_models.File.self_deleted,
-        ]
+        )
 
     def search_file(
         self,
@@ -818,7 +816,7 @@ class Work(Base):
 
         return psef.helpers.filter_single_or_404(
             file_models.File,
-            *self.search_file_filters(pathname, exclude),
+            self.search_file_filters(pathname, exclude),
         )
 
     @classmethod

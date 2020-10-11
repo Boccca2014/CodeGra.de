@@ -14,6 +14,8 @@ import structlog
 from flask import request, send_file, make_response
 from werkzeug.wrappers import Response
 
+import cg_request_args as rqa
+
 from . import api
 from .. import app, files, tasks, models, helpers, auto_test
 from ..models import db
@@ -524,3 +526,72 @@ def upload_output_files(
     db.session.commit()
 
     return make_empty_response()
+
+
+@api.route(
+    (
+        '/auto_tests/<int:auto_test_id>/results/<int:result_id>'
+        '/steps/<int:step_id>/quality_comments/'
+    ),
+    methods=['POST']
+)
+@feature_required(Feature.AUTO_TEST)
+def create_quality_comments(
+    auto_test_id: int, result_id: int, step_id: int
+) -> EmptyResponse:
+    """Update the result of a single step.
+
+    :param auto_test_id: The AutoTest configuration in which to update the
+        result.
+    :param result_id: The id of the result in which to update the step.
+    """
+    password = _verify_global_header_password()
+
+    comments = rqa.List(
+        rqa.BaseFixedMapping.from_typeddict(
+            models.AutoTestQualityComment.InputAsJSON
+        )
+    ).from_flask()
+    ignore_files_not_found = request_arg_true('ignore_files_not_found')
+
+    result = filter_single_or_404(
+        models.AutoTestResult,
+        models.AutoTestResult.id == result_id,
+        also_error=lambda res: res.run.auto_test_id != auto_test_id,
+        with_for_update=True,
+        with_for_update_of=models.AutoTestResult,
+    )
+    _ensure_from_latest_work(result)
+    _verify_and_get_runner(result.run, password)
+
+    work = result.work
+    file_cache = models.File.make_cache(work, models.FileOwner.teacher)
+
+    # TODO: Validate step_id
+
+    new_comments = []
+    for comment in comments:
+        path = comment['path']
+        file_id = file_cache.find_file(path).map(lambda f: f.id)
+        if ignore_files_not_found and file_id.is_nothing:
+            logger.info('Could not find file', path=path)
+            continue
+        elif file_id.is_nothing:
+            raise APIException(
+                'Could not find file to place comment on',
+                f'File with path "{path}" was not found',
+                APICodes.OBJECT_NOT_FOUND, 404
+            )
+
+        new_comments.append(
+            models.AutoTestQualityComment(
+                result_id=result.id,
+                step_id=step_id,
+                file_id=file_id.value,
+                data=comment
+            )
+        )
+
+    db.session.bulk_save_objects(new_comments)
+    db.session.commit()
+    return EmptyResponse.make()

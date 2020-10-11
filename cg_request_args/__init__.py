@@ -21,6 +21,7 @@ import flask
 import structlog
 import validate_email
 import dateutil.parser
+from werkzeug.utils import cached_property
 from typing_extensions import Final, Literal, Protocol, TypedDict
 from werkzeug.datastructures import FileStorage
 
@@ -557,6 +558,24 @@ class _SimpleUnion(t.Generic[_SimpleUnionT], _Parser[_SimpleUnionT]):
         if float in self.typs and isinstance(value, int):
             return float(value)  # type: ignore
         return self._raise(value)
+
+
+class Lazy(t.Generic[_T], _Parser[_T]):
+    def __init__(self, make_parser: t.Callable[[], _Parser[_T]]):
+        self._make_parser = make_parser
+
+    @cached_property
+    def _parser(self) -> _Parser[_T]:
+        return self._make_parser()
+
+    def describe(self) -> str:
+        return self._parser.describe()
+
+    def _to_open_api(self, schema: 'OpenAPISchema') -> t.Mapping[str, t.Any]:
+        return self._parser._to_open_api(schema)  # pylint: disable=protected-access
+
+    def try_parse(self, value: object) -> _T:
+        return self._parser.try_parse(value)
 
 
 _ENUM = t.TypeVar('_ENUM', bound=enum.Enum)

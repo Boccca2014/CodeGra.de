@@ -12,7 +12,7 @@ from collections import defaultdict
 import structlog
 from sqlalchemy import event
 from sqlalchemy_utils import UUIDType
-from typing_extensions import Literal, TypedDict
+from typing_extensions import Final, Literal, TypedDict
 
 import psef
 import cg_maybe
@@ -35,6 +35,10 @@ from ..permissions import CoursePermission
 
 logger = structlog.get_logger()
 T = t.TypeVar('T', covariant=True)
+K = t.TypeVar('K')
+
+NFM_T = t.TypeVar('NFM_T', bound='NestedFileMixin')  # pylint: disable=invalid-name
+NFM_T_COV = t.TypeVar('NFM_T_COV', bound='NestedFileMixin', covariant=True)  # pylint: disable=invalid-name
 
 
 @enum.unique
@@ -55,6 +59,47 @@ class FileOwner(CGEnum):
     student = 1
     teacher = 2
     both = 3
+
+
+class _FileCache(
+    t.Generic[K, NFM_T_COV], t.Mapping[t.Optional[K], t.Sequence[NFM_T_COV]]
+):
+    __slots__ = ('__map', '__lookup_cache')
+
+    def __init__(
+        self, mapping: t.Mapping[t.Optional[K], t.Sequence[NFM_T_COV]]
+    ) -> None:
+        self.__map: Final = mapping
+        self.__lookup_cache: Final[t.Dict[str, NFM_T_COV]] = {}
+
+    def __getitem__(self, k: t.Optional[K]) -> t.Sequence[NFM_T_COV]:
+        return self.__map[k]
+
+    def __len__(self) -> int:
+        return self.__map.__len__()
+
+    def __iter__(self) -> t.Iterator[t.Optional[K]]:
+        yield from self.__map.__iter__()
+
+    @property
+    def root_file(self) -> NFM_T_COV:
+        return self.__map[None][0]
+
+    def find_file(self, path: t.Sequence[str]) -> cg_maybe.Maybe[NFM_T_COV]:
+        path_str = '/'.join(path)
+        if path_str not in self.__lookup_cache:
+            cur = self.root_file
+            for part in path:
+                for opt in self.__map[cur.get_id()]:
+                    if opt.name == part:
+                        cur = opt
+                        break
+                else:
+                    return cg_maybe.Nothing
+
+            self.__lookup_cache[path_str] = cur
+
+        return cg_maybe.Just(self.__lookup_cache[path_str])
 
 
 class FileMixin(t.Generic[T]):
@@ -221,8 +266,6 @@ class FileMixin(t.Generic[T]):
         )
 
 
-NFM_T = t.TypeVar('NFM_T', bound='NestedFileMixin')  # pylint: disable=invalid-name
-
 LiteralTrue: Literal[True] = True
 LiteralFalse: Literal[False] = False
 
@@ -333,8 +376,8 @@ class NestedFileMixin(FileMixin[T]):
         return new_top
 
     @classmethod
-    def _make_cache(cls: t.Type['NFM_T'], query_filter: FilterColumn
-                    ) -> t.Mapping[t.Optional[t.Any], t.Sequence['NFM_T']]:
+    def _make_cache(cls: t.Type['NFM_T'],
+                    query_filter: FilterColumn) -> _FileCache[t.Any, 'NFM_T']:
         cache = defaultdict(list)
         query: MyQuery[NFM_T] = cls.query  # type: ignore[attr-defined]
         all_files = query.filter(query_filter).order_by(cls.name).all()
@@ -347,17 +390,17 @@ class NestedFileMixin(FileMixin[T]):
         for f in all_files:
             cache[f.parent_id].append(f)
 
-        return cache
+        return _FileCache(cache)
 
     @classmethod
     def restore_directory_structure(
         cls: t.Type['NestedFileMixin[T]'],
         parent: str,
-        cache: t.Mapping[t.Optional[T], t.Sequence['NestedFileMixin[T]']],
+        cache: _FileCache[T, 'NestedFileMixin[T]'],
     ) -> 'psef.files.FileTree[T]':
         """Restore the directory structure for this class.
         """
-        return cache[None][0]._restore_directory_structure(parent, cache)  # pylint: disable=protected-access
+        return cache.root_file._restore_directory_structure(parent, cache)  # pylint: disable=protected-access
 
     def _restore_directory_structure(
         self: 'NestedFileMixin[T]',
@@ -522,7 +565,7 @@ class File(NestedFileMixin[int], Base):
         cls,
         work: 'psef.models.Work',
         exclude: FileOwner = FileOwner.teacher,
-    ) -> t.Mapping[t.Optional[int], t.Sequence['File']]:
+    ) -> _FileCache[int, 'File']:
         """Make a file cache object for the given work without files owned by
         ``exclude``.
 
@@ -782,8 +825,7 @@ class PlagiarismBaseCodeFile(NestedFileMixin[uuid.UUID], Base, TimestampMixin):
 
     @classmethod
     def make_cache(cls, plagiarism_run: 'psef.models.PlagiarismRun'
-                   ) -> t.Mapping[t.Optional[uuid.UUID], t.
-                                  Sequence['PlagiarismBaseCodeFile']]:
+                   ) -> _FileCache[uuid.UUID, 'PlagiarismBaseCodeFile']:
         """Make a file cache object for the given plagiarism run.
 
         :param plagiarism_run: The run for which you want to get the cache.

@@ -21,7 +21,11 @@ api = Blueprint('internal_api', __name__)  # pylint: disable=invalid-name
 def add_warning_header() -> None:
     """Add warning describing that this is an internal api.
     """
-    add_warning('This API is only for internal use!', APIWarnings.INTERNAL_API)
+    add_warning(
+        'This API is only for internal use!',
+        APIWarnings.INTERNAL_API,
+        no_log=True,
+    )
 
 
 def init_app(app: t.Any) -> None:

@@ -50,7 +50,7 @@ from cg_flask_helpers import (
     EmptyResponse, make_empty_response, callback_after_this_request
 )
 from cg_helpers.humanize import size as human_readable_size
-from cg_sqlalchemy_helpers.types import Base, MyQuery, DbColumn
+from cg_sqlalchemy_helpers.types import Base, MyQuery, DbColumn, FilterColumn
 
 from . import validate, jsonify_options
 from .. import errors, current_tester
@@ -112,15 +112,18 @@ def init_app(app: 'psef.Flask') -> None:
 
     @app.after_request
     def __maybe_add_warning(res: flask.Response) -> flask.Response:
-        for warning in getattr(g, 'request_warnings', []):
-            logger.info('Added warning to response', warning=warning)
-            res.headers.add('Warning', warning)
+        for warning in errors.HttpWarning.get_warnings_in_request():
+            if not warning.no_log:
+                logger.info('Added warning to response', warning=warning)
+            res.headers.add('Warning', warning.msg)
         return res
 
     jsonify_options.init_app(app)
 
 
-def add_warning(warning: str, code: psef.exceptions.APIWarnings) -> None:
+def add_warning(
+    warning: str, code: psef.exceptions.APIWarnings, no_log: bool = False
+) -> None:
     """Add a warning to the current request.
 
     It is also safe to call this function from a celery task, but as expected
@@ -134,9 +137,7 @@ def add_warning(warning: str, code: psef.exceptions.APIWarnings) -> None:
     ...     print(len(flask.g.request_warnings))
     1
     """
-    if not hasattr(g, 'request_warnings'):
-        g.request_warnings = set()
-    g.request_warnings.add(psef.errors.make_warning(warning, code))
+    psef.errors.HttpWarning(warning, code, no_log=no_log).add_to_request()
 
 
 def add_deprecate_warning(warning: str) -> None:
@@ -541,7 +542,7 @@ def get_in_or_error(
 def _filter_or_404(
     model: t.Type[Y],
     get_all: Literal[True],
-    criteria: t.Sequence[DbColumn[bool]],
+    criteria: t.Sequence[FilterColumn],
     also_error: t.Optional[t.Callable[[t.List[Y]], bool]],
     with_for_update: t.Union[bool, LockType],
     options: t.Optional[t.List[t.Any]] = None,
@@ -554,7 +555,7 @@ def _filter_or_404(
 def _filter_or_404(
     model: t.Type[Y],
     get_all: Literal[False],
-    criteria: t.Sequence[DbColumn[bool]],
+    criteria: t.Sequence[FilterColumn],
     also_error: t.Optional[t.Callable[[Y], bool]],
     with_for_update: t.Union[bool, LockType],
     options: t.Optional[t.List[t.Any]] = None,
@@ -566,7 +567,7 @@ def _filter_or_404(
 def _filter_or_404(
     model: t.Type[Y],
     get_all: bool,
-    criteria: t.Sequence[DbColumn[bool]],
+    criteria: t.Sequence[FilterColumn],
     also_error: t.Optional[t.Callable[[t.Any], bool]],
     with_for_update: t.Union[bool, LockType],
     options: t.Optional[t.List[t.Any]] = None,
@@ -595,17 +596,9 @@ def _filter_or_404(
     obj = query.all() if get_all else query.one_or_none()
 
     if not obj or (also_error is not None and also_error(obj)):
-        crit_str = ' AND '.join(
-            str(
-                crit.compile(
-                    dialect=postgresql.dialect(),
-                    compile_kwargs={'literal_binds': True}
-                )
-            ) for crit in criteria
-        )
         raise psef.errors.APIException(
             f'The requested {model.__name__.lower()} was not found',
-            f'There is no "{model.__name__}" when filtering with {crit_str}',
+            f'There is no "{model.__name__}" after filtering',
             psef.errors.APICodes.OBJECT_NOT_FOUND, 404
         )
     return obj
@@ -613,7 +606,7 @@ def _filter_or_404(
 
 def filter_all_or_404(
     model: t.Type[Y],
-    *criteria: DbColumn[bool],
+    *criteria: FilterColumn,
     with_for_update: t.Union[bool, LockType] = False,
 ) -> t.Sequence[Y]:
     """Get all objects of the specified model filtered by the specified
@@ -638,7 +631,7 @@ def filter_all_or_404(
 
 def filter_single_or_404(
     model: t.Type[Y],
-    *criteria: DbColumn[bool],
+    *criteria: FilterColumn,
     also_error: t.Optional[t.Callable[[Y], bool]] = None,
     with_for_update: t.Union[bool, LockType] = False,
     options: t.Optional[t.List[t.Any]] = None,

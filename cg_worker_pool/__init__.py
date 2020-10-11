@@ -151,7 +151,7 @@ class _PrioQueue:
         with self.mutex:
             for work in works:
                 if work in self._non_finished_work:
-                    logger.info('Ignoring existing work', work=work)
+                    # logger.info('Ignoring existing work', work=work)
                     continue
                 logger.info('Adding new work', work=work)
 

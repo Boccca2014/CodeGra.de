@@ -6,6 +6,7 @@ This module does not contain any error checking or handling.
 SPDX-License-Identifier: AGPL-3.0-only
 """
 import typing as t
+import dataclasses
 
 import structlog
 from flask import Response, g, request
@@ -16,24 +17,33 @@ from cg_json import JSONResponse, jsonify
 
 from .exceptions import APICodes, APIWarnings, APIException
 
-HttpWarning = t.NewType('HttpWarning', str)  # pylint: disable=invalid-name
+
+@dataclasses.dataclass(frozen=True)
+class HttpWarning:
+    msg: str = dataclasses.field(init=False, hash=True)
+    warning_text: dataclasses.InitVar[str]
+    code: dataclasses.InitVar[APIWarnings]
+    no_log: bool = dataclasses.field(default=False, hash=False)
+
+    def __post_init__(self, warning_text: str, code: APIWarnings) -> None:
+        object.__setattr__(
+            self, 'msg', '{:03d} CodeGrade "{}"'.format(
+                code.value,
+                warning_text.replace('"', '\\"'),
+            )
+        )
+
+    @staticmethod
+    def get_warnings_in_request() -> t.Iterable['HttpWarning']:
+        return getattr(g, 'request_warnings', [])
+
+    def add_to_request(self) -> None:
+        if not hasattr(g, 'request_warnings'):
+            g.request_warnings = set()
+        g.request_warnings.add(self)
+
 
 logger = structlog.get_logger()
-
-
-def make_warning(warning_text: str, code: APIWarnings) -> HttpWarning:
-    """Make a ``HttpWarning`` with the given warning and code.
-
-    :param warning_text: The text that describes the warning.
-    :param code: The warning code to associate with the warning.
-    :returns: A warning with the given text and code.
-    """
-    return HttpWarning(
-        '{:03d} CodeGrade "{}"'.format(
-            code.value,
-            warning_text.replace('"', '\\"'),
-        )
-    )
 
 
 def init_app(app: t.Any) -> None:

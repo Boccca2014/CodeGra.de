@@ -45,6 +45,7 @@ import cg_worker_pool
 import cg_threading_utils
 from cg_timers import timed_code, timed_function
 
+from . import linter_server
 from .. import models, helpers
 from ..helpers import JSONType, RepeatedTimer, defer
 from ..registry import auto_test_handlers
@@ -69,6 +70,8 @@ FIXTURES_ROOT = f'/.{uuid.uuid4().hex}'
 PRE_STUDENT_FIXTURES_DIR = f'{uuid.uuid4().hex}/'
 
 OUTPUT_DIR = f'/.{uuid.uuid4().hex}/{uuid.uuid4().hex}'
+
+JWT_SECRET = str(uuid.uuid4())
 
 # _Absolute_ path to the bash executable.
 BASH_PATH = '/bin/bash'
@@ -848,8 +851,8 @@ def start_polling(config: 'psef.FlaskConfig') -> None:
     )
     runner_pass = None
     if os.path.isfile(runner_pass_file):
-        with open(runner_pass_file, 'r') as f:
-            runner_pass = f.read().strip()
+        with open(runner_pass_file, 'r') as runner_pass_fd:
+            runner_pass = runner_pass_fd.read().strip()
     else:
         logger.error(
             'Could not find runner pass file',
@@ -862,6 +865,16 @@ def start_polling(config: 'psef.FlaskConfig') -> None:
         )
 
     with _get_base_container(config).started_container() as cont:
+        with open(
+            os.path.join(os.path.dirname(__file__), 'linter_client.py'),
+            'rb',
+        ) as client_fd:
+            cont.run_command(
+                ['dd', 'of=/usr/local/bin/cg-api'],
+                stdin=client_fd.read(),
+            )
+        cont.run_command(['chmod', '+x', '/usr/local/bin/cg-api'])
+
         if config['AUTO_TEST_TEMPLATE_CONTAINER'] is None:
             cont.run_command(['apt', 'update'])
             cont.run_command(
@@ -1678,6 +1691,33 @@ class AutoTestContainer:
             self._cont = cont
         self._maybe_quit_running = maybe_quit_running
 
+    def append_config_item(self, key: str, value: str) -> None:
+        """Set a cgroup option in the given container.
+
+        :param key: The config key to be set.
+        :param value: The value to set.
+        :raises StopRunningTestsException: When the value could not be set
+            successfully.
+        """
+        old_value = self._cont.get_config_item(key)
+        assert isinstance(old_value, list)
+        new_value = [*old_value, value]
+
+        with cg_logger.bound_to_logger(config_key=key, config_value=value):
+            for _ in helpers.retry_loop(
+                5, make_exception=StopRunningTestsException
+            ):
+                success = self._cont.set_config_item(key, new_value)
+                if success:
+                    break
+        with cg_logger.bound_to_logger(config_key=key, config_value=value):
+            for _ in helpers.retry_loop(
+                5, make_exception=StopRunningTestsException
+            ):
+                success = self._cont.save_config()
+                if success:
+                    break
+
     @property
     def name(self) -> str:
         """Get the name of this container.
@@ -1888,6 +1928,9 @@ class AutoTestRunner:
         :returns: A requests session unique for this thread and process that
             has the correct headers for authentication.
         """
+        return self._get_req()
+
+    def _get_req(self) -> requests.Session:
         key = self._make_req_key()
 
         if key not in self._reqs:
@@ -2054,8 +2097,12 @@ class AutoTestRunner:
 
     @timed_function
     def _run_test_suite(
-        self, student_container: StartedContainer, result_id: int,
-        test_suite: SuiteInstructions, cpu_core: CpuCores.Core
+        self,
+        student_container: StartedContainer,
+        result_id: int,
+        test_suite: SuiteInstructions,
+        cpu_core: CpuCores.Core,
+        api_handler: linter_server.APIHandler,
     ) -> t.Tuple[float, float]:
         total_points = 0.0
         possible_points = 0.0
@@ -2118,6 +2165,8 @@ class AutoTestRunner:
             url = f'{self.base_url}/results/{result_id}/step_results/'
 
             for idx, test_step in enumerate(test_suite['steps']):
+                api_handler.set_step_id(test_step['id'])
+
                 logger.info('Running step', step=test_step)
                 step_result_id = None
 
@@ -2218,60 +2267,64 @@ class AutoTestRunner:
         res = res if isinstance(res, dict) else {}
         return res.get('code', None) == APICodes.NOT_NEWEST_SUBMSSION.name
 
+    def _setup_for_student(
+        self, cont: StartedContainer, cpu: CpuCores.Core, result_id: int
+    ) -> None:
+        result_url = f'{self.base_url}/results/{result_id}'
+        with timed_code('set_cgroup_limits'):
+            cont.set_cgroup_item(
+                'memory.limit_in_bytes', self.config['AUTO_TEST_MEMORY_LIMIT']
+            )
+            cont.pin_to_core(cpu.get_core_number())
+            cont.set_cgroup_item(
+                'memory.memsw.limit_in_bytes',
+                self.config['AUTO_TEST_MEMORY_LIMIT']
+            )
+
+        self.download_student_code(cont, result_id)
+
+        cont.move_fixtures_dir(uuid.uuid4().hex)
+        self._maybe_run_setup(cont, self.setup_script, result_url)
+
+        logger.info('Dropping sudo rights')
+        cont.run_command(['deluser', CODEGRADE_USER, 'sudo'])
+        # TODO: escape the codegrade user here if that is needed
+        cont.run_command(
+            ['sed', '-i', f's/^{CODEGRADE_USER}.*$//g', '/etc/sudoers']
+        )
+        assert cont.run_command(
+            ['grep', '-c', CODEGRADE_USER, '/etc/sudoers'], check=False
+        ) != 0, 'Sudo was not dropped!'
+
+        cont.run_command(
+            [
+                BASH_PATH,
+                '-c',
+                (
+                    'mkdir -p "{output_dir}" && '
+                    'chown -R {user}:"$(id -gn {user})" "{output_dir}" && '
+                    'chmod 770 "{output_dir}"'
+                ).format(
+                    output_dir=OUTPUT_DIR,
+                    user=CODEGRADE_USER,
+                ),
+            ]
+        )
+
     @timed_function
     def _run_student(  # pylint: disable=too-many-statements,too-many-branches
         self,
         cont: StartedContainer,
         cpu: CpuCores.Core,
-        result_id: int,
+            result_id: int,
+        api_handler: linter_server.APIHandler,
     ) -> bool:
         # TODO: Split this function
         result_url = f'{self.base_url}/results/{result_id}'
-
-        result_state: t.Optional[models.AutoTestStepResultState]
-        result_state = models.AutoTestStepResultState.passed
+        result_state: t.Optional[models.AutoTestStepResultState] = None
 
         try:
-            with timed_code('set_cgroup_limits'):
-                cont.set_cgroup_item(
-                    'memory.limit_in_bytes',
-                    self.config['AUTO_TEST_MEMORY_LIMIT']
-                )
-                cont.pin_to_core(cpu.get_core_number())
-                cont.set_cgroup_item(
-                    'memory.memsw.limit_in_bytes',
-                    self.config['AUTO_TEST_MEMORY_LIMIT']
-                )
-
-            self.download_student_code(cont, result_id)
-
-            cont.move_fixtures_dir(uuid.uuid4().hex)
-            self._maybe_run_setup(cont, self.setup_script, result_url)
-
-            logger.info('Dropping sudo rights')
-            cont.run_command(['deluser', CODEGRADE_USER, 'sudo'])
-            # TODO: escape the codegrade user here if that is needed
-            cont.run_command(
-                ['sed', '-i', f's/^{CODEGRADE_USER}.*$//g', '/etc/sudoers']
-            )
-            assert cont.run_command(
-                ['grep', '-c', CODEGRADE_USER, '/etc/sudoers'], check=False
-            ) != 0, 'Sudo was not dropped!'
-
-            cont.run_command(
-                [
-                    BASH_PATH,
-                    '-c',
-                    (
-                        'mkdir -p "{output_dir}" && '
-                        'chown -R {user}:"$(id -gn {user})" "{output_dir}" && '
-                        'chmod 770 "{output_dir}"'
-                    ).format(
-                        output_dir=OUTPUT_DIR,
-                        user=CODEGRADE_USER,
-                    ),
-                ]
-            )
+            self._setup_for_student(cont, cpu, result_id)
 
             total_points = 0.0
             possible_points = 0.0
@@ -2280,7 +2333,7 @@ class AutoTestRunner:
                 for test_suite in test_set['suites']:
                     cont.move_fixtures_dir(uuid.uuid4().hex)
                     achieved_points, suite_points = self._run_test_suite(
-                        cont, result_id, test_suite, cpu
+                        cont, result_id, test_suite, cpu, api_handler
                     )
                     total_points += achieved_points
                     possible_points += suite_points
@@ -2302,7 +2355,6 @@ class AutoTestRunner:
                 ):
                     break
         except (StopRunningStudentException, *NETWORK_EXCEPTIONS) as e:
-            result_state = None
             if self._is_old_submission_error(e):
                 logger.warning('Was running old submission', exc_info=True)
             elif isinstance(e, StopRunningStudentException):
@@ -2313,11 +2365,9 @@ class AutoTestRunner:
                 )
             return False
         except StopRunningTestsException:
-            result_state = None
             logger.error('Stop running steps', exc_info=True)
             raise
         except cg_worker_pool.KillWorkerException:
-            result_state = None
             logger.error('Worker wanted to be killed', exc_info=True)
             return False
         except:
@@ -2369,45 +2419,61 @@ class AutoTestRunner:
             finally:
                 opts.retry_work(work)
 
-        with student_container.started_container() as cont:
-            while True:
-                work = opts.get_work()
-                if work is None:
-                    return
-                result_id = work.result_id
+        with linter_server.APIHandler.running_handler(
+            self._get_req, self.base_url
+        ) as api_handler:
+            student_container.append_config_item(
+                'lxc.mount.entry',
+                (
+                    f'{api_handler.socket_file} dev/cg_socket none'
+                    ' bind,rw,create=file 0 0'
+                ),
+            )
 
-                with cpu_cores.reserved_core() as cpu:
-                    patch_res = self.req.patch(
-                        f'{self.base_url}/results/{result_id}',
-                        json={
-                            'state':
-                                models.AutoTestStepResultState.running.name
-                        },
-                        timeout=_REQUEST_TIMEOUT,
-                    )
+            with student_container.started_container() as cont:
+                while True:
+                    work = opts.get_work()
+                    if work is None:
+                        return
+                    result_id = work.result_id
+                    api_handler.set_result_id(result_id)
 
-                    try:
-                        patch_res.raise_for_status()
-                    except requests.HTTPError as e:
-                        if self._is_old_submission_error(e):
-                            opts.mark_work_as_finished(work)
-                        else:
-                            retry_work(work)
-                        continue
+                    with cpu_cores.reserved_core() as cpu:
+                        patch_res = self.req.patch(
+                            f'{self.base_url}/results/{result_id}',
+                            json={
+                                'state':
+                                    models.AutoTestStepResultState.running.name
+                            },
+                            timeout=_REQUEST_TIMEOUT,
+                        )
 
-                    if patch_res.json()['taken']:
-                        opts.mark_work_as_finished(work)
-                    else:
-                        with cg_logger.bound_to_logger(result_id=result_id):
-                            if self._run_student(cont, cpu, result_id):
+                        try:
+                            patch_res.raise_for_status()
+                        except requests.HTTPError as e:
+                            if self._is_old_submission_error(e):
                                 opts.mark_work_as_finished(work)
                             else:
-                                # Student didn't finish correctly. So put back
-                                # in the queue. The retry function contains the
-                                # functionality for only retrying a fixed
-                                # amount of time.
                                 retry_work(work)
-                            return
+                            continue
+
+                        if patch_res.json()['taken']:
+                            opts.mark_work_as_finished(work)
+                        else:
+                            with cg_logger.bound_to_logger(
+                                result_id=result_id
+                            ):
+                                if self._run_student(
+                                    cont, cpu, result_id, api_handler
+                                ):
+                                    opts.mark_work_as_finished(work)
+                                else:
+                                    # Student didn't finish correctly. So put back
+                                    # in the queue. The retry function contains the
+                                    # functionality for only retrying a fixed
+                                    # amount of time.
+                                    retry_work(work)
+                                return
 
     def _get_suite_env(
         self,

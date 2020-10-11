@@ -38,7 +38,6 @@ logger = structlog.get_logger()
 GradeCalculator = t.Callable[[t.Sequence['psef.models.RubricItem'], float],
                              'psef.models.RubricItem']
 
-
 class AutoTestSuite(Base, TimestampMixin, IdMixin):
     """This class represents a Suite (also known as category) in an AutoTest.
     """

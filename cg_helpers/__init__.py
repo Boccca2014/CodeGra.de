@@ -36,7 +36,9 @@ def handle_none(value: t.Optional[T], default: Y) -> t.Union[T, Y]:
     return default if value is None else value
 
 
-def assert_never(never: t.NoReturn, of_enum: t.Type[enum.Enum]) -> t.NoReturn:
+def assert_never(
+    never: t.NoReturn, of_enum: t.Type[enum.Enum] = None
+) -> t.NoReturn:
     """Assert that the value ``x`` never exists according to mypy.
 
     This allows you to enforce that you do an exhaustive check for an enum:
@@ -57,9 +59,10 @@ def assert_never(never: t.NoReturn, of_enum: t.Type[enum.Enum]) -> t.NoReturn:
 
     :raises AssertionError: This function always raises an assertion error.
     """
-    raise AssertionError(
-        'Unhandled value "{}" for Enum "{}"'.format(never, of_enum.__name__)
-    )
+    extra_msg = ''
+    if of_enum is not None:
+        extra_msg = ' for Enum "{}"'.format(of_enum.__name__)
+    raise AssertionError('Unhandled value "{}"{}'.format(never, extra_msg))
 
 
 def zip_times_with_offset(
