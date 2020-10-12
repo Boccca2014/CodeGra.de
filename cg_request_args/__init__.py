@@ -254,7 +254,7 @@ class _Parser(t.Generic[_T_COV]):
 
     def __init__(self) -> None:
         self.__description: Final[t.Optional[str]] = None
-        self.__schema_name: t.Optionial[str] = None
+        self.__schema_name: t.Optional[str] = None
 
     def add_description(self: _ParserT, description: str) -> _ParserT:
         """Add a description to the parser.
@@ -416,7 +416,10 @@ class Union(t.Generic[_T, _Y], _Parser[t.Union[_T, _Y]]):
     def _to_open_api(self, schema: 'OpenAPISchema') -> t.Mapping[str, t.Any]:
         res = self._parser.to_open_api(schema)
         if 'anyOf' in res:
-            res['anyOf'] = schema.expand_anyof(res['anyOf'])
+            res = {
+                **res,
+                'anyOf': schema.expand_anyof(res['anyOf'])
+            }
         return res
 
     def try_parse(self, value: object) -> t.Union[_T, _Y]:
@@ -1243,7 +1246,7 @@ class RichValue:
 
     Password = _Password()
 
-    class _TimeDelta(_Transform[datetime.timedelta, t.Union[str, int]]):
+    class _TimeDelta(_Transform[datetime.timedelta, t.Union[str, float]]):
         # The regex below are copied from Pydantic
         _ISO8601_DURATION_RE = re.compile(
             r'^(?P<sign>[-+]?)'
@@ -1259,7 +1262,7 @@ class RichValue:
 
         def __init__(self) -> None:
             super().__init__(
-                SimpleValue.str | SimpleValue.int,
+                SimpleValue.str | SimpleValue.float,
                 self.__to_timedelta,
                 'TimeDelta',
             )
@@ -1277,9 +1280,9 @@ class RichValue:
             }
 
         def __to_timedelta(
-            self, value: t.Union[str, int]
+            self, value: t.Union[str, float]
         ) -> datetime.timedelta:
-            if isinstance(value, int):
+            if isinstance(value, float):
                 return datetime.timedelta(seconds=value)
             return self.__str_to_timedelta(value)
 

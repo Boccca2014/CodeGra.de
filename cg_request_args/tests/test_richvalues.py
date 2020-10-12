@@ -152,7 +152,7 @@ def test_timedelta_simple_string_duration():
 
     with pytest.raises(SimpleParseError) as exc:
         RichValue.TimeDelta.try_parse('PINVALID')
-    assert 'TimeDelta as Union[str, int]' in str(exc.value)
+    assert 'TimeDelta as Union[str, float]' in str(exc.value)
 
 
 def test_filesize(schema_mock):

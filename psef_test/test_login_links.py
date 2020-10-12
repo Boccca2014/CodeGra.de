@@ -113,8 +113,8 @@ def test_enabling_login_links(
 
     with describe('Cannot enable login links with large availability window'
                   ), logged_in(teacher):
-        monkeypatch.setitem(
-            app.config, 'EXAM_LOGIN_MAX_LENGTH', timedelta(days=1)
+        psef.site_settings.Opt.EXAM_LOGIN_MAX_LENGTH.set_and_commit_value(
+            'P1D'
         )
         test_client.req(
             'patch',
@@ -142,10 +142,9 @@ def test_sending_login_links(
     with describe('setup'), logged_in(admin_user):
         external_url = f'https://{uuid.uuid4()}.com'
         monkeypatch.setitem(app.config, 'EXTERNAL_URL', external_url)
-        monkeypatch.setitem(
-            app.config, 'LOGIN_TOKEN_BEFORE_TIME',
-            [timedelta(hours=1), timedelta(minutes=5)]
-        )
+        psef.site_settings.Opt.LOGIN_TOKEN_BEFORE_TIME.set_and_commit_value([
+            timedelta(hours=1), timedelta(minutes=5)
+        ])
         orig_send_links = psef.tasks.send_login_links_to_users
         stub_send_links = stub_function(
             psef.tasks, 'send_login_links_to_users'

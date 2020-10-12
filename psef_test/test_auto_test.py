@@ -422,7 +422,10 @@ def test_create_auto_test_suite(basic, test_client, logged_in, describe):
                         'submission_info': False,
                         'steps': [],
                         # This is set in the conftest.py
-                        'command_time_limit': 3,
+                        'command_time_limit': (
+                            psef.site_settings.Opt.AUTO_TEST_MAX_TIME_COMMAND.
+                            value
+                        ).total_seconds(),
                     }],
                 }]
             }
@@ -789,6 +792,9 @@ def test_run_auto_test(
     monkeypatch_for_run, make_function_spy, stub_function_class
 ):
     with describe('setup'):
+        psef.site_settings.Opt.AUTO_TEST_MAX_TIME_COMMAND.set_and_commit_value(
+            'PT4S'
+        )
         course, assig_id, teacher, student1 = basic
         student2 = helpers.create_user_with_role(session, 'Student', [course])
         adjust_spy = make_function_spy(psef.tasks, 'adjust_amount_runners')

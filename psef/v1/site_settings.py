@@ -47,11 +47,11 @@ def update_site_settings(
 
     auth.SiteSettingsPermissions().ensure_may_edit()
 
-    for option in options:
+    for option in options.updates:
         # mypy bug: https://github.com/python/mypy/issues/9580
         edit_row = models.SiteSetting.set_option(
-            option, option.value
-        )  # type: ignore
+            option, option.value  # type: ignore
+        )
         models.db.session.add(edit_row)
     models.db.session.commit()
 

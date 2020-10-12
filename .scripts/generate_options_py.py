@@ -58,6 +58,10 @@ class Option(t.Generic[_T]):
     def value(self) -> _T:
         return models.SiteSetting.get_option(self)
 
+    def set_and_commit_value(self, new_value: _T) -> None:
+        models.db.session.add(models.SiteSetting.set_option(self, new_value))
+        models.db.session.commit()
+
     class AsJSON(TypedDict):
         name: str
         default: t.Any

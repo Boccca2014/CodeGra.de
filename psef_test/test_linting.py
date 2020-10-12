@@ -684,7 +684,7 @@ def test_lint_later_submission_disabled_linters(
             }
         )
 
-    monkeypatch.setitem(app.config['FEATURES'], feats.Feature.LINTERS, False)
+    psef.site_settings.Opt.LINTERS_ENABLED.set_and_commit_value(False)
 
     with logged_in(student_user):
         single_work = test_client.req(
