@@ -179,7 +179,7 @@ context('FileViewer', () => {
                 cy.get('.dropdown-menu .loader').should('not.exist');
                 cy.get('.dropdown-menu li:last').click();
             });
-            cy.url().should('not.contain', '/submissions/' + String(submission.id));
+            cy.url().should('not.contain', `/submissions/${submission.id}`);
             cy.get('.file-viewer')
                 .contains('.alert', 'Inline feedback is currently hidden')
                 .should('exist');

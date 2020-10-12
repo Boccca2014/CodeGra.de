@@ -63,7 +63,8 @@
                 <tr v-if="showInlineFeedback">
                     <td>Inline feedback</td>
                     <td>
-                        <toggle v-model="inlineFeedback"
+                        <toggle :value="inlineFeedback"
+                                @input="emitInlineFeedback"
                                 label-on="Show"
                                 label-off="Hide"/>
                     </td>
@@ -185,11 +186,6 @@ export default {
             langLoading: false,
             whiteLoading: false,
             selectedLanguage: -1,
-            inlineFeedback: this.$utils.parseBool(this.$utils.getProps(
-                this.$route.query,
-                true,
-                'showInlineFeedback',
-            )),
             minLoadTime: 200,
             popoverDisabled: false,
         };
@@ -197,6 +193,14 @@ export default {
 
     computed: {
         ...mapGetters('pref', ['fontSize', 'contextAmount', 'darkMode']),
+
+        inlineFeedback() {
+            return this.$utils.parseBool(this.$utils.getProps(
+                this.$route.query,
+                true,
+                'showInlineFeedback',
+            ));
+        },
     },
 
     methods: {
@@ -270,6 +274,16 @@ export default {
                 this.popoverDisabled = false;
             });
         },
+
+        emitInlineFeedback(show) {
+            this.$emit('inline-feedback', show);
+            const query = {
+                showInlineFeedback: show ? undefined : false,
+            };
+            this.$router.replace(
+                this.$utils.deepExtend({}, this.$route, { query }),
+            );
+        },
     },
 
     mounted() {
@@ -293,19 +307,6 @@ export default {
             if (newVal != null && newVal !== oldVal) {
                 this.loadValues(newVal);
             }
-        },
-
-        inlineFeedback: {
-            immediate: true,
-            handler(show) {
-                this.$emit('inline-feedback', show);
-                const query = {
-                    showInlineFeedback: show ? undefined : false,
-                };
-                this.$router.replace(
-                    this.$utils.deepExtend({}, this.$route, { query }),
-                );
-            },
         },
 
         selectedLanguage(lang, old) {
