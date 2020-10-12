@@ -66,6 +66,71 @@ context('FileViewer', () => {
         cy.get('.feedback-reply.editing').should('not.exist');
     }
 
+    context('Floating feedback button', () => {
+        it('should open a scrollable feedback area', () => {
+            cy.wrap([
+                'venn1.png',
+                'README.md',
+                'thomas-schaper',
+            ]).each(filename => {
+                openFile(filename);
+                cy.get('.file-viewer .feedback-button')
+                    .click({ force: true });
+
+                cy.get('.feedback-area-wrapper')
+                    .should('be.visible');
+
+                cy.get('.feedback-area-wrapper .save-button-wrapper .submit-button.btn-primary')
+                    .as('save-button');
+
+                // The save button should be visible right after opening the
+                // feedback area.
+                cy.get('@save-button')
+                    .should('be.visible');
+
+                // Resize the feedback area, making it smaller.  We need to
+                // drag to somewhere _within_ the .rs-panes because rs-panes
+                // listens to the mouseup event on the .rs-panes element. The
+                // `force` is needed because cypress complains that the resizer
+                // is blocked by another element, even though it isn't.
+                cy.get('.file-viewer .Resizer')
+                    .dragTo('@save-button', { force: true });
+
+                // The save button should not be visible anymore because the
+                // pane containing the feedback area has shrunk.
+                cy.get('@save-button')
+                    .should('not.be.visible');
+
+                // The pane containing the feedback area should be scrollable.
+                cy.get('.file-viewer .row.Pane:last-child')
+                    .shouldBeScrollable('y');
+
+                cy.get('.file-viewer .feedback-area-wrapper textarea')
+                    .setText('comment');
+                cy.get('@save-button')
+                    .submit('success', { waitForDefault: false });
+
+                // Wait for the feedback area to become non-editable.
+                cy.get('.file-viewer .add-reply')
+                    .should('be.visible');
+
+                // Resize the feedback area.
+                cy.get('.file-viewer .Resizer')
+                    .dragTo('.file-viewer .add-reply', { force: true });
+
+                cy.get('.file-viewer .add-reply')
+                    .should('not.be.visible');
+
+                // The feedback area should now be scrollable.
+                cy.get('.file-viewer .row.Pane:last-child')
+                    .shouldBeScrollable('y');
+
+                cy.get('.file-viewer .submit-button[name="delete-feedback"]')
+                    .submit('success', { hasConfirm: true, waitForDefault: false });
+            });
+        });
+    });
+
     context('Inline feedback preference', () => {
         function openSettings() {
             cy.get('.local-header .settings-toggle')
