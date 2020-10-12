@@ -343,13 +343,13 @@ export default {
 
         maybeCall(data, prop) {
             if (data == null) {
-                if (!this.$userConfig.isProduction) {
+                if (!this.$isProduction) {
                     // eslint-disable-next-line
                     console.warn('A null object was returned from the :submit function');
                 }
             } else if (typeof data[prop] === 'function') {
                 data[prop]();
-            } else if (!this.$userConfig.isProduction && Object.hasOwnProperty.call(data, prop)) {
+            } else if (!this.$isProduction && Object.hasOwnProperty.call(data, prop)) {
                 // eslint-disable-next-line
                 console.warn(`The property ${prop} was found on ${data}, but was not a function`);
             }

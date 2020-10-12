@@ -12,6 +12,7 @@ from flask import request
 from requests import RequestException
 from typing_extensions import TypedDict
 
+import cg_dt_utils
 import cg_request_args as rqa
 import cg_typing_extensions
 from cg_json import JSONResponse
@@ -39,11 +40,22 @@ class LegacyFeaturesAsJSON(TypedDict):
     RUBRICS: bool
 
 
-class BaseAboutAsJSON(TypedDict):
+class BaseReleaseInfo(TypedDict):
+    commit: str
+
+
+class ReleaseInfo(BaseReleaseInfo, total=False):
     version: str
+    date: cg_dt_utils.DatetimeWithTimezone
+    message: str
+
+
+class BaseAboutAsJSON(TypedDict):
+    version: t.Optional[str]
     commit: str
     features: LegacyFeaturesAsJSON
     settings: site_settings.Opt.FrontendOptsAsJSON
+    release: ReleaseInfo
 
 
 class HealthAsJSON(TypedDict):
@@ -75,9 +87,10 @@ def about() -> JSONResponse[AboutAsJSON]:
     status_code = 200
 
     settings = site_settings.Opt.get_frontend_opts()
+    release_info = current_app.config['RELEASE_INFO']
     res: AboutAsJSON = {
-        'version': current_app.config['VERSION'],
-        'commit': current_app.config['CUR_COMMIT'],
+        'version': release_info.get('version'),
+        'commit': release_info['commit'],
         # We include the old features here to be backwards compatible.
         'features':
             {
@@ -98,6 +111,7 @@ def about() -> JSONResponse[AboutAsJSON]:
                 'RUBRICS': settings['RUBRICS_ENABLED'],
             },
         'settings': settings,
+        'release': release_info,
     }
 
     if request.args.get('health', _no_val) == current_app.config['HEALTH_KEY']:

@@ -8,7 +8,7 @@ import cg_request_args as rqa
 from cg_json import JSONResponse
 
 from . import api
-from .. import site_settings
+from .. import models, site_settings
 
 
 @api.route('/site_settings/', methods=['GET'])
@@ -24,8 +24,8 @@ def get_site_settings(
     return JSONResponse.make(site_settings.Opt.get_all_opts())
 
 
-@api.route('/site_settings/', methods=['GET'])
-@rqa.swaggerize('get_all')
+@api.route('/site_settings/', methods=['PATCH'])
+@rqa.swaggerize('update')
 def update_site_settings(
 ) -> t.Union[JSONResponse[site_settings.Opt.AllOptsAsJSON],
              JSONResponse[site_settings.Opt.FrontendOptsAsJSON],
@@ -34,5 +34,11 @@ def update_site_settings(
 
     .. :quickref: Site settings; Get the site settings for this instance.
     """
-    data = rqa.BaseFixedMapping.from_typeddict(site_settings.Opt.AllOptsAsJSON)
+    options = site_settings.OPTIONS_INPUT_PARSER.from_flask()
+    for option in options:
+        # mypy bug: https://github.com/python/mypy/issues/9580
+        edit_row = models.SiteSetting.set_option(option, option.value)  # type: ignore
+        models.db.session.add(edit_row)
+    models.db.session.commit()
+
     return JSONResponse.make(site_settings.Opt.get_all_opts())

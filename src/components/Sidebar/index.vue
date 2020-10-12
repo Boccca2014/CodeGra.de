@@ -71,7 +71,7 @@
         </div>
 
         <div class="sidebar-bottom">
-            <a :href="`https://docs.codegra.de/?v=${version}`"
+            <a :href="`https://docs.codegra.de/?v=${commitHash}`"
                target="_blank"
                class="sidebar-bottom-item"
                v-b-popover.hover.top="'Documentation'">
@@ -308,7 +308,7 @@ export default {
             subMenus: [],
             mobileVisible: false,
             dimmingUseSpace: true,
-            version: this.$userConfig.release.version,
+            commitHash: COMMIT_HASH.substring(0, 7),
         };
     },
 

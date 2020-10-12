@@ -1,20 +1,31 @@
-var path = require('path')
-var utils = require('./utils')
-var webpack = require('webpack')
-var config = require('../config')
-var vueLoaderConfig = require('./vue-loader.conf')
-var userConfig = require('./userConfig')
+const path = require('path')
+const utils = require('./utils')
+const webpack = require('webpack')
+const config = require('../config')
+const vueLoaderConfig = require('./vue-loader.conf')
 const { VueLoaderPlugin } = require('vue-loader')
 const ForkTsCheckerWebpackPlugin = require('fork-ts-checker-webpack-plugin');
 const keysTransformer = require('ts-transformer-keys/transformer').default;
 const CreateFileWebpack = require('./createFile')
+const execFileSync = require('child_process').execFileSync;
+const gitCommitLong = require('./git_commit');
 
 function resolve (dir) {
   return path.join(__dirname, '..', dir)
 }
 
+const IS_PRODUCTION = process.env.NODE_ENV !== 'development';
+globalConstants = {
+    IS_PRODUCTION: JSON.stringify(IS_PRODUCTION),
+    COMMIT_HASH: JSON.stringify(gitCommitLong),
+    SENTRY_DSN: JSON.stringify(process.env['SENTRY_DSN'] || ''),
+};
+utils.assert(typeof JSON.parse(globalConstants.IS_PRODUCTION) === 'boolean', 'IS_PRODUCTION wrong type');
+utils.assert(typeof JSON.parse(globalConstants.COMMIT_HASH) === 'string', 'COMMIT_HASH wrong type');
+utils.assert(typeof JSON.parse(globalConstants.SENTRY_DSN) === 'string', 'SENTRY_DSN wrong type');
+
 module.exports = {
-  mode: process.env.NODE_ENV === 'development' ? 'development' : 'production',
+  mode: IS_PRODUCTION ? 'production' : 'development',
   entry: {
     app: './src/main.js'
   },
@@ -110,18 +121,12 @@ module.exports = {
   },
   node: {
     fs: 'empty',
-    buffer: false,
+    Buffer: false,
+    process: false,
   },
   plugins: [
     new webpack.IgnorePlugin(/^\.\/locale$/, /moment$/),
     new VueLoaderPlugin(),
-    new CreateFileWebpack({
-        path: resolve('src'),
-        fileName: 'userConfig.ts',
-        content: `// eslint-disable-next-line
-const userConfig = Object.freeze(<const>${JSON.stringify(userConfig)});
-export default userConfig;
-`,
-    }),
+    new webpack.DefinePlugin(globalConstants),
   ],
 }

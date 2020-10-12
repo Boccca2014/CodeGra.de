@@ -12,6 +12,8 @@ from configparser import ConfigParser
 
 from typing_extensions import Literal, TypedDict
 
+import cg_dt_utils
+import cg_request_args as rqa
 import cg_object_storage
 
 cur_dir = os.path.dirname(os.path.abspath(__file__))
@@ -60,6 +62,17 @@ AutoTestConfig = TypedDict(
 )
 AutoTestHosts = t.Mapping[str, AutoTestConfig]
 
+
+class BaseReleaseInfo(TypedDict):
+    commit: str
+
+
+class ReleaseInfo(BaseReleaseInfo, total=False):
+    version: str
+    date: cg_dt_utils.DatetimeWithTimezone
+    message: str
+
+
 FlaskConfig = TypedDict(
     'FlaskConfig', {
         'IS_AUTO_TEST_RUNNER': bool,
@@ -78,9 +91,8 @@ FlaskConfig = TypedDict(
         'AUTO_TEST_STARTUP_COMMAND': t.Optional[str],
         'AUTO_TEST_RUNNER_INSTANCE_PASS': str,
         'AUTO_TEST_RUNNER_CONTAINER_URL': t.Optional[str],
-        'CUR_COMMIT': str,
-        'VERSION': str,
         'TESTING': bool,
+        'RELEASE_INFO': ReleaseInfo,
         'Celery': CeleryConfig,
         'LTI_CONSUMER_KEY_SECRETS': t.Mapping[str, t.Tuple[str, t.List[str]]],
         'LTI1.3_MIN_POLL_INTERVAL': int,
@@ -185,7 +197,6 @@ def set_int(
     val = int(default if val is None else val)
     ensure_between(item, val, min, max)
     out[item] = val
-
 
 
 def set_str(
@@ -326,14 +337,38 @@ CONFIG['MIN_FREE_DISK_SPACE'] = cg_object_storage.FileSize(min_free)
 
 
 def _set_version() -> None:
-    CONFIG['CUR_COMMIT'] = subprocess.check_output(
+    cur_commit = subprocess.check_output(
         ['git', 'rev-parse', 'HEAD'],
         text=True,
     ).strip()
-    CONFIG['VERSION'] = subprocess.check_output(
-        ['git', 'describe', '--abbrev=0', '--tags'],
+    version = subprocess.check_output(
+        ['git', 'rev-parse', '--abbrev-ref', 'HEAD'],
         text=True,
     ).strip()
+    if 'stable' not in version:
+        CONFIG['RELEASE_INFO'] = {'commit': cur_commit}
+        return
+    with open(
+        os.path.join(
+            os.path.dirname(__file__), 'seed_data', 'release_notes.json'
+        ), 'r'
+    ) as release_notes_f:
+        raw_release_notes = json.load(release_notes_f)
+
+    release_notes = rqa.LookupMapping(
+        rqa.FixedMapping(
+            rqa.RequiredArgument('date', rqa.RichValue.DateTime, ''),
+            rqa.RequiredArgument('message', rqa.SimpleValue.str, ''),
+            rqa.RequiredArgument('version', rqa.SimpleValue.str, ''),
+        )
+    ).try_parse(raw_release_notes)
+    newest_release = max(release_notes.values(), key=lambda x: x.date)
+    CONFIG['RELEASE_INFO'] = {
+        'commit': cur_commit,
+        'version': newest_release.version,
+        'message': newest_release.message,
+        'date': newest_release.date,
+    }
 
 
 try:

@@ -238,7 +238,7 @@ class Opt:
         parser=rqa.SimpleValue.bool,
         default_obj=False,
     )
-    _FRONTEND_OPTS = [
+    _FRONTEND_OPTS: t.Sequence[Option] = [
         AUTO_TEST_MAX_TIME_COMMAND,
         EXAM_LOGIN_MAX_LENGTH,
         LOGIN_TOKEN_BEFORE_TIME,
@@ -259,38 +259,20 @@ class Opt:
         EMAIL_STUDENTS_ENABLED,
         PEER_FEEDBACK_ENABLED,
     ]
-    _ALL_OPTS = [
-        AUTO_TEST_MAX_TIME_COMMAND,
+    _ALL_OPTS: t.Sequence[Option] = [
+        *_FRONTEND_OPTS,
         AUTO_TEST_HEARTBEAT_INTERVAL,
         AUTO_TEST_HEARTBEAT_MAX_MISSED,
         AUTO_TEST_MAX_JOBS_PER_RUNNER,
         AUTO_TEST_MAX_CONCURRENT_BATCH_RUNS,
-        EXAM_LOGIN_MAX_LENGTH,
-        LOGIN_TOKEN_BEFORE_TIME,
         MIN_PASSWORD_SCORE,
         RESET_TOKEN_TIME,
         SETTING_TOKEN_TIME,
-        SITE_EMAIL,
         MAX_NUMBER_OF_FILES,
         MAX_LARGE_UPLOAD_SIZE,
         MAX_NORMAL_UPLOAD_SIZE,
         MAX_FILE_SIZE,
         JWT_ACCESS_TOKEN_EXPIRES,
-        MAX_LINES,
-        NOTIFICATION_POLL_TIME,
-        BLACKBOARD_ZIP_UPLOAD_ENABLED,
-        RUBRICS_ENABLED,
-        AUTOMATIC_LTI_ROLE_ENABLED,
-        LTI_ENABLED,
-        LINTERS_ENABLED,
-        INCREMENTAL_RUBRIC_SUBMISSION_ENABLED,
-        REGISTER_ENABLED,
-        GROUPS_ENABLED,
-        AUTO_TEST_ENABLED,
-        COURSE_REGISTER_ENABLED,
-        RENDER_HTML_ENABLED,
-        EMAIL_STUDENTS_ENABLED,
-        PEER_FEEDBACK_ENABLED,
     ]
 
     class FrontendOptsAsJSON(TypedDict):
@@ -478,6 +460,418 @@ class Opt:
             'EMAIL_STUDENTS_ENABLED': lookup[cls.EMAIL_STUDENTS_ENABLED],
             'PEER_FEEDBACK_ENABLED': lookup[cls.PEER_FEEDBACK_ENABLED],
         }
+
+
+OPTIONS_INPUT_PARSER = rqa.Lazy(
+    lambda: rqa.List(
+        (
+            rqa.FixedMapping(
+                rqa.RequiredArgument(
+                    'name',
+                    rqa.StringEnum('AUTO_TEST_MAX_TIME_COMMAND'),
+                    '',
+                ),
+                rqa.RequiredArgument(
+                    'value',
+                    rqa.Nullable(Opt.AUTO_TEST_MAX_TIME_COMMAND.parser),
+                    '',
+                ),
+            ).add_tag('opt', Opt.AUTO_TEST_MAX_TIME_COMMAND)
+        ) | (
+            rqa.FixedMapping(
+                rqa.RequiredArgument(
+                    'name',
+                    rqa.StringEnum('AUTO_TEST_HEARTBEAT_INTERVAL'),
+                    '',
+                ),
+                rqa.RequiredArgument(
+                    'value',
+                    rqa.Nullable(Opt.AUTO_TEST_HEARTBEAT_INTERVAL.parser),
+                    '',
+                ),
+            ).add_tag('opt', Opt.AUTO_TEST_HEARTBEAT_INTERVAL)
+        ) | (
+            rqa.FixedMapping(
+                rqa.RequiredArgument(
+                    'name',
+                    rqa.StringEnum('AUTO_TEST_HEARTBEAT_MAX_MISSED'),
+                    '',
+                ),
+                rqa.RequiredArgument(
+                    'value',
+                    rqa.Nullable(Opt.AUTO_TEST_HEARTBEAT_MAX_MISSED.parser),
+                    '',
+                ),
+            ).add_tag('opt', Opt.AUTO_TEST_HEARTBEAT_MAX_MISSED)
+        ) | (
+            rqa.FixedMapping(
+                rqa.RequiredArgument(
+                    'name',
+                    rqa.StringEnum('AUTO_TEST_MAX_JOBS_PER_RUNNER'),
+                    '',
+                ),
+                rqa.RequiredArgument(
+                    'value',
+                    rqa.Nullable(Opt.AUTO_TEST_MAX_JOBS_PER_RUNNER.parser),
+                    '',
+                ),
+            ).add_tag('opt', Opt.AUTO_TEST_MAX_JOBS_PER_RUNNER)
+        ) | (
+            rqa.FixedMapping(
+                rqa.RequiredArgument(
+                    'name',
+                    rqa.StringEnum('AUTO_TEST_MAX_CONCURRENT_BATCH_RUNS'),
+                    '',
+                ),
+                rqa.RequiredArgument(
+                    'value',
+                    rqa.
+                    Nullable(Opt.AUTO_TEST_MAX_CONCURRENT_BATCH_RUNS.parser),
+                    '',
+                ),
+            ).add_tag('opt', Opt.AUTO_TEST_MAX_CONCURRENT_BATCH_RUNS)
+        ) | (
+            rqa.FixedMapping(
+                rqa.RequiredArgument(
+                    'name',
+                    rqa.StringEnum('EXAM_LOGIN_MAX_LENGTH'),
+                    '',
+                ),
+                rqa.RequiredArgument(
+                    'value',
+                    rqa.Nullable(Opt.EXAM_LOGIN_MAX_LENGTH.parser),
+                    '',
+                ),
+            ).add_tag('opt', Opt.EXAM_LOGIN_MAX_LENGTH)
+        ) | (
+            rqa.FixedMapping(
+                rqa.RequiredArgument(
+                    'name',
+                    rqa.StringEnum('LOGIN_TOKEN_BEFORE_TIME'),
+                    '',
+                ),
+                rqa.RequiredArgument(
+                    'value',
+                    rqa.Nullable(Opt.LOGIN_TOKEN_BEFORE_TIME.parser),
+                    '',
+                ),
+            ).add_tag('opt', Opt.LOGIN_TOKEN_BEFORE_TIME)
+        ) | (
+            rqa.FixedMapping(
+                rqa.RequiredArgument(
+                    'name',
+                    rqa.StringEnum('MIN_PASSWORD_SCORE'),
+                    '',
+                ),
+                rqa.RequiredArgument(
+                    'value',
+                    rqa.Nullable(Opt.MIN_PASSWORD_SCORE.parser),
+                    '',
+                ),
+            ).add_tag('opt', Opt.MIN_PASSWORD_SCORE)
+        ) | (
+            rqa.FixedMapping(
+                rqa.RequiredArgument(
+                    'name',
+                    rqa.StringEnum('RESET_TOKEN_TIME'),
+                    '',
+                ),
+                rqa.RequiredArgument(
+                    'value',
+                    rqa.Nullable(Opt.RESET_TOKEN_TIME.parser),
+                    '',
+                ),
+            ).add_tag('opt', Opt.RESET_TOKEN_TIME)
+        ) | (
+            rqa.FixedMapping(
+                rqa.RequiredArgument(
+                    'name',
+                    rqa.StringEnum('SETTING_TOKEN_TIME'),
+                    '',
+                ),
+                rqa.RequiredArgument(
+                    'value',
+                    rqa.Nullable(Opt.SETTING_TOKEN_TIME.parser),
+                    '',
+                ),
+            ).add_tag('opt', Opt.SETTING_TOKEN_TIME)
+        ) | (
+            rqa.FixedMapping(
+                rqa.RequiredArgument(
+                    'name',
+                    rqa.StringEnum('SITE_EMAIL'),
+                    '',
+                ),
+                rqa.RequiredArgument(
+                    'value',
+                    rqa.Nullable(Opt.SITE_EMAIL.parser),
+                    '',
+                ),
+            ).add_tag('opt', Opt.SITE_EMAIL)
+        ) | (
+            rqa.FixedMapping(
+                rqa.RequiredArgument(
+                    'name',
+                    rqa.StringEnum('MAX_NUMBER_OF_FILES'),
+                    '',
+                ),
+                rqa.RequiredArgument(
+                    'value',
+                    rqa.Nullable(Opt.MAX_NUMBER_OF_FILES.parser),
+                    '',
+                ),
+            ).add_tag('opt', Opt.MAX_NUMBER_OF_FILES)
+        ) | (
+            rqa.FixedMapping(
+                rqa.RequiredArgument(
+                    'name',
+                    rqa.StringEnum('MAX_LARGE_UPLOAD_SIZE'),
+                    '',
+                ),
+                rqa.RequiredArgument(
+                    'value',
+                    rqa.Nullable(Opt.MAX_LARGE_UPLOAD_SIZE.parser),
+                    '',
+                ),
+            ).add_tag('opt', Opt.MAX_LARGE_UPLOAD_SIZE)
+        ) | (
+            rqa.FixedMapping(
+                rqa.RequiredArgument(
+                    'name',
+                    rqa.StringEnum('MAX_NORMAL_UPLOAD_SIZE'),
+                    '',
+                ),
+                rqa.RequiredArgument(
+                    'value',
+                    rqa.Nullable(Opt.MAX_NORMAL_UPLOAD_SIZE.parser),
+                    '',
+                ),
+            ).add_tag('opt', Opt.MAX_NORMAL_UPLOAD_SIZE)
+        ) | (
+            rqa.FixedMapping(
+                rqa.RequiredArgument(
+                    'name',
+                    rqa.StringEnum('MAX_FILE_SIZE'),
+                    '',
+                ),
+                rqa.RequiredArgument(
+                    'value',
+                    rqa.Nullable(Opt.MAX_FILE_SIZE.parser),
+                    '',
+                ),
+            ).add_tag('opt', Opt.MAX_FILE_SIZE)
+        ) | (
+            rqa.FixedMapping(
+                rqa.RequiredArgument(
+                    'name',
+                    rqa.StringEnum('JWT_ACCESS_TOKEN_EXPIRES'),
+                    '',
+                ),
+                rqa.RequiredArgument(
+                    'value',
+                    rqa.Nullable(Opt.JWT_ACCESS_TOKEN_EXPIRES.parser),
+                    '',
+                ),
+            ).add_tag('opt', Opt.JWT_ACCESS_TOKEN_EXPIRES)
+        ) | (
+            rqa.FixedMapping(
+                rqa.RequiredArgument(
+                    'name',
+                    rqa.StringEnum('MAX_LINES'),
+                    '',
+                ),
+                rqa.RequiredArgument(
+                    'value',
+                    rqa.Nullable(Opt.MAX_LINES.parser),
+                    '',
+                ),
+            ).add_tag('opt', Opt.MAX_LINES)
+        ) | (
+            rqa.FixedMapping(
+                rqa.RequiredArgument(
+                    'name',
+                    rqa.StringEnum('NOTIFICATION_POLL_TIME'),
+                    '',
+                ),
+                rqa.RequiredArgument(
+                    'value',
+                    rqa.Nullable(Opt.NOTIFICATION_POLL_TIME.parser),
+                    '',
+                ),
+            ).add_tag('opt', Opt.NOTIFICATION_POLL_TIME)
+        ) | (
+            rqa.FixedMapping(
+                rqa.RequiredArgument(
+                    'name',
+                    rqa.StringEnum('BLACKBOARD_ZIP_UPLOAD_ENABLED'),
+                    '',
+                ),
+                rqa.RequiredArgument(
+                    'value',
+                    rqa.Nullable(Opt.BLACKBOARD_ZIP_UPLOAD_ENABLED.parser),
+                    '',
+                ),
+            ).add_tag('opt', Opt.BLACKBOARD_ZIP_UPLOAD_ENABLED)
+        ) | (
+            rqa.FixedMapping(
+                rqa.RequiredArgument(
+                    'name',
+                    rqa.StringEnum('RUBRICS_ENABLED'),
+                    '',
+                ),
+                rqa.RequiredArgument(
+                    'value',
+                    rqa.Nullable(Opt.RUBRICS_ENABLED.parser),
+                    '',
+                ),
+            ).add_tag('opt', Opt.RUBRICS_ENABLED)
+        ) | (
+            rqa.FixedMapping(
+                rqa.RequiredArgument(
+                    'name',
+                    rqa.StringEnum('AUTOMATIC_LTI_ROLE_ENABLED'),
+                    '',
+                ),
+                rqa.RequiredArgument(
+                    'value',
+                    rqa.Nullable(Opt.AUTOMATIC_LTI_ROLE_ENABLED.parser),
+                    '',
+                ),
+            ).add_tag('opt', Opt.AUTOMATIC_LTI_ROLE_ENABLED)
+        ) | (
+            rqa.FixedMapping(
+                rqa.RequiredArgument(
+                    'name',
+                    rqa.StringEnum('LTI_ENABLED'),
+                    '',
+                ),
+                rqa.RequiredArgument(
+                    'value',
+                    rqa.Nullable(Opt.LTI_ENABLED.parser),
+                    '',
+                ),
+            ).add_tag('opt', Opt.LTI_ENABLED)
+        ) | (
+            rqa.FixedMapping(
+                rqa.RequiredArgument(
+                    'name',
+                    rqa.StringEnum('LINTERS_ENABLED'),
+                    '',
+                ),
+                rqa.RequiredArgument(
+                    'value',
+                    rqa.Nullable(Opt.LINTERS_ENABLED.parser),
+                    '',
+                ),
+            ).add_tag('opt', Opt.LINTERS_ENABLED)
+        ) | (
+            rqa.FixedMapping(
+                rqa.RequiredArgument(
+                    'name',
+                    rqa.StringEnum('INCREMENTAL_RUBRIC_SUBMISSION_ENABLED'),
+                    '',
+                ),
+                rqa.RequiredArgument(
+                    'value',
+                    rqa.
+                    Nullable(Opt.INCREMENTAL_RUBRIC_SUBMISSION_ENABLED.parser),
+                    '',
+                ),
+            ).add_tag('opt', Opt.INCREMENTAL_RUBRIC_SUBMISSION_ENABLED)
+        ) | (
+            rqa.FixedMapping(
+                rqa.RequiredArgument(
+                    'name',
+                    rqa.StringEnum('REGISTER_ENABLED'),
+                    '',
+                ),
+                rqa.RequiredArgument(
+                    'value',
+                    rqa.Nullable(Opt.REGISTER_ENABLED.parser),
+                    '',
+                ),
+            ).add_tag('opt', Opt.REGISTER_ENABLED)
+        ) | (
+            rqa.FixedMapping(
+                rqa.RequiredArgument(
+                    'name',
+                    rqa.StringEnum('GROUPS_ENABLED'),
+                    '',
+                ),
+                rqa.RequiredArgument(
+                    'value',
+                    rqa.Nullable(Opt.GROUPS_ENABLED.parser),
+                    '',
+                ),
+            ).add_tag('opt', Opt.GROUPS_ENABLED)
+        ) | (
+            rqa.FixedMapping(
+                rqa.RequiredArgument(
+                    'name',
+                    rqa.StringEnum('AUTO_TEST_ENABLED'),
+                    '',
+                ),
+                rqa.RequiredArgument(
+                    'value',
+                    rqa.Nullable(Opt.AUTO_TEST_ENABLED.parser),
+                    '',
+                ),
+            ).add_tag('opt', Opt.AUTO_TEST_ENABLED)
+        ) | (
+            rqa.FixedMapping(
+                rqa.RequiredArgument(
+                    'name',
+                    rqa.StringEnum('COURSE_REGISTER_ENABLED'),
+                    '',
+                ),
+                rqa.RequiredArgument(
+                    'value',
+                    rqa.Nullable(Opt.COURSE_REGISTER_ENABLED.parser),
+                    '',
+                ),
+            ).add_tag('opt', Opt.COURSE_REGISTER_ENABLED)
+        ) | (
+            rqa.FixedMapping(
+                rqa.RequiredArgument(
+                    'name',
+                    rqa.StringEnum('RENDER_HTML_ENABLED'),
+                    '',
+                ),
+                rqa.RequiredArgument(
+                    'value',
+                    rqa.Nullable(Opt.RENDER_HTML_ENABLED.parser),
+                    '',
+                ),
+            ).add_tag('opt', Opt.RENDER_HTML_ENABLED)
+        ) | (
+            rqa.FixedMapping(
+                rqa.RequiredArgument(
+                    'name',
+                    rqa.StringEnum('EMAIL_STUDENTS_ENABLED'),
+                    '',
+                ),
+                rqa.RequiredArgument(
+                    'value',
+                    rqa.Nullable(Opt.EMAIL_STUDENTS_ENABLED.parser),
+                    '',
+                ),
+            ).add_tag('opt', Opt.EMAIL_STUDENTS_ENABLED)
+        ) | (
+            rqa.FixedMapping(
+                rqa.RequiredArgument(
+                    'name',
+                    rqa.StringEnum('PEER_FEEDBACK_ENABLED'),
+                    '',
+                ),
+                rqa.RequiredArgument(
+                    'value',
+                    rqa.Nullable(Opt.PEER_FEEDBACK_ENABLED.parser),
+                    '',
+                ),
+            ).add_tag('opt', Opt.PEER_FEEDBACK_ENABLED)
+        )
+    )
+)
 
 
 def init_app(app: PsefFlask) -> None:

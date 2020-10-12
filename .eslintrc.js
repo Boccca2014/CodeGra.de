@@ -120,5 +120,8 @@ module.exports = {
     },
     globals: {
         'AutoTestBaseSystems': true,
+        'IS_PRODUCTION': true,
+        'SENTRY_DSN': true,
+        'COMMIT_HASH': true,
     },
 }

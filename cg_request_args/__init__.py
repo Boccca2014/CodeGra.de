@@ -21,6 +21,7 @@ import flask
 import structlog
 import validate_email
 import dateutil.parser
+from werkzeug.utils import cached_property
 from typing_extensions import Final, Literal, Protocol, TypedDict
 from werkzeug.datastructures import FileStorage
 
@@ -560,6 +561,25 @@ class _SimpleUnion(t.Generic[_SimpleUnionT], _Parser[_SimpleUnionT]):
         return self._raise(value)
 
 
+class Lazy(t.Generic[_T], _Parser[_T]):
+    def __init__(self, make_parser: t.Callable[[], _Parser[_T]]):
+        super().__init__()
+        self._make_parser = make_parser
+
+    @cached_property
+    def _parser(self) -> _Parser[_T]:
+        return self._make_parser()
+
+    def describe(self) -> str:
+        return self._parser.describe()
+
+    def _to_open_api(self, schema: 'OpenAPISchema') -> t.Mapping[str, t.Any]:
+        return self._parser._to_open_api(schema)  # pylint: disable=protected-access
+
+    def try_parse(self, value: object) -> _T:
+        return self._parser.try_parse(value)
+
+
 _ENUM = t.TypeVar('_ENUM', bound=enum.Enum)
 
 
@@ -666,6 +686,7 @@ class _RichUnion(t.Generic[_T, _Y], _Parser[t.Union[_T, _Y]]):
                     value,
                     errors=[first_err, second_err]
                 )
+
 
 class List(t.Generic[_T], _Parser[t.Sequence[_T]]):
     """A parser for a list homogeneous values.
@@ -948,9 +969,9 @@ class FixedMapping(
 
     def __init__(self, *arguments: object) -> None:
         super().__init__(*arguments)
-        self.__tag: t.Optional[t.Tuple[str, str]] = None
+        self.__tag: t.Optional[t.Tuple[str, object]] = None
 
-    def add_tag(self, key: str, value: str) -> FixedMapping[_BaseDictT]:
+    def add_tag(self, key: str, value: object) -> FixedMapping[_BaseDictT]:
         """Add a tag to this mapping.
 
         This tag will always be added to the final mapping after parsing.

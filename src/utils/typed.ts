@@ -520,7 +520,7 @@ export function parseOrKeepFloat(num: string | number | null | undefined): numbe
 
 export function mapToObject<T extends Object, Y, KK extends keyof T = keyof T>(
     arr: ReadonlyArray<Y>,
-    mapper: (el: Y, index: number) => [KK, T[KK]],
+    mapper: (el: Y, index: number) => readonly [KK, T[KK]],
     initial: T = <T>{},
 ): T {
     return arr.reduce((acc, el, index) => {

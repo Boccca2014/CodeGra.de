@@ -5,27 +5,7 @@ from sphinx.locale import _
 from docutils.nodes import Element, Admonition
 from sphinx.util.docutils import SphinxDirective
 from docutils.parsers.rst.roles import set_classes
-from docutils.parsers.rst.directives.admonitions import BaseAdmonition
-
-EXAMPLE_NUMBER = 0
-EXAMPLE_MAPPING = set()
-
-
-class example(nodes.Admonition, nodes.Element):
-    def __init__(self, text, title, **kwargs):
-        super().__init__(text, **kwargs)
-        global EXAMPLE_NUMBER
-        EXAMPLE_NUMBER += 1
-
-        if title:
-            self.title_text = html.escape(f'Example: {title}')
-        else:
-            self.title_text = 'Example'
-
-        if title:
-            link_id = title.replace(' ', '-')
-        else:
-            link_id = '-'.join(text.split(' ')[:5])
+from docutils.parsers.rst.directives.admonitions import :5]
 
         link_id = 'Example-' + html.escape(link_id).lower()
         if link_id in EXAMPLE_MAPPING:

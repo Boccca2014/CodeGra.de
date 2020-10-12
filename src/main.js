@@ -3,12 +3,10 @@ import * as Sentry from '@sentry/browser';
 import { Vue as VueIntegration } from '@sentry/integrations';
 import Vue from 'vue';
 
-import UserConfig from '@/userConfig';
-
 // Some users might want to block sentry which should be just fine.
-if (UserConfig.sentryDsn && Sentry) {
+if (SENTRY_DSN && Sentry) {
     Sentry.init({
-        dsn: UserConfig.sentryDsn,
+        dsn: SENTRY_DSN,
         integrations: [
             new VueIntegration({
                 Vue,
@@ -16,7 +14,7 @@ if (UserConfig.sentryDsn && Sentry) {
                 logErrors: true,
             }),
         ],
-        release: `CodeGra.de@${UserConfig.release.commit}`,
+        release: `CodeGra.de@${COMMIT_HASH}`,
     });
 }
 
@@ -187,7 +185,6 @@ Vue.prototype.$routeParamAsId = function $routeParamAsId(name) {
     const res = utils.parseOrKeepFloat(this.$route.params[name]);
     return Number.isNaN(res) ? undefined : res;
 };
-Vue.prototype.$userConfig = UserConfig;
 
 Vue.prototype.$afterRerender = function doubleRequestAnimationFrame(cb) {
     return new Promise(resolve => {
@@ -444,9 +441,9 @@ Promise.all([
                         }),
                     )
                     .catch(() => null);
-                const ourCommit = UserConfig.release.commitHash;
+                const ourCommit = COMMIT_HASH;
                 const remoteCommit = utils.getProps(res, ourCommit, 'data');
-                if (UserConfig.isProduction && ourCommit !== remoteCommit) {
+                if (IS_PRODUCTION && ourCommit !== remoteCommit) {
                     this.$emit('cg::app::toast', {
                         tag: 'UpdateAvailable',
                         title: 'CodeGrade update available!',

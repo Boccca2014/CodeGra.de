@@ -27,13 +27,12 @@ export default {
     data() {
         return {
             showModal: false,
-            version: this.$userConfig.release.version,
         };
     },
 
     computed: {
         ...mapGetters('assignments', ['getAssignment']),
-        ...mapGetters('siteSettings', ['getSetting']),
+        ...mapGetters('siteSettings', ['getSetting', 'releaseInfo']),
 
         isStudent() {
             const assigId = this.$route.params.assignmentId;
@@ -52,7 +51,11 @@ export default {
         },
 
         email() {
-            return this.getSetting('EMAIL');
+            return this.getSetting('SITE_EMAIL');
+        },
+
+        version() {
+            return this.releaseInfo.map(r => r.version || `#${r.commit.substring(0, 7)}`).orDefault('…');
         },
     },
 

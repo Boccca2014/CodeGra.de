@@ -99,10 +99,13 @@ def write_doc(f, doc, indent_num):
     indent = ' ' * indent_num + '#: '
     f.write(
         '\n'.join(
-            textwrap.wrap(doc, 79, initial_indent=indent, subsequent_indent=indent)
+            textwrap.wrap(
+                doc, 79, initial_indent=indent, subsequent_indent=indent
+            )
         )
     )
     f.write('\n')
+
 
 def get_options():
     with open(
@@ -194,21 +197,25 @@ def main():
             f.write(opt)
             f.write('\n')
 
-        f.write('    _FRONTEND_OPTS = [')
+        f.write('    _FRONTEND_OPTS: t.Sequence[Option] = [')
         for tag, *_ in all_opts:
             if tag in frontend_opts:
                 f.write(tag)
                 f.write(',')
         f.write(']\n')
 
-        f.write('    _ALL_OPTS = [')
+        f.write('    _ALL_OPTS: t.Sequence[Option] = [')
+        f.write('*_FRONTEND_OPTS,')
         for tag, *_ in all_opts:
-            f.write(tag)
-            f.write(',')
+            if tag not in frontend_opts:
+                f.write(tag)
+                f.write(',')
         f.write(']\n')
 
         f.write('    class FrontendOptsAsJSON(TypedDict):\n')
-        f.write('        """The JSON representation of options visible to all users."""\n')
+        f.write(
+            '        """The JSON representation of options visible to all users."""\n'
+        )
         for tag, _, py_type, doc in all_opts:
             if tag not in frontend_opts:
                 continue
@@ -241,7 +248,9 @@ def main():
             f.write(': ')
             f.write(py_type)
             f.write('\n')
-        f.write('    AllOptsAsJSON.__cg_extends__ = FrontendOptsAsJSON  # type: ignore\n')
+        f.write(
+            '    AllOptsAsJSON.__cg_extends__ = FrontendOptsAsJSON  # type: ignore\n'
+        )
 
         f.write('    @classmethod\n')
         f.write('    def get_all_opts(cls) -> AllOptsAsJSON:\n')
@@ -252,6 +261,21 @@ def main():
         for tag, *_ in all_opts:
             f.write(f"'{tag}': lookup[cls.{tag}],")
         f.write('}\n')
+
+        f.write('OPTIONS_INPUT_PARSER = rqa.Lazy(lambda: rqa.List(')
+        for idx, (tag, *_) in enumerate(all_opts):
+            f.write('    (rqa.FixedMapping(\n ')
+            f.write(
+                f"        rqa.RequiredArgument('name', rqa.StringEnum({tag!r}), '',), \n"
+            )
+            f.write(
+                f"        rqa.RequiredArgument('value', rqa.Nullable(Opt.{tag}.parser), '',), \n"
+            )
+            f.write(f"    ).add_tag('opt', Opt.{tag}))")
+            if idx + 1 < len(all_opts):
+                f.write(' | ')
+            f.write('\n')
+        f.write('))\n')
 
         f.write('def init_app(app: PsefFlask) -> None:\n')
         f.write('    pass')

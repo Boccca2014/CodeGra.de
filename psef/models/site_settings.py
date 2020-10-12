@@ -81,6 +81,8 @@ class SiteSetting(Base, TimestampMixin):
     def set_option(
         cls, opt: 'Option[_T]', value: t.Optional[_T]
     ) -> '_SiteSettingHistory':
+        cls.get_option.clear_cache()  # type: ignore[attr-defined]
+
         new_value = cg_helpers.on_not_none(
             value, cg_json.JSONResponse.dump_to_object
         )

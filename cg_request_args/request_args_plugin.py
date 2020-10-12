@@ -149,14 +149,12 @@ def add_tag_callback(ctx: MethodContext) -> Type:
             ctx.context,
         )
         return ctx.default_return_type
-    if not isinstance(value, Instance) or not isinstance(
+
+    dict_type = value
+    if isinstance(value, Instance) and isinstance(
         value.last_known_value, LiteralType
     ):
-        ctx.api.fail(
-            'The value to FixedMapping.add_tag should be a literal',
-            ctx.context,
-        )
-        return ctx.default_return_type
+        dict_type = value.last_known_value
 
     key_value = key.last_known_value.value
     if not isinstance(key_value, str):  # pragma: no cover
@@ -167,7 +165,7 @@ def add_tag_callback(ctx: MethodContext) -> Type:
     assert isinstance(typeddict, TypedDictType)
 
     items = OrderedDict(typeddict.items.items())
-    items[key_value] = value.last_known_value
+    items[key_value] = dict_type
     required = set([*typeddict.required_keys, key_value])
 
     args = [

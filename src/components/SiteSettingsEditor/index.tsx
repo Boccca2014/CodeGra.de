@@ -4,9 +4,15 @@ import moment from 'moment';
 import p from 'vue-strict-prop';
 import { CreateElement } from 'vue';
 import { ALL_SITE_SETTINGS, SiteSettings } from '@/models';
-import { AssertionError, Maybe, Nothing, Either, Just, Right, Left } from '@/utils';
+import { AssertionError, Maybe, Nothing, Either, Just, Right, Left, filterMap, mapToObject, mapFilterObject } from '@/utils';
+import { SiteSettingsStore } from '@/store';
 import { VNode } from 'vue/types/umd';
 import * as api from '@/api/v1';
+
+// @ts-ignore
+import Icon from 'vue-awesome/components/Icon';
+import 'vue-awesome/icons/times';
+import 'vue-awesome/icons/plus';
 
 import * as comp from '@/components';
 
@@ -28,7 +34,78 @@ const numberOrError = (val: Either<Error, Maybe<number>>, onError: (err: string)
 
 type EditEvent<T> = {
     onEdit: T,
+    onError: string,
 };
+
+type ListEditorEvents = {
+    onRowCreated: {},
+    onRowDeleted: { index: number },
+    onError: string,
+};
+
+type ListEditorSlots<T> = {
+    row: { index: number, value: T },
+};
+
+const NumberListEditor = tsx.componentFactoryOf<ListEditorEvents, ListEditorSlots<number>>().create({
+    props: {
+        values: p.ofRoArray<number>().required,
+    },
+
+    methods: {
+        emitNewRow(): void {
+            tsx.emitOn(this, 'onRowCreated', {});
+        },
+
+        makeDeleteRowEmitter(index: number): () => void {
+            return () => tsx.emitOn(this, 'onRowDeleted', { index });
+        },
+    },
+
+    computed: {
+        amountOfRows(): number {
+            return this.values.length;
+        },
+    },
+
+    watch: {
+        amountOfRows() {
+            if (this.amountOfRows === 0) {
+                tsx.emitOn(this, 'onError', 'You should have at least one value');
+            }
+        },
+    },
+
+    render(h: CreateElement): VNode {
+        return (
+            <div>
+                <ul>
+                    {this.values.map((value, index) => (
+                        <li class="mb-1">
+                            <div class="d-flex">
+                                {this.$scopedSlots.row({ value, index })}
+                                <b-button onClick={this.makeDeleteRowEmitter(index)}
+                                          class="ml-1"
+                                          v-b-popover_top_hover={'Delete row'}>
+                                    <Icon name="times" />
+                                </b-button>
+                            </div>
+                        </li>
+                    ))}
+                </ul>
+                <div class="d-flex justify-content-end">
+                    <div v-b-popover_top_hover={'Create row'}>
+                        <b-button onClick={this.emitNewRow}>
+                            <Icon name="plus"/>
+                        </b-button>
+                    </div>
+                </div>
+            </div>
+        );
+    },
+});
+
+
 
 const BooleanEditor = tsx.componentFactoryOf<EditEvent<boolean>>().create({
     props: {
@@ -57,7 +134,11 @@ const StringEditor = tsx.componentFactoryOf<EditEvent<string>>().create({
     methods: {
         emitEditEvent(newValue: string): void {
             console.log('new string value');
-            tsx.emitOn(this, 'onEdit', newValue );
+            if (!newValue) {
+                tsx.emitOn(this, 'onError', 'The value may not be empty');
+            } else {
+                tsx.emitOn(this, 'onEdit', newValue );
+            }
         },
     },
 
@@ -72,7 +153,7 @@ const StringEditor = tsx.componentFactoryOf<EditEvent<string>>().create({
 });
 
 
-const TimeDeltaEditor = tsx.componentFactoryOf<EditEvent<number> & { onError: string }>().create({
+const TimeDeltaEditor = tsx.componentFactoryOf<EditEvent<number>>().create({
     props: {
         value: p(Number).required,
     },
@@ -116,7 +197,7 @@ const MB = KB << 10;
 const GB = MB << 10;
 const POSSIBLE_UNITS = ['gb' , 'mb' , 'kb' , 'b' ] as const;
 type PossibleUnit = typeof POSSIBLE_UNITS[number];
-const FileSizeEditor = tsx.componentFactoryOf<EditEvent<number> & { onError: string }, {}>().create({
+const FileSizeEditor = tsx.componentFactoryOf<EditEvent<number>, {}>().create({
     props: {
         value: p(Number).required,
     },
@@ -186,7 +267,7 @@ const FileSizeEditor = tsx.componentFactoryOf<EditEvent<number> & { onError: str
     },
 });
 
-const NumberEditor = tsx.componentFactoryOf<EditEvent<number> & { onError: string }, {}>().create({
+const NumberEditor = tsx.componentFactoryOf<EditEvent<number>, {}>().create({
     props: {
         value: p(Number).required,
     },
@@ -213,9 +294,10 @@ const NumberEditor = tsx.componentFactoryOf<EditEvent<number> & { onError: strin
 
 type SettingsLookup = { [K in keyof SiteSettings]: SiteSettings[K] };
 type Setting = typeof ALL_SITE_SETTINGS[number];
+type PatchMap = { [K in keyof SiteSettings]: { name: K, value: SiteSettings[K] } };
 type SiteSettingsEditorData = {
     settings: Maybe<Either<Error, SettingsLookup>>,
-    updatedSettings: Partial<SettingsLookup>,
+    updatedSettings: Partial<PatchMap>,
     errors: Partial<{ [ K in keyof SiteSettings]: string}>,
 };
 
@@ -231,10 +313,17 @@ export default tsx.component({
     },
 
     methods: {
+        setUpdatedSetting<K extends keyof PatchMap>(item: { name: K; value: SettingsLookup[K] }) {
+            // Yeah I know..., this casts shouldn't really be necessary as this
+            // is the exact shape of the items in PatchMap.
+            this.$utils.vueSet(this.updatedSettings, item.name, item as unknown as PatchMap[K]);
+        },
+
         renderGroup(h: CreateElement, groupName: string, items: readonly Setting[], settings: SettingsLookup): VNode {
             const header = this.$utils.ifOrEmpty(!!groupName, () => (
                 <h4>{groupName}</h4>
             ));
+
             return (
                 <div>
                     {header}
@@ -260,36 +349,89 @@ export default tsx.component({
 
         renderEditor(h: CreateElement, item: Setting, settings: SettingsLookup): VNode {
             const updatedSettings = this.updatedSettings;
-            function lookup<T extends keyof SettingsLookup>({ name }: { name: T }): SettingsLookup[T] {
-                return {...settings, ...updatedSettings}[name];
-            };
+
             if (item.list) {
-                return <div></div>;
+                AssertionError.typeAssert<'number'>(item.typ);
+                AssertionError.typeAssert<readonly number[]>(settings[item.name]);
+
+                const rowSlot = ({ value, index}: {value: number, index: number}) => {
+                    return this.renderFormattedNumber(
+                        h,
+                        value,
+                        item.format,
+                        (newItem: number) => {
+                            const newValue = settings[item.name].slice();
+                            if (newItem !== newValue[index]) {
+                                newValue[index] = newItem;
+                                this.getUpdater(item)(newValue);
+                            }
+                        },
+                        this.getErrorSetter(item),
+                    );
+                };
+
+                const onRowCreated = () => {
+                    this.getUpdater(item)([...settings[item.name].slice(), 0]);
+                };
+
+                const onRowDeleted = ({ index }: { index: number }) => {
+                    const newValue = settings[item.name].slice();
+                    newValue.splice(index, 1);
+                    this.getUpdater(item)(newValue);
+                };
+
+                return (
+                    <NumberListEditor
+                        values={settings[item.name]}
+                        scopedSlots={{
+                            row: rowSlot,
+                        }}
+                        onError={this.getErrorSetter(item)}
+                        onRowCreated={onRowCreated}
+                        onRowDeleted={onRowDeleted} />
+                );
             }
 
             switch (item.typ) {
                 case 'number':
-                    if (item.format === 'timedelta') {
-                        return <TimeDeltaEditor value={lookup(item)}
-                                                onEdit={this.getUpdater(item)}
-                                                onError={this.getErrorSetter(item)} />;
-                    } else if (item.format === 'filesize') {
-                        return <FileSizeEditor value={lookup(item)}
-                                               onEdit={this.getUpdater(item)}
-                                               onError={this.getErrorSetter(item)} />;
-                    }
-                    return <NumberEditor value={lookup(item)}
+                    return this.renderFormattedNumber(
+                        h,
+                        settings[item.name],
+                        item.format,
+                        this.getUpdater(item),
+                        this.getErrorSetter(item),
+                    );
+                case 'string':
+                    return <StringEditor value={settings[item.name]}
                                          onEdit={this.getUpdater(item)}
                                          onError={this.getErrorSetter(item)} />;
-                case 'string':
-                    return <StringEditor value={lookup(item)}
-                                         onEdit={this.getUpdater(item)} />;
                 case 'boolean':
-                    return <BooleanEditor value={lookup(item)}
+                    return <BooleanEditor value={settings[item.name]}
                                           onEdit={this.getUpdater(item)} />;
                 default:
                     AssertionError.assertNever(item);
             }
+        },
+
+        renderFormattedNumber(
+            h: CreateElement,
+            value: number,
+            format: 'timedelta' | 'filesize' | '',
+            onEdit: (val: number) => void,
+            onError: (val: string) => void,
+        ) {
+            if (format === 'timedelta') {
+                return <TimeDeltaEditor value={value}
+                                        onEdit={onEdit}
+                                        onError={onError} />;
+            } else if (format === 'filesize') {
+                return <FileSizeEditor value={value}
+                                       onEdit={onEdit}
+                                       onError={onError} />;
+            }
+            return <NumberEditor value={value}
+                                 onEdit={onEdit}
+                                 onError={onError} />;
         },
 
         getErrorSetter<T extends keyof SettingsLookup>({ name }: { name: T }) {
@@ -298,19 +440,20 @@ export default tsx.component({
             };
         },
 
-        getUpdater<T extends keyof SettingsLookup>({ name }: { name: T }) {
-            return (newValue: SettingsLookup[T]) => {
+        getUpdater<T extends keyof SiteSettings>({ name }: { name: T }) {
+            return (value: SettingsLookup[T]) => {
                 this.$utils.vueDelete(this.errors, name);
+                const newObj = { name, value };
 
                 this.settings.orDefault(Left(new Error('Settings not yet available'))).caseOf({
                     Right: originalValues => {
-                        if (originalValues[name] === newValue) {
+                        if (originalValues[name] === newObj.value) {
                             this.$utils.vueDelete(this.updatedSettings, name);
                         } else {
-                            this.$utils.vueSet(this.updatedSettings, name, newValue);
+                            this.setUpdatedSetting(newObj);
                         }
                     },
-                    Left: () => this.$utils.vueSet(this.updatedSettings, name, newValue),
+                    Left: () => this.setUpdatedSetting(newObj),
                 })
             };
         },
@@ -322,8 +465,10 @@ export default tsx.component({
                     'd-flex': true,
                     'justify-content-end': true
                 }}>
-                    <div v-b-popover_top_hover={this.submitDisabledMessage ?? ''}>
+                    <div v-b-popover_top_hover={this.submitDisabledMessage ?? ''}
+                         class="button-wrapper">
                         <comp.SubmitButton submit={this.saveChanges}
+                                           onAfter-success={this.afterSaveChanges}
                                            disabled={this.submitDisabled}>
                             Save changes
                         </comp.SubmitButton>
@@ -339,6 +484,12 @@ export default tsx.component({
                         <comp.CgError error={err} />
                     ),
                     Right: lookup => {
+                        const currentValues = mapToObject(
+                            filterMap(Object.values(this.updatedSettings), Maybe.fromNullable),
+                            s => [s.name, s.value],
+                            {...lookup},
+                        );
+
                         const byGroup = this.$utils.groupBy(ALL_SITE_SETTINGS, el => el.group ?? '');
                         const groups = this.$utils.sortBy(
                             Array.from(byGroup.entries()),
@@ -347,7 +498,7 @@ export default tsx.component({
                         );
                         return (
                             <div>
-                                {groups.map(([groupName, items]) => this.renderGroup(h, groupName, items, lookup))}
+                                {groups.map(([groupName, items]) => this.renderGroup(h, groupName, items, currentValues))}
                                 {this.renderSaveButton(h)}
                             </div>
                         );
@@ -361,7 +512,16 @@ export default tsx.component({
         },
 
         saveChanges() {
-            return {};
+            const newValues = filterMap(
+                ALL_SITE_SETTINGS,
+                ({ name }) => Maybe.fromNullable(this.updatedSettings[name]),
+            );
+            return SiteSettingsStore.updateSettings({ data: newValues });
+        },
+
+        afterSaveChanges(data: SiteSettings) {
+            this.updatedSettings = {};
+            this.settings = Just(Right(data));
         },
     },
 
@@ -382,11 +542,7 @@ export default tsx.component({
 
     mounted() {
         api.siteSettings.getAll().then(settings => {
-            if ('AUTO_TEST_HEARTBEAT_MAX_MISSED' in settings) {
-                this.settings = Just(Right(settings));
-            } else {
-                this.settings = Just(Left(new Error('Only got frontend settings.')));
-            }
+            this.settings = Just(Right(settings));
         }, err => {
             this.settings = Just(Left(err));
         });

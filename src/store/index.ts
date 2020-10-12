@@ -28,8 +28,6 @@ export { SiteSettingsStore } from './modules/siteSettings';
 
 Vue.use(Vuex);
 
-const debug = process.env.NODE_ENV !== 'production';
-
 let disabledPersistance = false;
 let localStorageError = false;
 let toastMessage: string | null = null;
@@ -92,7 +90,7 @@ Object.entries({
     builder.vuexModule = () => value;
 });
 
-export const store = rootBuilder.vuexStore({ strict: debug });
+export const store = rootBuilder.vuexStore({ strict: !IS_PRODUCTION });
 
 export function disablePersistance() {
     let error: Error | undefined;

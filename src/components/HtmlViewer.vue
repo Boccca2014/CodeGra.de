@@ -222,7 +222,7 @@ export default {
 
         iframeSrc() {
             const { host, protocol } = window.location;
-            if (this.$userConfig.isProduction) {
+            if (this.$isProduction) {
                 return `${protocol}//${this.proxyId}.${this.$utils.getProxyBaseDomain()}/${
                     this.proxyId
                 }/${this.currentPath}`;
