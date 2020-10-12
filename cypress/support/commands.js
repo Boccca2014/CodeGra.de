@@ -699,18 +699,34 @@ Cypress.Commands.add('shouldReload', fn => {
     cy.window().should('not.have.property', 'beforeReload');
 });
 
-Cypress.Commands.add('dragTo', { prevSubject: 'optional' }, (subject, target, selector) => {
+Cypress.Commands.add('dragTo', { prevSubject: 'optional' }, (subject, target, selector, opts) => {
     if (subject) {
         subject = cy.wrap(subject);
+        opts = selector;
     } else {
         subject = cy.get(selector);
     }
 
     subject
-        .trigger('mousedown', { which: 1 })
+        .trigger('mousedown', Object.assign({}, opts, { which: 1 }));
     cy.get(target)
-        .trigger('mousemove')
-        .trigger('mouseup');
+        .trigger('mousemove', opts)
+        .trigger('mouseup', opts);
+});
+
+// Check if an element is scrollable. Pass 'x' as the first argument to check
+// only in the x-direction, or 'y' to only check in the y-direction. Pass
+// nothing to check both directions.
+Cypress.Commands.add('shouldBeScrollable', { prevSubject: true }, (subject, dir) => {
+    const { clientHeight, clientWidth, scrollHeight, scrollWidth } = subject.get(0);
+    const results = [];
+    if (dir == 'x' || dir == null) {
+        results.push(clientWidth < scrollWidth);
+    }
+    if (dir == 'y' || dir == null) {
+        results.push(clientHeight < scrollHeight);
+    }
+    expect(results).to.include(true);
 });
 
 //
