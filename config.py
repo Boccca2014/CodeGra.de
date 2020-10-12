@@ -16,6 +16,9 @@ import cg_dt_utils
 import cg_request_args as rqa
 import cg_object_storage
 
+if t.TYPE_CHECKING:
+    import psef.models
+
 cur_dir = os.path.dirname(os.path.abspath(__file__))
 config_file = os.getenv(
     'CODEGRADE_CONFIG_FILE', os.path.join(cur_dir, 'config.ini')
@@ -71,6 +74,7 @@ class ReleaseInfo(BaseReleaseInfo, total=False):
     version: str
     date: cg_dt_utils.DatetimeWithTimezone
     message: str
+    ui_preference: 'psef.models.UIPreferenceName'
 
 
 FlaskConfig = TypedDict(
@@ -345,9 +349,8 @@ def _set_version() -> None:
         ['git', 'rev-parse', '--abbrev-ref', 'HEAD'],
         text=True,
     ).strip()
-    if 'stable' not in version:
-        CONFIG['RELEASE_INFO'] = {'commit': cur_commit}
-        return
+
+    # Always do the parsing, so we are sure the file is valid.
     with open(
         os.path.join(
             os.path.dirname(__file__), 'seed_data', 'release_notes.json'
@@ -355,20 +358,34 @@ def _set_version() -> None:
     ) as release_notes_f:
         raw_release_notes = json.load(release_notes_f)
 
+    import psef.models
     release_notes = rqa.LookupMapping(
         rqa.FixedMapping(
             rqa.RequiredArgument('date', rqa.RichValue.DateTime, ''),
             rqa.RequiredArgument('message', rqa.SimpleValue.str, ''),
             rqa.RequiredArgument('version', rqa.SimpleValue.str, ''),
+            rqa.RequiredArgument(
+                'ui_preference', rqa.EnumValue(psef.models.UIPreferenceName),
+                ''
+            ),
         )
     ).try_parse(raw_release_notes)
     newest_release = max(release_notes.values(), key=lambda x: x.date)
-    CONFIG['RELEASE_INFO'] = {
-        'commit': cur_commit,
-        'version': newest_release.version,
-        'message': newest_release.message,
-        'date': newest_release.date,
-    }
+
+    if (
+        'stable' in version or
+        # Also show this message for release fixes branches.
+        re.search(r'release.*fixes', version) is not None
+    ):
+        CONFIG['RELEASE_INFO'] = {
+            'commit': cur_commit,
+            'version': newest_release.version,
+            'message': newest_release.message,
+            'date': newest_release.date,
+            'ui_preference': newest_release.ui_preference,
+        }
+    else:
+        CONFIG['RELEASE_INFO'] = {'commit': cur_commit}
 
 
 try:

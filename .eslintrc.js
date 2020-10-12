@@ -124,4 +124,12 @@ module.exports = {
         'SENTRY_DSN': true,
         'COMMIT_HASH': true,
     },
+    overrides: [
+        {
+            files: ['*.tsx'],
+            rules: {
+                '@typescript-eslint/no-unused-vars': 'off',
+            }
+        }
+    ]
 }

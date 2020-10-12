@@ -89,6 +89,5 @@ export { default as PeerFeedbackByUser } from './PeerFeedbackByUser';
 export { default as SsoProviders } from './SsoProviders';
 export { default as NumberInput } from './NumberInput';
 export { default as SiteSettingsEditor } from './SiteSettingsEditor';
-export { default as CgError } from './Error';
 export { default as PreferredUI } from './PreferredUI';
 export { default as RubricEditor } from './RubricEditor';

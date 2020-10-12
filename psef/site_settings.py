@@ -173,6 +173,11 @@ class Opt:
         parser=rqa.RichValue.TimeDelta,
         default_obj='PT30S',
     )
+    RELEASE_MESSAGE_MAX_TIME: Final = Option(
+        name='RELEASE_MESSAGE_MAX_TIME',
+        parser=rqa.RichValue.TimeDelta,
+        default_obj='P30D',
+    )
     BLACKBOARD_ZIP_UPLOAD_ENABLED: Final = Option(
         name='BLACKBOARD_ZIP_UPLOAD_ENABLED',
         parser=rqa.SimpleValue.bool,
@@ -245,6 +250,7 @@ class Opt:
         SITE_EMAIL,
         MAX_LINES,
         NOTIFICATION_POLL_TIME,
+        RELEASE_MESSAGE_MAX_TIME,
         BLACKBOARD_ZIP_UPLOAD_ENABLED,
         RUBRICS_ENABLED,
         AUTOMATIC_LTI_ROLE_ENABLED,
@@ -297,6 +303,11 @@ class Opt:
         #: user has new notifications. Setting this value too low will cause
         #: unnecessary stres on the server.
         NOTIFICATION_POLL_TIME: datetime.timedelta
+        #: What is the maximum amount of time after a release a message should
+        #: be shown on the HomeGrid. **Note**: this is the amount of time after
+        #: the release, not after this instance has been upgraded to this
+        #: release.
+        RELEASE_MESSAGE_MAX_TIME: datetime.timedelta
         #: If enabled teachers are allowed to bulk upload submissions (and
         #: create users) using a zip file in a format created by Blackboard.
         BLACKBOARD_ZIP_UPLOAD_ENABLED: bool
@@ -346,6 +357,7 @@ class Opt:
             'SITE_EMAIL': lookup[cls.SITE_EMAIL],
             'MAX_LINES': lookup[cls.MAX_LINES],
             'NOTIFICATION_POLL_TIME': lookup[cls.NOTIFICATION_POLL_TIME],
+            'RELEASE_MESSAGE_MAX_TIME': lookup[cls.RELEASE_MESSAGE_MAX_TIME],
             'BLACKBOARD_ZIP_UPLOAD_ENABLED':
                 lookup[cls.BLACKBOARD_ZIP_UPLOAD_ENABLED],
             'RUBRICS_ENABLED': lookup[cls.RUBRICS_ENABLED],
@@ -443,6 +455,7 @@ class Opt:
             'JWT_ACCESS_TOKEN_EXPIRES': lookup[cls.JWT_ACCESS_TOKEN_EXPIRES],
             'MAX_LINES': lookup[cls.MAX_LINES],
             'NOTIFICATION_POLL_TIME': lookup[cls.NOTIFICATION_POLL_TIME],
+            'RELEASE_MESSAGE_MAX_TIME': lookup[cls.RELEASE_MESSAGE_MAX_TIME],
             'BLACKBOARD_ZIP_UPLOAD_ENABLED':
                 lookup[cls.BLACKBOARD_ZIP_UPLOAD_ENABLED],
             'RUBRICS_ENABLED': lookup[cls.RUBRICS_ENABLED],
@@ -699,6 +712,19 @@ OPTIONS_INPUT_PARSER = rqa.Lazy(
                     '',
                 ),
             ).add_tag('opt', Opt.NOTIFICATION_POLL_TIME)
+        ) | (
+            rqa.FixedMapping(
+                rqa.RequiredArgument(
+                    'name',
+                    rqa.StringEnum('RELEASE_MESSAGE_MAX_TIME'),
+                    '',
+                ),
+                rqa.RequiredArgument(
+                    'value',
+                    rqa.Nullable(Opt.RELEASE_MESSAGE_MAX_TIME.parser),
+                    '',
+                ),
+            ).add_tag('opt', Opt.RELEASE_MESSAGE_MAX_TIME)
         ) | (
             rqa.FixedMapping(
                 rqa.RequiredArgument(

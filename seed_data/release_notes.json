@@ -3,6 +3,7 @@
     "date": "2020-09-09",
     "readable_date": "September 9th, 2020",
     "message": "CodeGrade now has an Exam mode in which students will be able to log in to CodeGrade and only have access to the course of the exam. Other changes include course archiving, importing of hand-in requirements, and including even more information in the AutoTest Unit Test output.",
-    "version": "Mosaic.1"
+    "version": "Mosaic.1",
+    "ui_preference": "no_msg_for_mosaic_1"
   }
 }

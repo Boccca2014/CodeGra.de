@@ -3,19 +3,22 @@ import { getStoreBuilder } from 'vuex-typex';
 import * as moment from 'moment';
 
 import * as api from '@/api/v1';
+import * as models from '@/models';
 import { FrontendSiteSettings, FRONTEND_SETTINGS_DEFAULTS } from '@/models';
-import { toMoment, Maybe, Just, Nothing } from '@/utils';
+import { toMoment, Maybe, Just, Nothing, AllOrNone } from '@/utils';
 
 import { RootState } from '../state';
 
 const storeBuilder = getStoreBuilder<RootState>();
 
 type ReleaseInfo = {
-    date?: moment.Moment;
-    message?: string;
-    version?: string;
     commit: string;
-};
+} & AllOrNone<{
+    date: moment.Moment;
+    message: string;
+    version: string;
+    uiPreference: models.UIPreference;
+}>;
 
 export interface SiteSettingsState {
     settings: FrontendSiteSettings | undefined;
@@ -63,10 +66,24 @@ export namespace SiteSettingsStore {
 
     const commitServerRelease = moduleBuilder.commit(
         (state, data: api.about.AboutData['release']) => {
-            state.serverRelease = {
-                ...data,
-                date: data.date == null ? undefined : toMoment(data.date),
-            };
+            if (
+                data.version == null ||
+                data.date == null ||
+                data.message == null ||
+                data.ui_preference == null
+            ) {
+                state.serverRelease = {
+                    commit: data.commit,
+                };
+            } else {
+                state.serverRelease = {
+                    version: data.version,
+                    message: data.message,
+                    commit: data.commit,
+                    date: toMoment(data.date),
+                    uiPreference: data.ui_preference,
+                };
+            }
         },
         'commitServerCommit',
     );

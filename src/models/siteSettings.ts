@@ -20,6 +20,10 @@ export interface FrontendSiteSettings {
     // user has new notifications. Setting this value too low will cause
     // unnecessary stres on the server.
     NOTIFICATION_POLL_TIME: number;
+    // What is the maximum amount of time after a release a message should be
+    // shown on the HomeGrid. **Note**: this is the amount of time after the
+    // release, not after this instance has been upgraded to this release.
+    RELEASE_MESSAGE_MAX_TIME: number;
     // If enabled teachers are allowed to bulk upload submissions (and create
     // users) using a zip file in a format created by Blackboard.
     BLACKBOARD_ZIP_UPLOAD_ENABLED: boolean;
@@ -112,6 +116,7 @@ export const FRONTEND_SETTINGS_DEFAULTS = Object.freeze(<const>{
     SITE_EMAIL: "info@codegrade.com",
     MAX_LINES: 2500,
     NOTIFICATION_POLL_TIME: 30.0,
+    RELEASE_MESSAGE_MAX_TIME: 2592000.0,
     BLACKBOARD_ZIP_UPLOAD_ENABLED: true,
     RUBRICS_ENABLED: true,
     AUTOMATIC_LTI_ROLE_ENABLED: true,
@@ -146,6 +151,7 @@ export const ALL_SITE_SETTINGS = Object.freeze(<const>[
     { name: 'JWT_ACCESS_TOKEN_EXPIRES', typ: 'number', doc: 'The time a login session is valid. After this amount of time a user will always need to re-authenticate.', format: 'timedelta', group: "General", list: false },
     { name: 'MAX_LINES', typ: 'number', doc: 'The maximum amount of lines that we should in render in one go. If a file contains more lines than this we will show a warning asking the user what to do.', format: '', group: "General", list: false },
     { name: 'NOTIFICATION_POLL_TIME', typ: 'number', doc: 'The amount of time to wait between two consecutive polls to see if a user has new notifications. Setting this value too low will cause unnecessary stres on the server.', format: 'timedelta', group: "General", list: false },
+    { name: 'RELEASE_MESSAGE_MAX_TIME', typ: 'number', doc: 'What is the maximum amount of time after a release a message should be shown on the HomeGrid. **Note**: this is the amount of time after the release, not after this instance has been upgraded to this release.', format: 'timedelta', group: "General", list: false },
     { name: 'BLACKBOARD_ZIP_UPLOAD_ENABLED', typ: 'boolean', doc: 'If enabled teachers are allowed to bulk upload submissions (and create users) using a zip file in a format created by Blackboard.', format: '', group: "Features", list: false },
     { name: 'RUBRICS_ENABLED', typ: 'boolean', doc: 'If enabled teachers can use rubrics on CodeGrade. Disabling this feature will not delete existing rubrics.', format: '', group: "Features", list: false },
     { name: 'AUTOMATIC_LTI_ROLE_ENABLED', typ: 'boolean', doc: 'Currently unused', format: '', group: "Features", list: false },

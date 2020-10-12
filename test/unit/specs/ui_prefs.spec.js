@@ -99,9 +99,9 @@ describe('UI preferences', () => {
     });
 
     describe('store actions', () => {
-        describe('loadUIPreferences', () => {
+        describe('loadUIPreference', () => {
             it('should call the api', async () => {
-                const res = await UIPrefsStore.loadUIPreferences();
+                const res = await UIPrefsStore.loadUIPreference({ preference: RubricEditorV2 });
 
                 expect(api.uiPrefs.getUIPreferences).toBeCalled();
 
@@ -111,8 +111,8 @@ describe('UI preferences', () => {
             });
 
             it('should not call the api twice', async () => {
-                const res1 = await UIPrefsStore.loadUIPreferences();
-                const res2 = await UIPrefsStore.loadUIPreferences();
+                const res1 = await UIPrefsStore.loadUIPreference({ preference: RubricEditorV2 });
+                const res2 = await UIPrefsStore.loadUIPreference({ preference: RubricEditorV2 });
 
                 expect(api.uiPrefs.getUIPreferences).toBeCalledTimes(1);
 
@@ -126,7 +126,7 @@ describe('UI preferences', () => {
             )('should update the store', async (val) => {
                 mockOnce(RubricEditorV2, val);
 
-                await UIPrefsStore.loadUIPreferences();
+                await UIPrefsStore.loadUIPreference({ preference: RubricEditorV2 });
                 const storePrefs = UIPrefsStore.uiPrefs();
 
                 expect(storePrefs).toBeJust();
@@ -146,7 +146,7 @@ describe('UI preferences', () => {
             ])('should call the api', async (fromVal, toVal) => {
                 mockOnce(RubricEditorV2, fromVal);
 
-                await UIPrefsStore.loadUIPreferences();
+                await UIPrefsStore.loadUIPreference({ preference: RubricEditorV2 });
                 await UIPrefsStore.patchUIPreference({
                     name: RubricEditorV2,
                     value: toVal,
@@ -156,7 +156,7 @@ describe('UI preferences', () => {
             });
 
             it('should call the api each time', async () => {
-                await UIPrefsStore.loadUIPreferences();
+                await UIPrefsStore.loadUIPreference({ preference: RubricEditorV2 });
                 await UIPrefsStore.patchUIPreference({
                     name: RubricEditorV2,
                     value: false
@@ -170,7 +170,7 @@ describe('UI preferences', () => {
             });
 
             it('should update the store', async () => {
-                await UIPrefsStore.loadUIPreferences();
+                await UIPrefsStore.loadUIPreference({ preference: RubricEditorV2 });
                 let storePrefs = UIPrefsStore.uiPrefs();
                 expect(storePrefs.extract()[RubricEditorV2]).toBeNothing();
 

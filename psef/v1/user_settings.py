@@ -7,6 +7,7 @@ import typing as t
 
 from flask import request
 
+import cg_request_args as rqa
 from cg_json import JSONResponse
 from cg_flask_helpers import EmptyResponse
 
@@ -72,6 +73,26 @@ def update_notification_settings() -> EmptyResponse:
     models.db.session.commit()
 
     return EmptyResponse.make()
+
+
+@api.route('/settings/ui_preferences/<name>', methods=['GET'])
+def get_user_preference(name: str) -> JSONResponse[t.Optional[bool]]:
+    """Get a single UI preferences.
+
+    .. :quickref: User Setting; Get a single UI preference.
+
+    :query str token: The token with which you want to get the preferences,
+        if not given the preferences are retrieved for the currently logged in
+        user.
+    :param name: The preference name you want to get.
+    :returns: The preferences for the user as described by the ``token``.
+    """
+    pref = rqa.EnumValue(models.UIPreferenceName).try_parse(name)
+    user = _get_user()
+
+    return JSONResponse.make(
+        models.UIPreference.get_preference_for_user(user, pref)
+    )
 
 
 @api.route('/settings/ui_preferences/', methods=['GET'])

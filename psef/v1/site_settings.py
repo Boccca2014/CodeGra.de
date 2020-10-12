@@ -8,11 +8,12 @@ import cg_request_args as rqa
 from cg_json import JSONResponse
 
 from . import api
-from .. import models, site_settings
+from .. import auth, models, site_settings
 
 
 @api.route('/site_settings/', methods=['GET'])
 @rqa.swaggerize('get_all')
+@auth.login_required
 def get_site_settings(
 ) -> t.Union[JSONResponse[site_settings.Opt.AllOptsAsJSON],
              JSONResponse[site_settings.Opt.FrontendOptsAsJSON],
@@ -21,11 +22,13 @@ def get_site_settings(
 
     .. :quickref: Site settings; Get the site settings for this instance.
     """
+    auth.SiteSettingsPermissions().ensure_may_see()
     return JSONResponse.make(site_settings.Opt.get_all_opts())
 
 
 @api.route('/site_settings/', methods=['PATCH'])
-@rqa.swaggerize('update')
+@rqa.swaggerize('patch')
+@auth.login_required
 def update_site_settings(
 ) -> t.Union[JSONResponse[site_settings.Opt.AllOptsAsJSON],
              JSONResponse[site_settings.Opt.FrontendOptsAsJSON],
@@ -35,6 +38,8 @@ def update_site_settings(
     .. :quickref: Site settings; Get the site settings for this instance.
     """
     options = site_settings.OPTIONS_INPUT_PARSER.from_flask()
+    auth.SiteSettingsPermissions().ensure_may_edit()
+
     for option in options:
         # mypy bug: https://github.com/python/mypy/issues/9580
         edit_row = models.SiteSetting.set_option(option, option.value)  # type: ignore

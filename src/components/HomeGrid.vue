@@ -16,14 +16,7 @@
         </div>
     </local-header>
 
-    <b-alert show v-if="showReleaseNote" variant="info">
-        A new version of CodeGrade has been released:
-        <b>{{ $userConfig.release.version }}</b>.
-        {{ $userConfig.release.message }} You can check the entire
-        changelog <a href="https://docs.codegra.de/about/changelog.html"
-                     target="_blank"
-                     class="alert-link">here</a>.
-    </b-alert>
+    <release-message />
 
     <loader v-if="loadingCourses" page-loader/>
 
@@ -117,6 +110,7 @@ import LocalHeader from './LocalHeader';
 import CgLogo from './CgLogo';
 import AssignmentListItem from './Sidebar/AssignmentListItem';
 import CourseName from './CourseName';
+import ReleaseMessage from './ReleaseMessage';
 
 // We can't use the COLOR_PAIRS from constants.js because that one is slightly
 // different and because we use hashes to index this list that would change most
@@ -331,6 +325,7 @@ export default {
         InfiniteLoading,
         AssignmentListItem,
         CourseName,
+        ReleaseMessage,
     },
 };
 </script>

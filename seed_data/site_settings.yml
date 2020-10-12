@@ -160,6 +160,15 @@
     stres on the server.
   minimum: 10s
 
+- tag: RELEASE_MESSAGE_MAX_TIME
+  type: time-delta
+  default: P30D
+  frontend: true
+  doc: >-
+    What is the maximum amount of time after a release a message should be shown
+    on the HomeGrid. **Note**: this is the amount of time after the release, not
+    after this instance has been upgraded to this release.
+
 - tag: BLACKBOARD_ZIP_UPLOAD_ENABLED
   group: Features
   type: boolean

@@ -1,16 +1,18 @@
 import axios, { AxiosResponse } from 'axios';
-import { FrontendSiteSettings } from '@/models';
+import * as models from '@/models';
 
 export type AboutData = {
     version: unknown;
     commit: unknown;
     features: unknown;
-    settings: FrontendSiteSettings;
+    settings: models.FrontendSiteSettings;
     release: {
         date?: string;
         message?: string;
         version?: string;
         commit: string;
+        // eslint-disable-next-line camelcase
+        ui_preference: models.UIPreference;
     };
 };
 

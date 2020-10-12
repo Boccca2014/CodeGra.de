@@ -344,6 +344,8 @@ class NotificationsSetting(Base, SettingBase):
 
 class UIPreferenceName(cg_enum.CGEnum):
     rubric_editor_v2 = enum.auto()
+    no_msg_for_mosaic_1 = enum.auto()
+    no_msg_for_mosaic_2 = enum.auto()
 
 
 class UIPreference(Base, SettingBase):
@@ -366,6 +368,23 @@ class UIPreference(Base, SettingBase):
         'user_id',
         name,
     ), )
+
+    @classmethod
+    def get_preference_for_user(
+        cls,
+        user: User,
+        pref: UIPreferenceName,
+    ) -> t.Optional[bool]:
+        """Get the ui preference mapping for a user.
+
+        :param user: User to get the preferences of.
+        :param pref: The preference you want to get.
+        :returns: The preference, or ``None`` if it is not set.
+        """
+        return db.session.query(cls.value).filter(
+            cls.user == user,
+            cls.name == pref,
+        ).scalar()
 
     @classmethod
     def get_preferences_for_user(

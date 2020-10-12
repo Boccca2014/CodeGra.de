@@ -5,7 +5,7 @@ import * as models from '@/models';
 
 export async function getUIPreferences(): Promise<types.APIResponse<models.UIPreferenceMap>> {
     const res = await axios.get('/api/v1/settings/ui_preferences/');
-    res.data = utils.mapObject(res.data, utils.Maybe.fromNullable);
+    res.data = utils.mapObject(res.data, val => utils.Just(utils.Maybe.fromNullable(val)));
     return res;
 }
 

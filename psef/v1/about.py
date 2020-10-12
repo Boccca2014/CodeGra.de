@@ -48,6 +48,7 @@ class ReleaseInfo(BaseReleaseInfo, total=False):
     version: str
     date: cg_dt_utils.DatetimeWithTimezone
     message: str
+    ui_preference: models.UIPreferenceName
 
 
 class BaseAboutAsJSON(TypedDict):
