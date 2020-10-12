@@ -20,14 +20,16 @@ function maybeEmit(ctx: RenderContext<{ course: models.Course }>) {
             listeners = [listeners];
         }
 
-        listeners.forEach(listener => listener({
-            header: course.name,
-            component: 'assignment-list',
-            data: { course },
-            reload: true,
-        }));
+        listeners.forEach(listener =>
+            listener({
+                header: course.name,
+                component: 'assignment-list',
+                data: { course },
+                reload: true,
+            }),
+        );
     }
-};
+}
 
 export default tsx.component({
     name: 'course-list-item',
@@ -55,7 +57,7 @@ export default tsx.component({
             'light-selected': selected,
             'sidebar-list-item': true,
             'course-list-item': true,
-        }
+        };
 
         const aStyle = {
             textDecoration: 'none',
@@ -73,21 +75,27 @@ export default tsx.component({
         let manageLink;
         if (course.canManage) {
             manageLink = (
-                <router-link style={aStyle}
-                             class={['sidebar-item manage-link', { selected: manageSelected }]}
-                             to={manageRoute}>
+                <router-link
+                    style={aStyle}
+                    class={['sidebar-item manage-link', { selected: manageSelected }]}
+                    to={manageRoute}
+                >
                     <Icon name="gear" />
                 </router-link>
             );
         }
 
-        return <li class={classes}>
-            <a class="sidebar-item course-name flex-grow-1 text-truncate"
-               style={aStyle}
-               onClick={() => maybeEmit(ctx)}>
-                <CourseName course={course} badge-variant={badgeVariant} />
-            </a>
-            {manageLink}
-        </li>;
+        return (
+            <li class={classes}>
+                <a
+                    class="sidebar-item course-name flex-grow-1 text-truncate"
+                    style={aStyle}
+                    onClick={() => maybeEmit(ctx)}
+                >
+                    <CourseName course={course} badge-variant={badgeVariant} />
+                </a>
+                {manageLink}
+            </li>
+        );
     },
 });

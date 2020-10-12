@@ -2,21 +2,35 @@
 import * as tsx from 'vue-tsx-support';
 import moment from 'moment';
 import p from 'vue-strict-prop';
-import { CreateElement } from 'vue';
+import { CreateElement, VNode } from 'vue';
+
 import { ALL_SITE_SETTINGS, SiteSettings } from '@/models';
-import { AssertionError, Maybe, Nothing, Either, Just, Right, Left, filterMap, mapToObject, mapFilterObject } from '@/utils';
+import {
+    AssertionError,
+    Maybe,
+    Nothing,
+    Either,
+    Just,
+    Right,
+    Left,
+    filterMap,
+    mapToObject,
+    mapFilterObject,
+} from '@/utils';
 import { SiteSettingsStore } from '@/store';
-import { VNode } from 'vue/types/umd';
 import * as api from '@/api/v1';
+import * as comp from '@/components';
 
 // @ts-ignore
 import Icon from 'vue-awesome/components/Icon';
 import 'vue-awesome/icons/times';
 import 'vue-awesome/icons/plus';
 
-import * as comp from '@/components';
-
-const numberOrError = (val: Either<Error, Maybe<number>>, onError: (err: string) => void, onNumber: (val: number) => void) => {
+const numberOrError = (
+    val: Either<Error, Maybe<number>>,
+    onError: (err: string) => void,
+    onNumber: (val: number) => void,
+) => {
     val.caseOf({
         Right(maybe) {
             maybe.caseOf({
@@ -24,7 +38,7 @@ const numberOrError = (val: Either<Error, Maybe<number>>, onError: (err: string)
                     onError('Input is required');
                 },
                 Just: onNumber,
-            })
+            });
         },
         Left(err) {
             onError(err.message);
@@ -33,79 +47,81 @@ const numberOrError = (val: Either<Error, Maybe<number>>, onError: (err: string)
 };
 
 type EditEvent<T> = {
-    onEdit: T,
-    onError: string,
+    onEdit: T;
+    onError: string;
 };
 
 type ListEditorEvents = {
-    onRowCreated: {},
-    onRowDeleted: { index: number },
-    onError: string,
+    onRowCreated: {};
+    onRowDeleted: { index: number };
+    onError: string;
 };
 
 type ListEditorSlots<T> = {
-    row: { index: number, value: T },
+    row: { index: number; value: T };
 };
 
-const NumberListEditor = tsx.componentFactoryOf<ListEditorEvents, ListEditorSlots<number>>().create({
-    props: {
-        values: p.ofRoArray<number>().required,
-    },
-
-    methods: {
-        emitNewRow(): void {
-            tsx.emitOn(this, 'onRowCreated', {});
+const NumberListEditor = tsx
+    .componentFactoryOf<ListEditorEvents, ListEditorSlots<number>>()
+    .create({
+        props: {
+            values: p.ofRoArray<number>().required,
         },
 
-        makeDeleteRowEmitter(index: number): () => void {
-            return () => tsx.emitOn(this, 'onRowDeleted', { index });
-        },
-    },
+        methods: {
+            emitNewRow(): void {
+                tsx.emitOn(this, 'onRowCreated', {});
+            },
 
-    computed: {
-        amountOfRows(): number {
-            return this.values.length;
+            makeDeleteRowEmitter(index: number): () => void {
+                return () => tsx.emitOn(this, 'onRowDeleted', { index });
+            },
         },
-    },
 
-    watch: {
-        amountOfRows() {
-            if (this.amountOfRows === 0) {
-                tsx.emitOn(this, 'onError', 'You should have at least one value');
-            }
+        computed: {
+            amountOfRows(): number {
+                return this.values.length;
+            },
         },
-    },
 
-    render(h: CreateElement): VNode {
-        return (
-            <div>
-                <ul>
-                    {this.values.map((value, index) => (
-                        <li class="mb-1">
-                            <div class="d-flex">
-                                {this.$scopedSlots.row({ value, index })}
-                                <b-button onClick={this.makeDeleteRowEmitter(index)}
-                                          class="ml-1"
-                                          v-b-popover_top_hover={'Delete row'}>
-                                    <Icon name="times" />
-                                </b-button>
-                            </div>
-                        </li>
-                    ))}
-                </ul>
-                <div class="d-flex justify-content-end">
-                    <div v-b-popover_top_hover={'Create row'}>
-                        <b-button onClick={this.emitNewRow}>
-                            <Icon name="plus"/>
-                        </b-button>
+        watch: {
+            amountOfRows() {
+                if (this.amountOfRows === 0) {
+                    tsx.emitOn(this, 'onError', 'You should have at least one value');
+                }
+            },
+        },
+
+        render(h: CreateElement): VNode {
+            return (
+                <div>
+                    <ul>
+                        {this.values.map((value, index) => (
+                            <li class="mb-1">
+                                <div class="d-flex">
+                                    {this.$scopedSlots.row({ value, index })}
+                                    <b-button
+                                        onClick={this.makeDeleteRowEmitter(index)}
+                                        class="ml-1"
+                                        v-b-popover_top_hover={'Delete row'}
+                                    >
+                                        <Icon name="times" />
+                                    </b-button>
+                                </div>
+                            </li>
+                        ))}
+                    </ul>
+                    <div class="d-flex justify-content-end">
+                        <div v-b-popover_top_hover={'Create row'}>
+                            <b-button onClick={this.emitNewRow}>
+                                <Icon name="plus" />
+                            </b-button>
+                        </div>
                     </div>
                 </div>
-            </div>
-        );
-    },
-});
-
-
+            );
+        },
+    });
 
 const BooleanEditor = tsx.componentFactoryOf<EditEvent<boolean>>().create({
     props: {
@@ -114,17 +130,14 @@ const BooleanEditor = tsx.componentFactoryOf<EditEvent<boolean>>().create({
 
     methods: {
         emitEditEvent(newValue: boolean): void {
-            tsx.emitOn(this, 'onEdit', newValue );
+            tsx.emitOn(this, 'onEdit', newValue);
         },
     },
 
     render(h) {
-        return (
-            <comp.Toggle value={this.value} onInput={this.emitEditEvent} />
-        );
+        return <comp.Toggle value={this.value} onInput={this.emitEditEvent} />;
     },
 });
-
 
 const StringEditor = tsx.componentFactoryOf<EditEvent<string>>().create({
     props: {
@@ -133,25 +146,24 @@ const StringEditor = tsx.componentFactoryOf<EditEvent<string>>().create({
 
     methods: {
         emitEditEvent(newValue: string): void {
-            console.log('new string value');
             if (!newValue) {
                 tsx.emitOn(this, 'onError', 'The value may not be empty');
             } else {
-                tsx.emitOn(this, 'onEdit', newValue );
+                tsx.emitOn(this, 'onEdit', newValue);
             }
         },
     },
 
     render(h) {
         return (
-            <input class="form-control"
-                   value={this.value}
-                   onInput={val => this.emitEditEvent(val.target.value as string)}
+            <input
+                class="form-control"
+                value={this.value}
+                onInput={val => this.emitEditEvent(val.target.value as string)}
             />
         );
     },
 });
-
 
 const TimeDeltaEditor = tsx.componentFactoryOf<EditEvent<number>>().create({
     props: {
@@ -166,11 +178,22 @@ const TimeDeltaEditor = tsx.componentFactoryOf<EditEvent<number>>().create({
                     err => tsx.emitOn(this, 'onError', err),
                     newValue => {
                         const oldDuration = moment.duration(this.value * 1000);
-                        const newDuration = oldDuration.clone().subtract(oldDuration[part](), part).add(newValue, part);
+                        const newDuration = oldDuration
+                            .clone()
+                            .subtract(this.getValue(oldDuration, part), part)
+                            .add(newValue, part);
+
                         tsx.emitOn(this, 'onEdit', newDuration.asSeconds());
-                    }
+                    },
                 );
             };
+        },
+
+        getValue(duration: moment.Duration, part: 'days' | 'hours' | 'minutes' | 'seconds') {
+            if (part === 'days') {
+                return Math.floor(duration.asDays());
+            }
+            return duration[part]();
         },
     },
 
@@ -179,14 +202,13 @@ const TimeDeltaEditor = tsx.componentFactoryOf<EditEvent<number>>().create({
         const opts = ['days', 'hours', 'minutes', 'seconds'] as const;
         return (
             <b-input-group>
-                {opts.map((opt) => ([
-                    <comp.NumberInput value={Right(Just(duration[opt]()))}
-                                      onInput={this.makeEditEventEmitter(opt)}
+                {opts.map(opt => [
+                    <comp.NumberInput
+                        value={Right(Just(this.getValue(duration, opt)))}
+                        onInput={this.makeEditEventEmitter(opt)}
                     />,
-                    <b-input-group-append is-text>
-                        {opt}
-                    </b-input-group-append>,
-                ]))}
+                    <b-input-group-append is-text>{opt}</b-input-group-append>,
+                ])}
             </b-input-group>
         );
     },
@@ -195,7 +217,7 @@ const TimeDeltaEditor = tsx.componentFactoryOf<EditEvent<number>>().create({
 const KB = 1 << 10;
 const MB = KB << 10;
 const GB = MB << 10;
-const POSSIBLE_UNITS = ['gb' , 'mb' , 'kb' , 'b' ] as const;
+const POSSIBLE_UNITS = ['gb', 'mb', 'kb', 'b'] as const;
 type PossibleUnit = typeof POSSIBLE_UNITS[number];
 const FileSizeEditor = tsx.componentFactoryOf<EditEvent<number>, {}>().create({
     props: {
@@ -219,7 +241,7 @@ const FileSizeEditor = tsx.componentFactoryOf<EditEvent<number>, {}>().create({
             } else if (this.value > MB) {
                 return 'mb';
             } else if (this.value > KB) {
-                return 'kb'
+                return 'kb';
             } else {
                 return 'b';
             }
@@ -231,15 +253,15 @@ const FileSizeEditor = tsx.componentFactoryOf<EditEvent<number>, {}>().create({
 
         unitLookup(): Record<PossibleUnit, number> {
             return {
-                'b': 1,
-                'kb': KB,
-                'mb': MB,
-                'gb': GB,
+                b: 1,
+                kb: KB,
+                mb: MB,
+                gb: GB,
             };
         },
 
         valueForUnit(): number {
-            return this.value / this.unitLookup[this.unit]
+            return this.value / this.unitLookup[this.unit];
         },
     },
 
@@ -255,13 +277,12 @@ const FileSizeEditor = tsx.componentFactoryOf<EditEvent<number>, {}>().create({
 
     render(h) {
         return (
-            <div class="d-flex" >
-                <comp.NumberInput value={Right(Just(this.valueForUnit))}
-                                  onInput={this.emitEditEvent}
+            <div class="d-flex">
+                <comp.NumberInput
+                    value={Right(Just(this.valueForUnit))}
+                    onInput={this.emitEditEvent}
                 />
-                <b-form-select vModel={this.chosenUnit}
-                               options={POSSIBLE_UNITS}
-                               class="ml-3" />
+                <b-form-select vModel={this.chosenUnit} options={POSSIBLE_UNITS} class="ml-3" />
             </div>
         );
     },
@@ -283,22 +304,17 @@ const NumberEditor = tsx.componentFactoryOf<EditEvent<number>, {}>().create({
     },
 
     render(h) {
-        return (
-            <comp.NumberInput value={Right(Just(this.value))}
-                              onInput={this.emitEditEvent}
-            />
-        );
+        return <comp.NumberInput value={Right(Just(this.value))} onInput={this.emitEditEvent} />;
     },
 });
 
-
 type SettingsLookup = { [K in keyof SiteSettings]: SiteSettings[K] };
 type Setting = typeof ALL_SITE_SETTINGS[number];
-type PatchMap = { [K in keyof SiteSettings]: { name: K, value: SiteSettings[K] } };
+type PatchMap = { [K in keyof SiteSettings]: { name: K; value: SiteSettings[K] } };
 type SiteSettingsEditorData = {
-    settings: Maybe<Either<Error, SettingsLookup>>,
-    updatedSettings: Partial<PatchMap>,
-    errors: Partial<{ [ K in keyof SiteSettings]: string}>,
+    settings: Maybe<Either<Error, SettingsLookup>>;
+    updatedSettings: Partial<PatchMap>;
+    errors: Partial<{ [K in keyof SiteSettings]: string }>;
 };
 
 export default tsx.component({
@@ -316,26 +332,31 @@ export default tsx.component({
         setUpdatedSetting<K extends keyof PatchMap>(item: { name: K; value: SettingsLookup[K] }) {
             // Yeah I know..., this casts shouldn't really be necessary as this
             // is the exact shape of the items in PatchMap.
-            this.$utils.vueSet(this.updatedSettings, item.name, item as unknown as PatchMap[K]);
+            this.$utils.vueSet(this.updatedSettings, item.name, (item as unknown) as PatchMap[K]);
         },
 
-        renderGroup(h: CreateElement, groupName: string, items: readonly Setting[], settings: SettingsLookup): VNode {
-            const header = this.$utils.ifOrEmpty(!!groupName, () => (
-                <h4>{groupName}</h4>
-            ));
+        renderGroup(
+            h: CreateElement,
+            groupName: string,
+            items: readonly Setting[],
+            settings: SettingsLookup,
+        ): VNode {
+            const header = this.$utils.ifOrEmpty(!!groupName, () => <h4>{groupName}</h4>);
 
             return (
                 <div>
                     {header}
                     {items.map(item => this.renderItem(h, item, settings))}
                 </div>
-            )
+            );
         },
 
         renderItem(h: CreateElement, item: Setting, settings: SettingsLookup): VNode {
             return (
-                <b-form-group state={!(item.name in this.errors)}
-                              invalid-feedback={this.errors[item.name] ?? ''}>
+                <b-form-group
+                    state={!(item.name in this.errors)}
+                    invalid-feedback={this.errors[item.name] ?? ''}
+                >
                     <div slot="label">
                         <code>{item.name}</code>
                     </div>
@@ -344,7 +365,7 @@ export default tsx.component({
                     </div>
                     {this.renderEditor(h, item, settings)}
                 </b-form-group>
-            )
+            );
         },
 
         renderEditor(h: CreateElement, item: Setting, settings: SettingsLookup): VNode {
@@ -354,8 +375,8 @@ export default tsx.component({
                 AssertionError.typeAssert<'number'>(item.typ);
                 AssertionError.typeAssert<readonly number[]>(settings[item.name]);
 
-                const rowSlot = ({ value, index}: {value: number, index: number}) => {
-                    return this.renderFormattedNumber(
+                const rowSlot = ({ value, index }: { value: number; index: number }) =>
+                    this.renderFormattedNumber(
                         h,
                         value,
                         item.format,
@@ -368,7 +389,6 @@ export default tsx.component({
                         },
                         this.getErrorSetter(item),
                     );
-                };
 
                 const onRowCreated = () => {
                     this.getUpdater(item)([...settings[item.name].slice(), 0]);
@@ -388,7 +408,8 @@ export default tsx.component({
                         }}
                         onError={this.getErrorSetter(item)}
                         onRowCreated={onRowCreated}
-                        onRowDeleted={onRowDeleted} />
+                        onRowDeleted={onRowDeleted}
+                    />
                 );
             }
 
@@ -402,14 +423,19 @@ export default tsx.component({
                         this.getErrorSetter(item),
                     );
                 case 'string':
-                    return <StringEditor value={settings[item.name]}
-                                         onEdit={this.getUpdater(item)}
-                                         onError={this.getErrorSetter(item)} />;
+                    return (
+                        <StringEditor
+                            value={settings[item.name]}
+                            onEdit={this.getUpdater(item)}
+                            onError={this.getErrorSetter(item)}
+                        />
+                    );
                 case 'boolean':
-                    return <BooleanEditor value={settings[item.name]}
-                                          onEdit={this.getUpdater(item)} />;
+                    return (
+                        <BooleanEditor value={settings[item.name]} onEdit={this.getUpdater(item)} />
+                    );
                 default:
-                    AssertionError.assertNever(item);
+                    return AssertionError.assertNever(item);
             }
         },
 
@@ -421,17 +447,11 @@ export default tsx.component({
             onError: (val: string) => void,
         ) {
             if (format === 'timedelta') {
-                return <TimeDeltaEditor value={value}
-                                        onEdit={onEdit}
-                                        onError={onError} />;
+                return <TimeDeltaEditor value={value} onEdit={onEdit} onError={onError} />;
             } else if (format === 'filesize') {
-                return <FileSizeEditor value={value}
-                                       onEdit={onEdit}
-                                       onError={onError} />;
+                return <FileSizeEditor value={value} onEdit={onEdit} onError={onError} />;
             }
-            return <NumberEditor value={value}
-                                 onEdit={onEdit}
-                                 onError={onError} />;
+            return <NumberEditor value={value} onEdit={onEdit} onError={onError} />;
         },
 
         getErrorSetter<T extends keyof SettingsLookup>({ name }: { name: T }) {
@@ -454,22 +474,28 @@ export default tsx.component({
                         }
                     },
                     Left: () => this.setUpdatedSetting(newObj),
-                })
+                });
             };
         },
 
         renderSaveButton(h: CreateElement): VNode {
             return (
-                <div  class={{
-                    'sticky-save-bar': !this.$utils.isEmpty(this.updatedSettings),
-                    'd-flex': true,
-                    'justify-content-end': true
-                }}>
-                    <div v-b-popover_top_hover={this.submitDisabledMessage ?? ''}
-                         class="button-wrapper">
-                        <comp.SubmitButton submit={this.saveChanges}
-                                           onAfter-success={this.afterSaveChanges}
-                                           disabled={this.submitDisabled}>
+                <div
+                    class={{
+                        'sticky-save-bar': !this.$utils.isEmpty(this.updatedSettings),
+                        'd-flex': true,
+                        'justify-content-end': true,
+                    }}
+                >
+                    <div
+                        v-b-popover_top_hover={this.submitDisabledMessage ?? ''}
+                        class="button-wrapper"
+                    >
+                        <comp.SubmitButton
+                            submit={this.saveChanges}
+                            onAfter-success={this.afterSaveChanges}
+                            disabled={this.submitDisabled}
+                        >
                             Save changes
                         </comp.SubmitButton>
                     </div>
@@ -479,42 +505,42 @@ export default tsx.component({
 
         maybeRenderSettings(h: CreateElement): VNode {
             return this.settings.caseOf({
-                Just: settings => settings.caseOf({
-                    Left: err => (
-                        <comp.CgError error={err} />
-                    ),
-                    Right: lookup => {
-                        const currentValues = mapToObject(
-                            filterMap(Object.values(this.updatedSettings), Maybe.fromNullable),
-                            s => [s.name, s.value],
-                            {...lookup},
-                        );
+                Just: settings =>
+                    settings.caseOf({
+                        Left: err => <comp.CgError error={err} />,
+                        Right: lookup => {
+                            const currentValues = mapToObject(
+                                filterMap(Object.values(this.updatedSettings), Maybe.fromNullable),
+                                s => [s.name, s.value],
+                                { ...lookup },
+                            );
 
-                        const byGroup = this.$utils.groupBy(ALL_SITE_SETTINGS, el => el.group ?? '');
-                        const groups = this.$utils.sortBy(
-                            Array.from(byGroup.entries()),
-                            ([group]) => [group],
-                            { reverse: true },
-                        );
-                        return (
-                            <div>
-                                {groups.map(([groupName, items]) => this.renderGroup(h, groupName, items, currentValues))}
-                                {this.renderSaveButton(h)}
-                            </div>
-                        );
-                    }
-
-                }),
-                Nothing: () => {
-                    return <comp.Loader />;
-                },
+                            const byGroup = this.$utils.groupBy(
+                                ALL_SITE_SETTINGS,
+                                el => el.group ?? '',
+                            );
+                            const groups = this.$utils.sortBy(
+                                Array.from(byGroup.entries()),
+                                ([group]) => [group],
+                                { reverse: true },
+                            );
+                            return (
+                                <div>
+                                    {groups.map(([groupName, items]) =>
+                                        this.renderGroup(h, groupName, items, currentValues),
+                                    )}
+                                    {this.renderSaveButton(h)}
+                                </div>
+                            );
+                        },
+                    }),
+                Nothing: () => <comp.Loader />,
             });
         },
 
         saveChanges() {
-            const newValues = filterMap(
-                ALL_SITE_SETTINGS,
-                ({ name }) => Maybe.fromNullable(this.updatedSettings[name]),
+            const newValues = filterMap(ALL_SITE_SETTINGS, ({ name }) =>
+                Maybe.fromNullable(this.updatedSettings[name]),
             );
             return SiteSettingsStore.updateSettings({ data: newValues });
         },
@@ -541,18 +567,17 @@ export default tsx.component({
     },
 
     mounted() {
-        api.siteSettings.getAll().then(settings => {
-            this.settings = Just(Right(settings));
-        }, err => {
-            this.settings = Just(Left(err));
-        });
+        api.siteSettings.getAll().then(
+            settings => {
+                this.settings = Just(Right(settings));
+            },
+            err => {
+                this.settings = Just(Left(err));
+            },
+        );
     },
 
     render(h) {
-        return (
-            <div class="site-settings-editor">
-                {this.maybeRenderSettings(h)}
-            </div>
-        );
+        return <div class="site-settings-editor">{this.maybeRenderSettings(h)}</div>;
     },
 });

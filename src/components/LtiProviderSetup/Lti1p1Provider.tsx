@@ -51,18 +51,14 @@ export default tsx.component({
                 { option: 'Name', value: 'CodeGrade' },
                 {
                     option: 'Config URL',
-                    value: this.$utils.buildUrl(
-                        ['api', 'v1', 'lti'],
-                        {
-                            baseUrl: this.$utils.getExternalUrl(),
-                            query: { lms: 'Canvas' },
-                            addTrailingSlash: true,
-                        },
-                    ),
+                    value: this.$utils.buildUrl(['api', 'v1', 'lti'], {
+                        baseUrl: this.$utils.getExternalUrl(),
+                        query: { lms: 'Canvas' },
+                        addTrailingSlash: true,
+                    }),
                 },
                 { option: 'Consumer key', value: this.ltiProvider.lms_consumer_key },
                 { option: 'Shared Secret', value: this.ltiProvider.lms_consumer_secret },
-
             ];
         },
 
@@ -74,10 +70,9 @@ export default tsx.component({
                 { option: 'Shared Secret', value: this.ltiProvider.lms_consumer_secret },
                 {
                     option: 'CodeGrade URL for assignments',
-                    value: this.$utils.buildUrl(
-                        ['api', 'v1', 'lti', 'launch', '1'],
-                        { baseUrl: this.$utils.getExternalUrl() },
-                    ),
+                    value: this.$utils.buildUrl(['api', 'v1', 'lti', 'launch', '1'], {
+                        baseUrl: this.$utils.getExternalUrl(),
+                    }),
                 },
             ];
         },
@@ -87,19 +82,20 @@ export default tsx.component({
                 { option: 'Name', value: 'CodeGrade' },
                 {
                     option: 'Launch URL',
-                    value: this.$utils.buildUrl(
-                        ['api', 'v1', 'lti', 'launch', '1'],
-                        { baseUrl: this.$utils.getExternalUrl() },
-                    ),
+                    value: this.$utils.buildUrl(['api', 'v1', 'lti', 'launch', '1'], {
+                        baseUrl: this.$utils.getExternalUrl(),
+                    }),
                 },
                 { option: 'Consumer key (Provider Key)', value: this.ltiProvider.lms_consumer_key },
-                { option: 'Shared Secret (Provider Secret)', value: this.ltiProvider.lms_consumer_secret },
+                {
+                    option: 'Shared Secret (Provider Secret)',
+                    value: this.ltiProvider.lms_consumer_secret,
+                },
                 {
                     option: 'Optional icon',
-                    value: this.$utils.buildUrl(
-                        ['static', 'img', 'blackboard-lti-icon.png'],
-                        { baseUrl: this.$utils.getExternalUrl() },
-                    ),
+                    value: this.$utils.buildUrl(['static', 'img', 'blackboard-lti-icon.png'], {
+                        baseUrl: this.$utils.getExternalUrl(),
+                    }),
                 },
             ];
         },
@@ -109,17 +105,17 @@ export default tsx.component({
                 { option: 'Name', value: 'CodeGrade' },
                 {
                     option: 'Common Cartridge URL',
-                    value: this.$utils.buildUrl(
-                        ['api', 'v1', 'lti'],
-                        {
-                            baseUrl: this.$utils.getExternalUrl(),
-                            query: { lms: 'Moodle' },
-                            addTrailingSlash: true,
-                        },
-                    ),
+                    value: this.$utils.buildUrl(['api', 'v1', 'lti'], {
+                        baseUrl: this.$utils.getExternalUrl(),
+                        query: { lms: 'Moodle' },
+                        addTrailingSlash: true,
+                    }),
                 },
                 { option: 'Consumer key (Provider Key)', value: this.ltiProvider.lms_consumer_key },
-                { option: 'Shared secret (Provider Secret)', value: this.ltiProvider.lms_consumer_secret },
+                {
+                    option: 'Shared secret (Provider Secret)',
+                    value: this.ltiProvider.lms_consumer_secret,
+                },
                 {
                     option: 'Optional icon',
                     value: this.$utils.buildUrl(
@@ -161,7 +157,7 @@ export default tsx.component({
             After finalizing your configuration you cannot edit it anymore. Are
             you sure you want to finalize your configuration?
             `;
-        }
+        },
     },
 
     render(h: CreateElement): VNode {
@@ -170,13 +166,13 @@ export default tsx.component({
                 <LocalHeader title={this.title} show-logo />
 
                 <p>
-                    To add CodeGrade as an LTI 1.1 connection to your LMS we
-                    need to insert the data below into the LMS.
+                    To add CodeGrade as an LTI 1.1 connection to your LMS we need to insert the data
+                    below into the LMS.
                 </p>
                 <p>
-                    Please note that the consumer key and shared secret should
-                    both be kept secret, as anybody with access to these values
-                    will be able to change assignment settings.
+                    Please note that the consumer key and shared secret should both be kept secret,
+                    as anybody with access to these values will be able to change assignment
+                    settings.
                 </p>
 
                 <table class="table">
@@ -190,34 +186,32 @@ export default tsx.component({
                         {this.getInfo().map(info => (
                             <tr>
                                 <td>{info.option}</td>
-                                <td><code>{info.value}</code></td>
+                                <td>
+                                    <code>{info.value}</code>
+                                </td>
                             </tr>
                         ))}
                     </tbody>
                 </table>
 
                 <p>
-                    After inserting these values please click the finalize
-                    button below. This will enable the integration, please note
-                    that after finalizing you will no longer be able to access
-                    this wizard.
+                    After inserting these values please click the finalize button below. This will
+                    enable the integration, please note that after finalizing you will no longer be
+                    able to access this wizard.
                 </p>
 
                 <div class="d-flex mb-3 justify-content-end">
-                    <SubmitButton submit={this.finalize}
-                                  label="Finalize"
-                                  confirm={this.finalizeConfirm}
-                                  onAfter-success={this.afterFinalize} />
+                    <SubmitButton
+                        submit={this.finalize}
+                        label="Finalize"
+                        confirm={this.finalizeConfirm}
+                        onAfter-success={this.afterFinalize}
+                    />
                 </div>
 
-                {this.$utils.ifOrEmpty(
-                    this.finalized,
-                    () => (
-                        <p>
-                            You have finalized the provider and it is ready to use.
-                        </p>
-                    ),
-                )}
+                {this.$utils.ifOrEmpty(this.finalized, () => (
+                    <p>You have finalized the provider and it is ready to use.</p>
+                ))}
             </div>
         );
     },
