@@ -73,6 +73,10 @@ export default class AutoTestState extends Vue {
         if (!this.currentSubmissionIsLatest) {
             return false;
         }
+        return this.hasRestartPermissions;
+    }
+
+    get hasRestartPermissions() {
         return [
             CPerm.canRunAutotest,
             CPerm.canDeleteAutotestRun,
@@ -155,7 +159,25 @@ export default class AutoTestState extends Vue {
 
     // eslint-disable-next-line
     renderRestartOption(h: CreateElement) {
+        const directives = [];
+        const props: { disabled?: boolean } = {};
+
+        if (!this.canRestart) {
+            props.disabled = true;
+            directives.push({
+                name: 'b-popover',
+                value: 'You can only restart AutoTest for the latest submission.',
+                modifiers: {
+                    top: true,
+                    hover: true,
+                    window: true,
+                },
+            });
+        }
+
         return h('b-dropdown-item', {
+            props,
+            directives,
             on: {
                 click: (e: Event) => {
                     e.preventDefault();
@@ -224,7 +246,7 @@ export default class AutoTestState extends Vue {
             h('span', { directives }, innerChildren),
         ];
 
-        if (this.canRestart && this.btn) {
+        if (this.hasRestartPermissions && this.btn) {
             return h(
                 'b-dropdown',
                 {
