@@ -154,8 +154,4 @@ export default {
     background-size: 1rem;
     background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 2 2"><rect fill="rgba(0, 0, 0, 0.0625)" x="0" y="0" width="1" height="1"/><rect fill="rgba(0, 0, 0, 0.0625)" x="1" y="1" width="1" height="1"/></svg>');
 }
-
-.image-viewer .Pane {
-    overflow: visible;
-}
 </style>

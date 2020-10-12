@@ -116,9 +116,3 @@ export default {
     },
 };
 </script>
-
-<style lang="less">
-.markdown-viewer .Pane {
-    overflow: visible;
-}
-</style>
