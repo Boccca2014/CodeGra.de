@@ -151,9 +151,8 @@ def add_tag_callback(ctx: MethodContext) -> Type:
         return ctx.default_return_type
 
     dict_type = value
-    if isinstance(value, Instance) and isinstance(
-        value.last_known_value, LiteralType
-    ):
+    if isinstance(value, Instance
+                  ) and isinstance(value.last_known_value, LiteralType):
         dict_type = value.last_known_value
 
     key_value = key.last_known_value.value

@@ -159,7 +159,9 @@ def test_filesize(schema_mock):
     assert RichValue.FileSize.try_parse(
         '5kb',
     ) == cg_object_storage.FileSize(5 * 1 << 10)
-    assert RichValue.FileSize.try_parse('5b', ) == cg_object_storage.FileSize(5)
+    assert RichValue.FileSize.try_parse(
+        '5b',
+    ) == cg_object_storage.FileSize(5)
     assert RichValue.FileSize.try_parse(
         '5mb',
     ) == cg_object_storage.FileSize(5 * 1 << 20)

@@ -128,7 +128,9 @@ class _Nothing(t.Generic[_T]):
     def map(self, _mapper: t.Callable[[_T], _TT]) -> '_Nothing[_TT]':
         return Nothing
 
-    def chain(self, _chainer: t.Callable[[_T], 'Maybe[_TT]']) -> '_Nothing[_TT]':
+    def chain(
+        self, _chainer: t.Callable[[_T], 'Maybe[_TT]']
+    ) -> '_Nothing[_TT]':
         return Nothing
 
     def alt(self, alternative: 'Maybe[_T]') -> 'Maybe[_T]':
@@ -173,6 +175,7 @@ class _Nothing(t.Generic[_T]):
 Nothing: _Nothing[t.Any] = _Nothing()
 
 Maybe = t.Union[Just[_T], _Nothing[_T]]
+
 
 def from_nullable(val: t.Optional[_T]) -> Maybe[_T]:
     """Covert a nullable to a maybe.

@@ -399,7 +399,8 @@ class OpenAPISchema:
             return result
         return self.add_as_schema(schema_name, result)
 
-    def add_as_schema(self, schema_name: str, result: t.Mapping[str, t.Any]) -> t.Mapping[str, t.Any]:
+    def add_as_schema(self, schema_name: str,
+                      result: t.Mapping[str, t.Any]) -> t.Mapping[str, t.Any]:
         self._schemas[schema_name] = result
         return {'$ref': f'#/components/schemas/{schema_name}'}
 
