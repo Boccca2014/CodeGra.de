@@ -191,11 +191,15 @@ export class RubricRow<T extends number | undefined | null> {
     }
 
     duplicate(): RubricRow<T | undefined> {
+        let newHeader = this.header;
+        if (newHeader) {
+            newHeader += ' (duplicate)';
+        }
         return new (this.constructor as any)(
             {
                 id: undefined,
                 type: this.type,
-                header: this.header,
+                header: newHeader,
                 description: this.description,
                 descriptionType: this.descriptionType,
                 locked: false,
