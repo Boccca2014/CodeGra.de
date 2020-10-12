@@ -776,7 +776,10 @@ def add_assignment_rubric(assignment_id: int
 
     if data.rows.is_just:
         with db.session.begin_nested():
-            new_rubric_rows = [process_rubric_row(r) for r in data.rows.value]
+            new_rubric_rows = [
+                process_rubric_row(r, i)
+                for i, r in enumerate(data.rows.value)
+            ]
             new_row_ids = set(
                 row.id for row in new_rubric_rows
                 # Primary keys can be `None`, but only while they are not yet
@@ -829,7 +832,10 @@ def add_assignment_rubric(assignment_id: int
     return jsonify(assig.rubric_rows)
 
 
-def process_rubric_row(row: models.RubricRow.InputAsJSON) -> models.RubricRow:
+def process_rubric_row(
+    row: models.RubricRow.InputAsJSON,
+    position: int,
+) -> models.RubricRow:
     """Process a single rubric row updating or creating it.
 
     This function works on the input json data. It makes sure that the input
@@ -858,10 +864,10 @@ def process_rubric_row(row: models.RubricRow.InputAsJSON) -> models.RubricRow:
     if 'id' in row:
         # This ensures the type is never changed.
         rubric_row = helpers.get_or_404(row_type, row['id'])
-        rubric_row.update_from_json(row)
+        rubric_row.update_from_json(row, position)
         return rubric_row
     else:
-        return row_type.create_from_json(row)
+        return row_type.create_from_json(row, position)
 
 
 @api.route('/assignments/<int:assignment_id>/submission', methods=['POST'])

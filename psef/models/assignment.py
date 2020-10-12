@@ -1183,7 +1183,7 @@ class Assignment(helpers.NotEqualMixin, Base):  # pylint: disable=too-many-publi
         lambda: rubric_models.RubricRowBase,
         back_populates='assignment',
         cascade='delete-orphan, delete, save-update',
-        order_by=lambda: rubric_models.RubricRowBase.created_at,
+        order_by=lambda: rubric_models.RubricRowBase.position,
         uselist=True,
     )
 

@@ -15,6 +15,7 @@ from typing_extensions import Literal, TypedDict
 from sqlalchemy.ext.declarative import declared_attr
 
 import psef
+import cg_enum
 from cg_sqlalchemy_helpers.types import ColumnProxy
 from cg_sqlalchemy_helpers.mixins import IdMixin, TimestampMixin
 
@@ -339,3 +340,69 @@ class NotificationsSetting(Base, SettingBase):
             return _should_send(notification, send_type)
 
         return should_send
+
+
+class UIPreferenceName(cg_enum.CGEnum):
+    rubric_editor_v2 = enum.auto()
+
+
+class UIPreference(Base, SettingBase):
+    """The class representing user preferences..
+    """
+
+    @staticmethod
+    def get_setting_name() -> str:
+        return 'ui_preferences'
+
+    name = db.Column(
+        'name',
+        db.Enum(UIPreferenceName, name='ui_preference_name'),
+        nullable=False,
+    )
+
+    value = db.Column('value', db.Boolean, nullable=False)
+
+    __table_args__ = (db.UniqueConstraint(
+        'user_id',
+        name,
+    ), )
+
+    @classmethod
+    def get_preferences_for_user(
+        cls,
+        user: User,
+    ) -> t.Mapping[UIPreferenceName, t.Optional[bool]]:
+        """Get the ui preference mapping for a user.
+
+        :param user: User to get the preferences of.
+        :returns: Mapping of preference name to value. The value is None if the
+            user hasn't set a value yet, or a boolean to indicate their choice.
+        """
+        prefs: t.MutableMapping[UIPreferenceName, t.Optional[bool]]
+        prefs = {p: None for p in UIPreferenceName}
+        prefs.update(
+            db.session.query(cls.name, cls.value).filter(cls.user == user)
+        )
+        return prefs
+
+    @classmethod
+    def update_for_user(
+        cls,
+        user: User,
+        name: UIPreferenceName,
+        value: bool,
+    ) -> None:
+        """Update the given ui preference for the given user.
+
+        :param user: The user for which we should update the setting.
+        :param name: The name of the setting that should be updated.
+        :param value: The value the setting should be set to.
+        """
+        pref = db.session.query(cls).filter(
+            cls.user == user, cls.name == name
+        ).with_for_update().one_or_none()
+        if pref is None:
+            pref = cls(user=User.resolve(user), name=name, value=value)
+            db.session.add(pref)
+        else:
+            pref.value = value

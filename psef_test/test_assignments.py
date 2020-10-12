@@ -58,6 +58,7 @@ def rubric(
             result=[{
                 'header': original['rows'][0]['header'],
                 'description': original['rows'][0]['description'],
+                'description_type': 'markdown',
                 'id': int,
                 'items': list,
                 'locked': False,
@@ -431,6 +432,134 @@ def test_update_rubric_row(
             )
 
 
+@pytest.mark.parametrize('initial_type', ['plain_text', 'markdown'])
+def test_rubric_row_description_type(
+    logged_in, test_client, teacher_user, assignment, describe, initial_type,
+    rubric, session
+):
+    with describe('setup'):
+        url = f'/api/v1/assignments/{assignment.id}/rubrics/'
+
+        with logged_in(teacher_user):
+            ret = test_client.req(
+                'put',
+                url,
+                200,
+                data={'rows': rubric},
+                result=[dict],
+            )
+
+            for row in ret:
+                m.RubricRow.query.filter(
+                    m.RubricRow.id == row['id'],
+                ).one().description_type = initial_type
+
+            session.commit()
+
+    with describe('should receive the correct description type'):
+        ret = test_client.req(
+            'get',
+            url,
+            200,
+            result=[{
+                '__allow_extra__': True,
+                'description_type': initial_type,
+            }],
+        )
+
+    with describe('should keep the same type when updating a row'):
+        new_rubric = copy.copy(rubric)
+
+        for row in new_rubric:
+            row['description'] = 'new description'
+
+        test_client.req(
+            'put',
+            url,
+            200,
+            data={'rows': new_rubric},
+            result=[{
+                '__allow_extra__': True,
+                'description_type': initial_type,
+            }],
+        )
+
+    with describe('should set new rows to be markdown'):
+        new_rubric.append({
+            'type': 'continuous',
+            'header': 'new category',
+            'description': 'new category',
+            'items': [{
+                'header': 'new item',
+                'description': 'new item',
+                'points': 1,
+            }],
+        })
+
+        ret = test_client.req(
+            'put',
+            url,
+            200,
+            data={'rows': new_rubric},
+        )
+
+        assert ret[-1]['description_type'] == 'markdown'
+
+
+def test_reorder_rubric_rows(
+    logged_in, test_client, teacher_user, assignment, describe
+):
+    with describe('setup'):
+        url = f'/api/v1/assignments/{assignment.id}/rubrics/'
+
+        def make_item(i, j):
+            return {
+                'header': f'item header {i}-{j}',
+                'description': f'item description {i}-{j}',
+                'points': 10 * i + j,
+            }
+
+        def make_row(i):
+            return {
+                'type': 'normal',
+                'header': f'row header {i}',
+                'description': f'row description {i}',
+                'items': [make_item(i, 1),
+                          make_item(i, 2),
+                          make_item(i, 3)],
+            }
+
+        rubric = [make_row(1), make_row(2), make_row(3)]
+
+        with logged_in(teacher_user):
+            before = test_client.req(
+                'put',
+                url,
+                200,
+                data={'rows': rubric},
+            )
+
+    with describe(
+        'reordering first two rows should work and not change their attributes'
+    ), logged_in(teacher_user):
+        reordered = copy.deepcopy(before)
+        reordered[0], reordered[1] = reordered[1], reordered[0]
+
+        after = test_client.req(
+            'put',
+            url,
+            200,
+            data={'rows': reordered},
+        )
+
+        b0, b1, *b_rest = before
+        a0, a1, *a_rest = after
+
+        assert b0 == a1
+        assert b1 == a0
+        assert b_rest == a_rest
+
+
 @pytest.mark.parametrize('item_id', [err404(-1), None, err404(1000)])
 @pytest.mark.parametrize('item_description', [err400(None), 'new idesc'])
 @pytest.mark.parametrize('item_header', [err400(None), 'new ihead'])
@@ -525,6 +654,7 @@ def test_get_and_add_rubric_row(
             'id': int,
             'header': row['header'],
             'description': row['description'],
+            'description_type': 'markdown',
             'items': [{
                 'id': int,
                 'description': item['description'],
@@ -616,11 +746,13 @@ def test_update_add_rubric_wrong_permissions(
 ):
     marker = request.node.get_closest_marker('http_err')
     rubric = {
-        'header': f'My header', 'description': f'My description', 'items': [{
+        'header': f'My header',
+        'description': f'My description',
+        'items': [{
             'header': 'The header',
             'description': f'item description',
             'points': 2,
-        }, ]
+        }],
     }
     with logged_in(named_user):
         res = test_client.req(
@@ -4008,6 +4140,7 @@ def test_duplicating_rubric(
             result=[{
                 'header': original_rubric_data['rows'][0]['header'],
                 'description': original_rubric_data['rows'][0]['description'],
+                'description_type': 'markdown',
                 'id': int,
                 'items': list,
                 'locked': False,

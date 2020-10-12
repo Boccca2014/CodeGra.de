@@ -317,10 +317,16 @@ def assert_similar():
             elif isinstance(value, datetime.datetime):
                 value = value.isoformat()
 
-            if isinstance(value, type):
-                assert isinstance(vals[k], value), (
-                    "Wrong type for key '{}', expected '{}', got '{}'"
-                ).format('.'.join(cur_path + [str(k)]), value, vals[k])
+            if isinstance(value, type) or isinstance(value, tuple):
+                if isinstance(value, type):
+                    value = (value, )
+                assert isinstance(
+                    vals[k], value
+                ), ("Wrong type for key '{}', expected '{}', got '{}'").format(
+                    '.'.join(cur_path + [str(k)]),
+                    "' or '".join(value),
+                    vals[k],
+                )
             elif isinstance(value, list) or isinstance(value, dict):
                 if isinstance(vals, dict):
                     assert k in vals

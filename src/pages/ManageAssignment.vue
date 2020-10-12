@@ -1,6 +1,6 @@
 <!-- SPDX-License-Identifier: AGPL-3.0-only -->
 <template>
-<div class="manage-assignment" :class="{ loading }">
+<div class="manage-assignment mb-0" :class="{ loading }">
     <local-header always-show-extra-slot
                   class="header">
         <cg-loader v-if="loading"
@@ -24,7 +24,8 @@
             :editable="canEditState"
             size="sm"/>
 
-        <template #extra>
+        <template #extra
+                  v-if="assignment">
             <category-selector
                 default="general"
                 v-model="selectedCat"

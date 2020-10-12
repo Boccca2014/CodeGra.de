@@ -18,6 +18,7 @@ import fileTrees from './modules/file_trees';
 import { RootState } from './state';
 
 import { onDone as coursesOnDone } from './modules/courses';
+import { onDone as uiPrefsOnDone } from './modules/ui_prefs';
 
 export { NotificationStore } from './modules/notification';
 export { FeedbackStore } from './modules/feedback';
@@ -25,6 +26,7 @@ export { PeerFeedbackStore } from './modules/peer_feedback';
 export { AssignmentsStore } from './modules/assignments';
 export { CoursesStore } from './modules/courses';
 export { SiteSettingsStore } from './modules/siteSettings';
+export { UIPrefsStore } from './modules/ui_prefs';
 
 Vue.use(Vuex);
 
@@ -104,7 +106,6 @@ export function disablePersistance() {
         // Even on an error we try to clear all the remaining keys.
         try {
             window.localStorage.removeItem(key);
-            window.localStorage.setItem(key, '""');
         } catch (e) {
             error = e;
         }
@@ -135,7 +136,7 @@ if (useLocalStorage()) {
     const newState = pathsToPersist.reduce((acc, [ns, path]) => {
         const key = makePersistanceKey(ns, path);
         const res = window.localStorage.getItem(key);
-        if (res) {
+        if (res != null) {
             acc[ns] = Object.assign({}, acc[ns], { [path]: JSON.parse(res) });
         }
         return acc;
@@ -146,3 +147,4 @@ if (useLocalStorage()) {
 }
 
 coursesOnDone(store);
+uiPrefsOnDone(store);

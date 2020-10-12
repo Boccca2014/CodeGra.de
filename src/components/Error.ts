@@ -1,7 +1,7 @@
 /* SPDX-License-Identifier: AGPL-3.0-only */
 import * as tsx from 'vue-tsx-support';
-import { getErrorMessage } from '@/utils';
 import p from 'vue-strict-prop';
+import { getErrorMessage } from '@/utils';
 
 export default tsx.component({
     name: 'cg-error',

@@ -752,6 +752,7 @@ export default {
 
         @media @media-small {
             flex-direction: row;
+            align-items: center;
             padding: 0.5rem;
         }
 

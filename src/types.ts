@@ -1,3 +1,12 @@
+import { AxiosError, AxiosResponse } from 'axios';
+
+export type APIResponse<T> = AxiosResponse<T> & {
+    onSuccess?: (res: AxiosResponse<T>) => any;
+    onAfterSuccess?: (res: AxiosResponse<T>) => any;
+    onError?: (err: AxiosError<T>) => any;
+    onAfterError?: (err: AxiosError<T>) => any;
+};
+
 const validVariants = Object.freeze({
     primary: true,
     secondary: true,
