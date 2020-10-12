@@ -250,10 +250,11 @@ _ParserT = t.TypeVar('_ParserT', bound='_Parser')
 
 
 class _Parser(t.Generic[_T_COV]):
-    __slots__ = ('__description', )
+    __slots__ = ('__description', '__schema_name')
 
     def __init__(self) -> None:
         self.__description: Final[t.Optional[str]] = None
+        self.__schema_name: t.Optionial[str] = None
 
     def add_description(self: _ParserT, description: str) -> _ParserT:
         """Add a description to the parser.
@@ -267,6 +268,9 @@ class _Parser(t.Generic[_T_COV]):
         # pylint: disable=protected-access
         res.__description = description  # type: ignore[misc]
         return res
+
+    def as_schema(self, name: str) -> None:
+        self.__schema_name = name
 
     @abc.abstractmethod
     def try_parse(self, value: object) -> _T_COV:
@@ -297,9 +301,14 @@ class _Parser(t.Generic[_T_COV]):
         if self.__description is not None:
             desc = schema.make_comment(self.__description)
             if '$ref' in res:
-                return {'description': desc, 'allOf': [res]}
-            return {**res, 'description': desc}
-        return res
+                res = {'description': desc, 'allOf': [res]}
+            else:
+                res = {**res, 'description': desc}
+
+        if self.__schema_name is None:
+            return res
+        else:
+            return schema.add_as_schema(self.__schema_name, res)
 
     def __or__(self: _Parser[_T],
                other: _Parser[_Y]) -> _Parser[t.Union[_T, _Y]]:
@@ -405,7 +414,10 @@ class Union(t.Generic[_T, _Y], _Parser[t.Union[_T, _Y]]):
         return self._parser.describe()
 
     def _to_open_api(self, schema: 'OpenAPISchema') -> t.Mapping[str, t.Any]:
-        return self._parser.to_open_api(schema)
+        res = self._parser.to_open_api(schema)
+        if 'anyOf' in res:
+            res['anyOf'] = schema.expand_anyof(res['anyOf'])
+        return res
 
     def try_parse(self, value: object) -> t.Union[_T, _Y]:
         return self._parser.try_parse(value)

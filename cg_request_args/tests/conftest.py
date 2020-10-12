@@ -36,6 +36,9 @@ def schema_mock():
         def simple_type_to_open_api_type(self, typ):
             return ('Convert', typ)
 
+        def expand_anyof(self, el):
+            return el
+
         def make_comment(self, comment):
             return ('Comment', comment)
 

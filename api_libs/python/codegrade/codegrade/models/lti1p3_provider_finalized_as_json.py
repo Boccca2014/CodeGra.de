@@ -34,6 +34,8 @@ class LTI1p3ProviderFinalizedAsJSON(LTI1p3ProviderBaseAsJSON):
     def from_dict(d: Dict[str, Any]) -> LTI1p3ProviderFinalizedAsJSON:
         base = asdict(LTI1p3ProviderBaseAsJSON.from_dict(d))
         base.pop("raw_data")
+        if d.get("finalized") != True:
+            raise ValueError("Wrong value for finalized: " + d.get("finalized"))
         finalized = d.get("finalized")
 
         return LTI1p3ProviderFinalizedAsJSON(**base, finalized=finalized, raw_data=d,)

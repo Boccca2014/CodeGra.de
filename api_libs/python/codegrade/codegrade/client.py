@@ -8,6 +8,7 @@ class _Site settingsModule:
         import codegrade.api.site_settings as site_settings
 
         self.get_all = wraps(site_settings.get_all)(partial(site_settings.get_all, client=client))
+        self.patch = wraps(site_settings.patch)(partial(site_settings.patch, client=client))
 class _AssignmentModule:
     def __init__(self, client: 'Client') -> None:
         import codegrade.api.assignment as assignment

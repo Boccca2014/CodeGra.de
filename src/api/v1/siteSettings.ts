@@ -12,7 +12,7 @@ export type PatchData = PatchMap[keyof PatchMap];
 export async function patch(values: readonly PatchData[]): Promise<SiteSettings> {
     const response: AxiosResponse<SiteSettings> = await axios.patch(
         '/api/v1/site_settings/',
-        values,
+        { updates: values },
     );
     return response.data;
 }

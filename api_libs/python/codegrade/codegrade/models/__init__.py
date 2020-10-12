@@ -57,6 +57,7 @@ from .options_input_data import OptionsInputData
 from .patch_assignment_data import PatchAssignmentData
 from .patch_auto_test_data import PatchAutoTestData
 from .patch_course_data import PatchCourseData
+from .patch_sitesettings_data import PatchSitesettingsData
 from .policy import Policy
 from .put_enroll_link_course_data import PutEnrollLinkCourseData
 from .put_rubric_assignment_data import PutRubricAssignmentData
@@ -71,6 +72,7 @@ from .rubric_row_base_as_json import RubricRowBaseAsJSON
 from .rubric_row_base_input_as_json import RubricRowBaseInputAsJSON
 from .rubric_row_base_input_as_json_base import RubricRowBaseInputAsJSONBase
 from .rule_type import RuleType
+from .site_setting_input_as_json import SiteSettingInputAsJSON
 from .submission_validator_input_data import SubmissionValidatorInputData
 from .types import *
 from .update_set_auto_test_data import UpdateSetAutoTestData

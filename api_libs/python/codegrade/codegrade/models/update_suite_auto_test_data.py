@@ -54,7 +54,7 @@ class UpdateSuiteAutoTestData:
         base = {}
         steps = []
         for steps_item_data in d["steps"]:
-            steps_item = AutoTestStepBaseInputAsJSON.from_dict(steps_item_data)
+            steps_item = AutoTestStepBaseInputAsJSON.from_dict(cast(Dict[str, Any], steps_item_data))
 
             steps.append(steps_item)
 

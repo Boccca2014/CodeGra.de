@@ -72,6 +72,8 @@ class LTI1p3ProviderNonFinalizedAsJSON(LTI1p3ProviderBaseAsJSON):
     def from_dict(d: Dict[str, Any]) -> LTI1p3ProviderNonFinalizedAsJSON:
         base = asdict(LTI1p3ProviderBaseAsJSON.from_dict(d))
         base.pop("raw_data")
+        if d.get("finalized") != False:
+            raise ValueError("Wrong value for finalized: " + d.get("finalized"))
         finalized = d.get("finalized")
 
         auth_login_url = d.get("auth_login_url")

@@ -48,7 +48,7 @@ class CourseRegistrationLinkAsJSON:
 
         def _parse_role(data: Dict[str, Any]) -> Union[CourseRoleAsJSON]:
             role: Union[CourseRoleAsJSON] = d["role"]
-            role = CourseRoleAsJSON.from_dict(role)
+            role = CourseRoleAsJSON.from_dict(cast(Dict[str, Any], role))
 
             return role
 

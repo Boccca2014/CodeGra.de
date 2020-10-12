@@ -46,6 +46,8 @@ class AutoTestRunAsJSON:
 
         created_at = datetime.datetime.fromisoformat(d["created_at"])
 
+        if d["state"] != "running":
+            raise ValueError("Wrong value for state: " + d["state"])
         state = d["state"]
 
         is_continuous = d["is_continuous"]

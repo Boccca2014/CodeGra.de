@@ -37,12 +37,21 @@ def update_site_settings(
 
     .. :quickref: Site settings; Get the site settings for this instance.
     """
-    options = site_settings.OPTIONS_INPUT_PARSER.from_flask()
+    options = rqa.FixedMapping(
+        rqa.RequiredArgument(
+            'updates',
+            rqa.List(site_settings.OPTIONS_INPUT_PARSER),
+            'The items you want to update',
+        )
+    ).from_flask()
+
     auth.SiteSettingsPermissions().ensure_may_edit()
 
     for option in options:
         # mypy bug: https://github.com/python/mypy/issues/9580
-        edit_row = models.SiteSetting.set_option(option, option.value)  # type: ignore
+        edit_row = models.SiteSetting.set_option(
+            option, option.value
+        )  # type: ignore
         models.db.session.add(edit_row)
     models.db.session.commit()
 

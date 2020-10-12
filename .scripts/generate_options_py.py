@@ -262,7 +262,7 @@ def main():
             f.write(f"'{tag}': lookup[cls.{tag}],")
         f.write('}\n')
 
-        f.write('OPTIONS_INPUT_PARSER = rqa.Lazy(lambda: rqa.List(')
+        f.write('OPTIONS_INPUT_PARSER = rqa.Lazy(lambda: ')
         for idx, (tag, *_) in enumerate(all_opts):
             f.write('    (rqa.FixedMapping(\n ')
             f.write(
@@ -275,7 +275,8 @@ def main():
             if idx + 1 < len(all_opts):
                 f.write(' | ')
             f.write('\n')
-        f.write('))\n')
+        f.write(')\n')
+        f.write("OPTIONS_INPUT_PARSER.as_schema('SiteSettingInputAsJSON')\n")
 
         f.write('def init_app(app: PsefFlask) -> None:\n')
         f.write('    pass')

@@ -19,6 +19,7 @@ class OptFrontendOptsAsJSON:
     site_email: "str"
     max_lines: "int"
     notification_poll_time: "float"
+    release_message_max_time: "float"
     blackboard_zip_upload_enabled: "bool"
     rubrics_enabled: "bool"
     automatic_lti_role_enabled: "bool"
@@ -51,6 +52,8 @@ class OptFrontendOptsAsJSON:
         res["MAX_LINES"] = max_lines
         notification_poll_time = self.notification_poll_time
         res["NOTIFICATION_POLL_TIME"] = notification_poll_time
+        release_message_max_time = self.release_message_max_time
+        res["RELEASE_MESSAGE_MAX_TIME"] = release_message_max_time
         blackboard_zip_upload_enabled = self.blackboard_zip_upload_enabled
         res["BLACKBOARD_ZIP_UPLOAD_ENABLED"] = blackboard_zip_upload_enabled
         rubrics_enabled = self.rubrics_enabled
@@ -95,6 +98,8 @@ class OptFrontendOptsAsJSON:
 
         notification_poll_time = d["NOTIFICATION_POLL_TIME"]
 
+        release_message_max_time = d["RELEASE_MESSAGE_MAX_TIME"]
+
         blackboard_zip_upload_enabled = d["BLACKBOARD_ZIP_UPLOAD_ENABLED"]
 
         rubrics_enabled = d["RUBRICS_ENABLED"]
@@ -129,6 +134,7 @@ class OptFrontendOptsAsJSON:
             site_email=site_email,
             max_lines=max_lines,
             notification_poll_time=notification_poll_time,
+            release_message_max_time=release_message_max_time,
             blackboard_zip_upload_enabled=blackboard_zip_upload_enabled,
             rubrics_enabled=rubrics_enabled,
             automatic_lti_role_enabled=automatic_lti_role_enabled,

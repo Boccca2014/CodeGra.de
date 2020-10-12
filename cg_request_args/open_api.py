@@ -34,17 +34,6 @@ _SIMPLE_TYPE_NAME_LOOKUP = {
 }
 
 
-def _expand_anyof(anyof_lst: t.Iterable[t.Mapping[str, t.Any]]
-                  ) -> t.List[t.Mapping[str, t.Any]]:
-    res = []
-    for opt in anyof_lst:
-        if 'anyOf' in opt:
-            res.extend(_expand_anyof(opt['anyOf']))
-        else:
-            res.append(opt)
-    return res
-
-
 @contextlib.contextmanager
 def _disabled_auth() -> t.Generator[None, None, None]:
     try:
@@ -120,6 +109,16 @@ class OpenAPISchema:
         self._tags: t.Dict[str, _Tag] = {}
         self._no_pandoc = no_pandoc
         self._set_initial_schemas()
+
+    def expand_anyof(self, anyof_lst: t.Iterable[t.Mapping[str, t.Any]]
+                     ) -> t.List[t.Mapping[str, t.Any]]:
+        res = []
+        for opt in anyof_lst:
+            if 'anyOf' in opt:
+                res.extend(self.expand_anyof(opt['anyOf']))
+            else:
+                res.append(opt)
+        return res
 
     def make_comment(self, comment: str) -> str:
         """Convert the given string to a description for Open API.
@@ -398,6 +397,9 @@ class OpenAPISchema:
 
         if force_inline:
             return result
+        return self.add_as_schema(schema_name, result)
+
+    def add_as_schema(self, schema_name: str, result: t.Mapping[str, t.Any]) -> t.Mapping[str, t.Any]:
         self._schemas[schema_name] = result
         return {'$ref': f'#/components/schemas/{schema_name}'}
 
@@ -456,7 +458,7 @@ class OpenAPISchema:
                 nullable = False
                 if type(None) in typ.__args__:
                     nullable = True
-                any_of = _expand_anyof(
+                any_of = self.expand_anyof(
                     self._typ_to_schema(
                         arg, do_extended=do_extended, inline=inline, done=done
                     ) for arg in typ.__args__ if arg != type(None)

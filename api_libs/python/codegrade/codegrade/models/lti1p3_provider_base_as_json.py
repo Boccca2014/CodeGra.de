@@ -47,6 +47,8 @@ class LTI1p3ProviderBaseAsJSON(LTIProviderBaseBaseAsJSON):
         if d.get("capabilities") is not None:
             capabilities = d.get("capabilities")
 
+        if d.get("version") != "lti1.3":
+            raise ValueError("Wrong value for version: " + d.get("version"))
         version = d.get("version")
 
         iss = d.get("iss")
