@@ -352,8 +352,14 @@ class NotificationsSetting(Base, SettingBase):
 
 
 class UIPreferenceName(cg_enum.CGEnum):
+    """The all defined UI preferences.
+    """
+    #: Should we show the new rubric editor.
     rubric_editor_v2 = enum.auto()
+
+    #: Hide the release message for Mosaic.1
     no_msg_for_mosaic_1 = enum.auto()
+    #: Hide the release message for Mosaic.2
     no_msg_for_mosaic_2 = enum.auto()
 
 

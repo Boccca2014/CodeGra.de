@@ -25,64 +25,113 @@ logger = structlog.get_logger()
 
 
 class LegacyFeaturesAsJSON(TypedDict):
+    """The legacy features of CodeGrade.
+
+    Please don't use this object, but instead check for enabled settings.
+    """
+    #: See settings.
     AUTOMATIC_LTI_ROLE: bool
+    #: See settings.
     AUTO_TEST: bool
+    #: See settings.
     BLACKBOARD_ZIP_UPLOAD: bool
+    #: See settings.
     COURSE_REGISTER: bool
+    #: See settings.
     EMAIL_STUDENTS: bool
+    #: See settings.
     GROUPS: bool
+    #: See settings.
     INCREMENTAL_RUBRIC_SUBMISSION: bool
+    #: See settings.
     LINTERS: bool
+    #: See settings.
     LTI: bool
+    #: See settings.
     PEER_FEEDBACK: bool
+    #: See settings.
     REGISTER: bool
+    #: See settings.
     RENDER_HTML: bool
+    #: See settings.
     RUBRICS: bool
 
 
 class BaseReleaseInfo(TypedDict):
+    """The part of the release info that will always be present.
+    """
+    #: The commit which is running on this server.
     commit: str
 
 
 class ReleaseInfo(BaseReleaseInfo, total=False):
+    """Information about the release running on the server.
+    """
+    #: What version is running, this key might not be present.
     version: str
+    #: What date was the version released.
     date: cg_dt_utils.DatetimeWithTimezone
+    #: A small message about the new features of this release.
     message: str
+    #: What ``ui_preference`` controls if we should show the release message.
     ui_preference: models.UIPreferenceName
 
 
+ReleaseInfo.__cg_extends__ = BaseReleaseInfo  # typing: ignore
+
+
 class BaseAboutAsJSON(TypedDict):
+    """The base information about this instance.
+    """
+    #: What version is running on this server. Deprecated, please use
+    #: ``release.version`` instead.
     version: t.Optional[str]
+    #: The commit this server is running. Deprecated, please use
+    #: ``release.commit`` instead.
     commit: str
+    #: The features enabled on this instance. Deprecated, please use
+    #: ``settings``.
     features: LegacyFeaturesAsJSON
+    #: The frontend settings and their values for this instance.
     settings: site_settings.Opt.FrontendOptsAsJSON
+    #: Information about the release running on this server.
     release: ReleaseInfo
 
 
 class HealthAsJSON(TypedDict):
+    """Information about the health of this instance.
+    """
+    #: Always true.
     application: bool
+    #: Is the database ok?
     database: bool
+    #: Is the upload storage system ok?
     uploads: bool
+    #: Can the broker be reached?
     broker: bool
+    #: Is the mirror upload storage system ok?
     mirror_uploads: bool
+    #: Is the temporary directory on this server ok?
     temp_dir: bool
 
 
 class AboutAsJSON(BaseAboutAsJSON, total=False):
+    """Information about this CodeGrade instance.
+    """
+    #: Health information, will only be present when the correct (secret)
+    #: health key is provided.
     health: HealthAsJSON
 
 
+AboutAsJSON.__cg_extends__ = BaseAboutAsJSON  # typing: ignore
+
+
 @api.route('/about', methods=['GET'])
+@rqa.swaggerize('get')
 def about() -> JSONResponse[AboutAsJSON]:
-    """Get the version and features of the currently running instance.
+    """Get information about this CodeGrade instance.
 
     .. :quickref: About; Get the version and features.
-
-    :>json string version: The version of the running instance.
-    :>json object features: A mapping from string to a boolean for every
-        feature indicating if the current instance has it enabled.
-
-    :returns: The mapping as described above.
     """
     _no_val = object()
     status_code = 200

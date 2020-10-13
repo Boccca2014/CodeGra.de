@@ -59,6 +59,11 @@ class _CourseModule:
         self.delete_role = wraps(course.delete_role)(partial(course.delete_role, client=client))
         self.get = wraps(course.get)(partial(course.get, client=client))
         self.patch = wraps(course.patch)(partial(course.patch, client=client))
+class _AboutModule:
+    def __init__(self, client: 'Client') -> None:
+        import codegrade.api.about as about
+
+        self.get = wraps(about.get)(partial(about.get, client=client))
 class _UserModule:
     def __init__(self, client: 'Client') -> None:
         import codegrade.api.user as user
@@ -97,6 +102,9 @@ class Client:
     @property
     def course(self) -> _CourseModule:
         return _CourseModule(self)
+    @property
+    def about(self) -> _AboutModule:
+        return _AboutModule(self)
     @property
     def user(self) -> _UserModule:
         return _UserModule(self)

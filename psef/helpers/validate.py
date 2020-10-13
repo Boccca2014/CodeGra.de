@@ -7,8 +7,6 @@ import typing as t
 from zxcvbn import zxcvbn
 from validate_email import validate_email as _validate_email
 
-import psef
-
 from ..exceptions import APICodes, ValidationException, WeakPasswordException
 
 

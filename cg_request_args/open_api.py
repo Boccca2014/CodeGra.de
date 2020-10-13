@@ -112,6 +112,8 @@ class OpenAPISchema:
 
     def expand_anyof(self, anyof_lst: t.Iterable[t.Mapping[str, t.Any]]
                      ) -> t.List[t.Mapping[str, t.Any]]:
+        """Expand nested ``anyOf``s.
+        """
         res = []
         for opt in anyof_lst:
             if 'anyOf' in opt:
@@ -400,8 +402,11 @@ class OpenAPISchema:
         return self.add_as_schema(schema_name, result)
 
     def add_as_schema(self, schema_name: str,
-                      result: t.Mapping[str, t.Any]) -> t.Mapping[str, t.Any]:
-        self._schemas[schema_name] = result
+                      schema: t.Mapping[str, t.Any]) -> t.Mapping[str, t.Any]:
+        """Add the given ``schema`` as a schema to this OpenAPI spec with the
+        name ``schema_name``.
+        """
+        self._schemas[schema_name] = schema
         return {'$ref': f'#/components/schemas/{schema_name}'}
 
     def _typ_to_schema(  # pylint: disable=too-many-return-statements,too-many-branches

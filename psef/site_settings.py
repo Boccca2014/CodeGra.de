@@ -6,6 +6,7 @@
 
 SPDX-License-Identifier: AGPL-3.0-only
 """
+# pylint: skip-file
 import typing as t
 import datetime
 import functools
@@ -46,6 +47,11 @@ class Option(t.Generic[_T]):
         return models.SiteSetting.get_option(self)
 
     def set_and_commit_value(self, new_value: _T) -> None:
+        """Set and commit a value to the database.
+
+        Don't use this method in normal code, it exists because it is very
+        useful when testing.
+        """
         models.db.session.add(models.SiteSetting.set_option(self, new_value))
         models.db.session.commit()
 
@@ -900,5 +906,5 @@ OPTIONS_INPUT_PARSER = rqa.Lazy(
 ).as_schema('SiteSettingInputAsJSON')
 
 
-def init_app(app: PsefFlask) -> None:
+def init_app(_: PsefFlask) -> None:
     pass

@@ -1,5 +1,6 @@
 """ Contains all the data models used in inputs/outputs """
 
+from .about_as_json import AboutAsJSON
 from .abstract_role_as_json import AbstractRoleAsJSON
 from .api_codes import APICodes
 from .assignment_as_json import AssignmentAsJSON
@@ -20,7 +21,9 @@ from .auto_test_step_base_input_as_json import AutoTestStepBaseInputAsJSON
 from .auto_test_step_result_as_json import AutoTestStepResultAsJSON
 from .auto_test_step_result_state import AutoTestStepResultState
 from .auto_test_suite_as_json import AutoTestSuiteAsJSON
+from .base_about_as_json import BaseAboutAsJSON
 from .base_error import BaseError
+from .base_release_info import BaseReleaseInfo
 from .copy_auto_test_data import CopyAutoTestData
 from .copy_rubric_assignment_data import CopyRubricAssignmentData
 from .course_as_extended_json import CourseAsExtendedJSON
@@ -40,10 +43,12 @@ from .fixture_like import FixtureLike
 from .group_as_extended_json import GroupAsExtendedJSON
 from .group_as_json import GroupAsJSON
 from .group_set_as_json import GroupSetAsJSON
+from .health_as_json import HealthAsJSON
 from .ignore_version import IgnoreVersion
 from .json_create_auto_test import JsonCreateAutoTest
 from .json_patch_auto_test import JsonPatchAutoTest
 from .key import Key
+from .legacy_features_as_json import LegacyFeaturesAsJSON
 from .login_user_data import LoginUserData
 from .lti1p1_provider_base_as_json import LTI1p1ProviderBaseAsJSON
 from .lti1p1_provider_finalized_as_json import LTI1p1ProviderFinalizedAsJSON
@@ -67,6 +72,7 @@ from .patch_ui_preference_user_setting_data import PatchUiPreferenceUserSettingD
 from .policy import Policy
 from .put_enroll_link_course_data import PutEnrollLinkCourseData
 from .put_rubric_assignment_data import PutRubricAssignmentData
+from .release_info import ReleaseInfo
 from .result_data_get_auto_test_get import ResultDataGetAutoTestGet
 from .result_data_get_user_setting_get_all_ui_preferences import ResultDataGetUserSettingGetAllUiPreferences
 from .result_data_post_user_login import ResultDataPostUserLogin

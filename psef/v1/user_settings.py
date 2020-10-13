@@ -13,7 +13,6 @@ from cg_flask_helpers import EmptyResponse
 
 from . import api
 from .. import auth, models, current_user
-from ..helpers import get_from_request_transaction
 
 
 def _get_user() -> 'models.User':

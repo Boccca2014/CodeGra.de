@@ -270,6 +270,10 @@ class _Parser(t.Generic[_T_COV]):
         return res
 
     def as_schema(self: _ParserT, name: str) -> _ParserT:
+        """Add this parser as a separate model to the OpenAPI spec.
+
+        :param name: The name of the model in the spec.
+        """
         res = copy.copy(self)
         # We cannot assign to this property normally as it is final.
         # pylint: disable=protected-access
@@ -578,6 +582,12 @@ class _SimpleUnion(t.Generic[_SimpleUnionT], _Parser[_SimpleUnionT]):
 
 
 class Lazy(t.Generic[_T], _Parser[_T]):
+    """A wrapping parser that allows you to construct circular parsers.
+
+    The method ``make_parser`` will be executed when you first try to parse
+    something. It will only be executed once.
+    """
+
     def __init__(self, make_parser: t.Callable[[], _Parser[_T]]):
         super().__init__()
         self._make_parser = make_parser

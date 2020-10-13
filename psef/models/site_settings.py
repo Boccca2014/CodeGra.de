@@ -1,16 +1,14 @@
-import typing as t
-import datetime
-import dataclasses
+"""This module defines the tables needed for the site settings.
 
-from typing_extensions import Literal, Protocol
+SPDX-License-Identifier: AGPL-3.0-only
+"""
+import typing as t
 
 import cg_json
 import cg_maybe
 import cg_helpers
-import cg_request_args as rqa
 from cg_sqlalchemy_helpers import JSONB
 from cg_cache.intra_request import cache_within_request
-from cg_object_storage.types import FileSize
 from cg_sqlalchemy_helpers.types import ColumnProxy
 from cg_sqlalchemy_helpers.mixins import IdMixin, TimestampMixin
 
@@ -29,14 +27,28 @@ class SiteSetting(Base, TimestampMixin):
 
     @property
     def name(self) -> str:
+        """The name of the option this setting row is for.
+        """
         return self._name
 
     def get_value(self) -> cg_maybe.Maybe[t.Any]:
+        """Get the value of this row.
+
+        You probably want to use :meth:`.SiteSetting.get_option` instead of
+        this method.
+        """
         return cg_maybe.from_nullable(self._value)
 
     @classmethod
     def get_options(cls, opts: t.Sequence['Option[_T]']
                     ) -> t.Mapping['Option[_T]', _T]:
+        """Get the values for the given options.
+
+        This is basically the same as calling :meth:`.SiteSetting.get_option`
+        in a loop, but faster.
+
+        :param opts: The options to get the values for.
+        """
         lookup = {
             row.name: cg_maybe.Just(row)
             for row in
@@ -56,6 +68,13 @@ class SiteSetting(Base, TimestampMixin):
     @classmethod
     @cache_within_request
     def get_option(cls, opt: 'Option[_T]') -> _T:
+        """Get the value for the given option.
+
+        :param opt: The option to get the value for.
+
+        :returns: The value this option is set to, or its default value if it
+                  is unset.
+        """
         res = cg_maybe.from_nullable(
             cls.query.get(opt.name),
         ).chain(
@@ -81,6 +100,14 @@ class SiteSetting(Base, TimestampMixin):
     def set_option(
         cls, opt: 'Option[_T]', value: t.Optional[_T]
     ) -> '_SiteSettingHistory':
+        """Set a new value for the given option.
+
+        :param opt: The option to set.
+        :param value: The value the option should have.
+
+        :returns: A history object. To persist the new value you should add and
+                  commit this object to the database.
+        """
         cls.get_option.clear_cache()  # type: ignore[attr-defined]
 
         new_value = cg_helpers.on_not_none(
@@ -90,7 +117,7 @@ class SiteSetting(Base, TimestampMixin):
         if self is None:
             return cls._create(name=opt.name, value=new_value)
         else:
-            return self._update(new_value)
+            return self._update(new_value)  # pylint: disable=protected-access
 
 
 class _SiteSettingHistory(Base, TimestampMixin, IdMixin):

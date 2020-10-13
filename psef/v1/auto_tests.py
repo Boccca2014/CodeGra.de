@@ -629,8 +629,12 @@ def update_or_create_auto_test_suite(auto_test_id: int, set_id: int
     else:
         # Make sure the time_limit is always set when creating a new suite
         default_time_limit = site_settings.Opt.AUTO_TEST_MAX_TIME_COMMAND
+
+        def get_default_time_limit() -> float:
+            return default_time_limit.value.total_seconds()
+
         time_limit = data.command_time_limit.or_default_lazy(
-            lambda: default_time_limit.value.total_seconds()
+            get_default_time_limit
         )
         suite = models.AutoTestSuite(auto_test_set=auto_test_set)
 

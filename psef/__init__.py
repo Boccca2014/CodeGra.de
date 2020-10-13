@@ -100,7 +100,7 @@ class PsefFlask(Flask):
     def max_single_file_size(self) -> cg_object_storage.FileSize:
         """The maximum allowed size for a single file.
         """
-        from . import site_settings
+        from . import site_settings  # pylint: disable=import-outside-toplevel
         return site_settings.Opt.MAX_FILE_SIZE.value
 
     @property
@@ -109,7 +109,7 @@ class PsefFlask(Flask):
 
         .. note:: An individual file has a different limit!
         """
-        from . import site_settings
+        from . import site_settings  # pylint: disable=import-outside-toplevel
         return site_settings.Opt.MAX_NORMAL_UPLOAD_SIZE.value
 
     @property
@@ -118,7 +118,7 @@ class PsefFlask(Flask):
 
         .. note:: An individual file has a different limit!
         """
-        from . import site_settings
+        from . import site_settings  # pylint: disable=import-outside-toplevel
         return site_settings.Opt.MAX_LARGE_UPLOAD_SIZE.value
 
     @property
