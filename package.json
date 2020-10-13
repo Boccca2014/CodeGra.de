@@ -224,7 +224,10 @@
         "compiler": "ttypescript",
         "tsConfig": "./tsconfig.json",
         "babelConfig": true
-      }
+      },
+      "IS_PRODUCTION": false,
+      "COMMIT_HASH": "__COMMIT__",
+      "SENTRY_DSN": ""
     },
     "setupFiles": [
       "<rootDir>/test/unit/setup.js"

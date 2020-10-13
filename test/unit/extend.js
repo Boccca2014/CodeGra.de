@@ -9,7 +9,7 @@ expect.extend({
             };
         }
         return received.caseOf({
-            Just(value) {
+            Just() {
                 return {
                     message: () => `Expected ${received} to not be a Just`,
                     pass: true,
@@ -34,7 +34,7 @@ expect.extend({
         return received.caseOf({
             Just(value) {
                 return {
-                    message: () => `Expected a Nothing, but got a Just`,
+                    message: () => `Expected a Nothing, but got Just(${value})`,
                     pass: false,
                 };
             },

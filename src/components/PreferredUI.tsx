@@ -60,7 +60,7 @@ export default tsx.component({
                 {this.renderMessage(h)}
                 {this.prefValue.caseOf({
                     Just: prefValue => this.renderContent(h, prefValue),
-                    Nothing: () => [<comp.Loader page-loader />],
+                    Nothing: () => <comp.Loader page-loader />,
                 })}
                 {this.renderSwitcher(h)}
             </div>
@@ -96,7 +96,10 @@ export default tsx.component({
             ));
         },
 
-        renderContent(h: CreateElement, prefValue: utils.Maybe<boolean>): VNode[] | undefined {
+        renderContent(
+            h: CreateElement,
+            prefValue: utils.Maybe<boolean>,
+        ): VNode | VNode[] | undefined {
             const value = prefValue.orDefault(this.defaultValue);
             return value ? this.$slots.ifTrue : this.$slots.ifFalse;
         },
@@ -108,7 +111,7 @@ export default tsx.component({
 
             const compName = this.componentName;
 
-            return utils.ifJustOrEmpty(this.prefValue, value => (
+            return utils.ifJustOrEmpty(this.prefValue.join(), value => (
                 <div class="mt-3 text-right">
                     <a
                         href="#"

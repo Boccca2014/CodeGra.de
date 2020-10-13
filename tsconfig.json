@@ -1,7 +1,8 @@
 {
   "include": [
     "node_modules/vue-tsx-support/enable-check.d.ts",
-    "./src/**/*"
+    "./src/**/*",
+    "./test/unit/**/*"
   ],
   "compilerOptions": {
     "allowJs": true,
@@ -28,7 +29,8 @@
       ]
     },
     "typeRoots": [
-      "./src/globals.d.ts"
+      "./src/globals.d.ts",
+      "./node_modules/@types"
     ]
   }
 }

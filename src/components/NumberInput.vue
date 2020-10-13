@@ -5,7 +5,7 @@
        @keydown.up="incValue"
        class="number-input form-control"
        :name="name"
-       :type="type"/>
+       type="tel"/>
 </template>
 
 <script lang="ts">
