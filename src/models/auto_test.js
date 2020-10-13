@@ -62,7 +62,7 @@ export class AutoTestSuiteData {
             'commandTimeLimit',
             getProps(
                 d,
-                SiteSettingsStore.getSetting()('AUTO_TEST_MAX_COMMAND_TIME'),
+                SiteSettingsStore.getSetting()('AUTO_TEST_MAX_TIME_COMMAND'),
                 'command_time_limit',
             ),
         );
