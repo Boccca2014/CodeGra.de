@@ -184,9 +184,11 @@ export default class AutoTestState extends Vue {
     renderRestartOption(h: CreateElement) {
         const directives = [];
         const props: { disabled?: boolean } = {};
+        let classes;
 
         if (!this.canRestart) {
             props.disabled = true;
+            classes = { 'not-allowed-cursor': true };
             directives.push({
                 name: 'b-popover',
                 value: 'You can only restart AutoTest for the latest submission.',
@@ -208,6 +210,7 @@ export default class AutoTestState extends Vue {
                     this.restartAutoTestResult();
                 },
             },
+            class: classes,
         }, [
             'Restart this result',
         ]);
@@ -323,6 +326,7 @@ export default class AutoTestState extends Vue {
         background-color: @color-primary-darkest;
     }
 }
+
 .auto-test-state.b-dropdown > .btn:not(.dropdown-toggle) {
     cursor: inherit;
 
