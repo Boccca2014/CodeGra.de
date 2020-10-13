@@ -81,6 +81,7 @@ def test_update_ui_preference(
 
     with describe('should update the value'), logged_in(admin_user):
         pref_name = m.UIPreferenceName.rubric_editor_v2.name
+        test_client.req('get', f'{url}{pref_name}', 200, result=None)
 
         test_client.req(
             'patch',
@@ -92,7 +93,8 @@ def test_update_ui_preference(
         pref = m.UIPreference.query.filter_by(
             user=admin_user, name=pref_name
         ).one()
-        assert pref.value == True
+        assert pref.value is True
+        test_client.req('get', f'{url}{pref_name}', 200, result=True)
 
         test_client.req(
             'patch',
@@ -104,12 +106,15 @@ def test_update_ui_preference(
         pref = m.UIPreference.query.filter_by(
             user=admin_user, name=pref_name
         ).one()
-        assert pref.value == False
+        assert pref.value is False
+
+        test_client.req('get', f'{url}{pref_name}', 200, result=False)
 
     with describe('should error when not logged in'):
         test_client.req(
             'patch',
             url,
             401,
+            data={'name': pref_name, 'value': True},
             result=error_template,
         )

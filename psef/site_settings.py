@@ -897,8 +897,7 @@ OPTIONS_INPUT_PARSER = rqa.Lazy(
             ),
         ).add_tag('opt', Opt.PEER_FEEDBACK_ENABLED)
     )
-)
-OPTIONS_INPUT_PARSER.as_schema('SiteSettingInputAsJSON')
+).as_schema('SiteSettingInputAsJSON')
 
 
 def init_app(app: PsefFlask) -> None:

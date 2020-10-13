@@ -62,3 +62,12 @@ def test_parse_and_log(monkeypatch):
     assert logs[0][-1]['request_data'] == {
         'password': 'hunter2', 'other': 'woo'
     }
+
+
+def test_to_open_api_with_as_schema(schema_mock):
+    parser = AnyValue()
+    parser2 = parser.as_schema('my_any_parser')
+    res = parser.to_open_api(schema_mock)
+    res2 = parser2.to_open_api(schema_mock)
+    assert res == {'type': 'object'}
+    assert res2 == ('Add As Schema', 'my_any_parser', {'type': 'object'})

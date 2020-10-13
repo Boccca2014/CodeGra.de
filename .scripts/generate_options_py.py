@@ -279,8 +279,7 @@ def main():
             if idx + 1 < len(all_opts):
                 f.write(' | ')
             f.write('\n')
-        f.write(')\n')
-        f.write("OPTIONS_INPUT_PARSER.as_schema('SiteSettingInputAsJSON')\n")
+        f.write(").as_schema('SiteSettingInputAsJSON')\n")
 
         f.write('def init_app(app: PsefFlask) -> None:\n')
         f.write('    pass')

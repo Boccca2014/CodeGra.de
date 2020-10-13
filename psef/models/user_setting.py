@@ -132,9 +132,13 @@ class SettingBase(TimestampMixin, IdMixin):
 class EmailNotificationTypes(enum.Enum):
     """The possible options for preferences for sending email notifications.
     """
+    #: Directly after the notification has been received.
     direct = 1
+    #: A daily digest of all notifications.
     daily = 2
+    #: A weekly digest.
     weekly = 3
+    #: No email at all.
     off = 4
 
     @classmethod
@@ -176,15 +180,20 @@ EnabledEmailNotificationTypes = Literal[EmailNotificationTypes.  # pylint: disab
 class NotificationSettingOptionJSON(TypedDict):
     """The JSON serialization schema for a single notification setting option.
     """
+    #: The notification reason.
     reason: NotificationReasons
+    #: The explanation when these kinds of notifications occur.
     explanation: str
+    #: The current value for this notification reason.
     value: EmailNotificationTypes
 
 
 class NotificationSettingJSON(TypedDict):
     """The JSON serialization schema for :class:`.NotificationsSetting`.
     """
+    #: The possible options to set.
     options: t.List[NotificationSettingOptionJSON]
+    #: The possible values for each option.
     possible_values: t.List[EmailNotificationTypes]
 
 

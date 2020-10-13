@@ -269,8 +269,12 @@ class _Parser(t.Generic[_T_COV]):
         res.__description = description  # type: ignore[misc]
         return res
 
-    def as_schema(self, name: str) -> None:
-        self.__schema_name = name
+    def as_schema(self: _ParserT, name: str) -> _ParserT:
+        res = copy.copy(self)
+        # We cannot assign to this property normally as it is final.
+        # pylint: disable=protected-access
+        res.__schema_name = name  # type: ignore[misc]
+        return res
 
     @abc.abstractmethod
     def try_parse(self, value: object) -> _T_COV:

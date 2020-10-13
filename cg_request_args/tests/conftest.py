@@ -45,4 +45,7 @@ def schema_mock():
         def add_schema(self, schema):
             return ('Add Schema', schema)
 
+        def add_as_schema(self, name, schema):
+            return ('Add As Schema', name, schema)
+
     yield _Mock()

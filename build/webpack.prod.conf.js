@@ -30,10 +30,6 @@ const webpackConfig = merge(baseWebpackConfig, {
     chunkFilename: utils.assetsPath('js/[id].bundle.[contenthash].js'),
   },
   plugins: [
-    // http://vuejs.github.io/vue-loader/en/workflow/production.html
-    new webpack.DefinePlugin({
-      'process.env': env
-    }),
     // extract css into its own file
     new MiniCssExtractPlugin({
       filename: utils.assetsPath('css/[name].[contenthash].css')

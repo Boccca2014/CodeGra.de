@@ -206,6 +206,9 @@ def create_app(  # pylint: disable=too-many-statements
                          ] = False
     resulting_app.config['SESSION_COOKIE_SECURE'] = True
     resulting_app.config['SESSION_COOKIE_SAMESITE'] = 'None'
+    # We don't cache responses from the API so it makes no sense to sort the
+    # keys.
+    resulting_app.config['JSON_SORT_KEYS'] = False
 
     if not resulting_app.debug:
         assert not resulting_app.config['AUTO_TEST_DISABLE_ORIGIN_CHECK']
