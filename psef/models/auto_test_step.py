@@ -1081,7 +1081,7 @@ class _QualityTest(AutoTestStepBase):
         points = 1.0
         state = AutoTestStepResultState.passed
 
-        if data['exit_code'] != 0:
+        if command_res.exit_code != 0:
             points = 0
             state = AutoTestStepResultState.failed
 
