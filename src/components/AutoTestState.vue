@@ -188,7 +188,7 @@ export default class AutoTestState extends Vue {
 
         if (!this.canRestart) {
             props.disabled = true;
-            classes = { 'not-allowed-cursor': true };
+            classes = { 'cursor-not-allowed': true };
             directives.push({
                 name: 'b-popover',
                 value: 'You can only restart AutoTest for the latest submission.',
