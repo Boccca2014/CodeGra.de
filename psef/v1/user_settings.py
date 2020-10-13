@@ -104,8 +104,7 @@ def get_user_preference(name: str) -> JSONResponse[t.Optional[bool]]:
 
 @api.route('/settings/ui_preferences/', methods=['GET'])
 @rqa.swaggerize('get_all_ui_preferences')
-def get_user_preferences(
-) -> JSONResponse[t.Mapping[str, t.Optional[bool]]]:
+def get_user_preferences() -> JSONResponse[t.Mapping[str, t.Optional[bool]]]:
     """Get ui preferences.
 
     .. :quickref: User Setting; Get UI preferences.

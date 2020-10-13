@@ -22,6 +22,8 @@ _T = t.TypeVar('_T')
 
 
 class SiteSetting(Base, TimestampMixin):
+    """The table that stores the settings of this instance.
+    """
     _name = db.Column('name', db.Unicode, nullable=False, primary_key=True)
     _value: ColumnProxy[t.Any] = db.Column('value', JSONB, nullable=True)
 

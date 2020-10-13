@@ -105,7 +105,3 @@ def ensure_valid_email(email: str) -> None:
             'The given email is not valid.',
             'The email "{email}" is not valid.',
         )
-
-
-if t.TYPE_CHECKING:  # pragma: no cover
-    import psef  # pylint: disable=unused-import

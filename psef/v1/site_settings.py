@@ -50,7 +50,8 @@ def update_site_settings(
     for option in options.updates:
         # mypy bug: https://github.com/python/mypy/issues/9580
         edit_row = models.SiteSetting.set_option(
-            option, option.value  # type: ignore
+            option,  # type: ignore
+            option.value,
         )
         models.db.session.add(edit_row)
     models.db.session.commit()

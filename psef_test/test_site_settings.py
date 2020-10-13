@@ -36,14 +36,14 @@ def test_set_setting(test_client, describe, logged_in, admin_user, session):
         assert orig not in (1, 2)
 
         def make_data(name, value):
-            return {
-                'updates': [{'name': name, 'value': value}]
-            }
+            return {'updates': [{'name': name, 'value': value}]}
 
     with describe('cannot set settings as normal user'):
         test_client.req('patch', '/api/v1/site_settings/', 401)
         with logged_in(user):
-            test_client.req('patch', '/api/v1/site_settings/', 403, data={'updates': []})
+            test_client.req(
+                'patch', '/api/v1/site_settings/', 403, data={'updates': []}
+            )
 
     with describe('can set settings as admin user'), logged_in(admin_user):
         test_client.req(

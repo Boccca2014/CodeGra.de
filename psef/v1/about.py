@@ -77,7 +77,7 @@ class ReleaseInfo(BaseReleaseInfo, total=False):
     ui_preference: models.UIPreferenceName
 
 
-ReleaseInfo.__cg_extends__ = BaseReleaseInfo  # typing: ignore
+ReleaseInfo.__cg_extends__ = BaseReleaseInfo  # type: ignore[attr-defined]
 
 
 class BaseAboutAsJSON(TypedDict):
@@ -123,7 +123,7 @@ class AboutAsJSON(BaseAboutAsJSON, total=False):
     health: HealthAsJSON
 
 
-AboutAsJSON.__cg_extends__ = BaseAboutAsJSON  # typing: ignore
+AboutAsJSON.__cg_extends__ = BaseAboutAsJSON  # type: ignore[attr-defined]
 
 
 @api.route('/about', methods=['GET'])
