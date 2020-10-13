@@ -8,7 +8,8 @@ from enum import IntEnum, unique
 
 import flask
 
-if t.TYPE_CHECKING:
+if t.TYPE_CHECKING:  # pragma: no cover
+    # pylint: disable=unused-import
     from . import site_settings
 
 
