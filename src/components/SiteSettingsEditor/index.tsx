@@ -529,8 +529,8 @@ export default tsx.component({
                                     <td>
                                         <code>{name}</code>
                                     </td>
-                                    <td>{oldSettings[name]}</td>
-                                    <td>{newValue}</td>
+                                    <td>{oldSettings[name].toString()}</td>
+                                    <td>{newValue.toString()}</td>
                                 </tr>
                             ))}
                         </tbody>
