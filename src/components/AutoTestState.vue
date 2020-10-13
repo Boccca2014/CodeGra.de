@@ -1,8 +1,9 @@
 <!-- SPDX-License-Identifier: AGPL-3.0-only -->
 <script lang="ts">
-import { Vue, Component, Prop } from 'vue-property-decorator';
+import { Vue, Component, Prop, Watch } from 'vue-property-decorator';
 import { Action, Getter } from 'vuex-class';
 import { CreateElement } from 'vue';
+import * as tsx from 'vue-tsx-support';
 
 import { CoursePermission as CPerm } from '@/permissions';
 import * as models from '@/models';
@@ -19,20 +20,22 @@ import PromiseLoader from './PromiseLoader';
 
 @Component
 export default class AutoTestState extends Vue {
+    _tsx!: tsx.DeclareProps<Pick<AutoTestState, 'assignment' | 'result' | 'btn' | 'noTimer' | 'showIcon'>>;
+
     @Prop({ required: true })
-    private assignment!: models.Assignment;
+    public assignment!: models.Assignment;
 
     @Prop({ default: null })
-    private result!: models.AutoTestResult | { state: string, startedAt: number | null} | null;
+    public result!: models.AutoTestResult | { state: string, startedAt: number | null} | null;
 
     @Prop({ default: false })
-    private btn!: boolean;
+    public btn!: boolean;
 
     @Prop({ default: false })
-    private noTimer!: boolean;
+    public noTimer!: boolean;
 
     @Prop({ default: false })
-    private showIcon!: boolean;
+    public showIcon!: boolean;
 
     private restartPromise: Promise<unknown> | null = null;
 
@@ -42,6 +45,9 @@ export default class AutoTestState extends Vue {
         autoTestRunId: number,
         autoTestResultId: number,
     }) => Promise<unknown>;
+
+    @Action('submissions/loadSubmissions')
+    storeLoadSubmissions!: (_: { assignmentId: number, courseId?: number }) => Promise<unknown>;
 
     @Getter('submissions/getLatestSubmissions')
     storeGetLatestSubmissions!: (assignmentId: number) => ReadonlyArray<models.Submission>;
@@ -81,6 +87,23 @@ export default class AutoTestState extends Vue {
             CPerm.canRunAutotest,
             CPerm.canDeleteAutotestRun,
         ].every(perm => this.assignment.hasPermission(perm));
+    }
+
+    get showRestartBtn(): boolean {
+        return this.hasRestartPermissions && this.btn;
+    }
+
+    @Watch('showRestartBtn')
+    onShowRestartBtnChanged() {
+        if (this.showRestartBtn && this.assignment) {
+            // Submissions are probably already loaded by the parent
+            // component. But it doesn't hurt make the dependency explicit here
+            // too.
+            this.storeLoadSubmissions({
+                assignmentId: this.assignment.id,
+                courseId: this.assignment.courseId,
+            });
+        }
     }
 
     get icon() {
@@ -246,7 +269,7 @@ export default class AutoTestState extends Vue {
             h('span', { directives }, innerChildren),
         ];
 
-        if (this.hasRestartPermissions && this.btn) {
+        if (this.showRestartBtn) {
             return h(
                 'b-dropdown',
                 {
