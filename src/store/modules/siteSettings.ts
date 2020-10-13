@@ -1,11 +1,12 @@
 /* SPDX-License-Identifier: AGPL-3.0-only */
 import { getStoreBuilder } from 'vuex-typex';
 import * as moment from 'moment';
+import { keys } from 'ts-transformer-keys';
 
 import * as api from '@/api/v1';
 import * as models from '@/models';
 import { FrontendSiteSettings, FRONTEND_SETTINGS_DEFAULTS } from '@/models';
-import { toMoment, Maybe, Just, Nothing, AllOrNone } from '@/utils';
+import { toMoment, Maybe, Just, Nothing, AllOrNone, AssertionError } from '@/utils';
 
 import { RootState } from '../state';
 
@@ -38,8 +39,21 @@ const moduleBuilder = storeBuilder.module<SiteSettingsState>('siteSettings', mak
 export namespace SiteSettingsStore {
     // eslint-disable-next-line
     function _getSetting(state: SiteSettingsState) {
-        return <T extends keyof FrontendSiteSettings>(opt: T): FrontendSiteSettings[T] =>
-            state.settings?.[opt] ?? FRONTEND_SETTINGS_DEFAULTS[opt];
+        return <T extends keyof FrontendSiteSettings>(opt: T): FrontendSiteSettings[T] => {
+            if (!IS_PRODUCTION) {
+                const foundKey = keys<FrontendSiteSettings>().find(k => k === opt);
+                switch (foundKey) {
+                    case null:
+                        return AssertionError.assertNever(
+                            foundKey,
+                            `Tried to retrieve an unrecognized setting: ${opt}`,
+                        );
+                    default:
+                        break;
+                }
+            }
+            return state.settings?.[opt] ?? FRONTEND_SETTINGS_DEFAULTS[opt];
+        };
     }
 
     export const getSetting = moduleBuilder.read(_getSetting, 'getSetting');
