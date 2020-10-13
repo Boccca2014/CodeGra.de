@@ -510,7 +510,7 @@ class SiteSettingInputAsJSON13:
     """"""
 
     name: 'Literal["MAX_LARGE_UPLOAD_SIZE"]'
-    value: "Optional[str]"
+    value: "Optional[Union[int, str]]"
 
     raw_data: Optional[Dict[str, Any]] = None
 
@@ -520,7 +520,13 @@ class SiteSettingInputAsJSON13:
         name = self.name
 
         res["name"] = name
-        value = self.value
+        if self.value is None:
+            value: Optional[Union[int, str]] = None
+        elif isinstance(self.value, int):
+            value = self.value
+        else:
+            value = self.value
+
         res["value"] = value
 
         return res
@@ -532,7 +538,19 @@ class SiteSettingInputAsJSON13:
             raise ValueError("Wrong value for name: " + d["name"])
         name = d["name"]
 
-        value = d["value"]
+        def _parse_value(data: Optional[Dict[str, Any]]) -> Optional[Union[int, str]]:
+            if data is None:
+                return None
+
+            value: Optional[Union[int, str]] = d["value"]
+            if isinstance(value, int):
+                return value
+            if isinstance(value, str):
+                return value
+
+            raise AssertionError("Could not transform: {}".format(property.python_name))
+
+        value = _parse_value(d["value"])
 
         return SiteSettingInputAsJSON13(**base, name=name, value=value, raw_data=d,)
 
@@ -542,7 +560,7 @@ class SiteSettingInputAsJSON14:
     """"""
 
     name: 'Literal["MAX_NORMAL_UPLOAD_SIZE"]'
-    value: "Optional[str]"
+    value: "Optional[Union[int, str]]"
 
     raw_data: Optional[Dict[str, Any]] = None
 
@@ -552,7 +570,13 @@ class SiteSettingInputAsJSON14:
         name = self.name
 
         res["name"] = name
-        value = self.value
+        if self.value is None:
+            value: Optional[Union[int, str]] = None
+        elif isinstance(self.value, int):
+            value = self.value
+        else:
+            value = self.value
+
         res["value"] = value
 
         return res
@@ -564,7 +588,19 @@ class SiteSettingInputAsJSON14:
             raise ValueError("Wrong value for name: " + d["name"])
         name = d["name"]
 
-        value = d["value"]
+        def _parse_value(data: Optional[Dict[str, Any]]) -> Optional[Union[int, str]]:
+            if data is None:
+                return None
+
+            value: Optional[Union[int, str]] = d["value"]
+            if isinstance(value, int):
+                return value
+            if isinstance(value, str):
+                return value
+
+            raise AssertionError("Could not transform: {}".format(property.python_name))
+
+        value = _parse_value(d["value"])
 
         return SiteSettingInputAsJSON14(**base, name=name, value=value, raw_data=d,)
 
@@ -574,7 +610,7 @@ class SiteSettingInputAsJSON15:
     """"""
 
     name: 'Literal["MAX_FILE_SIZE"]'
-    value: "Optional[str]"
+    value: "Optional[Union[int, str]]"
 
     raw_data: Optional[Dict[str, Any]] = None
 
@@ -584,7 +620,13 @@ class SiteSettingInputAsJSON15:
         name = self.name
 
         res["name"] = name
-        value = self.value
+        if self.value is None:
+            value: Optional[Union[int, str]] = None
+        elif isinstance(self.value, int):
+            value = self.value
+        else:
+            value = self.value
+
         res["value"] = value
 
         return res
@@ -596,7 +638,19 @@ class SiteSettingInputAsJSON15:
             raise ValueError("Wrong value for name: " + d["name"])
         name = d["name"]
 
-        value = d["value"]
+        def _parse_value(data: Optional[Dict[str, Any]]) -> Optional[Union[int, str]]:
+            if data is None:
+                return None
+
+            value: Optional[Union[int, str]] = d["value"]
+            if isinstance(value, int):
+                return value
+            if isinstance(value, str):
+                return value
+
+            raise AssertionError("Could not transform: {}".format(property.python_name))
+
+        value = _parse_value(d["value"])
 
         return SiteSettingInputAsJSON15(**base, name=name, value=value, raw_data=d,)
 

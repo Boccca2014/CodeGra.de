@@ -3,6 +3,15 @@ from functools import partial, wraps
 from typing import Any, Dict, Union
 
 
+class _User SettingModule:
+    def __init__(self, client: 'Client') -> None:
+        import codegrade.api.user_setting as user_setting
+
+        self.get_all_notification_settings = wraps(user_setting.get_all_notification_settings)(partial(user_setting.get_all_notification_settings, client=client))
+        self.patch_notification_setting = wraps(user_setting.patch_notification_setting)(partial(user_setting.patch_notification_setting, client=client))
+        self.get_all_ui_preferences = wraps(user_setting.get_all_ui_preferences)(partial(user_setting.get_all_ui_preferences, client=client))
+        self.patch_ui_preference = wraps(user_setting.patch_ui_preference)(partial(user_setting.patch_ui_preference, client=client))
+        self.get_ui_preference = wraps(user_setting.get_ui_preference)(partial(user_setting.get_ui_preference, client=client))
 class _Site settingsModule:
     def __init__(self, client: 'Client') -> None:
         import codegrade.api.site_settings as site_settings
@@ -73,6 +82,9 @@ class Client:
         """ Get headers to be used in all endpoints """
         return {}
 
+    @property
+    def user_setting(self) -> _User SettingModule:
+        return _User SettingModule(self)
     @property
     def site_settings(self) -> _Site settingsModule:
         return _Site settingsModule(self)

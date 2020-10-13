@@ -610,16 +610,20 @@ class OpenAPISchema:
             schema = {}
             if ':' in part:
                 typ, part = part.split(':')
+                if typ in ('str', 'string'):
+                    schema = {'type': 'string'}
                 if typ == 'int':
                     schema = {'type': 'integer'}
                 elif typ == 'uuid':
                     schema = {'type': 'string', 'format': 'uuid'}
                 elif typ == 'path':
-                    pass
+                    schema = {'type': 'string'}
                 else:
                     raise AssertionError(
                         'Unknown url type encountered: {}'.format(typ)
                     )
+            else:
+                schema = {'type': 'string'}
 
             found = False
             doc = []

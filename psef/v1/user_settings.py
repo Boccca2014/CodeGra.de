@@ -92,7 +92,7 @@ def get_user_preference(name: str) -> JSONResponse[t.Optional[bool]]:
     :query str token: The token with which you want to get the preferences,
         if not given the preferences are retrieved for the currently logged in
         user.
-    :param name: The preference name you want to get.
+    :param string name: The preference name you want to get.
     :returns: The preferences for the user as described by the ``token``.
     """
     pref = rqa.EnumValue(models.UIPreferenceName).try_parse(name)
