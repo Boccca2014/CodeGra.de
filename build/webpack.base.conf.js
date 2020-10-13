@@ -24,6 +24,33 @@ utils.assert(typeof JSON.parse(globalConstants.IS_PRODUCTION) === 'boolean', 'IS
 utils.assert(typeof JSON.parse(globalConstants.COMMIT_HASH) === 'string', 'COMMIT_HASH wrong type');
 utils.assert(typeof JSON.parse(globalConstants.SENTRY_DSN) === 'string', 'SENTRY_DSN wrong type');
 
+function makeTsLoaders() {
+    const loaders = [{
+        loader: 'babel-loader',
+    }];
+
+    if (!IS_PRODUCTION) {
+        loaders.push({
+            loader: 'vue-jsx-hot-loader',
+        });
+    }
+
+    loaders.push({
+        loader: "ts-loader",
+        options: {
+            appendTsSuffixTo: [/\.vue$/],
+            transpileOnly: false,
+            experimentalWatchApi: false,
+            getCustomTransformers: program => ({
+                before: [
+                    keysTransformer(program),
+                ],
+            }),
+        },
+    });
+    return loaders;
+}
+
 module.exports = {
   mode: IS_PRODUCTION ? 'production' : 'development',
   entry: {
@@ -71,27 +98,7 @@ module.exports = {
       {
         test: /\.tsx?$/,
         exclude: /node_modules|\.d\.ts$/,
-        use: [
-          {
-            loader: 'babel-loader',
-          },
-          {
-            loader: 'vue-jsx-hot-loader',
-          },
-          {
-            loader: "ts-loader",
-            options: {
-              appendTsSuffixTo: [/\.vue$/],
-              transpileOnly: false,
-              experimentalWatchApi: false,
-              getCustomTransformers: program => ({
-                before: [
-                    keysTransformer(program),
-                ],
-              }),
-            },
-          },
-        ]
+        use: makeTsLoaders(),
       },
       {
         test: /\.js$/,

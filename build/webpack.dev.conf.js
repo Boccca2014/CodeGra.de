@@ -12,9 +12,6 @@ Object.keys(baseWebpackConfig.entry).forEach(function (name) {
 })
 
 const plugins = [
-  new webpack.DefinePlugin({
-    'process.env': config.dev.env
-  }),
   new webpack.NoEmitOnErrorsPlugin(),
   // https://github.com/ampedandwired/html-webpack-plugin
   new HtmlWebpackPlugin({
