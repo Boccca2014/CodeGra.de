@@ -108,6 +108,7 @@ def get_auto_test_status(
     to_get = request.args.get('get', object())
 
     if to_get == 'tests_to_run':
+        runner_ip = request.remote_addr
         runs = models.AutoTestRun.get_runs_that_need_runners()
 
         with helpers.BrokerSession(retries=2) as ses:
@@ -116,14 +117,14 @@ def get_auto_test_status(
                     'Trying to register job for runner',
                     run=run.__to_json__(),
                     job_id=run.get_job_id(),
-                    runner_ip=request.remote_addr,
+                    runner_ip=runner_ip,
                 )
 
                 try:
                     ses.put(
                         f'/api/v1/jobs/{run.get_job_id()}/runners/',
                         json={
-                            'runner_ip': request.remote_addr
+                            'runner_ip': runner_ip
                         },
                         timeout=5,
                     ).raise_for_status()
@@ -134,7 +135,7 @@ def get_auto_test_status(
                         run_id=run.id,
                     )
                 else:
-                    runner = run.add_active_runner(request.remote_addr)
+                    runner = run.add_active_runner(runner_ip)
                     db.session.commit()
                     return jsonify(run.get_instructions(runner))
 

@@ -15,8 +15,8 @@ from datetime import timedelta
 from typing_extensions import Literal, Protocol
 
 import cg_enum
-import cg_dt_utils
 import cg_register
+from cg_dt_utils import DatetimeWithTimezone
 
 T = t.TypeVar('T')
 ZZ = t.TypeVar('ZZ')
@@ -224,8 +224,8 @@ class MyDb:  # pragma: no cover
     ) -> _ForeignKey:
         ...
 
-    def TIMESTAMP(self, *, timezone: Literal[True]
-                  ) -> DbType[cg_dt_utils.DatetimeWithTimezone]:
+    def TIMESTAMP(self, *,
+                  timezone: Literal[True]) -> DbType[DatetimeWithTimezone]:
         ...
 
     def Table(self, name: str, *args: T) -> RawTable:
@@ -585,6 +585,12 @@ class DbColumn(t.Generic[T]):  # pragma: no cover
     ) -> 'DbColumn[float]':
         ...
 
+    def __sub__(
+        self: 'DbColumn[DatetimeWithTimezone]',
+        other: 't.Union[DbColumn[DatetimeWithTimezone], DatetimeWithTimezone]',
+    ) -> 'DbColumn[timedelta]':
+        ...
+
     def __eq__(  # type: ignore
         self, other: Union[t.Optional[T], 'DbColumn[T]', 'DbColumn[t.Optional[T]]',
                            'MyNonOrderableQuery[T]']
@@ -598,17 +604,20 @@ class DbColumn(t.Generic[T]):  # pragma: no cover
         ...
 
     def __ge__(
-        self, other: t.Union[T, 'DbColumn[T]', 'DbColumn[t.Optional[T]]']
+        self, other: t.Union[T, 'DbColumn[T]', 'DbColumn[t.Optional[T]]',
+                             'MyNonOrderableQuery[T]']
     ) -> 'DbColumn[bool]':
         ...
 
     def __gt__(
-        self, other: t.Union[T, 'DbColumn[T]', 'DbColumn[t.Optional[T]]']
+        self, other: t.Union[T, 'DbColumn[T]', 'DbColumn[t.Optional[T]]',
+                             'MyNonOrderableQuery[T]']
     ) -> 'DbColumn[bool]':
         ...
 
     def __lt__(
-        self, other: t.Union[T, 'DbColumn[T]', 'DbColumn[t.Optional[T]]']
+        self, other: t.Union[T, 'DbColumn[T]', 'DbColumn[t.Optional[T]]',
+                             'MyNonOrderableQuery[T]']
     ) -> 'DbColumn[bool]':
         ...
 
@@ -876,8 +885,7 @@ if t.TYPE_CHECKING and MYPY:
 
     CIText = DbType[str]()
 
-    def TIMESTAMP(*, timezone: Literal[True]
-                  ) -> DbType[cg_dt_utils.DatetimeWithTimezone]:
+    def TIMESTAMP(*, timezone: Literal[True]) -> DbType[DatetimeWithTimezone]:
         ...
 
     class ARRAY(t.Generic[T], DbType[t.Tuple[T, ...]]):
