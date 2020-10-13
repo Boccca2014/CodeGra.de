@@ -148,6 +148,7 @@ FlaskConfig = TypedDict(
         'MIN_FREE_DISK_SPACE': cg_object_storage.FileSize,
         'REDIS_CACHE_URL': str,
         'RATELIMIT_STORAGE_URL': t.Optional[str],
+        'JSON_SORT_KEYS': bool,
     },
     total=True
 )

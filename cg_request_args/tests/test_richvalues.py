@@ -166,14 +166,22 @@ def test_filesize(schema_mock):
         '5mb',
     ) == cg_object_storage.FileSize(5 * 1 << 20)
 
+    val = 20000
+    assert RichValue.FileSize.try_parse(val) == cg_object_storage.FileSize(val)
+
     with pytest.raises(SimpleParseError):
-        RichValue.FileSize.try_parse(5)
+        RichValue.FileSize.try_parse(5.0)
 
     with pytest.raises(SimpleParseError) as exc:
         RichValue.FileSize.try_parse('5tb')
     assert 'FileSize' in str(exc.value)
 
     assert RichValue.FileSize.to_open_api(schema_mock) == {
-        'type': ('Convert', str),
-        'pattern': r'^\d+(k|m|g)?b$',
+        'anyOf': [
+            {'type': ('Convert', int)},
+            {
+                'type': ('Convert', str),
+                'pattern': r'^\d+(k|m|g)?b$',
+            },
+        ]
     }

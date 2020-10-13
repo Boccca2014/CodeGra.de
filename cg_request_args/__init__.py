@@ -254,7 +254,7 @@ class _Parser(t.Generic[_T_COV]):
 
     def __init__(self) -> None:
         self.__description: Final[t.Optional[str]] = None
-        self.__schema_name: t.Optional[str] = None
+        self.__schema_name: Final[t.Optional[str]] = None
 
     def add_description(self: _ParserT, description: str) -> _ParserT:
         """Add a description to the parser.
@@ -420,10 +420,7 @@ class Union(t.Generic[_T, _Y], _Parser[t.Union[_T, _Y]]):
     def _to_open_api(self, schema: 'OpenAPISchema') -> t.Mapping[str, t.Any]:
         res = self._parser.to_open_api(schema)
         if 'anyOf' in res:
-            res = {
-                **res,
-                'anyOf': schema.expand_anyof(res['anyOf'])
-            }
+            res = {**res, 'anyOf': schema.expand_anyof(res['anyOf'])}
         return res
 
     def try_parse(self, value: object) -> t.Union[_T, _Y]:
@@ -1309,7 +1306,7 @@ class RichValue:
 
     TimeDelta = _TimeDelta()
 
-    class _FileSize(_Transform[FileSize, str]):
+    class _FileSize(_Transform[FileSize, t.Union[str, int]]):
         _SIZE_RE = re.compile(r'^(?P<amount>\d+)(?P<unit>(?:k|m|g)?b)$')
         _KB = 1 << 10
         _MB = _KB << 10
@@ -1323,12 +1320,15 @@ class RichValue:
 
         def __init__(self) -> None:
             super().__init__(
-                SimpleValue.str,
+                SimpleValue.str | SimpleValue.int,
                 self.__to_size,
                 'FileSize',
             )
 
-        def __to_size(self, value: str) -> FileSize:
+        def __to_size(self, value: t.Union[int, str]) -> FileSize:
+            if isinstance(value, int):
+                return FileSize(value)
+
             match = self._SIZE_RE.match(value)
             if match is None:
                 raise SimpleParseError(self, value)
@@ -1339,8 +1339,13 @@ class RichValue:
         def _to_open_api(self,
                          schema: 'OpenAPISchema') -> t.Mapping[str, t.Any]:
             return {
-                **self._parser.to_open_api(schema),
-                'pattern': r'^\d+(k|m|g)?b$',
+                'anyOf': [
+                    SimpleValue.int.to_open_api(schema),
+                    {
+                        **SimpleValue.str.to_open_api(schema),
+                        'pattern': r'^\d+(k|m|g)?b$',
+                    },
+                ],
             }
 
     FileSize = _FileSize()
