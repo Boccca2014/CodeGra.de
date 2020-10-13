@@ -25,6 +25,8 @@ export class FileTree {
 
     // Maps fileId to file name.
     public flattened: Record<string, string>;
+
+    public search: (revision: string, fileId: string) => BaseFile | null;
 }
 
 export class Submission {

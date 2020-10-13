@@ -18,3 +18,4 @@ export * from './sso_provider';
 export * from './grader';
 export * from './course';
 export * from './ui_prefs';
+export * from './quality_comments';

@@ -12,6 +12,7 @@ import {
     withOrdinalSuffix,
     safeDivide,
 } from '@/utils';
+import * as models from '@/models';
 
 export const FINISHED_STATES = new Set([
     'passed',
@@ -261,6 +262,12 @@ export class AutoTestResult {
         }
         if (hasAttr(result, 'approx_waiting_before')) {
             this.approxWaitingBefore = result.approx_waiting_before;
+        }
+        if (hasAttr(result, 'quality_comments')) {
+            this.qualityComments = models.QualityComments.fromServerData(
+                result.quality_comments,
+                this,
+            );
         }
 
         this.updateState(result.state);

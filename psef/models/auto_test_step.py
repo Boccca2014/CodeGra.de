@@ -1437,7 +1437,7 @@ class AutoTestQualityComment(Base, TimestampMixin, IdMixin):
             quality_code=data['code'],
             comment=data['msg'],
             line_start=data['line']['start'],
-            line_end=data['line']['start'],
+            line_end=data['line']['end'],
             column_start=data['column']['start'],
-            column_end=data['column']['start'],
+            column_end=data['column']['end'],
         )

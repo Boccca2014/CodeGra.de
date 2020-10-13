@@ -1,7 +1,7 @@
 /* SPDX-License-Identifier: AGPL-3.0-only */
 import * as tsx from 'vue-tsx-support';
 import p from 'vue-strict-prop';
-import { getErrorMessage } from '@/utils';
+import * as utils from '@/utils';
 
 export default tsx.component({
     name: 'cg-error',
@@ -13,6 +13,8 @@ export default tsx.component({
     },
 
     render(h, ctx) {
+        const message = utils.getErrorMessage(ctx.props.error);
+
         return h(
             ctx.props.wrappingComponent,
             {
@@ -24,7 +26,11 @@ export default tsx.component({
                     variant: 'danger',
                 },
             },
-            [getErrorMessage(ctx.props.error)],
+            utils.ifExpr(
+                ctx.scopedSlots.message != null,
+                () => ctx.scopedSlots.message({ message }),
+                () => message,
+            ),
         );
     },
 });

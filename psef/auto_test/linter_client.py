@@ -9,6 +9,47 @@ import socket
 import typing as t
 
 
+make_comment(path: t.Sequence[str]) -> t.Dict:
+    import random
+    return {
+        'severity': random.choice([
+            'fatal',
+            'error',
+            'warning',
+            'info',
+        ]),
+        'code': random.choice([
+            'W100',
+            'E35',
+            None,
+            None,
+        ]),
+        'origin': random.choice([
+            'Fake linter',
+            'mylint',
+        ]),
+        'msg': random.choice([
+            'Linter crashed!',
+            'This is definitely wrong!',
+            'This is probably wrong!',
+            'Wow nice linter dude!',
+        ]),
+        'line': random.choice([
+            { 'start': 1, 'end': 1 },
+            { 'start': 2, 'end': 6 },
+            { 'start': 3, 'end': 4 },
+            { 'start': 4, 'end': 4 },
+        ]),
+        'column': random.choice([
+            { 'start': 1, 'end': 1 },
+            { 'start': 1, 'end': 28 },
+            { 'start': 4, 'end': None },
+            { 'start': 13, 'end': 13 },
+        ]),
+        'path': path,
+    }
+
+
 def recv(s: socket.socket) -> str:
     message = b''
 
@@ -28,23 +69,15 @@ def main() -> None:
     student_dir = os.getenv('STUDENT')
     assert student_dir is not None
     files = glob.glob(student_dir + '/*')
-    severities = ['fatal', 'error', 'warning', 'info']
+
+    import random
     comments = [
-        {
-            'severity': severities[i % len(severities)],
-            'code': None,
-            'origin': 'Fake linter',
-            'msg': 'Wow nice linter dude!',
-            'line': {
-                'start': 0,
-                'end': 0
-            },
-            'column': {
-                'start': 0,
-                'end': None
-            },
-            'path': f[len(student_dir):].split('/'),
-        } for i, f in enumerate(files)
+        c
+        for f in files
+        for c in [
+            make_comment(f[len(student_dir):].split('/'))
+            for _ in range(random.randint(1, 4))
+        ]
     ]
 
     s.sendall(

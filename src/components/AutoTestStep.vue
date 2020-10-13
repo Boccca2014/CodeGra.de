@@ -360,22 +360,23 @@
                 <collapse :id="resultsCollapseId"
                           lazy-load-always
                           no-animation
-                          v-model="junitCollapseClosed">
+                          v-model="resultCollapseClosed">
                     <div slot-scope="{}">
                         <b-card no-body>
                             <b-tabs card no-fade>
                                 <b-tab title="Results"
                                        v-if="$utils.getProps(stepResult, null, 'attachment_id') != null">
-                                    <cg-loader v-if="junitAttachmentLoading"
+                                    <cg-loader v-if="loadingExtraData"
                                                page-loader
                                                class="mb-3"
                                                :scale="2" />
-                                    <b-alert v-else-if="junitError != ''"
-                                             show
-                                             variant="danger"
-                                             class="mx-3 w-100">
-                                        Failed to parse JUnit XML.
-                                    </b-alert>
+                                    <cg-error v-else-if="extraDataError"
+                                              :error="extraDataError"
+                                              class="mx-3 flex-grow-1">
+                                        <template #message="{ message }">
+                                            Failed to parse JUnit XML: {{ message }}
+                                        </template>
+                                    </cg-error>
                                     <junit-result v-else
                                                   :junit="junitAttachment"
                                                   :assignment="assignment"/>
@@ -461,17 +462,25 @@
                 <collapse :id="resultsCollapseId"
                           lazy-load-always
                           no-animation
-                          v-model="junitCollapseClosed">
+                          v-model="resultCollapseClosed">
                     <div slot-scope="{}">
                         <b-card no-body>
                             <b-tabs card no-fade>
-                                <b-tab title="Results">
-                                    <template v-for="[fId, comms] in result.quality_comments.entries()">
-                                        <p v-for="comm in comms">
-                                            {{ comm }}
-                                        </p>
-                                    </template>
+                                <b-tab title="Results" class="p-3" v-if="hasQualityComments">
+                                    <cg-loader v-if="loadingExtraData"
+                                               page-loader
+                                               class="mb-3"
+                                               :scale="2" />
+                                    <cg-error v-else-if="extraDataError"
+                                              :error="extraDataError"
+                                              class="mx-3 flex-grow-1" />
+                                    <quality-comments
+                                        v-else
+                                        :comments="allQualityComments"
+                                        :step-id="value.id"
+                                        class="flex-grow-1" />
                                 </b-tab>
+
                                 <b-tab title="Output" class="mb-3 flex-wrap">
                                     <p class="col-12 mb-1">
                                         <label>Exit code</label>
@@ -1074,6 +1083,7 @@ import AutoTestState from './AutoTestState';
 import InnerCodeViewer from './InnerCodeViewer';
 import Toggle from './Toggle';
 import JunitResult from './JunitResult';
+import QualityComments from './QualityComments';
 import { numberInputValue } from './NumberInput';
 
 export default {
@@ -1125,10 +1135,11 @@ export default {
             hideIgnoredPartOfDiff: {},
             getDiff: getCapturePointsDiff,
 
-            junitCollapseClosed: true,
+            resultCollapseClosed: true,
+            loadingExtraData: false,
+
             junitAttachment: null,
-            junitAttachmentLoading: false,
-            junitError: '',
+            extraDataError: '',
         };
     },
 
@@ -1137,7 +1148,7 @@ export default {
             this.collapseState = {};
         },
 
-        junitCollapseClosed: {
+        resultCollapseClosed: {
             handler(newVal) {
                 if (!newVal && this.stepResultAttachment) {
                     this.loadJunitAttachment();
@@ -1146,13 +1157,22 @@ export default {
             immediate: true,
         },
 
-        async stepResultAttachment(newVal) {
-            this.junitError = '';
-            if (!this.junitCollapseClosed && newVal) {
+        stepResultAttachment(newVal) {
+            this.extraDataError = '';
+            if (!this.resultCollapseClosed && newVal) {
                 this.loadJunitAttachment();
             } else if (!newVal) {
                 this.junitAttachment = null;
             }
+        },
+
+        allQualityComments: {
+            immediate: true,
+            handler(newVal) {
+                if (newVal) {
+                    this.loadFileTree();
+                }
+            },
         },
     },
 
@@ -1344,6 +1364,19 @@ export default {
             const tail = this.$utils.getProps(this, null, 'stepResult', 'log', 'haystack');
             return tail != null && tail && !out.endsWith(tail);
         },
+
+        allQualityComments() {
+            return this.$utils.getProps(
+                this,
+                null,
+                'result',
+                'qualityComments',
+            );
+        },
+
+        hasQualityComments() {
+            return this.allQualityComments.commentsPerStep.has(this.value.id);
+        },
     },
 
     async mounted() {
@@ -1361,6 +1394,10 @@ export default {
 
         ...mapActions('code', {
             storeLoadCodeFromRoute: 'loadCodeFromRoute',
+        }),
+
+        ...mapActions('fileTrees', {
+            storeLoadFileTree: 'loadFileTree',
         }),
 
         updateInput(index, key, value) {
@@ -1487,11 +1524,16 @@ export default {
         },
 
         async loadJunitAttachment() {
-            if (this.junitError || this.$utils.getProps(this.junitAttachment, 'NOT_EQUAL', 'id') === this.stepResultAttachment) {
+            const curAttachmentId = this.$utils.getProps(
+                this.junitAttachment,
+                'NOT_EQUAL',
+                'id',
+            );
+            if (this.extraDataError || curAttachmentId === this.stepResultAttachment) {
                 return;
             }
 
-            this.junitAttachmentLoading = true;
+            this.loadingExtraData = true;
             const attachmentId = this.stepResultAttachment;
 
             await this.$afterRerender();
@@ -1511,10 +1553,28 @@ export default {
             try {
                 this.junitAttachment = CGJunit.fromXml(attachmentId, attachment);
             } catch (err) {
-                this.junitError = err;
+                this.extraDataError = err;
             }
 
-            this.junitAttachmentLoading = false;
+            this.loadingExtraData = false;
+        },
+
+        async loadFileTree() {
+            this.loadingExtraData = true;
+            this.extraDataError = '';
+
+            return this.storeLoadFileTree({
+                assignmentId: this.result.autoTest.assignment_id,
+                submissionId: this.result.submissionId,
+            }).then(
+                () => {
+                    this.loadingExtraData = false;
+                },
+                err => {
+                    this.loadingExtraData = false;
+                    this.extraDataError = err;
+                },
+            );
         },
     },
 
@@ -1526,6 +1586,7 @@ export default {
         AutoTestState,
         InnerCodeViewer,
         JunitResult,
+        QualityComments,
         Toggle,
     },
 };

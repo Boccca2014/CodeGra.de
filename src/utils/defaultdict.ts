@@ -16,45 +16,53 @@ export function defaultdict<K extends string | number, V>(factory: (key: K) => V
 }
 
 export class DefaultMap<K, V> implements ReadonlyMap<K, V> {
-    private readonly map: Map<K, V> = new Map();
+    private readonly _map: Map<K, V> = new Map();
 
     constructor(private readonly factory: (key: K) => V) {}
 
     public get(key: K): V {
-        if (!this.map.has(key)) {
-            this.map.set(key, this.factory(key));
+        if (!this._map.has(key)) {
+            this._map.set(key, this.factory(key));
         }
-        return this.map.get(key) as V;
+        return this._map.get(key) as V;
     }
 
     public has(key: K): boolean {
-        return this.map.has(key);
+        return this._map.has(key);
     }
 
     public forEach(
         callbackfn: (value: V, key: K, map: ReadonlyMap<K, V>) => void,
         thisArg?: any,
     ): void {
-        this.map.forEach(callbackfn, thisArg);
+        this._map.forEach(callbackfn, thisArg);
     }
 
     get size(): number {
-        return this.map.size;
+        return this._map.size;
     }
 
     public entries() {
-        return this.map.entries();
+        return this._map.entries();
     }
 
     public keys() {
-        return this.map.keys();
+        return this._map.keys();
     }
 
     public values() {
-        return this.map.values();
+        return this._map.values();
     }
 
     public [Symbol.iterator]() {
-        return this.map[Symbol.iterator]();
+        return this._map[Symbol.iterator]();
+    }
+
+    public map<T>(fun: (val: V, key: K) => T): Map<K, T> {
+        const m = new Map();
+        for (const [key, val] of this) {
+            m.set(key, fun(val, key));
+        }
+        return m;
     }
 }
