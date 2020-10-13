@@ -132,6 +132,11 @@ module.exports = {
     process: false,
   },
   plugins: [
+    new CreateFileWebpack({
+        path: resolve('static'),
+        fileName: 'commitHash',
+        content: gitCommitLong,
+    }),
     new webpack.IgnorePlugin(/^\.\/locale$/, /moment$/),
     new VueLoaderPlugin(),
     new webpack.DefinePlugin(globalConstants),

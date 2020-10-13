@@ -478,7 +478,7 @@ export default tsx.component({
             };
         },
 
-        renderSaveButton(h: CreateElement): VNode {
+        renderSaveButton(h: CreateElement, oldSettings: SettingsLookup): VNode {
             return (
                 <div
                     class={{
@@ -495,10 +495,46 @@ export default tsx.component({
                             submit={this.saveChanges}
                             onAfter-success={this.afterSaveChanges}
                             disabled={this.submitDisabled}
+                            confirmInModal={true}
+                            confirm="yes"
                         >
+                            <template slot="confirm">
+                                {this.renderConfirmMessage(h, oldSettings)}
+                            </template>
                             Save changes
                         </comp.SubmitButton>
                     </div>
+                </div>
+            );
+        },
+
+        renderConfirmMessage(h: CreateElement, oldSettings: SettingsLookup): VNode {
+            return (
+                <div>
+                    Are sure you want to save the following changes?
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>Setting</th>
+                                <th>Old value</th>
+                                <th>New value</th>
+                            </tr>
+                        </thead>
+
+                        <tbody>
+                            {filterMap(ALL_SITE_SETTINGS, ({ name }) =>
+                                Maybe.fromNullable(this.updatedSettings[name]),
+                            ).map(({ name, value: newValue }) => (
+                                <tr>
+                                    <td>
+                                        <code>{name}</code>
+                                    </td>
+                                    <td>{oldSettings[name]}</td>
+                                    <td>{newValue}</td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
                 </div>
             );
         },
@@ -529,7 +565,7 @@ export default tsx.component({
                                     {groups.map(([groupName, items]) =>
                                         this.renderGroup(h, groupName, items, currentValues),
                                     )}
-                                    {this.renderSaveButton(h)}
+                                    {this.renderSaveButton(h, lookup)}
                                 </div>
                             );
                         },

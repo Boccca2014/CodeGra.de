@@ -10,7 +10,6 @@ const InlineManifestWebpackPlugin = require('inline-manifest-webpack-plugin');
 const MiniCssExtractPlugin = require('mini-css-extract-plugin')
 const OptimizeCSSPlugin = require('optimize-css-assets-webpack-plugin')
 const UglifyJsPlugin = require('uglifyjs-webpack-plugin');
-const CreateFileWebpack = require('./createFile')
 const gitCommitLong = require('./git_commit');
 
 const env = process.env.NODE_ENV === 'testing'
@@ -67,11 +66,6 @@ const webpackConfig = merge(baseWebpackConfig, {
     new webpack.HashedModuleIdsPlugin(),
 
 
-    new CreateFileWebpack({
-        path: path.resolve(__dirname, '../static/'),
-        fileName: 'commitHash',
-        content: gitCommitLong,
-    }),
     // copy custom static assets
     new CopyWebpackPlugin([
       {
