@@ -40,7 +40,8 @@
             This category contains no steps. Please add some using the buttons below.
         </p>
 
-        <SlickList lock-axis="y"
+        <SlickList class="d-flex flex-row"
+                   lock-axis="y"
                    lock-to-container-edges
                    @sort-start="slickItemMoving = true"
                    @sort-end="slickItemMoving = false"
@@ -53,7 +54,8 @@
                            :key="step.trackingId"
                            class="slick-item d-flex flex-row pb-3"
                            :class="slickItemMoving ? 'no-text-select' : ''" >
-                    <div v-handle class="drag-handle d-flex align-self-stretch pr-3 text-muted">
+                    <div v-handle
+                         class="drag-handle d-flex align-self-stretch pr-3 text-muted">
                         <icon class="align-self-center" name="bars"/>
                     </div>
 
@@ -66,13 +68,13 @@
                                     @delete="internalValue.removeItem(i)"
                                     editable/>
 
-                    <icon class="expand-all-btn text-muted mt-3 ml-3"
-                          :name="expandedSteps.length ? 'compress' : 'expand'"
-                          @click.native="toggleAllSteps"
-                          v-b-popover.hover.top="`${expandedSteps.length ? 'Collapse' : 'Expand'} all steps.`" />
-
                 </SlickItem>
             </transition-group>
+
+            <icon class="expand-all-btn text-muted mt-3 ml-3"
+                  :name="expandedSteps.length ? 'compress' : 'expand'"
+                  @click.native="toggleAllSteps"
+                  v-b-popover.hover.top="`${expandedSteps.length ? 'Collapse' : 'Expand'} all steps.`" />
         </SlickList>
 
         <b-button-toolbar class="justify-content-center">
