@@ -53,7 +53,14 @@ if t.TYPE_CHECKING and not getattr(t, 'SPHINX', False):  # pragma: no cover
     from .. import auto_test as auto_test_module
 
 _ALL_AUTO_TEST_HANDLERS = sorted(
-    ['io_test', 'run_program', 'custom_output', 'check_points', 'junit_test']
+    [
+        'io_test',
+        'run_program',
+        'custom_output',
+        'check_points',
+        'junit_test',
+        'code_quality',
+    ]
 )
 _registered_test_handlers: t.Set[str] = set()
 
@@ -77,6 +84,15 @@ def _ensure_program(program: str) -> None:
             "The program to execute was empty, however it shouldn't be",
             APICodes.INVALID_PARAM, 400
         )
+
+
+def _ensure_between(name: str, value: float, lower: float, upper: float):
+        if value < lower or value > upper:
+            raise APIException(
+                f'The "{name}" has to be between 0 and 1',
+                f'The "{name}" was {value} which is not >={lower} and <={upper}',
+                APICodes.INVALID_PARAM, 400
+            )
 
 
 class AutoTestStepResultState(cg_enum.CGEnum):
@@ -890,12 +906,7 @@ class _CheckPoints(AutoTestStepBase):
                 get('min_points', numbers.Real)  # type: ignore
             )
 
-        if min_points < 0 or min_points > 1:
-            raise APIException(
-                'The "min_points" has to be between 0 and 1',
-                f'The "min_points" was {min_points} which is not >=0 and <=1',
-                APICodes.INVALID_PARAM, 400
-            )
+        _ensure_between('min_points', min_points, 0, 1)
 
     @staticmethod
     def _execute(
@@ -1012,6 +1023,97 @@ class _JunitTest(AutoTestStepBase):
     def get_amount_achieved_points(result: 'AutoTestStepResult') -> float:
         log: t.Dict = result.log if isinstance(result.log, dict) else {}
         return t.cast(float, log.get('points', 0)) * result.step.weight
+
+
+@_register
+class _QualityTest(AutoTestStepBase):
+    __mapper_args__ = {
+        'polymorphic_identity': 'code_quality',
+    }
+
+    def validate_data(self, data: JSONType) -> None:
+        with get_from_map_transaction(
+            ensure_json_dict(data), ensure_empty=True
+        ) as [get, _]:
+            program = get('program', str)
+            penalties = get('penalties', dict)
+        _ensure_program(program)
+
+        def ensure_penalty(key):
+            if key not in penalties:
+                raise APIException(
+                    f'Penalty for "{key}" comments not present',
+                    f'The penalty for "{key}" comments was not included',
+                    APICodes.INVALID_PARAM, 400
+                )
+
+            value = penalties[key]
+            if not isinstance(value, numbers.Real):
+                print(value, type(value))
+                raise APIException(
+                    f'Penalty for "{key}" comments must be a number',
+                    f'The penalty for "{key}" must be a float but it was'
+                    f'"{value}"',
+                    APICodes.INVALID_PARAM, 400
+                )
+
+            _ensure_between(key, value, 0, 100)
+
+        ensure_penalty('fatal')
+        ensure_penalty('error')
+        ensure_penalty('warning')
+        ensure_penalty('info')
+
+    @classmethod
+    def _execute(
+        cls,
+        container: 'auto_test_module.StartedContainer',
+        opts: 'auto_test_module.ExecuteOptions',
+    ) -> float:
+        data = opts.test_instructions['data']
+        assert isinstance(data, dict)
+
+        command_res = container.run_student_command(
+            t.cast(str, data['program']),
+            opts.test_instructions['command_time_limit'],
+        )
+
+        # TODO: we do not have access to the quality comments here, so we
+        # currently cannot calculate the correct score here.
+        data = {
+            'stdout': command_res.stdout,
+            'stderr': command_res.stderr,
+            'exit_code': command_res.exit_code,
+            'time_spend': command_res.time_spend,
+            'points': 1.0,
+        }
+
+        if data['exit_code'] != 0:
+            data['points'] = 0
+            opts.update_test_result(AutoTestStepResultState.failed, data)
+        else:
+            opts.update_test_result(AutoTestStepResultState.passed, data)
+
+        return data['points']
+
+    @staticmethod
+    def get_amount_achieved_points(result: 'AutoTestStepResult') -> float:
+        # TODO: we do not have access to the quality comments in the _execute
+        # method, so we currently have to recalculate the score by hand.
+        comments = AutoTestQualityComment.query.filter_by(
+            AutoTestQualityComment.auto_test_step_id == result.auto_test_step_id,
+            AutoTestQualityComment.auto_test_result_id == result.id,
+        ).all()
+        penalties: t.Mapping[str, float]
+        penalties = result.step.data['penalties']
+
+        score = 100.0
+
+        for comment in comments:
+            penalty = penalties[comment.severity.name]
+            score -= penalty
+
+        return result.step.weight * score / 100
 
 
 class AutoTestStepResult(Base, TimestampMixin, IdMixin):
@@ -1236,6 +1338,7 @@ class AutoTestQualityComment(Base, TimestampMixin, IdMixin):
     result = db.relationship(
         lambda: psef.models.AutoTestResult,
         foreign_keys=auto_test_result_id,
+        back_populates='quality_comments',
         innerjoin=True,
     )
 

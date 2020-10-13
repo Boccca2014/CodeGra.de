@@ -55,9 +55,9 @@
             </b-button-group>
         </b-card-header>
 
-        <b-card-body v-if="canViewDetails">
-            <template v-if="!stepType.meta">
-                <label :for="programNameId">
+        <b-card-body v-if="canViewDetails" class="auto-test-step-card">
+            <b-form-group v-if="!stepType.meta">
+                <template #label>
                     Program to test
 
                     <description-popover hug-text
@@ -69,22 +69,20 @@
                             will be appended to this string.
                         </template>
                     </description-popover>
-                </label>
+                </template>
 
                 <input class="form-control step-program"
                        :value="value.data.program"
-                       :id="programNameId"
                        @input="updateValue('program', $event.target.value)"/>
-            </template>
+            </b-form-group>
 
-            <template v-else-if="value.type === 'check_points'">
-                <label :for="pointsThresholdId">
+            <b-form-group v-else-if="value.type === 'check_points'">
+                <template #label>
                     Stop test category if percentage of points achieved is below
-                </label>
+                </template>
 
                 <b-input-group>
                     <input class="form-control text-left"
-                           :id="pointsThresholdId"
                            type="number"
                            :value="value.data.min_points"
                            min="0"
@@ -95,12 +93,10 @@
                         %
                     </b-input-group-append>
                 </b-input-group>
-            </template>
+            </b-form-group>
 
-            <template v-if="value.type === 'custom_output'">
-                <hr/>
-
-                <label :for="regexId">
+            <b-form-group v-if="value.type === 'custom_output'">
+                <template #label>
                     Regex to match a grade
 
                     <description-popover hug-text
@@ -110,13 +106,12 @@
                         capture group. The first capture group should capture a valid python float,
                         the default regex captures a single float.
                     </description-popover>
-                </label>
+                </template>
 
                 <input :value="value.data.regex"
-                       :id="regexId"
                        class="form-control"
                        @input="updateValue('regex', $event.target.value)">
-            </template>
+            </b-form-group>
 
             <template v-else-if="value.type === 'io_test'">
                 <hr/>
@@ -124,91 +119,88 @@
                 <div v-for="input, index in inputs" :key="input.id">
                     <div class="row io-input-wrapper">
                         <div class="col-6">
-                            <b-form-fieldset>
-                                <label :for="inputNameId(index)">Name</label>
-
+                            <b-form-group label="Name">
                                 <input class="form-control"
-                                       :id="inputNameId(index)"
                                        :value="input.name"
                                        @input="updateInput(index, 'name', $event.target.value)"/>
-                            </b-form-fieldset>
+                            </b-form-group>
 
-                            <b-form-fieldset>
-                                <label :for="argsId(index)">
+                            <b-form-group>
+                                <template #label>
                                     Input arguments
 
                                     <description-popover hug-text
                                                          boundary="window">
                                         Extra arguments appended to the "Program to test" option.
                                     </description-popover>
-                                </label>
+                                </template>
 
                                 <input class="form-control"
-                                       :id="argsId(index)"
                                        :value="input.args"
                                        @input="updateInput(index, 'args', $event.target.value)"/>
-                            </b-form-fieldset>
+                            </b-form-group>
 
-                            <label :for="stdinId(index)">
-                                Input
+                            <b-form-group>
+                                <template #label>
+                                    Input
 
-                                <description-popover hug-text
-                                                     boundary="window">
-                                    Input passed to the program via <code>stdin</code>.
-                                </description-popover>
-                            </label>
+                                    <description-popover hug-text
+                                                        boundary="window">
+                                        Input passed to the program via <code>stdin</code>.
+                                    </description-popover>
+                                </template>
 
-                            <textarea class="form-control"
-                                      :value="input.stdin"
-                                      :id="stdinId(index)"
-                                      rows="4"
-                                      @input="updateInput(index, 'stdin', $event.target.value)"/>
+                                <textarea class="form-control"
+                                          :value="input.stdin"
+                                          rows="4"
+                                          @input="updateInput(index, 'stdin', $event.target.value)"/>
+                            </b-form-group>
                         </div>
+
                         <div class="col-6">
-                            <label :for="optionsId(index)">
-                                Options
-                            </label>
+                            <b-form-group label="Options">
+                                <div class="border rounded px-2 py-1">
+                                    <b-form-checkbox-group v-model="input.options"
+                                                           @change="optionToggled(index, $event)">
+                                        <b-form-checkbox v-for="opt in ioOptions"
+                                                         :key="opt.value"
+                                                         class="d-block"
+                                                         :value="opt.value"
+                                                         :disabled="disabledOptions[index][opt.value]">
+                                            {{ opt.text }}
 
-                            <div class="border rounded mb-3 px-2 py-1">
-                                <b-form-checkbox-group v-model="input.options"
-                                                       @change="optionToggled(index, $event)">
-                                    <b-form-checkbox v-for="opt in ioOptions"
-                                                     :key="opt.value"
-                                                     class="d-block"
-                                                     :value="opt.value"
-                                                     :disabled="disabledOptions[index][opt.value]">
-                                        {{ opt.text }}
+                                            <description-popover hug-text
+                                                                 boundary="window">
+                                                {{ opt.description }}
+                                            </description-popover>
+                                        </b-form-checkbox>
+                                    </b-form-checkbox-group>
+                                </div>
+                            </b-form-group>
 
-                                        <description-popover hug-text
-                                                             boundary="window">
-                                            {{ opt.description }}
-                                        </description-popover>
-                                    </b-form-checkbox>
-                                </b-form-checkbox-group>
-                            </div>
+                            <b-form-group>
+                                <template #label>
+                                    Expected output
 
-                            <label :for="stdoutId(index)">
-                                Expected output
+                                    <description-popover hug-text
+                                                        boundary="window">
+                                        Text to match the output of the program with, according to the
+                                        rules selected above.
+                                    </description-popover>
+                                </template>
 
-                                <description-popover hug-text
-                                                     boundary="window">
-                                    Text to match the output of the program with, according to the
-                                    rules selected above.
-                                </description-popover>
-                            </label>
-
-                            <textarea class="form-control"
-                                      :value="input.output"
-                                      rows="4"
-                                      :id="stdoutId(index)"
-                                      @input="updateInput(index, 'output', $event.target.value)"/>
+                                <textarea class="form-control"
+                                          :value="input.output"
+                                          rows="4"
+                                          @input="updateInput(index, 'output', $event.target.value)"/>
+                            </b-form-group>
                         </div>
                     </div>
 
                     <div class="mt-3 mb-2 d-flex flex-row justify-content-between">
                         <div v-b-toggle="collapseAdvancedId(index)"
                              class="collapse-toggle align-self-center text-muted font-italic">
-                            <icon name="caret-down" class="mr-2" />
+                            <icon name="caret-down" class="caret mr-2" />
                             Advanced options
                         </div>
 
@@ -245,6 +237,44 @@
                         <icon name="plus"/> Input
                     </b-btn>
                 </b-button-toolbar>
+            </template>
+
+            <template v-else-if="value.type === 'code_quality'">
+                <b-form-group label="Penalties">
+                    <b-input-group>
+                        <b-input-group-prepend is-text variant="danger">
+                            Fatal
+                        </b-input-group-prepend>
+                        <cg-number-input
+                            name="Fatal penalty"
+                            :value="numberInputValue(value.data.penalties.fatal)"
+                            @input="updatePenalty('fatal', $event)"/>
+
+                        <b-input-group-prepend is-text variant="danger">
+                            Error
+                        </b-input-group-prepend>
+                        <cg-number-input
+                            name="Error penalty"
+                            :value="numberInputValue(value.data.penalties.error)"
+                            @input="updatePenalty('error', $event)"/>
+
+                        <b-input-group-prepend is-text variant="warning">
+                            Warning
+                        </b-input-group-prepend>
+                        <cg-number-input
+                            name="Warning penalty"
+                            :value="numberInputValue(value.data.penalties.warning)"
+                            @input="updatePenalty('warning', $event)"/>
+
+                        <b-input-group-prepend is-text variant="info">
+                            Info
+                        </b-input-group-prepend>
+                        <cg-number-input
+                            name="Info penalty"
+                            :value="numberInputValue(value.data.penalties.info)"
+                            @input="updatePenalty('info', $event)"/>
+                    </b-input-group>
+                </b-form-group>
             </template>
         </b-card-body>
     </collapse>
@@ -349,6 +379,98 @@
                                     <junit-result v-else
                                                   :junit="junitAttachment"
                                                   :assignment="assignment"/>
+                                </b-tab>
+                                <b-tab title="Output" class="mb-3 flex-wrap">
+                                    <p class="col-12 mb-1">
+                                        <label>Exit code</label>
+                                        <code>{{ $utils.getProps(stepResult.log, '(unknown)', 'exit_code') }}</code>
+                                    </p>
+
+                                    <div class="col-12 mb-1">
+                                        <label>Output</label>
+                                        <inner-code-viewer class="rounded border"
+                                                           :assignment="assignment"
+                                                           :code-lines="stepStdout"
+                                                           file-id="-1"
+                                                           :feedback="{}"
+                                                           :start-line="0"
+                                                           :show-whitespace="true"
+                                                           :warn-no-newline="false"
+                                                           :empty-file-message="'No output.'" />
+                                    </div>
+
+                                    <div class="col-12">
+                                        <label>Errors</label>
+                                        <inner-code-viewer class="rounded border"
+                                                           :assignment="assignment"
+                                                           :code-lines="stepStderr"
+                                                           file-id="-1"
+                                                           :feedback="{}"
+                                                           :start-line="0"
+                                                           :show-whitespace="true"
+                                                           :warn-no-newline="false"
+                                                           :empty-file-message="'No output.'" />
+                                    </div>
+                                </b-tab>
+                            </b-tabs>
+                        </b-card>
+                    </div>
+                </collapse>
+            </td>
+        </tr>
+    </template>
+
+    <template v-else-if="value.type === 'code_quality'">
+        <tr class="step-summary"
+            :class="{ 'with-output': canViewOutput, 'text-muted': value.hidden }"
+            :key="resultsCollapseId"
+            v-cg-toggle="resultsCollapseId">
+            <td class="expand shrink">
+                <template v-if="canViewOutput">
+                    <icon name="chevron-down" :scale="0.75" class="caret" />
+                </template>
+
+                <icon v-if="value.hidden"
+                      name="eye-slash"
+                      :scale="0.85"
+                      v-b-popover.hover.top="hiddenPopover" />
+            </td>
+            <td class="shrink">{{ index }}</td>
+            <td class="overflowable">
+                <div class="overflow-auto">
+                    <b>{{ stepName }}</b>
+
+                    <template v-if="canViewDetails">
+                        Check the code quality using <code>{{ value.data.program }}</code>.
+                    </template>
+                </div>
+            </td>
+            <td class="shrink text-center">
+                <template v-if="result">
+                    {{ achievedPoints }} /
+                </template>
+                {{ $utils.toMaxNDecimals(value.weight, 2) }}
+            </td>
+            <td class="shrink text-center" v-if="result">
+                <auto-test-state :assignment="assignment" :result="stepResult" show-icon />
+            </td>
+        </tr>
+
+        <tr v-if="canViewOutput" class="results-log-collapse-row">
+            <td :colspan="result ? 5 : 4">
+                <collapse :id="resultsCollapseId"
+                          lazy-load-always
+                          no-animation
+                          v-model="junitCollapseClosed">
+                    <div slot-scope="{}">
+                        <b-card no-body>
+                            <b-tabs card no-fade>
+                                <b-tab title="Results">
+                                    <template v-for="[fId, comms] in result.quality_comments.entries()">
+                                        <p v-for="comm in comms">
+                                            {{ comm }}
+                                        </p>
+                                    </template>
                                 </b-tab>
                                 <b-tab title="Output" class="mb-3 flex-wrap">
                                     <p class="col-12 mb-1">
@@ -952,6 +1074,7 @@ import AutoTestState from './AutoTestState';
 import InnerCodeViewer from './InnerCodeViewer';
 import Toggle from './Toggle';
 import JunitResult from './JunitResult';
+import { numberInputValue } from './NumberInput';
 
 export default {
     name: 'auto-test-step',
@@ -1057,44 +1180,8 @@ export default {
             return this.value.name;
         },
 
-        programNameId() {
-            return `auto-test-step-program-${this.id}`;
-        },
-
-        pointsThresholdId() {
-            return `auto-test-step-point-threshold-${this.id}`;
-        },
-
-        collapseId() {
-            return `auto-test-step-main-collapse-${this.id}`;
-        },
-
-        inputNameId() {
-            return n => `auto-test-step-input-name-${this.id}-${n}`;
-        },
-
-        argsId() {
-            return n => `auto-test-step-args-${this.id}-${n}`;
-        },
-
-        stdinId() {
-            return n => `auto-test-step-stdin-${this.id}-${n}`;
-        },
-
-        stdoutId() {
-            return n => `auto-test-step-stdout-${this.id}-${n}`;
-        },
-
-        regexId() {
-            return `auto-test-step-prefix-${this.id}`;
-        },
-
         collapseAdvancedId() {
             return n => `auto-test-step-advanced-${this.id}-${n}`;
-        },
-
-        optionsId() {
-            return n => `auto-test-step-options-${this.id}-${n}`;
         },
 
         weightId() {
@@ -1270,6 +1357,8 @@ export default {
     },
 
     methods: {
+        numberInputValue,
+
         ...mapActions('code', {
             storeLoadCodeFromRoute: 'loadCodeFromRoute',
         }),
@@ -1314,6 +1403,17 @@ export default {
 
         updateCollapse(collapsed) {
             this.$emit('input', Object.assign(this.valueCopy, { collapsed }));
+        },
+
+        updatePenalty(name, maybeValue) {
+            // TODO: Show error if value is Error or Nothing.
+            maybeValue.orDefault(this.$utils.Nothing).ifJust(value => {
+                const penalties = this.value.data.penalties;
+                this.updateValue(
+                    'penalties',
+                    Object.assign({}, penalties, { [name]: value }),
+                );
+            });
         },
 
         updateValue(key, value) {
@@ -1449,7 +1549,7 @@ export default {
 .step-header {
     .step-type {
         height: 100%;
-        width: auto;
+        width: 8.5rem;
         color: rgba(0, 0, 0, 0.5);
         border: 1px solid rgba(0, 0, 0, 0.125);
     }
@@ -1536,6 +1636,10 @@ export default {
     .card {
         border: 0;
     }
+}
+
+.auto-test-step-card .form-group:last-child {
+    margin-bottom: 0;
 }
 </style>
 

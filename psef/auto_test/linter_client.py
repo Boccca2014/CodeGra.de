@@ -28,9 +28,10 @@ def main() -> None:
     student_dir = os.getenv('STUDENT')
     assert student_dir is not None
     files = glob.glob(student_dir + '/*')
+    severities = ['fatal', 'error', 'warning', 'info']
     comments = [
         {
-            'severity': 'warning',
+            'severity': severities[i % len(severities)],
             'code': None,
             'origin': 'Fake linter',
             'msg': 'Wow nice linter dude!',
@@ -43,7 +44,7 @@ def main() -> None:
                 'end': None
             },
             'path': f[len(student_dir):].split('/'),
-        } for f in files
+        } for i, f in enumerate(files)
     ]
 
     s.sendall(

@@ -6,6 +6,7 @@ import math
 import uuid
 import typing as t
 import itertools
+import collections
 
 import structlog
 from sqlalchemy import orm, distinct
@@ -340,6 +341,14 @@ class AutoTestResult(Base, TimestampMixin, IdMixin, NotEqualMixin):
 
     final_result = db.Column('final_result', db.Boolean, nullable=False)
 
+    quality_comments = db.relationship(
+        lambda: psef.models.AutoTestQualityComment,
+        back_populates='result',
+        cascade='all,delete,delete-orphan',
+        uselist=True,
+        lazy='selectin',
+    )
+
     # This variable is generated from the backref from all files
     files: MyQuery["psef.models.AutoTestOutputFile"]
 
@@ -550,6 +559,8 @@ class AutoTestResult(Base, TimestampMixin, IdMixin, NotEqualMixin):
         suite_files: t.Mapping[int,
                                t.Sequence['psef.files.FileTree[uuid.UUID]'],
                                ]
+        #: The quality comments produced by this AutoTest result.
+        quality_comments: t.Mapping[int, t.Sequence['AutoTestQualityComment']]
 
     def __to_json__(self) -> AsJSON:
         """Convert this result to a json object.
@@ -594,6 +605,10 @@ class AutoTestResult(Base, TimestampMixin, IdMixin, NotEqualMixin):
                 if entries:
                     suite_files[f.auto_test_suite_id] = entries
 
+        quality_comments = collections.defaultdict(list)
+        for comment in self.quality_comments:
+            quality_comments[comment.auto_test_step_id].append(comment)
+
         return make_typed_dict_extender(
             self.__to_json__(), self.AsExtendedJSON
         )(
@@ -603,6 +618,7 @@ class AutoTestResult(Base, TimestampMixin, IdMixin, NotEqualMixin):
             approx_waiting_before=approx_before,
             final_result=final_result,
             suite_files=suite_files,
+            quality_comments=quality_comments,
         )
 
     @classmethod

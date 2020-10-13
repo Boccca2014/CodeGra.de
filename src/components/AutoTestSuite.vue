@@ -464,9 +464,16 @@ export default {
                 },
                 {
                     name: 'junit_test',
-                    title: 'Unit test',
+                    title: 'Unit Test',
                     color: 'rgb(247, 136, 123)',
                     help: 'Run a JUnit-compatible testing framework and display the results in a nice overview.',
+                    meta: false,
+                },
+                {
+                    name: 'code_quality',
+                    title: 'Code Quality',
+                    color: 'rgb(224, 248, 204)',
+                    help: '',
                     meta: false,
                 },
             ];
@@ -538,6 +545,15 @@ export default {
                     break;
                 case 'junit_test':
                     res.data.program = '';
+                    break;
+                case 'code_quality':
+                    res.data.program = '';
+                    res.data.penalties = {
+                        fatal: 0,
+                        error: 0,
+                        warning: 0,
+                        info: 0,
+                    };
                     break;
                 default:
                     throw new Error('Unknown test type!');
