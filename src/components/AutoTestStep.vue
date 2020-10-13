@@ -473,7 +473,7 @@
                                                :scale="2" />
                                     <cg-error v-else-if="extraDataError"
                                               :error="extraDataError"
-                                              class="mx-3 flex-grow-1" />
+                                              class="mb-0 flex-grow-1" />
                                     <quality-comments
                                         v-else
                                         :comments="allQualityComments"
