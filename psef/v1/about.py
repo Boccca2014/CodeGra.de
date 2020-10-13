@@ -14,7 +14,6 @@ from typing_extensions import TypedDict
 
 import cg_dt_utils
 import cg_request_args as rqa
-import cg_typing_extensions
 from cg_json import JSONResponse
 
 from . import api
