@@ -560,7 +560,7 @@ class AutoTestResult(Base, TimestampMixin, IdMixin, NotEqualMixin):
                                t.Sequence['psef.files.FileTree[uuid.UUID]'],
                                ]
         #: The quality comments produced by this AutoTest result.
-        quality_comments: t.Mapping[int, t.Sequence['AutoTestQualityComment']]
+        quality_comments: t.Mapping[int, t.Sequence['psef.models.AutoTestQualityComment']]
 
     def __to_json__(self) -> AsJSON:
         """Convert this result to a json object.

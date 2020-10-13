@@ -86,7 +86,7 @@ def _ensure_program(program: str) -> None:
         )
 
 
-def _ensure_between(name: str, value: float, lower: float, upper: float):
+def _ensure_between(name: str, value: float, lower: float, upper: float) -> None:
         if value < lower or value > upper:
             raise APIException(
                 f'The "{name}" has to be between 0 and 1',
@@ -1039,7 +1039,7 @@ class _QualityTest(AutoTestStepBase):
             penalties = get('penalties', dict)
         _ensure_program(program)
 
-        def ensure_penalty(key):
+        def ensure_penalty(key: str) -> None:
             if key not in penalties:
                 raise APIException(
                     f'Penalty for "{key}" comments not present',
@@ -1057,7 +1057,7 @@ class _QualityTest(AutoTestStepBase):
                     APICodes.INVALID_PARAM, 400
                 )
 
-            _ensure_between(key, value, 0, 100)
+            _ensure_between(key, t.cast(float, value), 0, 100)
 
         ensure_penalty('fatal')
         ensure_penalty('error')
@@ -1078,6 +1078,13 @@ class _QualityTest(AutoTestStepBase):
             opts.test_instructions['command_time_limit'],
         )
 
+        points = 1.0
+        state = AutoTestStepResultState.passed
+
+        if data['exit_code'] != 0:
+            points = 0
+            state = AutoTestStepResultState.failed
+
         # TODO: we do not have access to the quality comments here, so we
         # currently cannot calculate the correct score here.
         data = {
@@ -1085,35 +1092,38 @@ class _QualityTest(AutoTestStepBase):
             'stderr': command_res.stderr,
             'exit_code': command_res.exit_code,
             'time_spend': command_res.time_spend,
-            'points': 1.0,
+            'points': points,
         }
+        opts.update_test_result(state, data)
 
-        if data['exit_code'] != 0:
-            data['points'] = 0
-            opts.update_test_result(AutoTestStepResultState.failed, data)
-        else:
-            opts.update_test_result(AutoTestStepResultState.passed, data)
+        return points
 
-        return data['points']
-
-    @staticmethod
-    def get_amount_achieved_points(result: 'AutoTestStepResult') -> float:
+    @classmethod
+    def get_amount_achieved_points(cls, result: 'AutoTestStepResult') -> float:
         # TODO: we do not have access to the quality comments in the _execute
         # method, so we currently have to recalculate the score by hand.
-        comments = AutoTestQualityComment.query.filter_by(
+        comments = AutoTestQualityComment.query.filter(
             AutoTestQualityComment.auto_test_step_id == result.auto_test_step_id,
             AutoTestQualityComment.auto_test_result_id == result.id,
         ).all()
-        penalties: t.Mapping[str, float]
-        penalties = result.step.data['penalties']
+        penalties = cls._get_penalties(result.step.data)
 
         score = 100.0
 
         for comment in comments:
-            penalty = penalties[comment.severity.name]
+            penalty = penalties[comment.severity]
             score -= penalty
 
         return result.step.weight * score / 100
+
+    @staticmethod
+    def _get_penalties(step_data: JSONType) -> t.Mapping['QualityCommentSeverity', float]:
+        assert isinstance(step_data, dict)
+        penalties = t.cast(t.Mapping[str, float], step_data['penalties'])
+        return {
+            QualityCommentSeverity(severity): penalty
+            for severity, penalty in penalties.items()
+        }
 
 
 class AutoTestStepResult(Base, TimestampMixin, IdMixin):
