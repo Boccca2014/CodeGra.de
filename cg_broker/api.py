@@ -275,7 +275,7 @@ def confirm_runner_for_job(public_runner_id: uuid.UUID) -> EmptyResponse:
     runner = db.session.query(models.Runner).filter(
         models.Runner.ipaddr == request.remote_addr,
         models.Runner.public_id == public_runner_id,
-    ).one_or_none()
+    ).with_for_update().one_or_none()
     if runner is None:
         raise NotFoundException
 
@@ -337,11 +337,19 @@ def get_jobs_for_runner(public_runner_id: uuid.UUID
         models.Runner.state.in_(
             models.RunnerState.get_before_running_states()
         ),
-    ).one_or_none()
+    ).with_for_update().one_or_none()
     if runner is None:
         raise NotFoundException
 
     runner.verify_password()
+
+    # If an assigned runners comes asking for work again we simply assume that
+    # the application backend was not successful in using the runner. So we
+    # simply make it unassigned again.
+    if runner.state.is_assigned and (
+        runner.job is None or not runner.job.needs_more_runners
+    ):
+        runner.make_unassigned()
 
     urls: t.Iterable[str]
     if runner.state in models.RunnerState.get_before_assigned_states():
@@ -349,12 +357,18 @@ def get_jobs_for_runner(public_runner_id: uuid.UUID
             url for url, in db.session.query(models.Job.cg_url).filter(
                 models.Job.state.notin_(
                     models.JobState.get_finished_states(),
-                )
+                ),
+                models.Job.needs_more_runners,
             )
         )
-
+        # If assigned make sure that url is first in the list so that the
+        # runner tries that first.
+        if runner.job is not None:
+            best_url = runner.job.cg_url
+            urls = sorted(urls, key=lambda url: url == best_url, reverse=True)
     else:
         urls = [] if runner.job is None else [runner.job.cg_url]
+
     return cg_json.jsonify([{'url': url} for url in urls])
 
 
