@@ -25,6 +25,7 @@ import contextlib
 import subprocess
 import collections
 import dataclasses
+import urllib.parse
 import multiprocessing
 from pathlib import Path
 from multiprocessing import Event, Queue, context, managers
@@ -745,8 +746,41 @@ def _run_student(
     cont.run_student(bc_name, cores, opts)
 
 
+class _BrokerSession(requests.Session):
+    """A session to use when doing requests to the AutoTest broker.
+    """
+
+    def __init__(
+        self,
+        *,
+        broker_base: str,
+        runner_pass: str,
+        retries: t.Optional[int],
+    ) -> None:
+        super().__init__()
+        self.broker_base = broker_base
+
+        self.headers.update({'CG-Broker-Runner-Pass': runner_pass})
+        if retries is not None:
+            helpers.mount_retry_adapter(self, retries=retries)
+
+    def request(  # pylint: disable=signature-differs
+        self,
+        method: str,
+        url: t.Union[str, bytes, t.Text],
+        *args: t.Any,
+        **kwargs: t.Any,
+    ) -> requests.Response:
+        """Do a request to the AutoTest broker.
+        """
+        url = urllib.parse.urljoin(self.broker_base, str(url))
+        if 'timeout' not in kwargs:
+            kwargs['timeout'] = 10
+        return super().request(method, url, *args, **kwargs)
+
+
 def _try_to_run_job(
-    broker_session: 'helpers.BrokerSession',
+    broker_session: _BrokerSession,
     runner_id: str,
     config: 'psef.FlaskConfig',
     cont: 'StartedContainer',
@@ -856,9 +890,11 @@ def start_polling(config: 'psef.FlaskConfig') -> None:
             runner_pass_file=runner_pass_file
         )
 
-    def get_broker_session() -> helpers.BrokerSession:
-        return helpers.BrokerSession(
-            '', '', broker_url, runner_pass, retries=_REQUEST_RETRIES
+    def get_broker_session() -> _BrokerSession:
+        return _BrokerSession(
+            broker_base=broker_url,
+            runner_pass=runner_pass or '',
+            retries=_REQUEST_RETRIES
         )
 
     with _get_base_container(config).started_container() as cont:

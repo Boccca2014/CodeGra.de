@@ -7,15 +7,18 @@ configured platform (e.g. AWS).
 SPDX-License-Identifier: AGPL-3.0-only
 """
 import os
+import re
 import typing as t
 import subprocess
 from datetime import timedelta
 from configparser import ConfigParser
 
 import flask
+from werkzeug.utils import cached_property
 from mypy_extensions import TypedDict
 
 import cg_logger
+import cg_cache.inter_request
 
 if t.TYPE_CHECKING:
     from . import models
@@ -45,6 +48,7 @@ BrokerConfig = TypedDict(  # pylint: disable=invalid-name
         'RUNNER_CONFIG_DIR': str,
         'SENTRY_DSN': t.Optional[str],
         'CUR_COMMIT': t.Optional[str],
+        'ALLOWED_INSTANCE_URL_PATTERN': re.Pattern,
     }
 )
 
@@ -159,6 +163,18 @@ class BrokerFlask(flask.Flask):
         )
         self.config['SENTRY_DSN'] = _parser['General'].get('SENTRY_DSN')
 
+        if self.config['DEBUG']:
+            default_pattern = r'.*'
+        else:
+            default_pattern = r'^https://[^.]+\.codegra\.de$'
+
+        self.config['ALLOWED_INSTANCE_URL_PATTERN'] = re.compile(
+            _parser['General'].get(
+                'ALLOWED_INSTANCE_URL_PATTERN',
+                fallback=default_pattern,
+            )
+        )
+
         try:
             self.config['CUR_COMMIT'] = subprocess.check_output([
                 'git', 'rev-parse', 'HEAD'
@@ -172,6 +188,17 @@ class BrokerFlask(flask.Flask):
 
         self.allowed_instances: t.Dict[str, str] = dict(
             _parser['Instances'].items()
+        )
+
+    @cached_property
+    def instance_public_key_cache(
+        self
+    ) -> 'cg_cache.inter_request.Backend[str]':
+        return cg_cache.inter_request.DBBackend(
+            namespace='instance_public_keys',
+            ttl=timedelta(weeks=4),
+            get_session=lambda: models.db.session,
+            get_storage=lambda: models.CacheTable,
         )
 
 

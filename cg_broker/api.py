@@ -10,6 +10,9 @@ import secrets
 from datetime import timedelta
 from functools import wraps
 
+import jwt
+import furl
+import requests
 import structlog
 from flask import Blueprint, g, request
 from flask_expects_json import expects_json
@@ -34,6 +37,20 @@ def init_app(flask_app: BrokerFlask) -> None:
     flask_app.register_blueprint(api, url_prefix="/api/v1")
 
 
+def _download_public_key(instance_url: str, broker_id: str) -> str:
+    url = furl.furl(instance_url).add(
+        path=[
+            'api',
+            'v-internal',
+            'brokers',
+            broker_id,
+        ]
+    ).tostr()
+    response = requests.get(url)
+    response.raise_for_status()
+    return response.json()['public_key']
+
+
 def instance_route(f: T_CAL) -> T_CAL:
     """This function is a decorator that makes sure that the given fuction can
     only be used when the correct headers are included.
@@ -43,16 +60,49 @@ def instance_route(f: T_CAL) -> T_CAL:
 
     @wraps(f)
     def __inner(*args: object, **kwargs: object) -> t.Any:
-        password = request.headers['CG-Broker-Pass']
-        instance_name = request.headers['CG-Broker-Instance']
+        pattern = app.config['ALLOWED_INSTANCE_URL_PATTERN']
+        signature = request.headers.get('CG-Application-Signature', None)
+        if signature is None:
+            instance_name = request.headers['CG-Broker-Instance']
+            g.cg_instance_url = instance_name
 
-        try:
-            if not secrets.compare_digest(
-                app.allowed_instances[instance_name], password
-            ):
+            password = request.headers['CG-Broker-Pass']
+            try:
+                if not secrets.compare_digest(
+                    app.allowed_instances[instance_name], password
+                ):
+                    raise PermissionException(401)
+            except (KeyError, TypeError) as exc:
+                raise PermissionException(401) from exc
+        else:
+            # First get the url from the jwt without verifying, then get the
+            # public key and do the verification.
+            unsafe_decoded = jwt.decode(signature, verify=False)
+            if pattern.match(unsafe_decoded['url']) is None:
                 raise PermissionException(401)
-        except (KeyError, TypeError) as exc:
-            raise PermissionException(401) from exc
+
+            try:
+                decoded = app.instance_public_key_cache.cached_call(
+                    key=unsafe_decoded['url'],
+                    get_value=lambda: _download_public_key(
+                        unsafe_decoded['url'],
+                        unsafe_decoded['id'],
+                    ),
+                    callback=lambda public_key: jwt.decode(
+                        signature,
+                        key=public_key,
+                        algorithms='RS256',
+                        verify=True,
+                    )
+                )
+            except:  # pylint: disable=bare-except
+                logger.error('Got unauthorized broker request', exc_info=True)
+                raise PermissionException(401)
+
+            # We might have changed our cache, so already commit those changes.
+            db.session.commit()
+            assert decoded == unsafe_decoded
+            g.cg_instance_url = decoded['url']
 
         return f(*args, **kwargs)
 
@@ -75,7 +125,7 @@ def register_job() -> cg_json.JSONResponse:
     If needed a runner will be started for this job.
     """
     remote_job_id = g.data['job_id']
-    cg_url = request.headers['CG-Broker-Instance']
+    cg_url = g.cg_instance_url
     job = None
 
     if request.method == 'PUT':
@@ -180,7 +230,7 @@ def delete_job(job_id: str) -> EmptyResponse:
 
         # Make sure job will never be able to run
         job = models.Job(
-            cg_url=request.headers['CG-Broker-Instance'],
+            cg_url=g.cg_instance_url,
             remote_id=job_id,
             state=models.JobState.finished,
         )
@@ -221,7 +271,9 @@ def register_runner_for_job(job_id: str) -> EmptyResponse:
     job (identified by ``job_id``).
     """
     runner_ip = g.data['runner_ip']
-    job = db.session.query(models.Job).filter_by(remote_id=job_id).filter(
+    job = db.session.query(models.Job).filter(
+        models.Job.remote_id == job_id,
+        models.Job.cg_url == g.cg_instance_url,
         models.Job.state.notin_(models.JobState.get_finished_states()),
     ).with_for_update().one_or_none()
     if job is None:

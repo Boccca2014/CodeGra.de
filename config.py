@@ -88,7 +88,6 @@ FlaskConfig = TypedDict(
         'AUTO_TEST_BDEVTYPE': str,
         'AUTO_TEST_TEMPLATE_CONTAINER': t.Optional[str],
         'AUTO_TEST_BROKER_URL': str,
-        'AUTO_TEST_BROKER_PASSWORD': str,
         'AUTO_TEST_CF_SLEEP_TIME': float,
         'AUTO_TEST_CF_EXTRA_AMOUNT': int,
         'AUTO_TEST_MAX_OUTPUT_TAIL': int,
@@ -724,7 +723,6 @@ set_str(CONFIG, auto_test_ops, 'AUTO_TEST_RUNNER_CONTAINER_URL', None)
 set_int(CONFIG, auto_test_ops, 'AUTO_TEST_CF_EXTRA_AMOUNT', 20)
 
 set_str(CONFIG, auto_test_ops, 'AUTO_TEST_BROKER_URL', '')
-set_str(CONFIG, auto_test_ops, 'AUTO_TEST_BROKER_PASSWORD', None)
 set_str(CONFIG, auto_test_ops, 'AUTO_TEST_PASSWORD', None)
 set_bool(CONFIG, auto_test_ops, 'AUTO_TEST_DISABLE_ORIGIN_CHECK', False)
 
@@ -736,4 +734,3 @@ if CONFIG['IS_AUTO_TEST_RUNNER']:
     assert CONFIG['SECRET_KEY'] == ''
     assert CONFIG['HEALTH_KEY'] == ''
     assert CONFIG['EXTERNAL_URL'] == ''
-    assert CONFIG['AUTO_TEST_BROKER_PASSWORD'] is None

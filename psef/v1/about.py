@@ -182,7 +182,7 @@ def about() -> JSONResponse[AboutAsJSON]:
             min_free_space=min_free
         )
 
-        with helpers.BrokerSession() as ses:
+        with models.BrokerSetting.get_current().get_session(retries=2) as ses:
             try:
                 # Set a short timeout as the broker really shouldn't take
                 # longer than 2 seconds to answer.

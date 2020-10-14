@@ -34,6 +34,8 @@ from helpers import get_id
 from cg_dt_utils import DatetimeWithTimezone
 from psef.exceptions import APICodes, APIException
 
+TEST_PROXY = True
+
 
 @pytest.fixture(params=[False])
 def poll_after_done(request):
@@ -206,14 +208,15 @@ def monkeypatch_for_run(
 
 
 @pytest.fixture
-def monkeypatch_broker(monkeypatch, live_server_url):
-    ses = requests_stubs.Session()
+def monkeypatch_broker(monkeypatch, live_server_url, stub_function_class):
+    runner_ses = requests_stubs.session_maker()()
+    backend_ses = requests_stubs.session_maker()()
     raised = True
     runner_id = str(uuid.uuid4())
 
     def raise_next(get_ses=False):
         if get_ses:
-            return ses
+            return runner_ses, backend_ses
 
         nonlocal raised
         raised = False
@@ -225,8 +228,8 @@ def monkeypatch_broker(monkeypatch, live_server_url):
         raised = True
         raise requests.RequestException()
 
-    orig_get = ses.get
-    orig_post = ses.post
+    orig_get = runner_ses.get
+    orig_post = runner_ses.post
 
     def stub_post(path, *args, **kwargs):
         res = orig_post(path, *args, **kwargs)
@@ -242,10 +245,16 @@ def monkeypatch_broker(monkeypatch, live_server_url):
             print(path)
         return res
 
-    monkeypatch.setattr(ses.Response, 'raise_for_status', raise_once)
-    monkeypatch.setattr(ses, 'get', stub_get)
-    monkeypatch.setattr(ses, 'post', stub_post)
-    monkeypatch.setattr(psef.helpers, 'BrokerSession', lambda *_, **__: ses)
+    monkeypatch.setattr(runner_ses.Response, 'raise_for_status', raise_once)
+    monkeypatch.setattr(runner_ses, 'get', stub_get)
+    monkeypatch.setattr(runner_ses, 'post', stub_post)
+    monkeypatch.setattr(
+        psef.auto_test, '_BrokerSession', stub_function_class(lambda: runner_ses)
+    )
+    monkeypatch.setattr(
+        psef.models.BrokerSetting, 'get_session',
+        stub_function_class(lambda: backend_ses)
+    )
     yield raise_next
 
 
@@ -1751,7 +1760,7 @@ def test_update_result_dates_in_broker(
 ):
     with describe('setup'):
         course, assig_id, teacher, student = basic
-        broker_ses = monkeypatch_broker(True)
+        runner_broker_ses, backend_broker_ses = monkeypatch_broker(True)
 
         with logged_in(teacher):
             test = m.AutoTest.query.get(
@@ -1779,7 +1788,7 @@ def test_update_result_dates_in_broker(
                 test_client, assig_id, is_test_submission=True
             )
 
-            _, call = broker_ses.calls
+            _, call = backend_broker_ses.calls
             assert call['method'] == 'put'
             assert_similar(
                 call['kwargs']['json']['metadata'], {
@@ -1796,7 +1805,8 @@ def test_update_result_dates_in_broker(
     )
     runner = m.AutoTestRunner(_ipaddr='localhost', run=run)
     session.commit()
-    broker_ses.reset()
+    runner_broker_ses.reset()
+    backend_broker_ses.reset()
     headers = {
         'CG-Internal-Api-Password': app.config['AUTO_TEST_PASSWORD'],
         'CG-Internal-Api-Runner-Password': str(runner.id)
@@ -1814,7 +1824,7 @@ def test_update_result_dates_in_broker(
             environ_base={'REMOTE_ADDR': 'localhost'}
         )
 
-        call, = broker_ses.calls
+        call, = backend_broker_ses.calls
 
         # We still have one not started result
         assert_similar(
@@ -1827,7 +1837,8 @@ def test_update_result_dates_in_broker(
             }
         )
 
-    broker_ses.reset()
+    runner_broker_ses.reset()
+    backend_broker_ses.reset()
 
     with describe('updating state to passed state'):
         test_client.req(
@@ -1841,7 +1852,7 @@ def test_update_result_dates_in_broker(
             environ_base={'REMOTE_ADDR': 'localhost'}
         )
 
-        call, = broker_ses.calls
+        call, = backend_broker_ses.calls
         # We still have one not started result
         assert_similar(
             call['kwargs']['json']['metadata'], {
@@ -1852,13 +1863,14 @@ def test_update_result_dates_in_broker(
                 }
             }
         )
-    broker_ses.reset()
+    runner_broker_ses.reset()
+    backend_broker_ses.reset()
 
     with describe('deleting submission should work'), logged_in(teacher):
         test_client.req(
             'delete', f'/api/v1/submissions/{get_id(other_sub)}', 204
         )
-        call, = broker_ses.calls
+        call, = backend_broker_ses.calls
         # We no longer have a non started result
         assert_similar(
             call['kwargs']['json']['metadata'], {
@@ -1870,11 +1882,11 @@ def test_update_result_dates_in_broker(
             }
         )
 
-    broker_ses.reset()
+    runner_broker_ses.reset()
+    backend_broker_ses.reset()
     with describe('try task without existing run'):
-
         psef.tasks.update_latest_results_in_broker(-1)
-        assert not broker_ses.calls
+        assert not backend_broker_ses.calls
 
 
 @pytest.mark.parametrize('fresh_db', [True], indirect=True)
@@ -2028,38 +2040,40 @@ def test_output_dir(
             ).status_code == 403
 
     with describe('Can use proxy to view files'):
-        proxy_url = f'{url}/runs/{run_id}/results/{res}/suites/{suite2}/proxy'
-        with logged_in(teacher):
+        if TEST_PROXY:
+            proxy_url = f'{url}/runs/{run_id}/results/{res}/suites/{suite2}/proxy'
+            with logged_in(teacher):
+                proxy = test_client.req(
+                    'post',
+                    proxy_url,
+                    200,
+                    data={
+                        'allow_remote_resources': True,
+                        'allow_remote_scripts': True,
+                    }
+                )['id']
+
+            res = test_client.post(
+                f'/api/v1/proxies/{proxy}/bye', follow_redirects=False
+            )
+            assert res.status_code == 303
+            res = test_client.get(res.headers['Location'])
+            assert res.status_code == 200
+
+            assert test_client.get(
+                '/api/v1/proxies/non_existing'
+            ).status_code == 404
+
+    with describe('Students cannot use proxy'), logged_in(student):
+        if TEST_PROXY:
             proxy = test_client.req(
                 'post',
                 proxy_url,
-                200,
+                403,
                 data={
-                    'allow_remote_resources': True,
-                    'allow_remote_scripts': True,
+                    'allow_remote_resources': True, 'allow_remote_scripts': True
                 }
-            )['id']
-
-        res = test_client.post(
-            f'/api/v1/proxies/{proxy}/bye', follow_redirects=False
-        )
-        assert res.status_code == 303
-        res = test_client.get(res.headers['Location'])
-        assert res.status_code == 200
-
-        assert test_client.get(
-            '/api/v1/proxies/non_existing'
-        ).status_code == 404
-
-    with describe('Students cannot use proxy'), logged_in(student):
-        proxy = test_client.req(
-            'post',
-            proxy_url,
-            403,
-            data={
-                'allow_remote_resources': True, 'allow_remote_scripts': True
-            }
-        )
+            )
 
     with describe('After deleting run results are removed from disk'):
         file = m.AutoTestOutputFile.query.get(sym_link_id)
@@ -3154,7 +3168,7 @@ def test_run_auto_test_startup_command(
             raise CalledBroker
 
         monkeypatch.setattr(
-            psef.helpers.BrokerSession, '__init__',
+            psef.auto_test._BrokerSession, '__init__',
             stub_function_class(_raise_exc)
         )
 
