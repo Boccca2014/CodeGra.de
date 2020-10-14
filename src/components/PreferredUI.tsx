@@ -132,7 +132,7 @@ export default tsx.component({
         },
 
         togglePreference() {
-            return this.prefValue.caseOf({
+            return this.prefValue.join().caseOf({
                 Just: value => this.updatePreference(!value),
                 Nothing: () => Promise.reject(new Error('No value set.')),
             });

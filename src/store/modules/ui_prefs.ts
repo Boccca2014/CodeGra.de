@@ -11,7 +11,7 @@ import { UIPreference } from '@/models';
 const storeBuilder = getStoreBuilder<RootState>();
 
 export interface UIPrefsState {
-    uiPrefs: models.UIPreferenceMap;
+    uiPrefs: Partial<models.UIPreferenceMap>;
 }
 
 const makeInitialState = () => ({
@@ -23,18 +23,17 @@ const moduleBuilder = storeBuilder.module<UIPrefsState>('ui_prefs', makeInitialS
 export namespace UIPrefsStore {
     export const getUIPref = moduleBuilder.read(
         state => (name: models.UIPreference) => {
-            if (state.uiPrefs[name] == null) {
+            const pref = state.uiPrefs[name];
+            if (pref == null) {
                 return utils.Nothing;
             }
-            return state.uiPrefs[name];
+            return pref;
         },
         'getUIPref',
     );
 
     export const commitUIPrefs = moduleBuilder.commit(
         (state, prefs: Partial<models.UIPreferenceMap>) => {
-            // Still use `DefaultUIPrerenceMap` here so that if the server ever
-            // omits keys we don't crash.
             state.uiPrefs = { ...state.uiPrefs, ...prefs };
         },
         'commitUIPrefs',
