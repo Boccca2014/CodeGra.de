@@ -9,7 +9,7 @@ import socket
 import typing as t
 
 
-make_comment(path: t.Sequence[str]) -> t.Dict:
+def make_comment(path: t.Sequence[str]) -> t.Dict:
     import random
     return {
         'severity': random.choice([

@@ -56,7 +56,7 @@
         </b-card-header>
 
         <b-card-body v-if="canViewDetails" class="auto-test-step-card">
-            <b-form-group v-if="!stepType.meta">
+            <b-form-group v-if="shouldShowProgramInput">
                 <template #label>
                     Program to test
 
@@ -240,6 +240,12 @@
             </template>
 
             <template v-else-if="value.type === 'code_quality'">
+                <code-quality-wrapper-selector
+                    :wrapper="value.data.wrapper"
+                    :program="value.data.program"
+                    :args="value.data.args"
+                    @input="updateCodeQualityWrapper" />
+
                 <b-form-group label="Penalties">
                     <b-input-group>
                         <b-input-group-prepend is-text variant="danger">
@@ -1084,6 +1090,7 @@ import InnerCodeViewer from './InnerCodeViewer';
 import Toggle from './Toggle';
 import JunitResult from './JunitResult';
 import QualityComments from './QualityComments';
+import CodeQualityWrapperSelector from './CodeQualityWrapperSelector';
 import { numberInputValue } from './NumberInput';
 
 export default {
@@ -1377,6 +1384,10 @@ export default {
         hasQualityComments() {
             return this.allQualityComments.commentsPerStep.has(this.value.id);
         },
+
+        shouldShowProgramInput() {
+            return !this.stepType.meta && this.value.type !== 'code_quality';
+        },
     },
 
     async mounted() {
@@ -1440,6 +1451,14 @@ export default {
 
         updateCollapse(collapsed) {
             this.$emit('input', Object.assign(this.valueCopy, { collapsed }));
+        },
+
+        async updateCodeQualityWrapper({ wrapper, program, args }) {
+            this.updateValue('wrapper', wrapper);
+            await this.$nextTick();
+            this.updateValue('program', program);
+            await this.$nextTick();
+            this.updateValue('args', args);
         },
 
         updatePenalty(name, maybeValue) {
@@ -1587,6 +1606,7 @@ export default {
         InnerCodeViewer,
         JunitResult,
         QualityComments,
+        CodeQualityWrapperSelector,
         Toggle,
     },
 };

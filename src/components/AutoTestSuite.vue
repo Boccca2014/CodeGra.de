@@ -549,7 +549,9 @@ export default {
                     res.data.program = '';
                     break;
                 case 'code_quality':
+                    res.data.wrapper = null;
                     res.data.program = '';
+                    res.data.args = '';
                     res.data.penalties = {
                         fatal: 0,
                         error: 0,

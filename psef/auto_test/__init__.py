@@ -46,6 +46,7 @@ import cg_threading_utils
 from cg_timers import timed_code, timed_function
 
 from . import linter_server
+from . import code_quality_wrappers
 from .. import models, helpers
 from ..helpers import JSONType, RepeatedTimer, defer
 from ..registry import auto_test_handlers
@@ -836,6 +837,22 @@ def _try_to_run_job(
         return False
 
 
+def _copy_executables(
+    cont: 'StartedContainer',
+    exes: t.Mapping[str, str],
+) -> None:
+    base_dir = os.path.dirname(__file__)
+
+    for tgt, src in exes.items():
+        tgt_abspath = f'/usr/local/bin/{tgt}'
+        with open(os.path.join(base_dir, src), 'rb') as client_fd:
+            cont.run_command(
+                ['dd', f'of={tgt_abspath}'],
+                stdin=client_fd.read(),
+            )
+        cont.run_command(['chmod', '+x', tgt_abspath])
+
+
 def start_polling(config: 'psef.FlaskConfig') -> None:
     """Start polling the configured CodeGrade instances.
 
@@ -865,15 +882,13 @@ def start_polling(config: 'psef.FlaskConfig') -> None:
         )
 
     with _get_base_container(config).started_container() as cont:
-        with open(
-            os.path.join(os.path.dirname(__file__), 'linter_client.py'),
-            'rb',
-        ) as client_fd:
-            cont.run_command(
-                ['dd', 'of=/usr/local/bin/cg-api'],
-                stdin=client_fd.read(),
-            )
-        cont.run_command(['chmod', '+x', '/usr/local/bin/cg-api'])
+        _copy_executables(cont, {
+            'cg-api': 'linter_client.py',
+            **{
+                w.value: os.path.join('code_quality_wrappers', w.value)
+                for w in code_quality_wrappers.CodeQualityWrapper
+            },
+        })
 
         if config['AUTO_TEST_TEMPLATE_CONTAINER'] is None:
             cont.run_command(['apt', 'update'])

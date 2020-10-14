@@ -39,6 +39,7 @@ from ..helpers import (
     JSONType, between, safe_div, ensure_json_dict, get_from_map_transaction
 )
 from ..registry import auto_test_handlers
+from ..auto_test.code_quality_wrappers import CodeQualityWrapper
 from ..exceptions import (
     APICodes, APIWarnings, APIException, StopRunningStepsException
 )
@@ -87,12 +88,12 @@ def _ensure_program(program: str) -> None:
 
 
 def _ensure_between(name: str, value: float, lower: float, upper: float) -> None:
-        if value < lower or value > upper:
-            raise APIException(
-                f'The "{name}" has to be between 0 and 1',
-                f'The "{name}" was {value} which is not >={lower} and <={upper}',
-                APICodes.INVALID_PARAM, 400
-            )
+    if value < lower or value > upper:
+        raise APIException(
+            f'The "{name}" has to be between 0 and 1',
+            f'The "{name}" was {value} which is not >={lower} and <={upper}',
+            APICodes.INVALID_PARAM, 400
+        )
 
 
 class AutoTestStepResultState(cg_enum.CGEnum):
@@ -1035,9 +1036,13 @@ class _QualityTest(AutoTestStepBase):
         with get_from_map_transaction(
             ensure_json_dict(data), ensure_empty=True
         ) as [get, _]:
+            wrapper = get('wrapper', CodeQualityWrapper)
             program = get('program', str)
+            args = get('args', str)
             penalties = get('penalties', dict)
-        _ensure_program(program)
+
+        if wrapper == CodeQualityWrapper.custom:
+            _ensure_program(program)
 
         def ensure_penalty(key: str) -> None:
             if key not in penalties:
@@ -1073,8 +1078,14 @@ class _QualityTest(AutoTestStepBase):
         data = opts.test_instructions['data']
         assert isinstance(data, dict)
 
+        wrapper = CodeQualityWrapper(t.cast(str, data['wrapper']))
+        if wrapper == CodeQualityWrapper.custom:
+            program = t.cast(str, data['program'])
+        else:
+            program = f'{wrapper.value} {data["args"]}'
+
         command_res = container.run_student_command(
-            t.cast(str, data['program']),
+            program,
             opts.test_instructions['command_time_limit'],
         )
 
