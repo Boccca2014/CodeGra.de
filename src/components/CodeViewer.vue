@@ -186,12 +186,14 @@ export default {
         loadSettings() {
             this.selectedLanguage = null;
             return this.$hlanguageStore.getItem(this.fileId).then(lang => {
-                if (lang !== null) {
+                if (lang != null) {
                     this.$emit('language', lang);
                     this.selectedLanguage = lang;
                 } else {
                     this.selectedLanguage = 'Default';
                 }
+            }, () => {
+                this.selectedLanguage = 'Default';
             });
         },
 
