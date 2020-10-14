@@ -1078,7 +1078,7 @@ class _QualityTest(AutoTestStepBase):
         data = opts.test_instructions['data']
         assert isinstance(data, dict)
 
-        wrapper = CodeQualityWrapper(t.cast(str, data['wrapper']))
+        wrapper = CodeQualityWrapper.__members__[t.cast(str, data['wrapper'])]
         if wrapper == CodeQualityWrapper.custom:
             program = t.cast(str, data['program'])
         else:
