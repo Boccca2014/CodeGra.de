@@ -887,6 +887,7 @@ def start_polling(config: 'psef.FlaskConfig') -> None:
             **{
                 w.value: os.path.join('code_quality_wrappers', w.value)
                 for w in code_quality_wrappers.CodeQualityWrapper
+                if w.value != 'custom'
             },
         })
 
