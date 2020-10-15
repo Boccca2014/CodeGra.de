@@ -1,6 +1,5 @@
 /* SPDX-License-Identifier: AGPL-3.0-only */
 import { VNode, CreateElement, RenderContext } from 'vue';
-import { mapGetters } from 'vuex';
 import * as models from '@/models';
 import * as tsx from 'vue-tsx-support';
 import p from 'vue-strict-prop';
@@ -41,7 +40,7 @@ export default tsx.component({
         routeName: p(String).required,
     },
 
-    render(h, ctx): VNode {
+    render(h: CreateElement, ctx): VNode {
         const { course, routeName, currentId } = ctx.props;
         const selected = course.id === currentId;
         const manageSelected = selected && routeName === 'manage_course';

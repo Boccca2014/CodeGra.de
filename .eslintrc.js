@@ -180,8 +180,10 @@ module.exports = {
         {
             files: ['*.tsx'],
             rules: {
-                '@typescript-eslint/no-unused-vars': 'off',
-            }
+                '@typescript-eslint/no-unused-vars': ['error', {
+                    'argsIgnorePattern': '^h$',
+                }],
+            },
         },
         {
             files: ['*.js', '*.vue'],

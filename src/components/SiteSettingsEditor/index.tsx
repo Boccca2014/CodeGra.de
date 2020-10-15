@@ -15,7 +15,6 @@ import {
     Left,
     filterMap,
     mapToObject,
-    mapFilterObject,
 } from '@/utils';
 import { SiteSettingsStore } from '@/store';
 import * as api from '@/api/v1';
@@ -369,8 +368,6 @@ export default tsx.component({
         },
 
         renderEditor(h: CreateElement, item: Setting, settings: SettingsLookup): VNode {
-            const updatedSettings = this.updatedSettings;
-
             if (item.list) {
                 AssertionError.typeAssert<'number'>(item.typ);
                 AssertionError.typeAssert<readonly number[]>(settings[item.name]);

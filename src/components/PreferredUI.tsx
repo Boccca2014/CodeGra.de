@@ -5,8 +5,6 @@ import { modifiers as m } from 'vue-tsx-support';
 
 // @ts-ignore
 import * as comp from '@/components';
-import * as api from '@/api/v1';
-import * as types from '@/types';
 import * as utils from '@/utils';
 import * as models from '@/models';
 import { store, UIPrefsStore } from '@/store';
@@ -16,7 +14,6 @@ export default tsx.component({
 
     props: {
         prefName: p.ofType<models.UIPreference>().required,
-        componentName: p(String).required,
         defaultValue: p(Boolean).default(false),
         hideSwitcher: p(Boolean).default(false),
     },
@@ -111,8 +108,6 @@ export default tsx.component({
             if (this.hideSwitcher) {
                 return utils.emptyVNode();
             }
-
-            const compName = this.componentName;
 
             return utils.ifJustOrEmpty(this.prefValue.join(), value => (
                 <div class="mt-3 text-right">

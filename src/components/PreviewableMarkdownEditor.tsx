@@ -1,4 +1,4 @@
-import { VNode, CreateElement } from 'vue';
+import { CreateElement } from 'vue';
 import * as tsx from 'vue-tsx-support';
 import { modifiers as m } from 'vue-tsx-support';
 import p from 'vue-strict-prop';
