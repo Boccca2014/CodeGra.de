@@ -11,7 +11,7 @@ type Events = {
     submit: undefined;
 };
 
-const PreviewableMarkdownEditor = tsx.componentFactoryOf<Events, {}>().create({
+const PreviewableMarkdownEditor = tsx.componentFactoryOf<Events>().create({
     props: {
         value: p(String).required,
         rows: p.ofType<number | undefined>().default(undefined),

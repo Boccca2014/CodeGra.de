@@ -219,7 +219,7 @@ const MB = KB << 10;
 const GB = MB << 10;
 const POSSIBLE_UNITS = ['gb', 'mb', 'kb', 'b'] as const;
 type PossibleUnit = typeof POSSIBLE_UNITS[number];
-const FileSizeEditor = tsx.componentFactoryOf<EditEvent<number>, {}>().create({
+const FileSizeEditor = tsx.componentFactoryOf<EditEvent<number>>().create({
     props: {
         value: p(Number).required,
     },
@@ -288,7 +288,7 @@ const FileSizeEditor = tsx.componentFactoryOf<EditEvent<number>, {}>().create({
     },
 });
 
-const NumberEditor = tsx.componentFactoryOf<EditEvent<number>, {}>().create({
+const NumberEditor = tsx.componentFactoryOf<EditEvent<number>>().create({
     props: {
         value: p(Number).required,
     },

@@ -174,7 +174,7 @@ export class RubricRow<T extends number | undefined | null> {
     @nonenumerable
     protected _cache = makeCache('maxPoints', 'minPoints');
 
-    constructor(row: IRubricRow<T, T>, trackingId?: number) {
+    constructor(row: IRubricRow<T>, trackingId?: number) {
         // eslint-disable-next-line @typescript-eslint/no-use-before-define
         if (row.type && !(this instanceof RubricRowsTypes[row.type])) {
             throw new Error('You cannot make a base row with a non empty type.');

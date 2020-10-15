@@ -21,7 +21,7 @@ const moduleBuilder = storeBuilder.module<PeerFeedbackState>('peer_feedback', {
 });
 
 function addOrUpdateUser(
-    context: BareActionContext<any, RootState, any>,
+    context: BareActionContext<any, RootState>,
     user: models.UserServerData,
 ): Promise<unknown> {
     return (context as any).dispatch('users/addOrUpdateUser', { user }, { root: true });
