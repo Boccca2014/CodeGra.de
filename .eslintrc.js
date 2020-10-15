@@ -131,6 +131,19 @@ module.exports = {
             }
         ],
 
+        // This rule would be really nice, however it simply doesn't work with
+        // the vue style of passing callbacks.
+        '@typescript-eslint/unbound-method': 'off',
+
+        '@typescript-eslint/restrict-template-expressions': [
+            'error',
+            {
+                allowNumber: true,
+                allowBoolean: true,
+                allowAny: true,
+            },
+        ],
+
         'prettier-vue/prettier': ['error', {
             'singleQuote': true,
             'parser': 'typescript',
@@ -166,6 +179,7 @@ module.exports = {
             files: ['*.js', '*.vue'],
             rules: {
                 '@typescript-eslint/strict-boolean-expressions': 'off',
+                '@typescript-eslint/restrict-template-expressions': 'off',
             },
         },
     ]

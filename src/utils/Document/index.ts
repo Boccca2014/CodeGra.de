@@ -706,6 +706,7 @@ export async function render(
     document: DocumentRoot,
 ): Promise<ArrayBuffer> {
     if (!hasAttr(backends, backendName)) {
+        // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
         throw new Error(`Invalid backend: ${backendName} `);
     }
     const backend = await backends[backendName].make(document);

@@ -175,6 +175,11 @@ export class FeedbackReply {
     }
 
     async fetchEdits(): Promise<SubmitButtonResult<FeedbackReplyEdit[]>> {
+        if (this.id == null) {
+            return Promise.reject(
+                new Error("Cannot get edits of feedback that hasn't been saved."),
+            );
+        }
         const url = `/api/v1/comments/${this.feedbackLineId}/replies/${this.id}/edits/`;
         const response: AxiosResponse<FeedbackReplyEditServerData[]> = await axios.get(url);
 
@@ -248,6 +253,11 @@ export class FeedbackReply {
         let meth = axios.post;
         if (!approved) {
             meth = axios.delete;
+        }
+        if (this.id == null) {
+            return Promise.reject(
+                new Error("Cannot change approval of feedback that hasn't been saved."),
+            );
         }
         return meth(`/api/v1/comments/${this.feedbackLineId}/replies/${this.id}/approval`).then(
             response => ({

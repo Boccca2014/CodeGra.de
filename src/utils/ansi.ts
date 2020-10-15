@@ -51,7 +51,7 @@ function pushColoredChunk(
         if (typeof fg === 'number') {
             classes.push(`${ANSI_COLORS[fg]}-fg`);
         } else if (fg.length > 0) {
-            styles.push(`color: rgb(${fg})`);
+            styles.push(`color: rgb(${fg.join(', ')})`);
         } else if (inverse) {
             classes.push('ansi-color-default-inverse-fg');
         }
@@ -59,7 +59,7 @@ function pushColoredChunk(
         if (typeof bg === 'number') {
             classes.push(`${ANSI_COLORS[bg]}-bg`);
         } else if (bg.length > 0) {
-            styles.push(`background-color: rgb(${bg})`);
+            styles.push(`background-color: rgb(${bg.join(', ')})`);
         } else if (inverse) {
             classes.push('ansi-color-default-inverse-bg');
         }

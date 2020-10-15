@@ -150,6 +150,8 @@ export class RubricRow<T extends number | undefined | null> {
     static fromServerData(data: RubricRowServerData) {
         // eslint-disable-next-line @typescript-eslint/no-use-before-define
         if (!hasAttr(RubricRowsTypes, data.type)) {
+            AssertionError.typeAssert<never>(data.type);
+            // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
             throw new ReferenceError(`Could not find specified type: ${data.type}`);
         }
         // eslint-disable-next-line @typescript-eslint/no-use-before-define

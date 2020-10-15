@@ -32,7 +32,7 @@ export function epoch(): moment.Moment {
 export function coerceToString(obj: Object | null | undefined): string {
     if (obj == null) return '';
     else if (typeof obj === 'string') return obj;
-    return `${obj}`;
+    return obj.toString();
 }
 
 const reUnescapedHtml = /[&<>"'`]/g;
@@ -170,6 +170,7 @@ export class AssertionError extends Error {
     }
 
     static assertNever(value: never, msg?: string): never {
+        // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
         throw new AssertionError(msg ?? `The value ${value} was never expected to exist`);
     }
 

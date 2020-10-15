@@ -167,6 +167,7 @@ export class NormalUser extends User implements NormalUserServerData {
         const myId = store.getters['user/id'];
         const res = User.findUserById(myId);
         if (res == null || res.isGroup) {
+            // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
             throw new Error(`Could not find currently logged in user, found: ${res}`);
         }
         return res;

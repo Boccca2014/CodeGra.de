@@ -174,7 +174,7 @@ export default class InnerFeedbackOverview extends Vue {
     async loadCode() {
         if (this.fileIds.length === 0) {
             this.codeLines = {};
-            return;
+            return Promise.resolve();
         }
 
         if (this.codeLines == null) {
