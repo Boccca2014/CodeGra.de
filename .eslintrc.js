@@ -150,6 +150,8 @@ module.exports = {
             },
         ],
 
+        '@typescript-eslint/adjacent-overload-signatures': 'error',
+
         'prettier-vue/prettier': ['error', {
             'singleQuote': true,
             'parser': 'typescript',
