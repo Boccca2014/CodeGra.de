@@ -45,7 +45,7 @@
             :class="{
                 'normal-cursor': hasFeedback(i - 1),
                 'hover': canGiveFeedback && !hasFeedback(i - 1),
-                'linter-feedback-outer': $userConfig.features.linters && linterFeedback[i - 1 + lineFeedbackOffset],
+                'gutter-comments-outer': gutterComments[i - 1 + lineFeedbackOffset],
                 'pb-1': hasFeedback(i - 1),
             }"
             :data-line="i">
@@ -68,8 +68,9 @@
                 </span>
             </span>
 
-            <linter-feedback-area :feedback="linterFeedback[i - 1]"
-                                  v-if="$userConfig.features.linters && linterFeedback[i - 1] != null"/>
+            <gutter-comment :comments="gutterComments[i - 1]"
+                            :width="lineNumberWidth"
+                            v-if="gutterComments[i - 1] != null"/>
 
             <feedback-area
                 class="border-top border-bottom py-2 px-3 mt-1"
@@ -127,7 +128,7 @@ import { FeedbackLine } from '@/models';
 
 import Loader from './Loader';
 import FeedbackArea from './FeedbackArea';
-import LinterFeedbackArea from './LinterFeedbackArea';
+import GutterComment from './GutterComment';
 
 export default {
     name: 'inner-code-viewer',
@@ -149,7 +150,7 @@ export default {
             type: Object,
             required: true,
         },
-        linterFeedback: {
+        gutterComments: {
             type: Object,
             default: () => ({}),
         },
@@ -323,7 +324,7 @@ export default {
         Icon,
         Loader,
         FeedbackArea,
-        LinterFeedbackArea,
+        GutterComment,
     },
 
     destroyed() {
@@ -481,7 +482,7 @@ li {
         cursor: initial;
     }
 
-    &.linter-feedback-outer {
+    &.gutter-comments-outer {
         background-color: rgba(255, 0, 0, 0.025) !important;
         color: red;
         font-weight: bold;

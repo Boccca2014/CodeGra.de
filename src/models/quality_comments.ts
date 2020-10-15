@@ -1,5 +1,6 @@
 /* SPDX-License-Identifier: AGPL-3.0-only */
 import * as models from '@/models';
+import * as types from '@/types';
 import * as utils from '@/utils';
 import { makeCache } from '@/utils/cache';
 import { DefaultMap } from '@/utils/defaultdict';
@@ -9,6 +10,10 @@ export enum QualityCommentSeverity {
     error = 'error',
     warning = 'warning',
     info = 'info',
+    // DO NOT USE THIS! This value only exists to be able to set the severity
+    // of old-style linter comments to a value of this type.
+    // eslint-disable-next-line camelcase
+    old_linter = 'old_linter',
 }
 
 export interface LineRange {
@@ -92,6 +97,22 @@ export class QualityComment implements IQualityComment {
         this.column = data.column;
         Object.freeze(this);
     }
+
+    // eslint-disable-next-line consistent-return,getter-return
+    get badgeVariant(): types.Variant {
+        switch (this.severity) {
+            case QualityCommentSeverity.old_linter:
+            case QualityCommentSeverity.fatal:
+            case QualityCommentSeverity.error:
+                return 'danger';
+            case QualityCommentSeverity.warning:
+                return 'warning';
+            case QualityCommentSeverity.info:
+                return 'info';
+            default:
+                utils.AssertionError.assertNever(this.severity);
+        }
+    }
 }
 
 export class QualityComments {
@@ -125,13 +146,5 @@ export class QualityComments {
         return this._cache.get('commentsPerStep', () =>
             utils.groupBy(this._comments, comment => comment.stepId),
         );
-    }
-
-    get assignmentId(): number {
-        return this.result.autoTest.assignment_id;
-    }
-
-    get submissionId(): number {
-        return this.result.submissionId;
     }
 }

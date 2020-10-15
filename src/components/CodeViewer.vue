@@ -6,7 +6,7 @@
         :submission="submission"
         :code-lines="codeLines"
         :feedback="feedback"
-        :linter-feedback="linterFeedback"
+        :gutter-comments="gutterComments"
         :show-whitespace="showWhitespace"
         :show-inline-feedback="showInlineFeedback"
         :can-use-snippets="canUseSnippets"
@@ -22,9 +22,12 @@ import Icon from 'vue-awesome/components/Icon';
 import 'vue-awesome/icons/plus';
 import 'vue-awesome/icons/cog';
 
+import * as models from '@/models';
+
 import { cmpNoCase, highlightCode } from '@/utils';
 import '@/polyfills';
 import decodeBuffer from '@/utils/decode';
+import { DefaultMap } from '@/utils/defaultdict';
 
 import InnerCodeViewer from './InnerCodeViewer';
 import Toggle from './Toggle';
@@ -72,6 +75,10 @@ export default {
         fileContent: {
             required: true,
         },
+        qualityComments: {
+            type: Array,
+            required: true,
+        },
     },
 
     computed: {
@@ -116,11 +123,44 @@ export default {
             const feedback = this.submission.feedback;
             const fileId = this.fileId;
 
-            if (!feedback || !this.studentMode) {
+            if (!this.$userConfig.features.linters || !feedback || !this.studentMode) {
                 return {};
             }
 
             return feedback.linter[fileId] || {};
+        },
+
+        gutterComments() {
+            const { linterFeedback, qualityComments } = this;
+            const comments = new DefaultMap(() => []);
+
+            for (const line of Object.keys(linterFeedback)) {
+                const forLine = comments.get(line);
+                for (const comment of linterFeedback[line]) {
+                    const model = models.QualityComment.fromServerData({
+                        step_id: null,
+                        result_id: null,
+                        file_id: this.fileId,
+                        severity: models.QualityCommentSeverity.old_linter,
+                        code: comment[1].code,
+                        origin: comment[0],
+                        msg: comment[1].msg,
+                        line: comment[1].line,
+                        column: { start: 1 },
+                    });
+                    forLine.push(model);
+                }
+                comments.get(line).push(...linterFeedback[line]);
+            }
+
+            for (const comment of qualityComments) {
+                const lines = comment.line;
+                for (let line = lines.start; line <= lines.end; line++) {
+                    comments.get(line - 1).push(comment);
+                }
+            }
+
+            return Object.fromEntries(comments.entries());
         },
 
         rawCodeLines() {

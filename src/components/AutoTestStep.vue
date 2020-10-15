@@ -472,7 +472,7 @@
                     <div slot-scope="{}">
                         <b-card no-body>
                             <b-tabs card no-fade>
-                                <b-tab title="Results" class="p-3" v-if="hasQualityComments">
+                                <b-tab title="Results" class="p-3" v-if="qualityComments.length > 0">
                                     <cg-loader v-if="loadingExtraData"
                                                page-loader
                                                class="mb-3"
@@ -482,9 +482,15 @@
                                               class="mb-0 flex-grow-1" />
                                     <quality-comments
                                         v-else
-                                        :comments="allQualityComments"
-                                        :step-id="value.id"
+                                        :comments="qualityComments"
+                                        :course-id="courseId"
+                                        :assignment-id="assignmentId"
+                                        :submission-id="submissionId"
                                         class="flex-grow-1" />
+                                </b-tab>
+
+                                <b-tab title="Results" class="p-3" v-else>
+                                    No code quality issues were reported!
                                 </b-tab>
 
                                 <b-tab title="Output" class="mb-3 flex-wrap">
@@ -1173,7 +1179,7 @@ export default {
             }
         },
 
-        allQualityComments: {
+        qualityComments: {
             immediate: true,
             handler(newVal) {
                 if (newVal) {
@@ -1185,6 +1191,18 @@ export default {
 
     computed: {
         ...mapGetters('pref', ['fontSize']),
+
+        courseId() {
+            return this.assignment.courseId;
+        },
+
+        assignmentId() {
+            return this.assignment.id;
+        },
+
+        submissionId() {
+            return this.result.submissionId;
+        },
 
         stepResultAttachment() {
             return this.$utils.getProps(this.stepResult, null, 'attachment_id');
@@ -1372,17 +1390,17 @@ export default {
             return tail != null && tail && !out.endsWith(tail);
         },
 
-        allQualityComments() {
-            return this.$utils.getProps(
+        qualityComments() {
+            const comments = this.$utils.getProps(
                 this,
                 null,
                 'result',
                 'qualityComments',
             );
-        },
-
-        hasQualityComments() {
-            return this.allQualityComments.commentsPerStep.has(this.value.id);
+            if (comments == null) {
+                return [];
+            }
+            return comments.commentsPerStep.get(this.value.id);
         },
 
         shouldShowProgramInput() {
@@ -1583,8 +1601,8 @@ export default {
             this.extraDataError = '';
 
             return this.storeLoadFileTree({
-                assignmentId: this.result.autoTest.assignment_id,
-                submissionId: this.result.submissionId,
+                assignmentId: this.assignmentId,
+                submissionId: this.submissionId,
             }).then(
                 () => {
                     this.loadingExtraData = false;

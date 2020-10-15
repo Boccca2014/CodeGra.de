@@ -50,7 +50,6 @@ import { visualizeWhitespace } from '@/utils/visualize';
 import decodeBuffer from '@/utils/decode';
 
 import FeedbackArea from './FeedbackArea';
-import LinterFeedbackArea from './LinterFeedbackArea';
 import Loader from './Loader';
 import Toggle from './Toggle';
 
@@ -238,7 +237,6 @@ export default {
     components: {
         Icon,
         FeedbackArea,
-        LinterFeedbackArea,
         Loader,
         Toggle,
     },

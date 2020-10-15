@@ -3,13 +3,13 @@ import { CreateElement, VNode } from 'vue';
 import * as tsx from 'vue-tsx-support';
 import p from 'vue-strict-prop';
 
+import * as comp from '@/components';
 import * as models from '@/models';
-import * as types from '@/types';
 import * as utils from '@/utils';
 import { DefaultMap } from '@/utils/defaultdict';
 import { store, AssignmentsStore } from '@/store';
 
-type SeverityGroup = Map<
+type SeverityGroup = DefaultMap<
     models.QualityCommentSeverity,
     ReadonlyArray<models.QualityComment>
 >;
@@ -26,7 +26,7 @@ const groupComments = (
             return `${comment.origin}: ${comment.msg}`;
         }
     }).map(group =>
-        utils.groupBy(group, comment => comment.severity).map(x => x),
+        utils.groupBy(group, comment => comment.severity),
     );
 
 export default tsx.component({
@@ -34,51 +34,38 @@ export default tsx.component({
     functional: true,
 
     props: {
-        comments: p.ofType<models.QualityComments>().required,
-        stepId: p(Number).required,
+        comments: p.ofType<ReadonlyArray<models.QualityComment>>().required,
+        courseId: p(Number).required,
+        assignmentId: p(Number).required,
+        submissionId: p(Number).required,
     },
 
     render(h, ctx) {
         const { data, props } = ctx;
-        const { assignmentId, submissionId } = props.comments;
-        const courseId = AssignmentsStore.getAssignment()(assignmentId).mapOrDefault(
-            assig => assig.courseId,
-            null,
+        const fileTree = store.getters['fileTrees/getFileTree'](
+            props.assignmentId,
+            props.submissionId,
         );
-        const fileTree = store.getters['fileTrees/getFileTree'](assignmentId, submissionId);
+
+        if (fileTree == null) {
+            return <comp.Loader />
+        }
 
         const getFileRoute = (file: models.BaseFile) => ({
             name: 'submission_file',
             params: {
-                courseId,
-                assignmentId,
-                submissionId,
+                courseId: props.courseId,
+                assignmentId: props.assignmentId,
+                submissionId: props.submissionId,
                 fileId: file.id,
             },
             query: ctx.parent.$route.query,
             hash: '#code',
         });
 
-        const qualityBadge = (severity: models.QualityCommentSeverity): VNode => {
-            let variant: types.Variant;
-
-            switch (severity) {
-            case models.QualityCommentSeverity.fatal:
-            case models.QualityCommentSeverity.error:
-                variant = 'danger';
-                break;
-            case models.QualityCommentSeverity.warning:
-                variant = 'warning';
-                break;
-            case models.QualityCommentSeverity.info:
-                variant = 'info';
-                break;
-            default:
-                utils.AssertionError.assertNever(severity);
-            }
-
-            return <b-badge variant={variant}>
-                {severity}
+        const qualityBadge = (comment: models.QualityComment): VNode => {
+            return <b-badge variant={comment.badgeVariant}>
+                {comment.severity}
             </b-badge>;
         };
 
@@ -123,12 +110,11 @@ export default tsx.component({
         };
 
         const renderSeverityGroup = (
-            severity: models.QualityCommentSeverity,
             comments?: ReadonlyArray<models.QualityComment>,
         ): VNode => {
             if (comments != null && comments.length > 0) {
                 return <div class="mt-2">
-                    {qualityBadge(comments[0].severity)} messages
+                    {qualityBadge(comments[0])} messages
                     {comments.map(renderComment)}
                 </div>;
             } else {
@@ -148,7 +134,7 @@ export default tsx.component({
                     models.QualityCommentSeverity.warning,
                     models.QualityCommentSeverity.info,
                 ].map(severity =>
-                    renderSeverityGroup(severity, comments.get(severity)),
+                    renderSeverityGroup(comments.get(severity)),
                 )}
             </div>;
         };
@@ -160,10 +146,10 @@ export default tsx.component({
             const sorted = utils.sortBy(
                 [...grouped],
                 ([msg, group]) => [
-                    group.get(models.QualityCommentSeverity.fatal)?.length ?? 0,
-                    group.get(models.QualityCommentSeverity.error)?.length ?? 0,
-                    group.get(models.QualityCommentSeverity.warning)?.length ?? 0,
-                    group.get(models.QualityCommentSeverity.info)?.length ?? 0,
+                    group.get(models.QualityCommentSeverity.fatal).length,
+                    group.get(models.QualityCommentSeverity.error).length,
+                    group.get(models.QualityCommentSeverity.warning).length,
+                    group.get(models.QualityCommentSeverity.info).length,
                     msg,
                 ],
                 { reversePerKey: [true, true, true, true, false] },
@@ -174,11 +160,6 @@ export default tsx.component({
             </div>;
         }
 
-        const stepComments = props.comments.commentsPerStep.get(props.stepId);
-
-        return utils.ifOrEmpty(
-            stepComments != null,
-            () => renderComments(stepComments),
-        );
+        return renderComments(props.comments);
     },
 });

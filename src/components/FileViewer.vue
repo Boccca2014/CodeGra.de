@@ -35,6 +35,29 @@
                  class="mb-0 rounded-0">
             {{ warning }}
         </b-alert>
+
+        <collapse v-if="shouldShowQualityComments"
+                  class="quality-comments border-bottom">
+            <div slot="handle" class="d-flex flex-row p-3">
+                <fa-icon
+                    class="caret align-self-center flex-grow-0"
+                    name="chevron-down" />
+                <span class="ml-3">
+                    Code Quality comments were produced for this file, but they
+                    cannot be shown inline for this filetype.
+                </span>
+            </div>
+
+            <div class="p-3 overflow-auto border-top"
+                 style="max-height: 10rem;">
+                <quality-comments
+                    class="mb-3"
+                    :comments="qualityComments"
+                    :course-id="assignment.courseId"
+                    :assignment-id="assignment.id"
+                    :submission-id="submission.id" />
+            </div>
+        </collapse>
     </template>
 
     <div class="wrapper"
@@ -53,6 +76,7 @@
                        :file="file"
                        :file-id="fileId"
                        :file-content="fileContent"
+                       :quality-comments="qualityComments"
                        :revision="revision"
                        :show-whitespace="showWhitespace"
                        :show-inline-feedback="showInlineFeedback"
@@ -74,7 +98,10 @@
 <script>
 import { mapActions } from 'vuex';
 
+import * as models from '@/models';
+
 import {
+    Collapse,
     CodeViewer,
     DiffViewer,
     ImageViewer,
@@ -82,6 +109,7 @@ import {
     MarkdownViewer,
     PdfViewer,
     HtmlViewer,
+    QualityComments,
 } from '@/components';
 
 import Loader from './Loader';
@@ -91,11 +119,15 @@ export default {
 
     props: {
         assignment: {
-            type: Object,
+            type: models.Assignment,
             required: true,
         },
         submission: {
-            type: Object,
+            type: models.Submission,
+            required: true,
+        },
+        qualityComments: {
+            type: Array,
             required: true,
         },
         file: {
@@ -192,6 +224,7 @@ export default {
                     showLanguage: true,
                     scroller: true,
                     needsContent: true,
+                    qualityComments: true,
                 },
             ],
         };
@@ -275,6 +308,14 @@ export default {
         replyIdToFocus() {
             const replyId = (this.$route.query || {}).replyToFocus;
             return parseInt(replyId || '', 10);
+        },
+
+        shouldShowQualityComments() {
+            const { fileData } = this;
+            if (fileData != null) {
+                return this.qualityComments.length > 0 && !fileData.qualityComments;
+            }
+            return false;
         },
     },
 
@@ -464,11 +505,15 @@ export default {
 
     components: {
         Loader,
+        Collapse,
+        QualityComments,
     },
 };
 </script>
 
 <style lang="less" scoped>
+@import '~mixins.less';
+
 .file-viewer {
     overflow: hidden;
     padding: 0 !important;
@@ -511,5 +556,17 @@ export default {
 
 .loader {
     margin: 2rem 0;
+}
+
+.quality-comments {
+    .caret {
+        transform: rotate(0deg);
+        transition: transform @transition-duration;
+    }
+
+    &.x-collapsed .caret,
+    &.x-collapsing .caret {
+        transform: rotate(-90deg);
+    }
 }
 </style>

@@ -160,6 +160,7 @@
                     slot="firstPane"
                     :assignment="assignment"
                     :submission="submission"
+                    :quality-comments="qualityComments"
                     :file="currentFile"
                     :revision="revision"
                     :editable="canSeeUserFeedback && canGiveLineFeedback"
@@ -483,6 +484,18 @@ export default {
 
         autoTestResult() {
             return this.autoTestRun && this.autoTestRun.findResultBySubId(this.submissionId);
+        },
+
+        qualityComments() {
+            const { fileId, autoTestResult } = this;
+            if (fileId == null || autoTestResult == null) {
+                return [];
+            }
+            const comments = autoTestResult.qualityComments;
+            if (comments == null) {
+                return [];
+            }
+            return comments.commentsPerFile.get(fileId);
         },
 
         loadingPage() {
