@@ -115,8 +115,8 @@ export function flatMap1<T, TT>(
     return arr.reduce((acc: TT[], elem: T, index: number) => acc.concat(mapper(elem, index)), []);
 }
 
-export function zip<T, Y>(a: T[], b: Y[]): [T, Y][];
-export function zip(...lists: any[][]): any {
+export function zip<T, Y>(a: readonly T[], b: readonly Y[]): [T, Y][];
+export function zip(...lists: ReadonlyArray<any>[]): any {
     if (lists.length === 0) {
         return [];
     }
@@ -124,12 +124,16 @@ export function zip(...lists: any[][]): any {
     const acc = [];
     const end = Math.min(...lists.map(l => l.length));
     let i = 0;
-    const getter = (l: any[]) => l[i];
+    const getter = (l: readonly any[]) => l[i];
 
     for (; i < end; i++) {
         acc.push(lists.map(getter));
     }
     return acc;
+}
+
+export function zipWith<T, Y, Z>(f: (a: T, b: Y) => Z, a: readonly T[], b: readonly Y[]): Z[] {
+    return zip(a, b).map(([x, y]) => f(x, y));
 }
 
 export function unzip2<T, Y>(arr: readonly (readonly [T, Y])[]): [T[], Y[]] {

@@ -67,22 +67,6 @@ export class RubricItem<T = number | undefined> {
         );
     }
 
-    updateFromServerData(
-        this: RubricItem<T>,
-        data: Required<RubricItemServerData>,
-    ): RubricItem<number> {
-        let item = this;
-        if (item.id == null) {
-            item = new RubricItem(
-                Object.assign({}, this, {
-                    id: data.id,
-                }),
-                this.trackingId,
-            );
-        }
-        return (item as any) as RubricItem<number>;
-    }
-
     constructor(item: IRubricItem<T>, trackingId?: number) {
         this.trackingId = trackingId;
         Object.assign(this, item);
@@ -173,7 +157,7 @@ export class RubricRow<T extends number | undefined | null> {
         const row = Object.assign({}, this, {
             id: data.id,
             locked: data.locked,
-            items: this.items.map((item, j) => item.updateFromServerData(data.items[j])),
+            items: data.items.map(RubricItem.fromServerData),
         });
         return new (this.constructor as any)(row) as RubricRow<number>;
     }
@@ -608,7 +592,7 @@ export class Rubric<T extends number | undefined | null> {
         // the tracking ids.
 
         const norm = Rubric.normalizeServerData(data);
-        const rows = this.rows.map((row, i) => row.updateFromServerData(norm[i]));
+        const rows = utils.zipWith((r, n) => r.updateFromServerData(n), this.rows, norm);
 
         return new Rubric<number>(rows);
     }
