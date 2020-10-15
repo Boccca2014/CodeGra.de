@@ -44,7 +44,7 @@ class AutoTestSetAsJSON:
 
         suites = []
         for suites_item_data in d["suites"]:
-            suites_item = AutoTestSuiteAsJSON.from_dict(suites_item_data)
+            suites_item = AutoTestSuiteAsJSON.from_dict(cast(Dict[str, Any], suites_item_data))
 
             suites.append(suites_item)
 

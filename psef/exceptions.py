@@ -8,10 +8,9 @@ from enum import IntEnum, unique
 
 import flask
 
-if t.TYPE_CHECKING and getattr(
-    t, 'SPHINX', False
-) is not True:  # pragma: no cover
-    from .features import Feature  # pylint: disable=unused-import
+if t.TYPE_CHECKING:  # pragma: no cover
+    # pylint: disable=unused-import
+    from . import site_settings
 
 
 @unique
@@ -58,7 +57,7 @@ class APICodes(IntEnum):
     INVALID_CREDENTIALS = 12
     INVALID_STATE = 13
     INVALID_OAUTH_REQUEST = 14
-    DISABLED_FEATURE = 15
+    DISABLED_SETTING = 15
     UNKOWN_ERROR = 16
     INVALID_FILE_IN_ARCHIVE = 17
     NO_FILES_SUBMITTED = 18
@@ -136,17 +135,17 @@ class PermissionException(APIException):
     """
 
 
-class FeatureException(PermissionException):
+class OptionException(PermissionException):
     """The exception used when a feature is not enabled.
     """
 
-    def __init__(self, feature: 'Feature') -> None:
+    def __init__(self, setting: 'site_settings.Option') -> None:
         super().__init__(
-            'This feature is not enabled on this instance.',
-            f'The feature "{feature.name}" is not enabled.',
-            APICodes.DISABLED_FEATURE,
+            'This option is not enabled on this instance.',
+            f'The setting "{setting.name}" is not enabled.',
+            APICodes.DISABLED_SETTING,
             400,
-            disabled_feature=feature,
+            disabled_setting=setting,
         )
 
 

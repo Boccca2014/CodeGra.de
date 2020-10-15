@@ -12,7 +12,7 @@ import werkzeug
 import structlog
 
 from . import api
-from .. import app, files, models, helpers, features
+from .. import app, files, models, helpers, site_settings
 from ..exceptions import APICodes, APIException
 
 logger = structlog.get_logger()
@@ -75,7 +75,7 @@ def _proxy_pass_correct(proxy: models.Proxy) -> bool:
 
 
 @api.route('/proxies/<uuid:proxy_id>/<path:path_str>', methods=['POST'])
-@features.feature_required(features.Feature.RENDER_HTML)
+@site_settings.Opt.RENDER_HTML_ENABLED.required
 def start_proxy(
     proxy_id: uuid.UUID, path_str: str
 ) -> werkzeug.wrappers.Response:
@@ -109,7 +109,7 @@ def start_proxy(
 @api.route('/proxies/', methods=['GET'])
 @api.route('/proxies/<uuid:proxy_id>/', methods=['GET'])
 @api.route('/proxies/<uuid:proxy_id>/<path:path_str>', methods=['GET'])
-@features.feature_required(features.Feature.RENDER_HTML)
+@site_settings.Opt.RENDER_HTML_ENABLED.required
 def get_proxy_file(
     path_str: str = '', proxy_id: uuid.UUID = None
 ) -> werkzeug.wrappers.Response:

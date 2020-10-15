@@ -46,6 +46,8 @@ class LTI1p1ProviderNonFinalizedAsJSON(LTI1p1ProviderBaseAsJSON):
     def from_dict(d: Dict[str, Any]) -> LTI1p1ProviderNonFinalizedAsJSON:
         base = asdict(LTI1p1ProviderBaseAsJSON.from_dict(d))
         base.pop("raw_data")
+        if d.get("finalized") != False:
+            raise ValueError("Wrong value for finalized: " + d.get("finalized"))
         finalized = d.get("finalized")
 
         edit_secret = d.get("edit_secret")

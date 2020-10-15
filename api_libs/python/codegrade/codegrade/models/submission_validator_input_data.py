@@ -52,13 +52,13 @@ class SubmissionValidatorInputData:
 
         rules = []
         for rules_item_data in d["rules"]:
-            rules_item = FileRuleInputData.from_dict(rules_item_data)
+            rules_item = FileRuleInputData.from_dict(cast(Dict[str, Any], rules_item_data))
 
             rules.append(rules_item)
 
         options = []
         for options_item_data in d["options"]:
-            options_item = OptionsInputData.from_dict(options_item_data)
+            options_item = OptionsInputData.from_dict(cast(Dict[str, Any], options_item_data))
 
             options.append(options_item)
 

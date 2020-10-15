@@ -3,6 +3,7 @@ from datetime import timedelta
 
 import pytest
 
+import cg_object_storage
 from cg_dt_utils import DatetimeWithTimezone
 from cg_request_args import RichValue, SimpleValue, SimpleParseError
 
@@ -151,4 +152,36 @@ def test_timedelta_simple_string_duration():
 
     with pytest.raises(SimpleParseError) as exc:
         RichValue.TimeDelta.try_parse('PINVALID')
-    assert 'TimeDelta as Union[str, int]' in str(exc.value)
+    assert 'TimeDelta as Union[str, float]' in str(exc.value)
+
+
+def test_filesize(schema_mock):
+    assert RichValue.FileSize.try_parse(
+        '5kb',
+    ) == cg_object_storage.FileSize(5 * 1 << 10)
+    assert RichValue.FileSize.try_parse(
+        '5b',
+    ) == cg_object_storage.FileSize(5)
+    assert RichValue.FileSize.try_parse(
+        '5mb',
+    ) == cg_object_storage.FileSize(5 * 1 << 20)
+
+    val = 20000
+    assert RichValue.FileSize.try_parse(val) == cg_object_storage.FileSize(val)
+
+    with pytest.raises(SimpleParseError):
+        RichValue.FileSize.try_parse(5.0)
+
+    with pytest.raises(SimpleParseError) as exc:
+        RichValue.FileSize.try_parse('5tb')
+    assert 'FileSize' in str(exc.value)
+
+    assert RichValue.FileSize.to_open_api(schema_mock) == {
+        'anyOf': [
+            {'type': ('Convert', int)},
+            {
+                'type': ('Convert', str),
+                'pattern': r'^\d+(k|m|g)?b$',
+            },
+        ]
+    }

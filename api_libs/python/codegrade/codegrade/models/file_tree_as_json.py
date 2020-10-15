@@ -41,7 +41,7 @@ class FileTreeAsJSON(FileTree_AsJSONFile):
         base.pop("raw_data")
         entries = []
         for entries_item_data in d.get("entries") or []:
-            entries_item = FileTreeAsJSON.from_dict(entries_item_data)
+            entries_item = FileTreeAsJSON.from_dict(cast(Dict[str, Any], entries_item_data))
 
             entries.append(entries_item)
 

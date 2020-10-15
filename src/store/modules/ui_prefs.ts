@@ -6,67 +6,75 @@ import * as utils from '@/utils';
 import * as models from '@/models';
 import * as api from '@/api/v1';
 import { RootState } from '@/store/state';
+import { UIPreference } from '@/models';
 
 const storeBuilder = getStoreBuilder<RootState>();
 
 export interface UIPrefsState {
-    uiPrefs: utils.Maybe<models.UIPreferenceMap>;
+    uiPrefs: Partial<models.UIPreferenceMap>;
 }
 
 const makeInitialState = () => ({
-    uiPrefs: utils.Nothing,
+    uiPrefs: { ...models.DefaultUIPreferenceMap },
 });
 
 const moduleBuilder = storeBuilder.module<UIPrefsState>('ui_prefs', makeInitialState());
 
 export namespace UIPrefsStore {
-    export const uiPrefs = moduleBuilder.read(state => state.uiPrefs, 'uiPrefs');
-
     export const getUIPref = moduleBuilder.read(
-        state => (name: models.UIPreference) => state.uiPrefs.map(prefs => prefs[name]).join(),
+        state => (name: models.UIPreference) => {
+            const pref = state.uiPrefs[name];
+            if (pref == null) {
+                return utils.Nothing;
+            }
+            return pref;
+        },
         'getUIPref',
     );
 
-    export const commitUIPrefs = moduleBuilder.commit((state, prefs: models.UIPreferenceMap) => {
-        state.uiPrefs = utils.Just(prefs);
-    }, 'commitUIPrefs');
+    export const commitUIPrefs = moduleBuilder.commit(
+        (state, prefs: Partial<models.UIPreferenceMap>) => {
+            state.uiPrefs = { ...state.uiPrefs, ...prefs };
+        },
+        'commitUIPrefs',
+    );
 
     export const commitPatchedUIPref = moduleBuilder.commit(
-        (state, { name, value }: { name: models.UIPreference; value: boolean }) => {
-            state.uiPrefs = utils.Just(
-                state.uiPrefs.mapOrDefault(
-                    prefs => {
-                        prefs[name] = utils.Just(value);
-                        return prefs;
-                    },
-                    { [name]: utils.Just(value) },
-                ),
-            );
+        (state, { name, value }: { name: models.UIPreference; value: utils.Maybe<boolean> }) => {
+            utils.vueSet(state.uiPrefs, name, utils.Just(value));
         },
         'commitPatchedUIPref',
     );
 
     export const commitClear = moduleBuilder.commit(state => {
-        state.uiPrefs = utils.Nothing;
+        state.uiPrefs = { ...models.DefaultUIPreferenceMap };
     }, 'commitClear');
 
-    export const loadUIPreferences = moduleBuilder.dispatch(({ state }): Promise<
-        utils.Maybe<models.UIPreferenceMap>
-    > => {
-        if (state.uiPrefs.isJust()) {
-            return Promise.resolve(state.uiPrefs);
-        }
-
-        return api.uiPrefs.getUIPreferences().then(res => {
-            commitUIPrefs(res.data);
-            return utils.Just(res.data);
-        });
-    }, 'loadUIPreferences');
+    export const loadUIPreference = moduleBuilder.dispatch(
+        (_, { preference }: { preference: UIPreference }): Promise<utils.Maybe<boolean>> =>
+            getUIPref()(preference).caseOf({
+                Just: value => Promise.resolve(value),
+                Nothing: () =>
+                    api.uiPrefs.getUIPreferences().then(data => {
+                        commitUIPrefs(data);
+                        return getUIPref()(preference).caseOf({
+                            Just: v => v,
+                            // This only happens when the backend doesn't have
+                            // this setting, so add it with its default value.
+                            Nothing() {
+                                commitPatchedUIPref({ name: preference, value: utils.Nothing });
+                                return utils.Nothing;
+                            },
+                        });
+                    }),
+            }),
+        'loadUIPreference',
+    );
 
     export const patchUIPreference = moduleBuilder.dispatch(
-        (ctx, { name, value }: { name: models.UIPreference; value: boolean }) => {
-            commitPatchedUIPref({ name, value });
-            return api.uiPrefs.patchUIPreference(name, value);
+        async (_, { name, value }: { name: models.UIPreference; value: boolean }) => {
+            commitPatchedUIPref({ name, value: utils.Just(value) });
+            await api.uiPrefs.patchUIPreference(name, value);
         },
         'patchUIPreference',
     );

@@ -82,17 +82,3 @@ def init_app(db: types.MyDb, app: Flask) -> None:
                     )
                 ):
                     g.queries_max_duration = delta
-
-        if app.config.get('_USING_SQLITE'):  # pragma: no cover
-
-            @event.listens_for(db.engine, "connect")
-            def __do_connect(dbapi_connection: t.Any, _: t.Any) -> None:
-                # disable pysqlite's emitting of the BEGIN statement entirely.
-                # also stops it from emitting COMMIT before any DDL.
-                dbapi_connection.isolation_level = None
-                dbapi_connection.execute('pragma foreign_keys=ON')
-
-            @event.listens_for(db.engine, "begin")
-            def __do_begin(conn: t.Any) -> None:
-                # emit our own BEGIN
-                conn.execute("BEGIN")

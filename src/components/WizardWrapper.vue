@@ -95,7 +95,7 @@ export default class WizardWrapper extends Vue {
             }
         }, 0);
 
-        if (!this.$userConfig.isProduction) {
+        if (!this.$isProduction) {
             for (let i = 1; i <= res; ++i) {
                 this.$utils.AssertionError.assert(
                     this.$utils.hasAttr(this.$scopedSlots, `page-${i}`),

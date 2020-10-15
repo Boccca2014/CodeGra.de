@@ -38,7 +38,7 @@ export default class SsoLogin extends Vue {
         if (!next || next.startsWith('/')) {
             return next;
         }
-        if (next.startsWith(this.$userConfig.externalUrl)) {
+        if (next.startsWith(this.$utils.getExternalUrl())) {
             return next;
         }
         return null;

@@ -46,7 +46,7 @@ class PutRubricAssignmentData:
 
         rows = []
         for rows_item_data in d.get("rows") or []:
-            rows_item = RubricRowBaseInputAsJSON.from_dict(rows_item_data)
+            rows_item = RubricRowBaseInputAsJSON.from_dict(cast(Dict[str, Any], rows_item_data))
 
             rows.append(rows_item)
 

@@ -33,9 +33,7 @@ map1 = FixedMapping(RequiredArgument('b', SimpleValue.str, ''))
 map1.add_tag(  # E:r The key to FixedMapping.add_tag should be a literal.*
     non_literal, 'literal'
 )
-map1.add_tag(  # E:r The value to FixedMapping.add_tag should be a literal.*
-    'literal', non_literal
-)
+map1.add_tag('literal', non_literal)
 map1.add_tag(  # E:r The key to FixedMapping.add_tag should be a literal.*
     t.cast(Literal[5], 5), 'literal'  # E:r Argument 1 to "add_tag" of "FixedMapping" has incompatible type "Literal\[5\]".*
 )

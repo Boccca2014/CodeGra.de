@@ -71,7 +71,7 @@
         </div>
 
         <div class="sidebar-bottom">
-            <a :href="`https://docs.codegra.de/?v=${version}`"
+            <a :href="`https://docs.codegra.de/?v=${commitHash}`"
                target="_blank"
                class="sidebar-bottom-item"
                v-b-popover.hover.top="'Documentation'">
@@ -211,7 +211,7 @@ export default {
                     name: 'register',
                     icon: 'rocket',
                     header: 'Register',
-                    condition: () => UserConfig.features.register && !this.loggedIn,
+                    condition: () => this.getSiteSetting('REGISTER_ENABLED') && !this.loggedIn,
                     onClick: () => {
                         this.$router.push({ name: 'register' });
                     },
@@ -275,7 +275,7 @@ export default {
                     component: 'group-list',
                     data: () => ({ course: this.course }),
                     condition: () =>
-                        UserConfig.features.groups &&
+                        this.getSiteSetting('GROUPS_ENABLED') &&
                         this.loggedIn &&
                         this.course &&
                         this.course.groupSets.length > 0,
@@ -308,7 +308,7 @@ export default {
             subMenus: [],
             mobileVisible: false,
             dimmingUseSpace: true,
-            version: UserConfig.release.version,
+            commitHash: COMMIT_HASH.substring(0, 7),
         };
     },
 
@@ -320,6 +320,7 @@ export default {
         ...mapGetters('user', { globalPermissions: 'permissions' }),
 
         ...mapGetters('pref', ['darkMode']),
+        ...mapGetters('siteSettings', { getSiteSetting: 'getSetting' }),
 
         canManageSite() {
             return MANAGE_SITE_PERIMSSIONS.some(x => this.globalPermissions[x]);

@@ -1,6 +1,9 @@
 /* SPDX-License-Identifier: AGPL-3.0-only */
 import { shallowMount, createLocalVue } from '@vue/test-utils';
 import BootstrapVue from 'bootstrap-vue'
+import { mocked } from 'ts-jest/utils'
+
+import '../jest';
 
 import * as utils from '@/utils';
 import * as models from '@/models';
@@ -10,6 +13,7 @@ import PreferredUI from '@/components/PreferredUI';
 import { UIPrefsStore } from '@/store'
 
 jest.mock('@/api/v1/ui_prefs');
+const mockedApi = mocked(api.uiPrefs);
 
 const localVue = createLocalVue();
 localVue.use(BootstrapVue);
@@ -17,53 +21,35 @@ localVue.use(BootstrapVue);
 const { RubricEditorV2 } = models.UIPreference;
 
 describe('UI preferences', () => {
-    function mockOnce(name, value) {
-        api.uiPrefs.getUIPreferences.mockResolvedValueOnce({
-            data: { [name]: utils.Maybe.fromNullable(value) },
+    function mockOnce(name: models.UIPreference, value: null | boolean) {
+        mockedApi.getUIPreferences.mockResolvedValueOnce({
+            ...models.DefaultUIPreferenceMap,
+            [name]: utils.Just(utils.Maybe.fromNullable(value)),
         });
     }
 
     beforeAll(() => {
-        api.uiPrefs.getUIPreferences
+        mockedApi.getUIPreferences
             .mockName('api.uiPrefs.getUIPreferences');
 
-        api.uiPrefs.patchUIPreference
+        mockedApi.patchUIPreference
             .mockName('api.uiPrefs.patchUIPreference');
     });
 
     beforeEach(() => {
         UIPrefsStore.commitClear();
-        api.uiPrefs.getUIPreferences
+        mockedApi.getUIPreferences
             .mockClear()
-            .mockResolvedValue({ data: { [RubricEditorV2]: utils.Nothing } });
-        api.uiPrefs.patchUIPreference
+            .mockResolvedValue({ ...models.DefaultUIPreferenceMap });
+        mockedApi.patchUIPreference
             .mockClear()
-            .mockResolvedValue({ data: null });
+            .mockResolvedValue(void 0);
     });
 
     describe('store getters', () => {
-        function makePrefs(value) {
-            return { [RubricEditorV2]: utils.Maybe.fromNullable(value) };
+        function makePrefs(value: null | boolean) {
+            return { [RubricEditorV2]: utils.Just(utils.Maybe.fromNullable(value)) };
         }
-
-        describe('uiPrefs', () => {
-            it('should return Nothing if the prefs have not been loaded', () => {
-                UIPrefsStore.commitClear();
-
-                expect(UIPrefsStore.uiPrefs().isNothing()).toBeTrue();
-            });
-
-            it.each(
-                [ true, false, null ],
-            )('should return the mapping of prefs when the prefs have been loaded', (val) => {
-                UIPrefsStore.commitUIPrefs(makePrefs(val));
-                const storePrefs = UIPrefsStore.uiPrefs();
-
-                expect(storePrefs).toBeJust();
-                expect(storePrefs.extract()).toHaveProperty(RubricEditorV2);
-                expect(storePrefs.extract()[RubricEditorV2].extractNullable()).toBe(val);
-            });
-        });
 
         describe('getUIPref', () => {
             it('should return Nothing if the prefs have not been loaded', () => {
@@ -73,48 +59,51 @@ describe('UI preferences', () => {
             });
 
             it.each(
-                [ true, false, null ],
-            )('should return the set value if the prefs have been loaded', (val) => {
+                [true, false, null],
+            )('should return the set value if the prefs have been loaded', (val: boolean | null) => {
                 UIPrefsStore.commitUIPrefs(makePrefs(val));
                 const prefValue = UIPrefsStore.getUIPref()(RubricEditorV2);
 
-                expect(prefValue.extractNullable()).toBe(val);
+                expect(prefValue).toBeJust();
+                expect(prefValue.extract()).toEqual(utils.Maybe.fromNullable(val));
             });
 
             it.each([
-                [ null, false ],
-                [ null, true ],
-                [ false, false ],
-                [ false, true ],
-                [ true, false ],
-                [ true, true ],
+                [null, false],
+                [null, true],
+                [false, false],
+                [false, true],
+                [true, false],
+                [true, true],
             ])('should return the patched value if some pref has been patched', async (fromVal, toVal) => {
                 UIPrefsStore.commitUIPrefs(makePrefs(fromVal));
-                UIPrefsStore.commitPatchedUIPref({ name: RubricEditorV2, value: toVal });
+                UIPrefsStore.commitPatchedUIPref({ name: RubricEditorV2, value: utils.Maybe.fromNullable(toVal) });
                 const prefValue = UIPrefsStore.getUIPref()(RubricEditorV2);
 
-                expect(prefValue.extract()).toBe(toVal);
+                expect(prefValue).toBeJust();
+                expect(prefValue.extract()).toEqual(utils.Maybe.fromNullable(toVal));
             });
         });
     });
 
     describe('store actions', () => {
-        describe('loadUIPreferences', () => {
+        describe('loadUIPreference', () => {
             it('should call the api', async () => {
-                const res = await UIPrefsStore.loadUIPreferences();
+                mockOnce(RubricEditorV2, false);
+                const res = await UIPrefsStore.loadUIPreference({ preference: RubricEditorV2 });
 
-                expect(api.uiPrefs.getUIPreferences).toBeCalled();
+                expect(mockedApi.getUIPreferences).toBeCalled();
 
                 expect(res).toBeJust();
-                expect(res.extract()).toHaveProperty(RubricEditorV2);
-                expect(res.extract()[RubricEditorV2]).toBeNothing();
+                expect(res.unsafeCoerce()).toBe(false);
             });
 
             it('should not call the api twice', async () => {
-                const res1 = await UIPrefsStore.loadUIPreferences();
-                const res2 = await UIPrefsStore.loadUIPreferences();
+                mockOnce(RubricEditorV2, true);
+                const res1 = await UIPrefsStore.loadUIPreference({ preference: RubricEditorV2 });
+                const res2 = await UIPrefsStore.loadUIPreference({ preference: RubricEditorV2 });
 
-                expect(api.uiPrefs.getUIPreferences).toBeCalledTimes(1);
+                expect(mockedApi.getUIPreferences).toBeCalledTimes(1);
 
                 expect(res1).toBeJust();
                 expect(res2).toBeJust();
@@ -122,94 +111,103 @@ describe('UI preferences', () => {
             });
 
             it.each(
-                [ true, false, null ],
+                [true, false, null],
             )('should update the store', async (val) => {
                 mockOnce(RubricEditorV2, val);
 
-                await UIPrefsStore.loadUIPreferences();
-                const storePrefs = UIPrefsStore.uiPrefs();
+                await UIPrefsStore.loadUIPreference({ preference: RubricEditorV2 });
+                const storePrefs = UIPrefsStore.getUIPref()(RubricEditorV2);
 
                 expect(storePrefs).toBeJust();
-                expect(storePrefs.extract()).toHaveProperty(RubricEditorV2);
-                expect(storePrefs.extract()[RubricEditorV2].extractNullable()).toBe(val);
+                expect(storePrefs.unsafeCoerce().extractNullable()).toBe(val);
+            });
+
+            it('should return Nothing if the pref was not present in the response', async () => {
+                const res = await UIPrefsStore.loadUIPreference({ preference: RubricEditorV2 });
+                expect(mockedApi.getUIPreferences).toBeCalled();
+                expect(res).toBeNothing();
             });
         });
 
         describe('patchUIPreference', () => {
             it.each([
-                [ null, false ],
-                [ null, true ],
-                [ false, false ],
-                [ false, true ],
-                [ true, false ],
-                [ true, true ],
+                [null, false],
+                [null, true],
+                [false, false],
+                [false, true],
+                [true, false],
+                [true, true],
             ])('should call the api', async (fromVal, toVal) => {
                 mockOnce(RubricEditorV2, fromVal);
 
-                await UIPrefsStore.loadUIPreferences();
+                await UIPrefsStore.loadUIPreference({ preference: RubricEditorV2 });
                 await UIPrefsStore.patchUIPreference({
                     name: RubricEditorV2,
                     value: toVal,
                 });
 
-                expect(api.uiPrefs.patchUIPreference).toBeCalled();
+                expect(mockedApi.patchUIPreference).toBeCalled();
             });
 
             it('should call the api each time', async () => {
-                await UIPrefsStore.loadUIPreferences();
+                await UIPrefsStore.loadUIPreference({ preference: RubricEditorV2 });
                 await UIPrefsStore.patchUIPreference({
                     name: RubricEditorV2,
-                    value: false
+                    value: false,
                 });
+                // Even when the value is the same the store should be called
+                // again.
                 await UIPrefsStore.patchUIPreference({
                     name: RubricEditorV2,
-                    value: true
+                    value: false,
                 });
 
-                expect(api.uiPrefs.patchUIPreference).toBeCalledTimes(2);
+                expect(mockedApi.patchUIPreference).toBeCalledTimes(2);
             });
 
             it('should update the store', async () => {
-                await UIPrefsStore.loadUIPreferences();
-                let storePrefs = UIPrefsStore.uiPrefs();
-                expect(storePrefs.extract()[RubricEditorV2]).toBeNothing();
+                await UIPrefsStore.loadUIPreference({ preference: RubricEditorV2 });
+                let storePref = UIPrefsStore.getUIPref()(RubricEditorV2);
+                expect(storePref).toBeJust();
+                expect(storePref.unsafeCoerce()).toBeNothing();
 
                 await UIPrefsStore.patchUIPreference({
                     name: RubricEditorV2,
                     value: false,
                 });
-                storePrefs = UIPrefsStore.uiPrefs();
-                expect(storePrefs.extract()[RubricEditorV2].extract()).toBeFalse();
+                storePref = UIPrefsStore.getUIPref()(RubricEditorV2);
+                expect(storePref).toBeJust();
+                expect(storePref.join().extract()).toBe(false);
 
                 await UIPrefsStore.patchUIPreference({
                     name: RubricEditorV2,
                     value: true,
                 });
-                storePrefs = UIPrefsStore.uiPrefs();
-                expect(storePrefs.extract()[RubricEditorV2].extract()).toBeTrue();
+                storePref = UIPrefsStore.getUIPref()(RubricEditorV2);
+                expect(storePref.join().extract()).toBe(true);
             });
 
             it('should update the store even if preferences were not loaded', async () => {
-                let storePrefs = UIPrefsStore.uiPrefs();
-                expect(storePrefs).toBeNothing();
+                let storePref = UIPrefsStore.getUIPref()(RubricEditorV2);
+                expect(storePref).toBeNothing();
 
-                const res = await UIPrefsStore.patchUIPreference({
+                await UIPrefsStore.patchUIPreference({
                     name: RubricEditorV2,
                     value: false,
                 });
-                storePrefs = UIPrefsStore.uiPrefs();
+                storePref = UIPrefsStore.getUIPref()(RubricEditorV2);
 
-                expect(storePrefs).toBeJust();
-                expect(storePrefs.extract()[RubricEditorV2].extract()).toBeFalse();
+                expect(storePref).toBeJust();
+                expect(storePref.join().extract()).toBe(false);
             });
         });
     });
 
     describe('PreferredUI.tsx', () => {
-        let wrapper;
-        let comp;
+        let wrapper: ReturnType<typeof shallowMount>;
+        let comp: typeof wrapper['vm'];
 
-        async function mount(initialValue, propsData = {}) {
+        async function mount(initialValue: null | boolean, propsData = {}) {
             mockOnce(RubricEditorV2, initialValue);
 
             wrapper = shallowMount(PreferredUI, {
@@ -230,9 +228,9 @@ describe('UI preferences', () => {
         }
 
         it.each([
-            [ null, /unset/ ],
-            [ false, /false/ ],
-            [ true, /true/ ],
+            [null, /unset/],
+            [false, /false/],
+            [true, /true/],
         ])('should render the correct slot', async (val, toMatch) => {
             await mount(val);
 
@@ -246,7 +244,7 @@ describe('UI preferences', () => {
         });
 
         it.each(
-            [ true, false ],
+            [true, false],
         )('should render the switcher at the bottom when a value is set', async (val) => {
             await mount(val);
 

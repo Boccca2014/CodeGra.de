@@ -14,6 +14,7 @@ import dateutil.parser
 import psef.auth as auth
 import psef.models as m
 import psef.features as feats
+import psef.site_settings as site_settings
 from helpers import (
     create_group, create_marker, create_group_set, create_submission,
     create_lti1p3_provider, create_user_with_perms
@@ -365,9 +366,7 @@ def test_lti_no_roles_found(test_client, app, logged_in, ta_user, monkeypatch):
     assert len(user.courses) == 1
     assert list(user.courses.values())[0].name == 'non_existing'
 
-    monkeypatch.setitem(
-        app.config['FEATURES'], feats.Feature.AUTOMATIC_LTI_ROLE, False
-    )
+    site_settings.Opt.AUTOMATIC_LTI_ROLE_ENABLED.set_and_commit_value(False)
 
     _, __, res = do_lti_launch(username='NEW_USERNAME')
     assert not res['new_role_created']
@@ -715,9 +714,6 @@ def test_lti_grade_passback_blackboard(
             assert isinstance(body, bytes)
             last_xml = body.decode('utf-8')
             return '', SUCCESS_XML
-
-    if patch:
-        monkeypatch.setitem(app.config, '_USING_SQLITE', True)
 
     patch_request = Patch()
     monkeypatch.setattr(oauth2.Client, 'request', patch_request)
@@ -1696,9 +1692,6 @@ def test_lti_grade_passback_moodle(
             last_xml = body.decode('utf-8')
             return '', SUCCESS_XML
 
-    if patch:
-        monkeypatch.setitem(app.config, '_USING_SQLITE', True)
-
     patch_request = Patch()
     monkeypatch.setattr(oauth2.Client, 'request', patch_request)
 
@@ -1868,9 +1861,6 @@ def test_lti_grade_passback_brightspace(
             assert isinstance(body, bytes)
             last_xml = body.decode('utf-8')
             return '', SUCCESS_XML
-
-    if patch:
-        monkeypatch.setitem(app.config, '_USING_SQLITE', True)
 
     patch_request = Patch()
     monkeypatch.setattr(oauth2.Client, 'request', patch_request)

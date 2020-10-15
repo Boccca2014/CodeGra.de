@@ -80,7 +80,7 @@ class ResultDataGetAutoTestGet:
 
         fixtures = []
         for fixtures_item_data in d["fixtures"]:
-            fixtures_item = AutoTestFixtureAsJSON.from_dict(fixtures_item_data)
+            fixtures_item = AutoTestFixtureAsJSON.from_dict(cast(Dict[str, Any], fixtures_item_data))
 
             fixtures.append(fixtures_item)
 
@@ -94,7 +94,7 @@ class ResultDataGetAutoTestGet:
 
         sets = []
         for sets_item_data in d["sets"]:
-            sets_item = AutoTestSetAsJSON.from_dict(sets_item_data)
+            sets_item = AutoTestSetAsJSON.from_dict(cast(Dict[str, Any], sets_item_data))
 
             sets.append(sets_item)
 
@@ -102,7 +102,7 @@ class ResultDataGetAutoTestGet:
 
         runs = []
         for runs_item_data in d["runs"]:
-            runs_item = AutoTestRunAsExtendedJSON.from_dict(runs_item_data)
+            runs_item = AutoTestRunAsExtendedJSON.from_dict(cast(Dict[str, Any], runs_item_data))
 
             runs.append(runs_item)
 
