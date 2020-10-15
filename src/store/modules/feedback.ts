@@ -118,13 +118,16 @@ export namespace FeedbackStore {
             if (state.inlineFeedbackByUser[payload.assignmentId] == null) {
                 utils.vueSet(state.inlineFeedbackByUser, payload.assignmentId, {});
             }
-            const submissionIds = payload.comments.reduce((acc, comment) => {
-                if (!utils.hasAttr(acc, comment.workId)) {
-                    acc[comment.workId] = 0;
-                }
-                acc[comment.workId]++;
-                return acc;
-            }, {} as { [submissionId: number]: number });
+            const submissionIds = payload.comments.reduce<{ [submissionId: number]: number }>(
+                (acc, comment) => {
+                    if (!utils.hasAttr(acc, comment.workId)) {
+                        acc[comment.workId] = 0;
+                    }
+                    acc[comment.workId]++;
+                    return acc;
+                },
+                {},
+            );
             utils.vueSet(
                 state.inlineFeedbackByUser[payload.assignmentId],
                 payload.userId,

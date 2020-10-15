@@ -568,7 +568,7 @@ export class WorkspaceSubmissionSet {
     binSubmissionsBy<K extends string | number>(
         f: (sub: WorkspaceSubmission) => K | null,
     ): Record<K, WorkspaceSubmission[]> {
-        return this.allSubmissions.reduce(
+        return this.allSubmissions.reduce<Record<K, WorkspaceSubmission[]>>(
             (acc: Record<K, WorkspaceSubmission[]>, sub: WorkspaceSubmission) => {
                 const bin = f(sub);
                 if (bin != null) {
@@ -576,7 +576,7 @@ export class WorkspaceSubmissionSet {
                 }
                 return acc;
             },
-            <Record<K, WorkspaceSubmission[]>>defaultdict(() => []),
+            defaultdict(() => []),
         );
     }
 

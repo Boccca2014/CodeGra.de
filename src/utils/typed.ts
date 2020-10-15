@@ -695,10 +695,10 @@ export function deepCopy<T>(value: T | readonly T[], maxDepth = 10, depth = 1): 
     if (Array.isArray(value)) {
         return value.map(v => deepCopy(v, maxDepth, depth + 1));
     } else if (value != null && typeof value === 'object') {
-        return Object.entries(value).reduce((res, [k, v]) => {
+        return Object.entries(value).reduce<any>((res, [k, v]) => {
             res[k] = deepCopy(v, maxDepth, depth + 1);
             return res;
-        }, <any>{});
+        }, {});
     } else {
         return value;
     }
@@ -931,12 +931,12 @@ export function pickKeys<T, K extends keyof T>(
     keys: readonly K[],
     strict = true,
 ) {
-    return keys.reduce((acc, key) => {
+    return keys.reduce<Partial<Pick<T, K>>>((acc, key) => {
         if (strict || hasAttr(obj, key)) {
             acc[key] = obj[key];
         }
         return acc;
-    }, {} as Partial<Pick<T, K>>);
+    }, {});
 }
 
 type EmptyVNode = VNode & { isRootInsert: false, isComment: true };

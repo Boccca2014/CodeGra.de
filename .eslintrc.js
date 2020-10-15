@@ -135,6 +135,8 @@ module.exports = {
         // the vue style of passing callbacks.
         '@typescript-eslint/unbound-method': 'off',
 
+        '@typescript-eslint/prefer-reduce-type-parameter': 'error',
+
         '@typescript-eslint/restrict-template-expressions': [
             'error',
             {
