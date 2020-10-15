@@ -43,10 +43,11 @@
             :key="i"
             class="line"
             :class="{
+                'pb-1': hasFeedback(i - 1),
                 'normal-cursor': hasFeedback(i - 1),
                 'hover': canGiveFeedback && !hasFeedback(i - 1),
                 'gutter-comments-outer': gutterComments[i - 1 + lineFeedbackOffset],
-                'pb-1': hasFeedback(i - 1),
+                [gutterCommentVariant(i - 1)]: true,
             }"
             :data-line="i">
 
@@ -433,6 +434,25 @@ export default {
                 this.$utils.getProps(this.feedback, null, i + this.lineFeedbackOffset) != null
             );
         },
+
+        gutterCommentVariant(line) {
+            if (this.gutterComments[line] == null) {
+                return '';
+            }
+
+            const variants = new Set(
+                this.gutterComments[line].map(comm => comm.badgeVariant),
+            );
+            if (variants.has('danger')) {
+                return 'text-danger';
+            } else if (variants.has('warning')) {
+                return 'text-warning';
+            } else if (variants.has('info')) {
+                return 'text-info';
+            } else {
+                return '';
+            }
+        },
     },
 };
 </script>
@@ -483,19 +503,37 @@ li {
     }
 
     &.gutter-comments-outer {
-        background-color: rgba(255, 0, 0, 0.025) !important;
-        color: red;
         font-weight: bold;
 
-        &.hover:hover {
-            background-color: rgba(255, 0, 0, 0.075) !important;
-        }
-
-        @{dark-mode} {
-            background-color: rgba(255, 0, 0, 0.075) !important;
+        .bg-colors(@base, @op-base, @op-hover) {
+            background-color: fade(@base, @op-base) !important;
 
             &.hover:hover {
-                background-color: rgba(255, 0, 0, 0.15) !important;
+                background-color: fade(@base, @op-hover) !important;
+            }
+        }
+
+        &.text-danger {
+            .bg-colors(red, 2.5%, 7.5%);
+
+            @{dark-mode} {
+                .bg-colors(red, 7.5%, 15%);
+            }
+        }
+
+        &.text-warning {
+            .bg-colors(@color-warning, 10%, 25%);
+
+            @{dark-mode} {
+                .bg-colors(@color-warning-dark, 15%, 25%);
+            }
+        }
+
+        &.text-info {
+            .bg-colors(@color-info, 5%, 12.5%);
+
+            @{dark-mode} {
+                .bg-colors(@color-info, 15%, 25%);
             }
         }
 
