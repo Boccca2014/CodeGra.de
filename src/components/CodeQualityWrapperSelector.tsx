@@ -10,11 +10,11 @@ import { CodeQualityWrapper } from '@/code_quality_wrappers';
 interface SelectedWrapper {
     wrapper?: CodeQualityWrapper;
     program: string;
-    args: string,
+    args: string;
 }
 
 const inputToString = (value: string | number | string[] | undefined) => {
-    if (value == undefined) {
+    if (value === undefined) {
         return '';
     } else if (typeof value === 'number') {
         return value.toString(10);
@@ -23,7 +23,7 @@ const inputToString = (value: string | number | string[] | undefined) => {
     } else {
         return value;
     }
-}
+};
 
 export default tsx.component({
     name: 'code-quality-program-selector',
@@ -39,20 +39,23 @@ export default tsx.component({
         const inputHandlers = utils.ensureArray(listeners.input) || [() => {}];
 
         const emit = (event: Partial<SelectedWrapper>) => {
-            const data = Object.assign({
-                wrapper: props.wrapper,
-                program: props.program,
-                args: props.args,
-            }, event);
+            const data = Object.assign(
+                {
+                    wrapper: props.wrapper,
+                    program: props.program,
+                    args: props.args,
+                },
+                event,
+            );
 
-            for (let handler of inputHandlers) {
+            for (const handler of inputHandlers) {
                 handler(data);
             }
         };
 
         const updateWrapper = (wrapper: CodeQualityWrapper) => {
             emit({ wrapper });
-        }
+        };
 
         const updateProgram = (program?: string | number | string[]) => {
             emit({ program: inputToString(program) });
@@ -62,46 +65,50 @@ export default tsx.component({
             emit({ args: inputToString(args) });
         };
 
-        const renderOption = (opt: CodeQualityWrapper) =>
-            <b-form-select-option value={opt}>
-                {opt}
-            </b-form-select-option>;
+        const renderOption = (opt: CodeQualityWrapper) => (
+            <b-form-select-option value={opt}>{opt}</b-form-select-option>
+        );
 
-        const renderSelect = (wrapper: CodeQualityWrapper | undefined) =>
-            <b-form-select value={wrapper}
-                           onInput={updateWrapper}>
+        const renderSelect = (wrapper: CodeQualityWrapper | undefined) => (
+            <b-form-select value={wrapper} onInput={updateWrapper}>
                 {Object.values(CodeQualityWrapper).map(renderOption)}
-            </b-form-select>;
+            </b-form-select>
+        );
 
-        const renderCustomInput = (program: string) =>
+        const renderCustomInput = (program: string) => (
             <b-form-group label="Custom program">
-                <input class="form-control"
-                       placeholder="Custom program to run"
-                       value={program}
-                       onInput={ev => updateProgram(ev.target.value)} />
-            </b-form-group>;
-
-        const renderArgsInput = (args: string) =>
-            <b-form-group label="Extra arguments">
-                <input class="form-control"
-                       placeholder="Extra arguments"
-                       value={args}
-                       onInput={ev => updateArgs(ev.target.value)} />
-            </b-form-group>;
-
-        return <div class="mb-3">
-            <b-form-group label="Wrapper script">
-                {renderSelect(props.wrapper)}
+                <input
+                    class="form-control"
+                    placeholder="Custom program to run"
+                    value={program}
+                    onInput={ev => updateProgram(ev.target.value)}
+                />
             </b-form-group>
+        );
 
-            {utils.ifOrEmpty(
-                props.wrapper != null,
-                () => utils.ifExpr(
-                    props.wrapper === CodeQualityWrapper.custom,
-                    () => renderCustomInput(props.program),
-                    () => renderArgsInput(props.args),
-                ),
-            )}
-        </div>;
+        const renderArgsInput = (args: string) => (
+            <b-form-group label="Extra arguments">
+                <input
+                    class="form-control"
+                    placeholder="Extra arguments"
+                    value={args}
+                    onInput={ev => updateArgs(ev.target.value)}
+                />
+            </b-form-group>
+        );
+
+        return (
+            <div class="mb-3">
+                <b-form-group label="Wrapper script">{renderSelect(props.wrapper)}</b-form-group>
+
+                {utils.ifOrEmpty(props.wrapper != null, () =>
+                    utils.ifExpr(
+                        props.wrapper === CodeQualityWrapper.custom,
+                        () => renderCustomInput(props.program),
+                        () => renderArgsInput(props.args),
+                    ),
+                )}
+            </div>
+        );
     },
 });

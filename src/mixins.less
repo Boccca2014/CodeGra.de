@@ -100,7 +100,7 @@
 }
 
 .default-link-colors {
-    &:not(.inline-link):not(.btn) {
+    &:not(.inline-link):not(.btn):not(.disabled) {
         color: @color-primary;
 
         &:hover {
@@ -108,7 +108,7 @@
         }
     }
 
-    @{dark-mode}:not(.inline-link):not(.btn) {
+    @{dark-mode}:not(.inline-link):not(.btn):not(.disabled) {
         color: lighten(@color-primary, 30%);
 
         &:hover {

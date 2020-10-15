@@ -4,9 +4,10 @@ SPDX-License-Identifier: AGPL-3.0-only
 """
 import typing as t
 
-from flask import current_app
 from zxcvbn import zxcvbn
 from validate_email import validate_email as _validate_email
+
+import psef
 
 from ..exceptions import APICodes, ValidationException, WeakPasswordException
 
@@ -77,7 +78,7 @@ def ensure_valid_password(  # pylint: disable=function-redefined
                 }
         }
 
-    min_score: int = current_app.config['MIN_PASSWORD_SCORE']
+    min_score = psef.site_settings.Opt.MIN_PASSWORD_SCORE.value
     if result['score'] < min_score:
         msg = 'Your chosen password is not secure enough.'
         if not result['feedback']['warning']:
@@ -104,7 +105,3 @@ def ensure_valid_email(email: str) -> None:
             'The given email is not valid.',
             'The email "{email}" is not valid.',
         )
-
-
-if t.TYPE_CHECKING:  # pragma: no cover
-    import psef  # pylint: disable=unused-import

@@ -5,5 +5,7 @@ import * as assignments from './assignments';
 import * as ssoProviders from './sso_providers';
 import * as courses from './courses';
 import * as uiPrefs from './ui_prefs';
+import * as siteSettings from './siteSettings';
+import * as about from './about';
 
-export { lti, submissions, assignments, ssoProviders, courses, uiPrefs };
+export { lti, submissions, assignments, ssoProviders, courses, uiPrefs, siteSettings, about };

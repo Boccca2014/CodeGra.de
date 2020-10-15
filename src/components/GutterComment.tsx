@@ -19,38 +19,27 @@ export default tsx.component({
     render(h, { props }) {
         const id = `gutter-comment-${utils.getUniqueId()}`;
 
-        const renderComment = (comment: models.QualityComment): VNode => {
-            return <tr>
-                <td class="pr-2 font-weight-bold">
-                    {comment.origin}
-                </td>
+        const renderComment = (comment: models.QualityComment): VNode => (
+            <tr>
+                <td class="pr-2 font-weight-bold">{comment.origin}</td>
+
                 <td class="text-left">
                     {/* Severity can be null for old linter comments */}
                     {utils.ifOrEmpty(
-                        comment.severity != models.QualityCommentSeverity.old_linter,
+                        comment.severity !== models.QualityCommentSeverity.old_linter,
                         () => (
-                            <b-badge variant={comment.badgeVariant}>
-                                {comment.severity}
-                            </b-badge>
+                            <b-badge variant={comment.badgeVariant}>{comment.severity}</b-badge>
                         ),
-                    )}
-                    {' '}
+                    )}{' '}
                     {comment.code ? `[${comment.code}] ` : ''}
                     {comment.msg}
                 </td>
-            </tr>;
-        };
+            </tr>
+        );
 
         const popover = (
-            <b-popover
-                placement="topright"
-                triggers="hover"
-                boundary="window"
-                target={id}
-            >
-                <table class="gutter-comments-table">
-                    {props.comments.map(renderComment)}
-                </table>
+            <b-popover placement="topright" triggers="hover" boundary="window" target={id}>
+                <table class="gutter-comments-table">{props.comments.map(renderComment)}</table>
             </b-popover>
         );
 

@@ -42,7 +42,7 @@ class PatchAutoTestData:
     @staticmethod
     def from_dict(d: Dict[str, Any]) -> PatchAutoTestData:
         base = {}
-        json = JsonPatchAutoTest.from_dict(d["json"])
+        json = JsonPatchAutoTest.from_dict(cast(Dict[str, Any], d["json"]))
 
         fixture = []
         for fixture_item_data in d.get("fixture") or []:

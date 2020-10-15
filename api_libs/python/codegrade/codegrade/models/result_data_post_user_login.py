@@ -37,7 +37,7 @@ class ResultDataPostUserLogin:
 
         def _parse_user(data: Dict[str, Any]) -> Union[UserAsExtendedJSON]:
             user: Union[UserAsExtendedJSON] = d["user"]
-            user = UserAsExtendedJSON.from_dict(user)
+            user = UserAsExtendedJSON.from_dict(cast(Dict[str, Any], user))
 
             return user
 

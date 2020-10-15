@@ -46,8 +46,8 @@
                 'pb-1': hasFeedback(i - 1),
                 'normal-cursor': hasFeedback(i - 1),
                 'hover': canGiveFeedback && !hasFeedback(i - 1),
-                'gutter-comments-outer': gutterComments[i - 1 + lineFeedbackOffset],
-                [gutterCommentVariant(i - 1)]: true,
+                'gutter-comments-outer': hasGutterComment(i - 1),
+                [gutterCommentVariant(i - 1)]: hasGutterComment(i - 1),
             }"
             :data-line="i">
 
@@ -69,9 +69,10 @@
                 </span>
             </span>
 
-            <gutter-comment :comments="gutterComments[i - 1]"
-                            :width="lineNumberWidth"
-                            v-if="gutterComments[i - 1] != null"/>
+            <gutter-comment
+                :comments="gutterComments[i - 1]"
+                :width="lineNumberWidth"
+                v-if="hasGutterComment(i - 1)"/>
 
             <feedback-area
                 class="border-top border-bottom py-2 px-3 mt-1"
@@ -195,10 +196,6 @@ export default {
             type: String,
             default: 'File is empty.',
         },
-        maxLines: {
-            type: Number,
-            default: UserConfig.maxLines,
-        },
         nonEditable: {
             type: Boolean,
             default: false,
@@ -252,6 +249,8 @@ export default {
         }),
 
         ...mapGetters('pref', ['fontSize']),
+
+        ...mapGetters('siteSettings', ['getSetting']),
 
         computedStartLine() {
             return Math.max(this.startLine + 1, 1);
@@ -318,6 +317,10 @@ export default {
             return this.noLineNumbers
                 ? 0
                 : `${3 + Math.log10(this.innerCodeLines.length) * 2 / 3}em`;
+        },
+
+        maxLines() {
+            return this.getSetting('MAX_LINES');
         },
     },
 
@@ -452,6 +455,10 @@ export default {
             } else {
                 return '';
             }
+        },
+
+        hasGutterComment(i) {
+            return this.gutterComments[i + this.lineFeedbackOffset];
         },
     },
 };

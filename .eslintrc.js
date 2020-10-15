@@ -98,10 +98,8 @@ module.exports = {
         // https://github.com/typescript-eslint/typescript-eslint/pull/1684
         // 'lines-between-class-members': 'off',
         // '@typescript-eslint/lines-between-class-members': ['error', 'always'],
-        "import/no-unresolved": [
-            2, { ignore: ['userConfig$']},
-        ],
 
+        'no-continue': 'off',
 
         'prettier-vue/prettier': ['error', {
             'singleQuote': true,
@@ -122,7 +120,17 @@ module.exports = {
         ],
     },
     globals: {
-        'UserConfig': true,
         'AutoTestBaseSystems': true,
+        'IS_PRODUCTION': true,
+        'SENTRY_DSN': true,
+        'COMMIT_HASH': true,
     },
+    overrides: [
+        {
+            files: ['*.tsx'],
+            rules: {
+                '@typescript-eslint/no-unused-vars': 'off',
+            }
+        }
+    ]
 }

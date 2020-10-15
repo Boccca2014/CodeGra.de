@@ -12,7 +12,12 @@ from configparser import ConfigParser
 
 from typing_extensions import Literal, TypedDict
 
+import cg_dt_utils
+import cg_request_args as rqa
 import cg_object_storage
+
+if t.TYPE_CHECKING:
+    import psef.models
 
 cur_dir = os.path.dirname(os.path.abspath(__file__))
 config_file = os.getenv(
@@ -60,35 +65,38 @@ AutoTestConfig = TypedDict(
 )
 AutoTestHosts = t.Mapping[str, AutoTestConfig]
 
+
+class BaseReleaseInfo(TypedDict):
+    commit: str
+
+
+class ReleaseInfo(BaseReleaseInfo, total=False):
+    version: str
+    date: cg_dt_utils.DatetimeWithTimezone
+    message: str
+    ui_preference: 'psef.models.UIPreferenceName'
+
+
 FlaskConfig = TypedDict(
     'FlaskConfig', {
-        'FEATURES': t.Mapping['psef.features.Feature', bool],
-        '__S_FEATURES': t.Mapping[str, bool],
         'IS_AUTO_TEST_RUNNER': bool,
         'AUTO_TEST_PASSWORD': str,
         'AUTO_TEST_DISABLE_ORIGIN_CHECK': bool,
-        'AUTO_TEST_MAX_TIME_COMMAND': int,
-        'AUTO_TEST_MAX_TIME_TOTAL_RUN': int,
         'AUTO_TEST_POLL_TIME': int,
         'AUTO_TEST_OUTPUT_LIMIT': int,
         'AUTO_TEST_MEMORY_LIMIT': str,
         'AUTO_TEST_BDEVTYPE': str,
-        'AUTO_TEST_HEARTBEAT_INTERVAL': int,
-        'AUTO_TEST_HEARTBEAT_MAX_MISSED': int,
         'AUTO_TEST_TEMPLATE_CONTAINER': t.Optional[str],
         'AUTO_TEST_BROKER_URL': str,
         'AUTO_TEST_BROKER_PASSWORD': str,
         'AUTO_TEST_CF_SLEEP_TIME': float,
         'AUTO_TEST_CF_EXTRA_AMOUNT': int,
-        'AUTO_TEST_MAX_JOBS_PER_RUNNER': int,
         'AUTO_TEST_MAX_OUTPUT_TAIL': int,
-        'AUTO_TEST_MAX_CONCURRENT_BATCH_RUNS': int,
         'AUTO_TEST_STARTUP_COMMAND': t.Optional[str],
         'AUTO_TEST_RUNNER_INSTANCE_PASS': str,
         'AUTO_TEST_RUNNER_CONTAINER_URL': t.Optional[str],
-        'CUR_COMMIT': str,
-        'VERSION': str,
         'TESTING': bool,
+        'RELEASE_INFO': ReleaseInfo,
         'Celery': CeleryConfig,
         'LTI_CONSUMER_KEY_SECRETS': t.Mapping[str, t.Tuple[str, t.List[str]]],
         'LTI1.3_MIN_POLL_INTERVAL': int,
@@ -97,13 +105,8 @@ FlaskConfig = TypedDict(
         'SECRET_KEY': str,
         'LTI_SECRET_KEY': str,
         'HEALTH_KEY': None,
-        'JWT_ACCESS_TOKEN_EXPIRES': int,
         'UPLOAD_DIR': str,
         'MIRROR_UPLOAD_DIR': str,
-        'MAX_NUMBER_OF_FILES': int,
-        'MAX_FILE_SIZE': int,
-        'MAX_NORMAL_UPLOAD_SIZE': int,
-        'MAX_LARGE_UPLOAD_SIZE': int,
         'DEFAULT_ROLE': str,
         '_DEFAULT_COURSE_ROLES': t.Mapping[str, t.Mapping],
         'DEFAULT_SSO_ROLE': str,
@@ -114,7 +117,6 @@ FlaskConfig = TypedDict(
         'JAVA_PATH': str,
         'JPLAG_JAR': str,
         'JPLAG_SUPPORTED_LANGUAGES': t.Mapping[str, str],
-        'SITE_EMAIL': str,
         'MAIL_SERVER': str,
         'MAIL_PORT': int,
         'MAIL_USE_TLS': bool,
@@ -123,8 +125,6 @@ FlaskConfig = TypedDict(
         'MAIL_PASSWORD': str,
         'MAIL_DEFAULT_SENDER': t.Tuple[str, str],
         'MAIL_MAX_EMAILS': int,
-        'RESET_TOKEN_TIME': float,
-        'SETTING_TOKEN_TIME': float,
         'EMAIL_TEMPLATE': str,
         'REMINDER_TEMPLATE': str,
         'GRADER_STATUS_TEMPLATE': str,
@@ -135,16 +135,11 @@ FlaskConfig = TypedDict(
         'DIGEST_NOTIFICATION_TEMPLATE_FILE': t.Optional[str],
         'EXAM_LOGIN_TEMPLATE_FILE': t.Optional[str],
         'EXAM_LOGIN_SUBJECT': str,
-        'EXAM_LOGIN_MAX_LENGTH': datetime.timedelta,
-        'MIN_PASSWORD_SCORE': int,
         'CHECKSTYLE_PROGRAM': t.List[str],
         'PMD_PROGRAM': t.List[str],
         'ESLINT_PROGRAM': t.List[str],
         'PYLINT_PROGRAM': t.List[str],
         'FLAKE8_PROGRAM': t.List[str],
-        '_USING_SQLITE': str,
-        '_TRANSIP_PRIVATE_KEY_FILE': str,
-        '_TRANSIP_USERNAME': str,
         'ADMIN_USER': t.Optional[str],
         'GIT_CLONE_PROGRAM': t.List[str],
         'SESSION_COOKIE_SAMESITE': Literal['None', 'Strict', 'Lax'],
@@ -152,8 +147,8 @@ FlaskConfig = TypedDict(
         'SENTRY_DSN': t.Optional[str],
         'MIN_FREE_DISK_SPACE': cg_object_storage.FileSize,
         'REDIS_CACHE_URL': str,
-        'LOGIN_TOKEN_BEFORE_TIME': t.Sequence[datetime.timedelta],
         'RATELIMIT_STORAGE_URL': t.Optional[str],
+        'JSON_SORT_KEYS': bool,
     },
     total=True
 )
@@ -207,7 +202,6 @@ def set_int(
     val = int(default if val is None else val)
     ensure_between(item, val, min, max)
     out[item] = val
-
 
 
 def set_str(
@@ -265,9 +259,6 @@ set_str(
     CONFIG, backend_ops, 'SQLALCHEMY_DATABASE_URI',
     os.getenv('SQLALCHEMY_DATABASE_URI', 'postgresql:///codegrade_dev')
 )
-CONFIG['_USING_SQLITE'] = CONFIG['SQLALCHEMY_DATABASE_URI'].startswith(
-    'sqlite'
-)
 CONFIG['DATABASE_CONNECT_OPTIONS'] = {}
 
 # Secret key for signing JWT tokens.
@@ -298,11 +289,6 @@ if CONFIG['HEALTH_KEY'] is None:
 
 CONFIG['JWT_ALGORITHM'] = 'HS512'
 
-set_float(CONFIG, backend_ops, 'JWT_ACCESS_TOKEN_EXPIRES', 30)
-CONFIG['JWT_ACCESS_TOKEN_EXPIRES'] = datetime.timedelta(
-    days=CONFIG['JWT_ACCESS_TOKEN_EXPIRES']
-)
-
 # Path for storage of uploaded files.
 # WARNING: Make sure these directories exist.
 set_str(
@@ -323,16 +309,6 @@ if not os.path.isdir(CONFIG['MIRROR_UPLOAD_DIR']):
         f'The given uploads directory "{CONFIG["MIRROR_UPLOAD_DIR"]}"'
         ' does not exist',
     )
-
-# Maximum size in bytes for single upload request
-set_int(CONFIG, backend_ops, 'MAX_FILE_SIZE', 50 * 2 ** 20)  # default: 50MB
-set_int(
-    CONFIG, backend_ops, 'MAX_NORMAL_UPLOAD_SIZE', 64 * 2 ** 20
-)  # default: 64MB
-set_int(
-    CONFIG, backend_ops, 'MAX_LARGE_UPLOAD_SIZE', 128 * 2 ** 20
-)  # default: 128MB
-set_int(CONFIG, backend_ops, 'MAX_NUMBER_OF_FILES', 1 << 16)
 
 with open(
     os.path.join(CONFIG['BASE_DIR'], 'seed_data', 'course_roles.json'), 'r'
@@ -366,14 +342,51 @@ CONFIG['MIN_FREE_DISK_SPACE'] = cg_object_storage.FileSize(min_free)
 
 
 def _set_version() -> None:
-    CONFIG['CUR_COMMIT'] = subprocess.check_output(
+    cur_commit = subprocess.check_output(
         ['git', 'rev-parse', 'HEAD'],
         text=True,
     ).strip()
-    CONFIG['VERSION'] = subprocess.check_output(
-        ['git', 'describe', '--abbrev=0', '--tags'],
+    version = subprocess.check_output(
+        ['git', 'rev-parse', '--abbrev-ref', 'HEAD'],
         text=True,
     ).strip()
+
+    # Always do the parsing, so we are sure the file is valid.
+    with open(
+        os.path.join(
+            os.path.dirname(__file__), 'seed_data', 'release_notes.json'
+        ), 'r'
+    ) as release_notes_f:
+        raw_release_notes = json.load(release_notes_f)
+
+    import psef.models
+    release_notes = rqa.LookupMapping(
+        rqa.FixedMapping(
+            rqa.RequiredArgument('date', rqa.RichValue.DateTime, ''),
+            rqa.RequiredArgument('message', rqa.SimpleValue.str, ''),
+            rqa.RequiredArgument('version', rqa.SimpleValue.str, ''),
+            rqa.RequiredArgument(
+                'ui_preference', rqa.EnumValue(psef.models.UIPreferenceName),
+                ''
+            ),
+        )
+    ).try_parse(raw_release_notes)
+    newest_release = max(release_notes.values(), key=lambda x: x.date)
+
+    if (
+        'stable' in version or
+        # Also show this message for release fixes branches.
+        re.search(r'release.*fixes', version) is not None
+    ):
+        CONFIG['RELEASE_INFO'] = {
+            'commit': cur_commit,
+            'version': newest_release.version,
+            'message': newest_release.message,
+            'date': newest_release.date,
+            'ui_preference': newest_release.ui_preference,
+        }
+    else:
+        CONFIG['RELEASE_INFO'] = {'commit': cur_commit}
 
 
 try:
@@ -391,9 +404,6 @@ except subprocess.CalledProcessError:
     _set_version()
 del _set_version
 
-CONFIG['SITE_EMAIL'] = frontend_ops.get('EMAIL', 'info@codegra.de')
-assert isinstance(CONFIG['SITE_EMAIL'], str)
-
 # Set email settings
 set_str(CONFIG, backend_ops, 'MAIL_SERVER', 'localhost')
 set_int(CONFIG, backend_ops, 'MAIL_PORT', 25)
@@ -407,14 +417,7 @@ sender = (
 )
 CONFIG['MAIL_DEFAULT_SENDER'] = sender
 set_int(CONFIG, backend_ops, 'MAIL_MAX_EMAILS', 100)
-set_float(
-    CONFIG, backend_ops, 'RESET_TOKEN_TIME',
-    datetime.timedelta(days=1).total_seconds()
-)
-set_float(
-    CONFIG, backend_ops, 'SETTING_TOKEN_TIME',
-    datetime.timedelta(days=2).total_seconds()
-)
+
 set_str(
     CONFIG,
     backend_ops,
@@ -512,8 +515,6 @@ Your CodeGrade login link for the {{ assignment.name }} in the {{ assignment.cou
 
 set_str(CONFIG, backend_ops, 'EXAM_LOGIN_TEMPLATE_FILE', None)
 
-set_float(CONFIG, backend_ops, 'MIN_PASSWORD_SCORE', 3, min=0, max=4)
-
 set_list(
     CONFIG, backend_ops, 'CHECKSTYLE_PROGRAM', [
         'java',
@@ -582,29 +583,9 @@ set_list(
     ]
 )
 
-set_str(CONFIG, backend_ops, '_TRANSIP_PRIVATE_KEY_FILE', '')
-set_str(CONFIG, backend_ops, '_TRANSIP_USERNAME', '')
-
 set_str(CONFIG, backend_ops, 'ADMIN_USER', default=None)
 
 set_str(CONFIG, backend_ops, 'REDIS_CACHE_URL', None)
-
-login_before_str = backend_ops.get('LOGIN_TOKEN_BEFORE_TIME', None)
-if login_before_str:
-    login_before = [
-        datetime.timedelta(seconds=int(x.strip()))
-        for x in login_before_str.split(',')
-    ]
-else:
-    # This default is also hard coded in `build/userConfig.js`
-    login_before = [datetime.timedelta(days=2), datetime.timedelta(minutes=30)]
-CONFIG['LOGIN_TOKEN_BEFORE_TIME'] = sorted(login_before, reverse=True)
-
-max_login_length = backend_ops.getfloat(
-    'EXAM_LOGIN_MAX_LENGTH',
-    fallback=datetime.timedelta(hours=12).total_seconds()
-)
-CONFIG['EXAM_LOGIN_MAX_LENGTH'] = datetime.timedelta(seconds=max_login_length)
 
 set_str(CONFIG, backend_ops, 'RATELIMIT_STORAGE_URL', 'memory://')
 
@@ -729,31 +710,23 @@ else:
 
 set_bool(CONFIG, auto_test_ops, 'IS_AUTO_TEST_RUNNER', False)
 
-set_int(CONFIG, auto_test_ops, 'AUTO_TEST_MAX_TIME_COMMAND', 5 * 60)
-set_int(CONFIG, auto_test_ops, 'AUTO_TEST_MAX_TIME_TOTAL_RUN', 1440)
+# These are all variables defined for the runner
 set_int(CONFIG, auto_test_ops, 'AUTO_TEST_POLL_TIME', 30)
 set_int(CONFIG, auto_test_ops, 'AUTO_TEST_OUTPUT_LIMIT', 32768)
 set_int(CONFIG, auto_test_ops, 'AUTO_TEST_MAX_OUTPUT_TAIL', 2 ** 13)
 set_str(CONFIG, auto_test_ops, 'AUTO_TEST_MEMORY_LIMIT', '512M')
 set_str(CONFIG, auto_test_ops, 'AUTO_TEST_BDEVTYPE', 'best')
-set_int(CONFIG, auto_test_ops, 'AUTO_TEST_HEARTBEAT_INTERVAL', 10)
-set_int(CONFIG, auto_test_ops, 'AUTO_TEST_HEARTBEAT_MAX_MISSED', 6)
 set_str(CONFIG, auto_test_ops, 'AUTO_TEST_TEMPLATE_CONTAINER', None)
+set_str(CONFIG, auto_test_ops, 'AUTO_TEST_STARTUP_COMMAND', None)
+set_float(CONFIG, auto_test_ops, 'AUTO_TEST_CF_SLEEP_TIME', 5.0)
+set_str(CONFIG, auto_test_ops, 'AUTO_TEST_RUNNER_INSTANCE_PASS', '')
+set_str(CONFIG, auto_test_ops, 'AUTO_TEST_RUNNER_CONTAINER_URL', None)
+set_int(CONFIG, auto_test_ops, 'AUTO_TEST_CF_EXTRA_AMOUNT', 20)
+
 set_str(CONFIG, auto_test_ops, 'AUTO_TEST_BROKER_URL', '')
 set_str(CONFIG, auto_test_ops, 'AUTO_TEST_BROKER_PASSWORD', None)
 set_str(CONFIG, auto_test_ops, 'AUTO_TEST_PASSWORD', None)
 set_bool(CONFIG, auto_test_ops, 'AUTO_TEST_DISABLE_ORIGIN_CHECK', False)
-set_int(CONFIG, auto_test_ops, 'AUTO_TEST_MAX_JOBS_PER_RUNNER', 25)
-assert CONFIG['AUTO_TEST_MAX_JOBS_PER_RUNNER'
-              ] > 0, "Max jobs per runner should be higher than 0"
-set_int(CONFIG, auto_test_ops, 'AUTO_TEST_MAX_CONCURRENT_BATCH_RUNS', 3)
-set_str(CONFIG, auto_test_ops, 'AUTO_TEST_STARTUP_COMMAND', None)
-
-set_float(CONFIG, auto_test_ops, 'AUTO_TEST_CF_SLEEP_TIME', 5.0)
-set_int(CONFIG, auto_test_ops, 'AUTO_TEST_CF_EXTRA_AMOUNT', 20)
-
-set_str(CONFIG, auto_test_ops, 'AUTO_TEST_RUNNER_INSTANCE_PASS', '')
-set_str(CONFIG, auto_test_ops, 'AUTO_TEST_RUNNER_CONTAINER_URL', None)
 
 if CONFIG['IS_AUTO_TEST_RUNNER']:
     assert CONFIG['SQLALCHEMY_DATABASE_URI'] == 'postgresql:///codegrade_dev'

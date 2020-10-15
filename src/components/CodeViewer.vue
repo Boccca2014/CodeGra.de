@@ -84,6 +84,7 @@ export default {
     computed: {
         ...mapGetters('pref', ['fontSize']),
         ...mapGetters('feedback', ['getFeedback']),
+        ...mapGetters('siteSettings', ['getSetting']),
 
         canSeeAssignee() {
             return this.$utils.getProps(
@@ -123,7 +124,7 @@ export default {
             const feedback = this.submission.feedback;
             const fileId = this.fileId;
 
-            if (!this.$userConfig.features.linters || !feedback || !this.studentMode) {
+            if (!this.getSetting('LINTERS_ENABLED') || !feedback || !this.studentMode) {
                 return {};
             }
 
@@ -226,12 +227,14 @@ export default {
         loadSettings() {
             this.selectedLanguage = null;
             return this.$hlanguageStore.getItem(this.fileId).then(lang => {
-                if (lang !== null) {
+                if (lang != null) {
                     this.$emit('language', lang);
                     this.selectedLanguage = lang;
                 } else {
                     this.selectedLanguage = 'Default';
                 }
+            }, () => {
+                this.selectedLanguage = 'Default';
             });
         },
 

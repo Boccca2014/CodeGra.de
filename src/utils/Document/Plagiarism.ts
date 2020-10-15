@@ -126,7 +126,7 @@ function makeSubSection(match: PlagMatch, idx: number, opts: PlagiarismOptions):
 export class PlagiarismDocument {
     constructor(private readonly backend: keyof typeof backends) {}
 
-    render(matches: PlagMatch[], opts: PlagiarismOptions): Promise<Buffer> {
+    render(matches: PlagMatch[], opts: PlagiarismOptions): Promise<ArrayBuffer> {
         const blocks = mapCustom(
             matches,
             (match, i) => makeSubSection(match, i, opts),

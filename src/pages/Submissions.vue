@@ -400,6 +400,7 @@ export default {
         ...mapGetters('rubrics', { allRubrics: 'rubrics' }),
         ...mapGetters('submissions', ['getSubmissionsByUser', 'getLatestSubmissions']),
         ...mapGetters('users', ['getUser', 'getGroupInGroupSetOfUser']),
+        ...mapGetters('siteSettings', { getSiteSetting: 'getSetting' }),
 
         loggedInUser() {
             return this.getUser(this.userId);
@@ -709,7 +710,7 @@ export default {
         },
 
         canEmailStudents() {
-            return (UserConfig.features.email_students &&
+            return (this.getSiteSetting('EMAIL_STUDENTS_ENABLED') &&
                     this.$utils.getProps(this.coursePermissions, false, 'can_email_students'));
         },
     },

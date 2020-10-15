@@ -34,17 +34,6 @@ _SIMPLE_TYPE_NAME_LOOKUP = {
 }
 
 
-def _expand_anyof(anyof_lst: t.Iterable[t.Mapping[str, t.Any]]
-                  ) -> t.List[t.Mapping[str, t.Any]]:
-    res = []
-    for opt in anyof_lst:
-        if 'anyOf' in opt:
-            res.extend(_expand_anyof(opt['anyOf']))
-        else:
-            res.append(opt)
-    return res
-
-
 @contextlib.contextmanager
 def _disabled_auth() -> t.Generator[None, None, None]:
     try:
@@ -120,6 +109,18 @@ class OpenAPISchema:
         self._tags: t.Dict[str, _Tag] = {}
         self._no_pandoc = no_pandoc
         self._set_initial_schemas()
+
+    def expand_anyof(self, anyof_lst: t.Iterable[t.Mapping[str, t.Any]]
+                     ) -> t.List[t.Mapping[str, t.Any]]:
+        """Expand nested ``anyOf``s.
+        """
+        res = []
+        for opt in anyof_lst:
+            if 'anyOf' in opt:
+                res.extend(self.expand_anyof(opt['anyOf']))
+            else:
+                res.append(opt)
+        return res
 
     def make_comment(self, comment: str) -> str:
         """Convert the given string to a description for Open API.
@@ -354,10 +355,13 @@ class OpenAPISchema:
 
             if base_as_json is None:
                 result = {
-                    'type': 'object', 'properties': properties, 'required': [
+                    'type': 'object',
+                    'properties': properties,
+                    'required': [
                         p for p in typ.__annotations__.keys()
                         if p in typ.__required_keys__
-                    ], 'description': self.make_comment(typ.__doc__ or '')
+                    ],
+                    'description': self.make_comment(typ.__doc__ or ''),
                 }
                 if not result['required']:
                     result.pop('required')
@@ -386,15 +390,23 @@ class OpenAPISchema:
         elif isinstance(_typ, EnumMeta):
             enum: t.Type[Enum] = _typ
             result = {
-                'type': 'string', 'enum': [e.name for e in enum],
-                'description': self.make_comment(enum.__doc__ or '')
+                'type': 'string',
+                'enum': [e.name for e in enum],
+                'description': self.make_comment(enum.__doc__ or ''),
             }
         else:
             raise AssertionError('Cannot make scheme for {}'.format(_typ))
 
         if force_inline:
             return result
-        self._schemas[schema_name] = result
+        return self.add_as_schema(schema_name, result)
+
+    def add_as_schema(self, schema_name: str,
+                      schema: t.Mapping[str, t.Any]) -> t.Mapping[str, t.Any]:
+        """Add the given ``schema`` as a schema to this OpenAPI spec with the
+        name ``schema_name``.
+        """
+        self._schemas[schema_name] = schema
         return {'$ref': f'#/components/schemas/{schema_name}'}
 
     def _typ_to_schema(  # pylint: disable=too-many-return-statements,too-many-branches
@@ -452,7 +464,7 @@ class OpenAPISchema:
                 nullable = False
                 if type(None) in typ.__args__:
                     nullable = True
-                any_of = _expand_anyof(
+                any_of = self.expand_anyof(
                     self._typ_to_schema(
                         arg, do_extended=do_extended, inline=inline, done=done
                     ) for arg in typ.__args__ if arg != type(None)
@@ -545,10 +557,17 @@ class OpenAPISchema:
                     'type': 'string',
                     'enum': list(typ.__args__),
                 }
+            elif str(typ).startswith('<function NewType.<locals>.new_type'):
+                return self._typ_to_schema(
+                    typ.__supertype__,
+                    do_extended=do_extended,
+                    inline=inline,
+                    done=done,
+                )
             else:
                 raise AssertionError(
-                    'Unknown type found: {} (path: {})'.format(
-                        typ, '.'.join(map(str, done.keys()))
+                    'Unknown type found: {} (origin: {}) (path: {})'.format(
+                        typ, origin, '.'.join(map(str, done.keys()))
                     )
                 )
         finally:
@@ -593,7 +612,7 @@ class OpenAPISchema:
                 url_parts.append(part)
                 continue
             part = part[1:-1]
-            schema = {}
+            schema = {'type': 'string'}
             if ':' in part:
                 typ, part = part.split(':')
                 if typ == 'int':
@@ -601,8 +620,8 @@ class OpenAPISchema:
                 elif typ == 'uuid':
                     schema = {'type': 'string', 'format': 'uuid'}
                 elif typ == 'path':
-                    pass
-                else:
+                    schema = {'type': 'string'}
+                elif typ not in ('str', 'string'):
                     raise AssertionError(
                         'Unknown url type encountered: {}'.format(typ)
                     )

@@ -30,7 +30,7 @@
     </div>
 
     <div class="feedback-area-wrapper" v-if="showFeedback"
-             slot="secondPane">
+         slot="secondPane">
             <feedback-area
                 class="py-1"
                 @updated="updateSize"
@@ -312,5 +312,6 @@ export default {
 }
 .floating-feedback-button.pane-rs > .Pane.row {
     margin: 0;
+    overflow: auto;
 }
 </style>

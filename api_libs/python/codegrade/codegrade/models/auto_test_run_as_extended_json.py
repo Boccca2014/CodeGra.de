@@ -50,7 +50,7 @@ class AutoTestRunAsExtendedJSON(AutoTestRunAsJSON):
         base.pop("raw_data")
         results = []
         for results_item_data in d.get("results") or []:
-            results_item = AutoTestResultAsJSON.from_dict(results_item_data)
+            results_item = AutoTestResultAsJSON.from_dict(cast(Dict[str, Any], results_item_data))
 
             results.append(results_item)
 

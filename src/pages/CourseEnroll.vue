@@ -62,7 +62,7 @@
 <script lang="ts">
 import { Vue, Component, Watch } from 'vue-property-decorator';
 import { mapGetters, mapActions } from 'vuex';
-import { CoursesStore } from '@/store/modules/courses';
+import { CoursesStore, SiteSettingsStore } from '@/store';
 
 // @ts-ignore
 import LocalHeader from '@/components/LocalHeader';
@@ -135,7 +135,7 @@ export default class CourseEnroll extends Vue {
 
     get allowRegister() {
         // eslint-disable-next-line camelcase
-        return this.$userConfig.features.course_register && (this.link?.allow_register ?? false);
+        return SiteSettingsStore.getSetting()('COURSE_REGISTER_ENABLED') && (this.link?.allow_register ?? false);
     }
 
     @Watch('directEnroll', { immediate: true })

@@ -1182,7 +1182,7 @@ export default {
         qualityComments: {
             immediate: true,
             handler(newVal) {
-                if (newVal) {
+                if (newVal && newVal.length > 0) {
                     this.loadFileTree();
                 }
             },
@@ -1201,7 +1201,7 @@ export default {
         },
 
         submissionId() {
-            return this.result.submissionId;
+            return this.$utils.getProps(this.result, null, 'submissionId');
         },
 
         stepResultAttachment() {

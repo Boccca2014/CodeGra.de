@@ -9,7 +9,7 @@ SPDX-License-Identifier: AGPL-3.0-only
 import typing as t
 
 from . import api
-from .. import auth, models, helpers, features, current_user
+from .. import auth, models, helpers, current_user, site_settings
 from ..helpers import (
     JSONResponse, EmptyResponse, ExtendedJSONResponse, jsonify, get_or_404,
     get_in_or_error, extended_jsonify, make_empty_response
@@ -19,7 +19,7 @@ from ..permissions import CoursePermission as CPerm
 
 
 @api.route('/group_sets/<int:group_set_id>/group', methods=['POST'])
-@features.feature_required(features.Feature.GROUPS)
+@site_settings.Opt.GROUPS_ENABLED.required
 @auth.login_required
 def create_group(group_set_id: int) -> ExtendedJSONResponse[models.Group]:
     """Create a group for the given group set.
@@ -71,7 +71,7 @@ def create_group(group_set_id: int) -> ExtendedJSONResponse[models.Group]:
 
 
 @api.route('/group_sets/<int:group_set_id>/groups/', methods=['GET'])
-@features.feature_required(features.Feature.GROUPS)
+@site_settings.Opt.GROUPS_ENABLED.required
 @auth.login_required
 def get_groups(group_set_id: int
                ) -> ExtendedJSONResponse[t.Sequence[models.Group]]:
@@ -105,7 +105,7 @@ def get_groups(group_set_id: int
 
 
 @api.route('/group_sets/<int:group_set_id>', methods=['GET'])
-@features.feature_required(features.Feature.GROUPS)
+@site_settings.Opt.GROUPS_ENABLED.required
 @auth.login_required
 def get_group_set(group_set_id: int) -> JSONResponse[models.GroupSet]:
     """Return the given :class:`.models.GroupSet`.
@@ -121,7 +121,7 @@ def get_group_set(group_set_id: int) -> JSONResponse[models.GroupSet]:
 
 
 @api.route('/group_sets/<int:group_set_id>', methods=['DELETE'])
-@features.feature_required(features.Feature.GROUPS)
+@site_settings.Opt.GROUPS_ENABLED.required
 @auth.login_required
 def delete_group_set(group_set_id: int) -> EmptyResponse:
     """Delete the given :class:`.models.GroupSet`.

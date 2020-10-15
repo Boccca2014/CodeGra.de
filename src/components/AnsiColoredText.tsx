@@ -13,6 +13,6 @@ export default tsx.component({
     },
 
     render(h, ctx): VNode {
-        return <pre domPropsInnerHTML={ansiToHTML(ctx.props.text)}/>;
+        return <pre domPropsInnerHTML={ansiToHTML(ctx.props.text)} />;
     },
 });

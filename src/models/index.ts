@@ -17,5 +17,6 @@ export * from './task_result';
 export * from './sso_provider';
 export * from './grader';
 export * from './course';
+export * from './siteSettings';
 export * from './ui_prefs';
 export * from './quality_comments';

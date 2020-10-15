@@ -203,9 +203,7 @@ def test_register_user(
     username, test_client, error_template, name, password, email, request, app,
     session, monkeypatch, taken
 ):
-    monkeypatch.setitem(
-        app.config['FEATURES'], p.features.Feature.REGISTER, True
-    )
+    p.site_settings.Opt.REGISTER_ENABLED.set_and_commit_value(True)
 
     data_err = request.node.get_closest_marker('data_error')
     code = 200 if data_err is None else data_err.kwargs['error']

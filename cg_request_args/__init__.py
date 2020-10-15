@@ -28,6 +28,7 @@ from werkzeug.datastructures import FileStorage
 import cg_maybe
 from cg_helpers import readable_join
 from cg_dt_utils import DatetimeWithTimezone
+from cg_object_storage.types import FileSize
 
 logger = structlog.get_logger()
 
@@ -249,10 +250,11 @@ _ParserT = t.TypeVar('_ParserT', bound='_Parser')
 
 
 class _Parser(t.Generic[_T_COV]):
-    __slots__ = ('__description', )
+    __slots__ = ('__description', '__schema_name')
 
     def __init__(self) -> None:
         self.__description: Final[t.Optional[str]] = None
+        self.__schema_name: Final[t.Optional[str]] = None
 
     def add_description(self: _ParserT, description: str) -> _ParserT:
         """Add a description to the parser.
@@ -265,6 +267,17 @@ class _Parser(t.Generic[_T_COV]):
         # We cannot assign to this property normally as it is final.
         # pylint: disable=protected-access
         res.__description = description  # type: ignore[misc]
+        return res
+
+    def as_schema(self: _ParserT, name: str) -> _ParserT:
+        """Add this parser as a separate model to the OpenAPI spec.
+
+        :param name: The name of the model in the spec.
+        """
+        res = copy.copy(self)
+        # We cannot assign to this property normally as it is final.
+        # pylint: disable=protected-access
+        res.__schema_name = name  # type: ignore[misc]
         return res
 
     @abc.abstractmethod
@@ -296,9 +309,14 @@ class _Parser(t.Generic[_T_COV]):
         if self.__description is not None:
             desc = schema.make_comment(self.__description)
             if '$ref' in res:
-                return {'description': desc, 'allOf': [res]}
-            return {**res, 'description': desc}
-        return res
+                res = {'description': desc, 'allOf': [res]}
+            else:
+                res = {**res, 'description': desc}
+
+        if self.__schema_name is None:
+            return res
+        else:
+            return schema.add_as_schema(self.__schema_name, res)
 
     def __or__(self: _Parser[_T],
                other: _Parser[_Y]) -> _Parser[t.Union[_T, _Y]]:
@@ -404,7 +422,10 @@ class Union(t.Generic[_T, _Y], _Parser[t.Union[_T, _Y]]):
         return self._parser.describe()
 
     def _to_open_api(self, schema: 'OpenAPISchema') -> t.Mapping[str, t.Any]:
-        return self._parser.to_open_api(schema)
+        res = self._parser.to_open_api(schema)
+        if 'anyOf' in res:
+            res = {**res, 'anyOf': schema.expand_anyof(res['anyOf'])}
+        return res
 
     def try_parse(self, value: object) -> t.Union[_T, _Y]:
         return self._parser.try_parse(value)
@@ -561,7 +582,14 @@ class _SimpleUnion(t.Generic[_SimpleUnionT], _Parser[_SimpleUnionT]):
 
 
 class Lazy(t.Generic[_T], _Parser[_T]):
+    """A wrapping parser that allows you to construct circular parsers.
+
+    The method ``make_parser`` will be executed when you first try to parse
+    something. It will only be executed once.
+    """
+
     def __init__(self, make_parser: t.Callable[[], _Parser[_T]]):
+        super().__init__()
         self._make_parser = make_parser
 
     @cached_property
@@ -686,7 +714,7 @@ class _RichUnion(t.Generic[_T, _Y], _Parser[t.Union[_T, _Y]]):
                 )
 
 
-class List(t.Generic[_T], _Parser[t.List[_T]]):
+class List(t.Generic[_T], _Parser[t.Sequence[_T]]):
     """A parser for a list homogeneous values.
     """
     __slots__ = ('__el_type', )
@@ -969,9 +997,9 @@ class FixedMapping(
 
     def __init__(self, *arguments: object) -> None:
         super().__init__(*arguments)
-        self.__tag: t.Optional[t.Tuple[str, str]] = None
+        self.__tag: t.Optional[t.Tuple[str, object]] = None
 
-    def add_tag(self, key: str, value: str) -> FixedMapping[_BaseDictT]:
+    def add_tag(self, key: str, value: object) -> FixedMapping[_BaseDictT]:
         """Add a tag to this mapping.
 
         This tag will always be added to the final mapping after parsing.
@@ -1229,7 +1257,7 @@ class RichValue:
 
     Password = _Password()
 
-    class _TimeDelta(_Transform[datetime.timedelta, t.Union[str, int]]):
+    class _TimeDelta(_Transform[datetime.timedelta, t.Union[str, float]]):
         # The regex below are copied from Pydantic
         _ISO8601_DURATION_RE = re.compile(
             r'^(?P<sign>[-+]?)'
@@ -1245,7 +1273,7 @@ class RichValue:
 
         def __init__(self) -> None:
             super().__init__(
-                SimpleValue.str | SimpleValue.int,
+                SimpleValue.str | SimpleValue.float,
                 self.__to_timedelta,
                 'TimeDelta',
             )
@@ -1263,9 +1291,9 @@ class RichValue:
             }
 
         def __to_timedelta(
-            self, value: t.Union[str, int]
+            self, value: t.Union[str, float]
         ) -> datetime.timedelta:
-            if isinstance(value, int):
+            if isinstance(value, float):
                 return datetime.timedelta(seconds=value)
             return self.__str_to_timedelta(value)
 
@@ -1287,6 +1315,50 @@ class RichValue:
             )
 
     TimeDelta = _TimeDelta()
+
+    class _FileSize(_Transform[FileSize, t.Union[str, int]]):
+        _SIZE_RE = re.compile(r'^(?P<amount>\d+)(?P<unit>(?:k|m|g)?b)$')
+        _KB = 1 << 10
+        _MB = _KB << 10
+        _GB = _MB << 10
+        _SIZE_LOOKUP = {
+            'b': 1,
+            'kb': _KB,
+            'mb': _MB,
+            'gb': _GB,
+        }
+
+        def __init__(self) -> None:
+            super().__init__(
+                SimpleValue.str | SimpleValue.int,
+                self.__to_size,
+                'FileSize',
+            )
+
+        def __to_size(self, value: t.Union[int, str]) -> FileSize:
+            if isinstance(value, int):
+                return FileSize(value)
+
+            match = self._SIZE_RE.match(value)
+            if match is None:
+                raise SimpleParseError(self, value)
+            amount = int(match.group('amount'))
+            mult = self._SIZE_LOOKUP[match.group('unit')]
+            return FileSize(mult * amount)
+
+        def _to_open_api(self,
+                         schema: 'OpenAPISchema') -> t.Mapping[str, t.Any]:
+            return {
+                'anyOf': [
+                    SimpleValue.int.to_open_api(schema),
+                    {
+                        **SimpleValue.str.to_open_api(schema),
+                        'pattern': r'^\d+(k|m|g)?b$',
+                    },
+                ],
+            }
+
+    FileSize = _FileSize()
 
 
 class MultipartUpload(t.Generic[_T]):
