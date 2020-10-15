@@ -17,6 +17,7 @@ import sqlalchemy
 from typing_extensions import Literal, Protocol
 
 import cg_sqlalchemy_helpers
+import cg_sqlalchemy_helpers.mixins
 from cg_sqlalchemy_helpers.types import MySession, FilterColumn
 
 logger = structlog.get_logger()
