@@ -29,7 +29,7 @@ import 'vue-awesome/icons/plus';
 const numberOrError = (
     val: Either<Error, Maybe<number>>,
     onError: (err: string) => void,
-    onNumber: (val: number) => void,
+    onNumber: (value: number) => void,
 ) => {
     val.caseOf({
         Right(maybe) {

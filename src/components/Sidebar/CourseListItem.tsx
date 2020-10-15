@@ -13,7 +13,7 @@ import Icon from 'vue-awesome/components/Icon';
 import 'vue-awesome/icons/gear';
 
 function maybeEmit(ctx: RenderContext<{ course: models.Course }>) {
-    if (ctx.listeners['open-menu']) {
+    if (ctx.listeners['open-menu'] != null) {
         const { course } = ctx.props;
         let listeners = ctx.listeners['open-menu'];
         if (!Array.isArray(listeners)) {
@@ -66,7 +66,7 @@ export default tsx.component({
         };
 
         let badgeVariant: Variant;
-        if (store.getters['pref/darkMode']) {
+        if (store.getters['pref/darkMode'] as boolean) {
             badgeVariant = selected ? 'dark' : 'light';
         } else {
             badgeVariant = selected ? 'light' : 'primary';

@@ -140,10 +140,10 @@ export namespace FeedbackStore {
             {
                 assignmentId,
                 submissionId,
-                force,
+                force = false,
             }: { assignmentId: number; submissionId: number; force?: boolean },
         ) => {
-            if (!force && context.getters.getFeedback(assignmentId, submissionId)) {
+            if (!force && _getFeedback(context.state)(assignmentId, submissionId) != null) {
                 return null;
             }
 
@@ -208,7 +208,7 @@ export namespace FeedbackStore {
             const { assignmentId, submissionId, feedback } = payload;
             FeedbackStore.loadFeedback(payload);
 
-            return api.submissions.update(submissionId, { feedback: feedback || '' }).then(res => {
+            return api.submissions.update(submissionId, { feedback: feedback ?? '' }).then(res => {
                 // eslint-disable-next-line camelcase
                 const { comment, comment_author } = res.data;
                 FeedbackStore.commitUpdateGeneralFeedback({ assignmentId, submissionId, comment });
@@ -232,11 +232,14 @@ export namespace FeedbackStore {
     export const loadInlineFeedbackByUser = moduleBuilder.dispatch(
         (context, payload: { assignmentId: number; userId: number; force?: boolean }) => {
             const { assignmentId, userId, force = false } = payload;
-            if (!force && _getSubmissionWithFeedbackByUser(context.state)(assignmentId, userId)) {
+            if (
+                !force &&
+                _getSubmissionWithFeedbackByUser(context.state)(assignmentId, userId) != null
+            ) {
                 return null;
             }
 
-            if (force || !loaders.inlineFeedbackByUser?.[assignmentId]?.[userId]) {
+            if (force || loaders.inlineFeedbackByUser?.[assignmentId]?.[userId] == null) {
                 const loader = api.assignments
                     .getCommentsByUser(assignmentId, userId)
                     .then(({ data }) => {

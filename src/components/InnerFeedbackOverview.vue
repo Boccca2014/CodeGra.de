@@ -182,7 +182,7 @@ export default class InnerFeedbackOverview extends Vue {
         }
 
         const unloadedIds = this.nonDisabledFileIds.filter(id => this.codeLines[id] == null);
-        unloadedIds.forEach(async id => {
+        return unloadedIds.map(async id => {
             const code = await this.loadCodeWithSettings(id);
             if (code != null) {
                 this.$set(this.codeLines, id, code);

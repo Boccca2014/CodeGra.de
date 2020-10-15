@@ -28,13 +28,13 @@ const PreviewableMarkdownEditor = tsx.componentFactoryOf<Events, {}>().create({
     methods: {
         renderPreview(h: CreateElement) {
             return this.$utils.ifExpr(
-                !!this.value,
-                () => <InnerMarkdownViewer markdown={this.value} class="px-3 py-2" />,
+                this.value === '',
                 () => (
                     <div class="empty px-3 py-2 text-muted font-italic">
-                        {this.$slots.empty || 'Field is empty...'}
+                        {this.$slots.empty ?? 'Field is empty...'}
                     </div>
                 ),
+                () => <InnerMarkdownViewer markdown={this.value} class="px-3 py-2" />,
             );
         },
 

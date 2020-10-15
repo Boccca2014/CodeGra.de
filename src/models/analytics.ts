@@ -61,7 +61,7 @@ export class DataSource<T extends DataSourceValue> {
 
     private workspace: Workspace;
 
-    static fromServerData<T extends DataSourceValue>(dataSource: T, workspace: Workspace) {
+    static fromServerData<Y extends DataSourceValue>(dataSource: Y, workspace: Workspace) {
         if (dataSource.name !== this.sourceName) {
             throw new TypeError('Invalid DataSource type');
         }
@@ -127,6 +127,7 @@ export class RubricSource extends DataSource<RubricDataSourceValue> {
     constructor(data: RubricDataSourceValue['data'], workspace: Workspace) {
         super(data, workspace);
 
+        // eslint-disable-next-line
         AssertionError.assert(!!this.rubric);
 
         this.updateItemPoints();
@@ -908,7 +909,7 @@ export class WorkspaceFilter {
             );
         }
 
-        if (assignees && assignees.length) {
+        if (assignees != null && assignees.length > 0) {
             result = flat1(assignees.map(a => result.map(f => f.update('assignees', [a]))));
         }
 
@@ -987,7 +988,7 @@ export class WorkspaceFilterResult {
 
         const subIds = this.submissions.submissionIds;
         this.dataSources = Object.freeze(
-            mapObject(workspace.dataSources, ds => ds && ds.filter(subIds)),
+            mapObject(workspace.dataSources, ds => ds?.filter(subIds)),
         );
 
         Object.freeze(this);

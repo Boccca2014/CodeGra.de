@@ -88,7 +88,7 @@ export namespace PeerFeedbackStore {
                 return null;
             }
 
-            if (force || !loaders.peerFeedbackConnections?.[assignmentId]?.[userId]) {
+            if (force || loaders.peerFeedbackConnections?.[assignmentId]?.[userId] == null) {
                 const loader = api.assignments
                     .getPeerFeedbackSubjects(assignmentId, userId)
                     .then(async ({ data }) => {

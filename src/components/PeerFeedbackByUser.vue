@@ -378,7 +378,7 @@ export default class PeerFeedbackByUser extends Vue {
         // eslint-disable-next-line
         this.scrollTop;
 
-        const iter = <T, Y>(
+        const iter = <T>(
             arr: ReadonlyArray<T>,
             cb: (item: T) => boolean | undefined,
         ): boolean => {

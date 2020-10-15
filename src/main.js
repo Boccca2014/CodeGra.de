@@ -456,7 +456,9 @@ Promise.all([
                         },
                     });
                 } else {
-                    setTimeout(this._checkForUpdates, 10 * 60 * 1000);
+                    setTimeout(() => {
+                        this._checkForUpdates();
+                    }, 10 * 60 * 1000);
                 }
             },
         },
@@ -479,7 +481,7 @@ Promise.all([
     // Clear some items in vuex store on CTRL-F5
     document.addEventListener(
         'keydown',
-        async event => {
+        event => {
             let isF5;
             if (event.key !== undefined) {
                 isF5 = event.key === 'F5';
@@ -491,7 +493,7 @@ Promise.all([
 
             if (isF5 && (event.ctrlKey || event.shiftKey)) {
                 event.preventDefault();
-                await app.$store.commit(`user/${mutationTypes.CLEAR_CACHE}`);
+                app.$store.commit(`user/${mutationTypes.CLEAR_CACHE}`);
                 window.location.reload(true);
             }
         },

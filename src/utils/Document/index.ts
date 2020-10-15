@@ -175,7 +175,7 @@ class LatexDocument extends DocumentBackend {
     });
 
     private static escape(input: string): string {
-        if (input && LatexDocument.reHasUnescapedLatex.test(input)) {
+        if (input !== '' && LatexDocument.reHasUnescapedLatex.test(input)) {
             const map = LatexDocument.latexEscapes;
             return input.replace(LatexDocument.reUnescapedLatex, ent => map[ent]);
         }
@@ -363,7 +363,7 @@ ${flat1(lines).join('\n')}
         // TODO: don't render caption when none given.
         let caption: string = '';
         let highlights: Highlight[] = [];
-        if (code.caption) {
+        if (code.caption != null) {
             [[caption], highlights] = this.renderContentBlock(code.caption);
         }
 

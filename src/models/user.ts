@@ -90,7 +90,7 @@ export abstract class User implements BaseUserServerData {
     /* eslint-enable lines-between-class-members */
 
     isMemberOf(group: Group | null): boolean {
-        if (!group) {
+        if (group == null) {
             return false;
         }
 

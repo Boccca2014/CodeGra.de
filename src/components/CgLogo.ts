@@ -38,7 +38,7 @@ export default Vue.extend({
             return `/static/img/${logo}.svg`;
         }
         let staticClass = 'cg-logo';
-        if (ctx.data.staticClass) {
+        if (ctx.data.staticClass !== '' && ctx.data.staticClass != null) {
             staticClass = `${staticClass} ${ctx.data.staticClass}`;
         }
 

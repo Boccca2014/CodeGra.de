@@ -4,7 +4,14 @@ module.exports = {
     root: true,
     parser: '@typescript-eslint/parser',
     parserOptions: {
-        sourceType: 'module'
+        ecmaVersion: 2018,
+        sourceType: 'module',
+        project: './tsconfig.json',
+        tsconfigRootDir: __dirname,
+        ecmaFeatures: {
+            jsx: true,
+        },
+        extraFileExtensions: ['.vue'],
     },
     env: {
         browser: true,
@@ -101,7 +108,28 @@ module.exports = {
 
         'no-continue': 'off',
 
-        "@typescript-eslint/strict-boolean-expressions": 'error',
+        '@typescript-eslint/strict-boolean-expressions': ['error', {
+            allowString: true,
+            allowNumber: false,
+            allowNullableObject: false,
+            allowNullableBoolean: false,
+            allowNullableString: false,
+            allowNullableNumber: false,
+            allowAny: false,
+        }],
+        'no-redeclare': 'off',
+        '@typescript-eslint/no-redeclare': ['error'],
+
+        "no-shadow": "off",
+        "@typescript-eslint/no-shadow": ["error"],
+
+        "@typescript-eslint/await-thenable": "error",
+        "@typescript-eslint/no-misused-promises": [
+            "error",
+            {
+                "checksConditionals": false
+            }
+        ],
 
         'prettier-vue/prettier': ['error', {
             'singleQuote': true,
@@ -133,6 +161,12 @@ module.exports = {
             rules: {
                 '@typescript-eslint/no-unused-vars': 'off',
             }
-        }
+        },
+        {
+            files: ['*.js', '*.vue'],
+            rules: {
+                '@typescript-eslint/strict-boolean-expressions': 'off',
+            },
+        },
     ]
 }
