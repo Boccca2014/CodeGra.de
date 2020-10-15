@@ -101,8 +101,6 @@ module.exports = {
 
         'no-continue': 'off',
 
-        "@typescript-eslint/strict-boolean-expressions": 'error',
-
         'prettier-vue/prettier': ['error', {
             'singleQuote': true,
             'parser': 'typescript',
