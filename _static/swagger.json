@@ -24,6 +24,264 @@
         }
     ],
     "paths": {
+        "/api/v1/settings/notification_settings/": {
+            "get": {
+                "responses": {
+                    "200": {
+                        "description": "The response if no errors occured",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/NotificationSettingJSON"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "$ref": "#/components/responses/IncorrectParametersError"
+                    },
+                    "409": {
+                        "$ref": "#/components/responses/IncorrectParametersError"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/UnauthorizedError"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/IncorrectPermissionsError"
+                    },
+                    "5XX": {
+                        "$ref": "#/components/responses/UnknownError"
+                    }
+                },
+                "summary": "Get All Notification Settings",
+                "description": "Update preferences for notifications.",
+                "tags": [
+                    "User Setting"
+                ],
+                "operationId": "user setting_get_all_notification_settings"
+            },
+            "patch": {
+                "responses": {
+                    "204": {
+                        "description": "An empty response"
+                    },
+                    "400": {
+                        "$ref": "#/components/responses/IncorrectParametersError"
+                    },
+                    "409": {
+                        "$ref": "#/components/responses/IncorrectParametersError"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/UnauthorizedError"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/IncorrectPermissionsError"
+                    },
+                    "5XX": {
+                        "$ref": "#/components/responses/UnknownError"
+                    }
+                },
+                "summary": "Patch Notification Setting",
+                "description": "Update preferences for notifications.",
+                "tags": [
+                    "User Setting"
+                ],
+                "operationId": "user setting_patch_notification_setting",
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/PatchNotificationSettingUser SettingData"
+                            }
+                        }
+                    },
+                    "required": true
+                }
+            }
+        },
+        "/api/v1/settings/ui_preferences/": {
+            "get": {
+                "responses": {
+                    "200": {
+                        "description": "The response if no errors occured",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ResultDataGetUser SettingGetAllUiPreferences"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "$ref": "#/components/responses/IncorrectParametersError"
+                    },
+                    "409": {
+                        "$ref": "#/components/responses/IncorrectParametersError"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/UnauthorizedError"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/IncorrectPermissionsError"
+                    },
+                    "5XX": {
+                        "$ref": "#/components/responses/UnknownError"
+                    }
+                },
+                "summary": "Get All Ui Preferences",
+                "description": "Get ui preferences.",
+                "tags": [
+                    "User Setting"
+                ],
+                "operationId": "user setting_get_all_ui_preferences"
+            },
+            "patch": {
+                "responses": {
+                    "204": {
+                        "description": "An empty response"
+                    },
+                    "400": {
+                        "$ref": "#/components/responses/IncorrectParametersError"
+                    },
+                    "409": {
+                        "$ref": "#/components/responses/IncorrectParametersError"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/UnauthorizedError"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/IncorrectPermissionsError"
+                    },
+                    "5XX": {
+                        "$ref": "#/components/responses/UnknownError"
+                    }
+                },
+                "summary": "Patch Ui Preference",
+                "description": "Update ui preferences.",
+                "tags": [
+                    "User Setting"
+                ],
+                "operationId": "user setting_patch_ui_preference",
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/PatchUiPreferenceUser SettingData"
+                            }
+                        }
+                    },
+                    "required": true
+                }
+            }
+        },
+        "/api/v1/site_settings/": {
+            "get": {
+                "responses": {
+                    "200": {
+                        "description": "The response if no errors occured",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "anyOf": [
+                                        {
+                                            "$ref": "#/components/schemas/Opt.AllOptsAsJSON"
+                                        },
+                                        {
+                                            "$ref": "#/components/schemas/Opt.FrontendOptsAsJSON"
+                                        }
+                                    ],
+                                    "nullable": false
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "$ref": "#/components/responses/IncorrectParametersError"
+                    },
+                    "409": {
+                        "$ref": "#/components/responses/IncorrectParametersError"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/UnauthorizedError"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/IncorrectPermissionsError"
+                    },
+                    "5XX": {
+                        "$ref": "#/components/responses/UnknownError"
+                    }
+                },
+                "summary": "Get All",
+                "description": "Get the settings for this CodeGrade instance.",
+                "tags": [
+                    "Site settings"
+                ],
+                "operationId": "site settings_get_all",
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            },
+            "patch": {
+                "responses": {
+                    "200": {
+                        "description": "The response if no errors occured",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "anyOf": [
+                                        {
+                                            "$ref": "#/components/schemas/Opt.AllOptsAsJSON"
+                                        },
+                                        {
+                                            "$ref": "#/components/schemas/Opt.FrontendOptsAsJSON"
+                                        }
+                                    ],
+                                    "nullable": false
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "$ref": "#/components/responses/IncorrectParametersError"
+                    },
+                    "409": {
+                        "$ref": "#/components/responses/IncorrectParametersError"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/UnauthorizedError"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/IncorrectPermissionsError"
+                    },
+                    "5XX": {
+                        "$ref": "#/components/responses/UnknownError"
+                    }
+                },
+                "summary": "Patch",
+                "description": "Get the settings for this CodeGrade instance.",
+                "tags": [
+                    "Site settings"
+                ],
+                "operationId": "site settings_patch",
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/PatchSite settingsData"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
         "/api/v1/assignments/": {
             "get": {
                 "responses": {
@@ -164,6 +422,43 @@
                         "bearerAuth": []
                     }
                 ]
+            }
+        },
+        "/api/v1/about": {
+            "get": {
+                "responses": {
+                    "200": {
+                        "description": "The response if no errors occured",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/AboutAsJSON"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "$ref": "#/components/responses/IncorrectParametersError"
+                    },
+                    "409": {
+                        "$ref": "#/components/responses/IncorrectParametersError"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/UnauthorizedError"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/IncorrectPermissionsError"
+                    },
+                    "5XX": {
+                        "$ref": "#/components/responses/UnknownError"
+                    }
+                },
+                "summary": "Get",
+                "description": "Get information about this CodeGrade instance.",
+                "tags": [
+                    "About"
+                ],
+                "operationId": "about_get"
             }
         },
         "/api/v1/login": {
@@ -1293,6 +1588,56 @@
                 ]
             }
         },
+        "/api/v1/settings/ui_preferences/{name}": {
+            "get": {
+                "responses": {
+                    "200": {
+                        "description": "The response if no errors occured",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "boolean",
+                                    "nullable": true
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "$ref": "#/components/responses/IncorrectParametersError"
+                    },
+                    "409": {
+                        "$ref": "#/components/responses/IncorrectParametersError"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/UnauthorizedError"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/IncorrectPermissionsError"
+                    },
+                    "5XX": {
+                        "$ref": "#/components/responses/UnknownError"
+                    }
+                },
+                "summary": "Get Ui Preference",
+                "description": "Get a single UI preferences.",
+                "tags": [
+                    "User Setting"
+                ],
+                "operationId": "user setting_get_ui_preference",
+                "parameters": [
+                    {
+                        "name": "name",
+                        "required": true,
+                        "in": "path",
+                        "style": "simple",
+                        "description": "The preference name you want to get.",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ]
+            }
+        },
         "/api/v1/courses/{courseId}/registration_links/": {
             "put": {
                 "responses": {
@@ -1926,6 +2271,14 @@
     },
     "tags": [
         {
+            "name": "User Setting",
+            "description": "This module defines all API routes with for user settings."
+        },
+        {
+            "name": "Site settings",
+            "description": "This module defines all API routes with for site settings."
+        },
+        {
             "name": "Assignment",
             "description": "All routes to used to manipulate and retrieve assignment objects and their relations."
         },
@@ -1936,6 +2289,10 @@
         {
             "name": "Course",
             "description": "All routes to used to manipulate and retrieve course objects and their relations."
+        },
+        {
+            "name": "About",
+            "description": "This module defines all API routes with the main directory \"about\". Thus the APIs in this module are mostly used get information about the instance running psef."
         },
         {
             "name": "User",
@@ -1966,7 +2323,7 @@
                     "INVALID_CREDENTIALS",
                     "INVALID_STATE",
                     "INVALID_OAUTH_REQUEST",
-                    "DISABLED_FEATURE",
+                    "DISABLED_SETTING",
                     "UNKOWN_ERROR",
                     "INVALID_FILE_IN_ARCHIVE",
                     "NO_FILES_SUBMITTED",
@@ -2020,6 +2377,1127 @@
                         "description": "The id of the request that went wrong. Please include this id when reporting bugs."
                     }
                 }
+            },
+            "NotificationSettingJSON": {
+                "type": "object",
+                "properties": {
+                    "options": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/NotificationSettingOptionJSON"
+                        },
+                        "description": "The possible options to set."
+                    },
+                    "possible_values": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/EmailNotificationTypes"
+                        },
+                        "description": "The possible values for each option."
+                    }
+                },
+                "required": [
+                    "options",
+                    "possible_values"
+                ],
+                "description": "The JSON serialization schema for <span data-role=\"class\">.NotificationsSetting</span>."
+            },
+            "NotificationSettingOptionJSON": {
+                "type": "object",
+                "properties": {
+                    "reason": {
+                        "oneOf": [
+                            {
+                                "$ref": "#/components/schemas/NotificationReasons"
+                            }
+                        ],
+                        "description": "The notification reason."
+                    },
+                    "explanation": {
+                        "type": "string",
+                        "description": "The explanation when these kinds of notifications occur."
+                    },
+                    "value": {
+                        "oneOf": [
+                            {
+                                "$ref": "#/components/schemas/EmailNotificationTypes"
+                            }
+                        ],
+                        "description": "The current value for this notification reason."
+                    }
+                },
+                "required": [
+                    "reason",
+                    "explanation",
+                    "value"
+                ],
+                "description": "The JSON serialization schema for a single notification setting option."
+            },
+            "NotificationReasons": {
+                "type": "string",
+                "enum": [
+                    "assignee",
+                    "author",
+                    "replied"
+                ],
+                "description": "The reason a user received a notification."
+            },
+            "EmailNotificationTypes": {
+                "type": "string",
+                "enum": [
+                    "direct",
+                    "daily",
+                    "weekly",
+                    "off"
+                ],
+                "description": "The possible options for preferences for sending email notifications."
+            },
+            "PatchNotificationSettingUser SettingData": {
+                "type": "object",
+                "properties": {
+                    "reason": {
+                        "description": "For what type notification do you want to change the settings.",
+                        "allOf": [
+                            {
+                                "$ref": "#/components/schemas/NotificationReasons"
+                            }
+                        ]
+                    },
+                    "value": {
+                        "description": "The new value of the notification setting.",
+                        "allOf": [
+                            {
+                                "$ref": "#/components/schemas/EmailNotificationTypes"
+                            }
+                        ]
+                    }
+                },
+                "required": [
+                    "reason",
+                    "value"
+                ]
+            },
+            "ResultDataGetUser SettingGetAllUiPreferences": {
+                "type": "object",
+                "additionalProperties": {
+                    "type": "boolean",
+                    "nullable": true
+                }
+            },
+            "UIPreferenceName": {
+                "type": "string",
+                "enum": [
+                    "rubric_editor_v2",
+                    "no_msg_for_mosaic_1",
+                    "no_msg_for_mosaic_2"
+                ],
+                "description": "The all defined UI preferences."
+            },
+            "PatchUiPreferenceUser SettingData": {
+                "type": "object",
+                "properties": {
+                    "name": {
+                        "description": "The ui preference you want to change.",
+                        "allOf": [
+                            {
+                                "$ref": "#/components/schemas/UIPreferenceName"
+                            }
+                        ]
+                    },
+                    "value": {
+                        "type": "boolean",
+                        "description": "The new value of the preference."
+                    }
+                },
+                "required": [
+                    "name",
+                    "value"
+                ]
+            },
+            "Opt.AllOptsAsJSON": {
+                "allOf": [
+                    {
+                        "$ref": "#/components/schemas/Opt.FrontendOptsAsJSON"
+                    },
+                    {
+                        "type": "object",
+                        "properties": {
+                            "AUTO_TEST_HEARTBEAT_INTERVAL": {
+                                "type": "number",
+                                "format": "time-delta",
+                                "description": "The amount of time there can be between two heartbeats of a runner. Changing this to a lower value might cause some runners to crash."
+                            },
+                            "AUTO_TEST_HEARTBEAT_MAX_MISSED": {
+                                "type": "integer",
+                                "description": "The max amount of heartbeats that we may miss from a runner before we kill it and start a new one."
+                            },
+                            "AUTO_TEST_MAX_JOBS_PER_RUNNER": {
+                                "type": "integer",
+                                "description": "This value determines the amount of runners we request for a single assignment. The amount of runners requested is equal to the amount of students not yet started divided by this value."
+                            },
+                            "AUTO_TEST_MAX_CONCURRENT_BATCH_RUNS": {
+                                "type": "integer",
+                                "description": "The maximum amount of batch AutoTest runs we will do at a time. AutoTest batch runs are runs that are done after the deadline for configurations that have hidden tests. Increasing this variable might cause heavy server load."
+                            },
+                            "MIN_PASSWORD_SCORE": {
+                                "type": "integer",
+                                "description": "The minimum strength passwords by users should have. The higher this value the stronger the password should be. When increasing the strength all users with too weak passwords will be shown a warning on the next login."
+                            },
+                            "RESET_TOKEN_TIME": {
+                                "type": "number",
+                                "format": "time-delta",
+                                "description": "The amount of time a reset token is valid. You should not increase this value too much as users might be not be too careful with these tokens. Increasing this value will allow **all** existing tokens to live longer."
+                            },
+                            "SETTING_TOKEN_TIME": {
+                                "type": "number",
+                                "format": "time-delta",
+                                "description": "The amount of time the link send in notification emails to change the notification preferences works to actually change the notifications."
+                            },
+                            "MAX_NUMBER_OF_FILES": {
+                                "type": "integer",
+                                "description": "The maximum amount of files and directories allowed in a single archive."
+                            },
+                            "MAX_LARGE_UPLOAD_SIZE": {
+                                "type": "integer",
+                                "description": "The maximum size of uploaded files that are mostly uploaded by \"trusted\" users. Examples of these kind of files include AutoTest fixtures and plagiarism base code."
+                            },
+                            "MAX_NORMAL_UPLOAD_SIZE": {
+                                "type": "integer",
+                                "description": "The maximum total size of uploaded files that are uploaded by normal users. This is also the maximum total size of submissions. Increasing this size might cause a hosting costs to increase."
+                            },
+                            "MAX_FILE_SIZE": {
+                                "type": "integer",
+                                "description": "The maximum size of a single file uploaded by normal users. This limit is really here to prevent users from uploading extremely large files which can't really be downloaded/shown anyway."
+                            },
+                            "JWT_ACCESS_TOKEN_EXPIRES": {
+                                "type": "number",
+                                "format": "time-delta",
+                                "description": "The time a login session is valid. After this amount of time a user will always need to re-authenticate."
+                            }
+                        },
+                        "required": [
+                            "AUTO_TEST_HEARTBEAT_INTERVAL",
+                            "AUTO_TEST_HEARTBEAT_MAX_MISSED",
+                            "AUTO_TEST_MAX_JOBS_PER_RUNNER",
+                            "AUTO_TEST_MAX_CONCURRENT_BATCH_RUNS",
+                            "MIN_PASSWORD_SCORE",
+                            "RESET_TOKEN_TIME",
+                            "SETTING_TOKEN_TIME",
+                            "MAX_NUMBER_OF_FILES",
+                            "MAX_LARGE_UPLOAD_SIZE",
+                            "MAX_NORMAL_UPLOAD_SIZE",
+                            "MAX_FILE_SIZE",
+                            "JWT_ACCESS_TOKEN_EXPIRES"
+                        ]
+                    }
+                ],
+                "description": "The JSON representation of all options."
+            },
+            "Opt.FrontendOptsAsJSON": {
+                "type": "object",
+                "properties": {
+                    "AUTO_TEST_MAX_TIME_COMMAND": {
+                        "type": "number",
+                        "format": "time-delta",
+                        "description": "The default amount of time a step/substep in AutoTest can run. This can be overridden by the teacher."
+                    },
+                    "EXAM_LOGIN_MAX_LENGTH": {
+                        "type": "number",
+                        "format": "time-delta",
+                        "description": "The maximum time-delta an exam may take. Increasing this value also increases the maximum amount of time the login tokens send via email are valid. Therefore, you should make this too long."
+                    },
+                    "LOGIN_TOKEN_BEFORE_TIME": {
+                        "type": "array",
+                        "items": {
+                            "type": "number",
+                            "format": "time-delta"
+                        },
+                        "description": "This determines how long before the exam we will send the login emails to the students (only when enabled of course)."
+                    },
+                    "SITE_EMAIL": {
+                        "type": "string",
+                        "description": "The email shown to users as the email of CodeGrade."
+                    },
+                    "MAX_LINES": {
+                        "type": "integer",
+                        "description": "The maximum amount of lines that we should in render in one go. If a file contains more lines than this we will show a warning asking the user what to do."
+                    },
+                    "NOTIFICATION_POLL_TIME": {
+                        "type": "number",
+                        "format": "time-delta",
+                        "description": "The amount of time to wait between two consecutive polls to see if a user has new notifications. Setting this value too low will cause unnecessary stres on the server."
+                    },
+                    "RELEASE_MESSAGE_MAX_TIME": {
+                        "type": "number",
+                        "format": "time-delta",
+                        "description": "What is the maximum amount of time after a release a message should be shown on the HomeGrid. **Note**: this is the amount of time after the release, not after this instance has been upgraded to this release."
+                    },
+                    "BLACKBOARD_ZIP_UPLOAD_ENABLED": {
+                        "type": "boolean",
+                        "description": "If enabled teachers are allowed to bulk upload submissions (and create users) using a zip file in a format created by Blackboard."
+                    },
+                    "RUBRICS_ENABLED": {
+                        "type": "boolean",
+                        "description": "If enabled teachers can use rubrics on CodeGrade. Disabling this feature will not delete existing rubrics."
+                    },
+                    "AUTOMATIC_LTI_ROLE_ENABLED": {
+                        "type": "boolean",
+                        "description": "Currently unused"
+                    },
+                    "LTI_ENABLED": {
+                        "type": "boolean",
+                        "description": "Should LTI be enabled."
+                    },
+                    "LINTERS_ENABLED": {
+                        "type": "boolean",
+                        "description": "Should linters be enabled"
+                    },
+                    "INCREMENTAL_RUBRIC_SUBMISSION_ENABLED": {
+                        "type": "boolean",
+                        "description": "Should rubrics be submitted incrementally, so if a user selects a item should this be automatically be submitted to the server, or should it only be possible to submit a complete rubric at once. This feature is useless if rubrics is not set to true."
+                    },
+                    "REGISTER_ENABLED": {
+                        "type": "boolean",
+                        "description": "Should it be possible to register on the website. This makes it possible for any body to register an account on the website."
+                    },
+                    "GROUPS_ENABLED": {
+                        "type": "boolean",
+                        "description": "Should group assignments be enabled."
+                    },
+                    "AUTO_TEST_ENABLED": {
+                        "type": "boolean",
+                        "description": "Should auto test be enabled."
+                    },
+                    "COURSE_REGISTER_ENABLED": {
+                        "type": "boolean",
+                        "description": "Should it be possible for teachers to create links that users can use to register in a course. Links to enroll can be created even if this feature is disabled."
+                    },
+                    "RENDER_HTML_ENABLED": {
+                        "type": "boolean",
+                        "description": "Should it be possible to render html files within CodeGrade. This opens up more attack surfaces as it is now possible by design for students to run javascript. This is all done in a sandboxed iframe but still."
+                    },
+                    "EMAIL_STUDENTS_ENABLED": {
+                        "type": "boolean",
+                        "description": "Should it be possible to email students."
+                    },
+                    "PEER_FEEDBACK_ENABLED": {
+                        "type": "boolean",
+                        "description": "Should peer feedback be enabled."
+                    }
+                },
+                "required": [
+                    "AUTO_TEST_MAX_TIME_COMMAND",
+                    "EXAM_LOGIN_MAX_LENGTH",
+                    "LOGIN_TOKEN_BEFORE_TIME",
+                    "SITE_EMAIL",
+                    "MAX_LINES",
+                    "NOTIFICATION_POLL_TIME",
+                    "RELEASE_MESSAGE_MAX_TIME",
+                    "BLACKBOARD_ZIP_UPLOAD_ENABLED",
+                    "RUBRICS_ENABLED",
+                    "AUTOMATIC_LTI_ROLE_ENABLED",
+                    "LTI_ENABLED",
+                    "LINTERS_ENABLED",
+                    "INCREMENTAL_RUBRIC_SUBMISSION_ENABLED",
+                    "REGISTER_ENABLED",
+                    "GROUPS_ENABLED",
+                    "AUTO_TEST_ENABLED",
+                    "COURSE_REGISTER_ENABLED",
+                    "RENDER_HTML_ENABLED",
+                    "EMAIL_STUDENTS_ENABLED",
+                    "PEER_FEEDBACK_ENABLED"
+                ],
+                "description": "The JSON representation of options visible to all users."
+            },
+            "SiteSettingInputAsJSON": {
+                "anyOf": [
+                    {
+                        "type": "object",
+                        "properties": {
+                            "name": {
+                                "type": "string",
+                                "enum": [
+                                    "AUTO_TEST_MAX_TIME_COMMAND"
+                                ],
+                                "description": ""
+                            },
+                            "value": {
+                                "anyOf": [
+                                    {
+                                        "type": "integer"
+                                    },
+                                    {
+                                        "type": "string",
+                                        "format": "time-delta"
+                                    }
+                                ],
+                                "nullable": true,
+                                "description": ""
+                            }
+                        },
+                        "required": [
+                            "name",
+                            "value"
+                        ]
+                    },
+                    {
+                        "type": "object",
+                        "properties": {
+                            "name": {
+                                "type": "string",
+                                "enum": [
+                                    "AUTO_TEST_HEARTBEAT_INTERVAL"
+                                ],
+                                "description": ""
+                            },
+                            "value": {
+                                "anyOf": [
+                                    {
+                                        "type": "integer"
+                                    },
+                                    {
+                                        "type": "string",
+                                        "format": "time-delta"
+                                    }
+                                ],
+                                "nullable": true,
+                                "description": ""
+                            }
+                        },
+                        "required": [
+                            "name",
+                            "value"
+                        ]
+                    },
+                    {
+                        "type": "object",
+                        "properties": {
+                            "name": {
+                                "type": "string",
+                                "enum": [
+                                    "AUTO_TEST_HEARTBEAT_MAX_MISSED"
+                                ],
+                                "description": ""
+                            },
+                            "value": {
+                                "type": "integer",
+                                "nullable": true,
+                                "description": ""
+                            }
+                        },
+                        "required": [
+                            "name",
+                            "value"
+                        ]
+                    },
+                    {
+                        "type": "object",
+                        "properties": {
+                            "name": {
+                                "type": "string",
+                                "enum": [
+                                    "AUTO_TEST_MAX_JOBS_PER_RUNNER"
+                                ],
+                                "description": ""
+                            },
+                            "value": {
+                                "type": "integer",
+                                "nullable": true,
+                                "description": ""
+                            }
+                        },
+                        "required": [
+                            "name",
+                            "value"
+                        ]
+                    },
+                    {
+                        "type": "object",
+                        "properties": {
+                            "name": {
+                                "type": "string",
+                                "enum": [
+                                    "AUTO_TEST_MAX_CONCURRENT_BATCH_RUNS"
+                                ],
+                                "description": ""
+                            },
+                            "value": {
+                                "type": "integer",
+                                "nullable": true,
+                                "description": ""
+                            }
+                        },
+                        "required": [
+                            "name",
+                            "value"
+                        ]
+                    },
+                    {
+                        "type": "object",
+                        "properties": {
+                            "name": {
+                                "type": "string",
+                                "enum": [
+                                    "EXAM_LOGIN_MAX_LENGTH"
+                                ],
+                                "description": ""
+                            },
+                            "value": {
+                                "anyOf": [
+                                    {
+                                        "type": "integer"
+                                    },
+                                    {
+                                        "type": "string",
+                                        "format": "time-delta"
+                                    }
+                                ],
+                                "nullable": true,
+                                "description": ""
+                            }
+                        },
+                        "required": [
+                            "name",
+                            "value"
+                        ]
+                    },
+                    {
+                        "type": "object",
+                        "properties": {
+                            "name": {
+                                "type": "string",
+                                "enum": [
+                                    "LOGIN_TOKEN_BEFORE_TIME"
+                                ],
+                                "description": ""
+                            },
+                            "value": {
+                                "type": "array",
+                                "items": {
+                                    "anyOf": [
+                                        {
+                                            "type": "integer"
+                                        },
+                                        {
+                                            "type": "string",
+                                            "format": "time-delta"
+                                        }
+                                    ]
+                                },
+                                "nullable": true,
+                                "description": ""
+                            }
+                        },
+                        "required": [
+                            "name",
+                            "value"
+                        ]
+                    },
+                    {
+                        "type": "object",
+                        "properties": {
+                            "name": {
+                                "type": "string",
+                                "enum": [
+                                    "MIN_PASSWORD_SCORE"
+                                ],
+                                "description": ""
+                            },
+                            "value": {
+                                "type": "integer",
+                                "nullable": true,
+                                "description": ""
+                            }
+                        },
+                        "required": [
+                            "name",
+                            "value"
+                        ]
+                    },
+                    {
+                        "type": "object",
+                        "properties": {
+                            "name": {
+                                "type": "string",
+                                "enum": [
+                                    "RESET_TOKEN_TIME"
+                                ],
+                                "description": ""
+                            },
+                            "value": {
+                                "anyOf": [
+                                    {
+                                        "type": "integer"
+                                    },
+                                    {
+                                        "type": "string",
+                                        "format": "time-delta"
+                                    }
+                                ],
+                                "nullable": true,
+                                "description": ""
+                            }
+                        },
+                        "required": [
+                            "name",
+                            "value"
+                        ]
+                    },
+                    {
+                        "type": "object",
+                        "properties": {
+                            "name": {
+                                "type": "string",
+                                "enum": [
+                                    "SETTING_TOKEN_TIME"
+                                ],
+                                "description": ""
+                            },
+                            "value": {
+                                "anyOf": [
+                                    {
+                                        "type": "integer"
+                                    },
+                                    {
+                                        "type": "string",
+                                        "format": "time-delta"
+                                    }
+                                ],
+                                "nullable": true,
+                                "description": ""
+                            }
+                        },
+                        "required": [
+                            "name",
+                            "value"
+                        ]
+                    },
+                    {
+                        "type": "object",
+                        "properties": {
+                            "name": {
+                                "type": "string",
+                                "enum": [
+                                    "SITE_EMAIL"
+                                ],
+                                "description": ""
+                            },
+                            "value": {
+                                "type": "string",
+                                "nullable": true,
+                                "description": ""
+                            }
+                        },
+                        "required": [
+                            "name",
+                            "value"
+                        ]
+                    },
+                    {
+                        "type": "object",
+                        "properties": {
+                            "name": {
+                                "type": "string",
+                                "enum": [
+                                    "MAX_NUMBER_OF_FILES"
+                                ],
+                                "description": ""
+                            },
+                            "value": {
+                                "type": "integer",
+                                "nullable": true,
+                                "description": ""
+                            }
+                        },
+                        "required": [
+                            "name",
+                            "value"
+                        ]
+                    },
+                    {
+                        "type": "object",
+                        "properties": {
+                            "name": {
+                                "type": "string",
+                                "enum": [
+                                    "MAX_LARGE_UPLOAD_SIZE"
+                                ],
+                                "description": ""
+                            },
+                            "value": {
+                                "anyOf": [
+                                    {
+                                        "type": "integer"
+                                    },
+                                    {
+                                        "type": "string",
+                                        "pattern": "^\\d+(k|m|g)?b$"
+                                    }
+                                ],
+                                "nullable": true,
+                                "description": ""
+                            }
+                        },
+                        "required": [
+                            "name",
+                            "value"
+                        ]
+                    },
+                    {
+                        "type": "object",
+                        "properties": {
+                            "name": {
+                                "type": "string",
+                                "enum": [
+                                    "MAX_NORMAL_UPLOAD_SIZE"
+                                ],
+                                "description": ""
+                            },
+                            "value": {
+                                "anyOf": [
+                                    {
+                                        "type": "integer"
+                                    },
+                                    {
+                                        "type": "string",
+                                        "pattern": "^\\d+(k|m|g)?b$"
+                                    }
+                                ],
+                                "nullable": true,
+                                "description": ""
+                            }
+                        },
+                        "required": [
+                            "name",
+                            "value"
+                        ]
+                    },
+                    {
+                        "type": "object",
+                        "properties": {
+                            "name": {
+                                "type": "string",
+                                "enum": [
+                                    "MAX_FILE_SIZE"
+                                ],
+                                "description": ""
+                            },
+                            "value": {
+                                "anyOf": [
+                                    {
+                                        "type": "integer"
+                                    },
+                                    {
+                                        "type": "string",
+                                        "pattern": "^\\d+(k|m|g)?b$"
+                                    }
+                                ],
+                                "nullable": true,
+                                "description": ""
+                            }
+                        },
+                        "required": [
+                            "name",
+                            "value"
+                        ]
+                    },
+                    {
+                        "type": "object",
+                        "properties": {
+                            "name": {
+                                "type": "string",
+                                "enum": [
+                                    "JWT_ACCESS_TOKEN_EXPIRES"
+                                ],
+                                "description": ""
+                            },
+                            "value": {
+                                "anyOf": [
+                                    {
+                                        "type": "integer"
+                                    },
+                                    {
+                                        "type": "string",
+                                        "format": "time-delta"
+                                    }
+                                ],
+                                "nullable": true,
+                                "description": ""
+                            }
+                        },
+                        "required": [
+                            "name",
+                            "value"
+                        ]
+                    },
+                    {
+                        "type": "object",
+                        "properties": {
+                            "name": {
+                                "type": "string",
+                                "enum": [
+                                    "MAX_LINES"
+                                ],
+                                "description": ""
+                            },
+                            "value": {
+                                "type": "integer",
+                                "nullable": true,
+                                "description": ""
+                            }
+                        },
+                        "required": [
+                            "name",
+                            "value"
+                        ]
+                    },
+                    {
+                        "type": "object",
+                        "properties": {
+                            "name": {
+                                "type": "string",
+                                "enum": [
+                                    "NOTIFICATION_POLL_TIME"
+                                ],
+                                "description": ""
+                            },
+                            "value": {
+                                "anyOf": [
+                                    {
+                                        "type": "integer"
+                                    },
+                                    {
+                                        "type": "string",
+                                        "format": "time-delta"
+                                    }
+                                ],
+                                "nullable": true,
+                                "description": ""
+                            }
+                        },
+                        "required": [
+                            "name",
+                            "value"
+                        ]
+                    },
+                    {
+                        "type": "object",
+                        "properties": {
+                            "name": {
+                                "type": "string",
+                                "enum": [
+                                    "RELEASE_MESSAGE_MAX_TIME"
+                                ],
+                                "description": ""
+                            },
+                            "value": {
+                                "anyOf": [
+                                    {
+                                        "type": "integer"
+                                    },
+                                    {
+                                        "type": "string",
+                                        "format": "time-delta"
+                                    }
+                                ],
+                                "nullable": true,
+                                "description": ""
+                            }
+                        },
+                        "required": [
+                            "name",
+                            "value"
+                        ]
+                    },
+                    {
+                        "type": "object",
+                        "properties": {
+                            "name": {
+                                "type": "string",
+                                "enum": [
+                                    "BLACKBOARD_ZIP_UPLOAD_ENABLED"
+                                ],
+                                "description": ""
+                            },
+                            "value": {
+                                "type": "boolean",
+                                "nullable": true,
+                                "description": ""
+                            }
+                        },
+                        "required": [
+                            "name",
+                            "value"
+                        ]
+                    },
+                    {
+                        "type": "object",
+                        "properties": {
+                            "name": {
+                                "type": "string",
+                                "enum": [
+                                    "RUBRICS_ENABLED"
+                                ],
+                                "description": ""
+                            },
+                            "value": {
+                                "type": "boolean",
+                                "nullable": true,
+                                "description": ""
+                            }
+                        },
+                        "required": [
+                            "name",
+                            "value"
+                        ]
+                    },
+                    {
+                        "type": "object",
+                        "properties": {
+                            "name": {
+                                "type": "string",
+                                "enum": [
+                                    "AUTOMATIC_LTI_ROLE_ENABLED"
+                                ],
+                                "description": ""
+                            },
+                            "value": {
+                                "type": "boolean",
+                                "nullable": true,
+                                "description": ""
+                            }
+                        },
+                        "required": [
+                            "name",
+                            "value"
+                        ]
+                    },
+                    {
+                        "type": "object",
+                        "properties": {
+                            "name": {
+                                "type": "string",
+                                "enum": [
+                                    "LTI_ENABLED"
+                                ],
+                                "description": ""
+                            },
+                            "value": {
+                                "type": "boolean",
+                                "nullable": true,
+                                "description": ""
+                            }
+                        },
+                        "required": [
+                            "name",
+                            "value"
+                        ]
+                    },
+                    {
+                        "type": "object",
+                        "properties": {
+                            "name": {
+                                "type": "string",
+                                "enum": [
+                                    "LINTERS_ENABLED"
+                                ],
+                                "description": ""
+                            },
+                            "value": {
+                                "type": "boolean",
+                                "nullable": true,
+                                "description": ""
+                            }
+                        },
+                        "required": [
+                            "name",
+                            "value"
+                        ]
+                    },
+                    {
+                        "type": "object",
+                        "properties": {
+                            "name": {
+                                "type": "string",
+                                "enum": [
+                                    "INCREMENTAL_RUBRIC_SUBMISSION_ENABLED"
+                                ],
+                                "description": ""
+                            },
+                            "value": {
+                                "type": "boolean",
+                                "nullable": true,
+                                "description": ""
+                            }
+                        },
+                        "required": [
+                            "name",
+                            "value"
+                        ]
+                    },
+                    {
+                        "type": "object",
+                        "properties": {
+                            "name": {
+                                "type": "string",
+                                "enum": [
+                                    "REGISTER_ENABLED"
+                                ],
+                                "description": ""
+                            },
+                            "value": {
+                                "type": "boolean",
+                                "nullable": true,
+                                "description": ""
+                            }
+                        },
+                        "required": [
+                            "name",
+                            "value"
+                        ]
+                    },
+                    {
+                        "type": "object",
+                        "properties": {
+                            "name": {
+                                "type": "string",
+                                "enum": [
+                                    "GROUPS_ENABLED"
+                                ],
+                                "description": ""
+                            },
+                            "value": {
+                                "type": "boolean",
+                                "nullable": true,
+                                "description": ""
+                            }
+                        },
+                        "required": [
+                            "name",
+                            "value"
+                        ]
+                    },
+                    {
+                        "type": "object",
+                        "properties": {
+                            "name": {
+                                "type": "string",
+                                "enum": [
+                                    "AUTO_TEST_ENABLED"
+                                ],
+                                "description": ""
+                            },
+                            "value": {
+                                "type": "boolean",
+                                "nullable": true,
+                                "description": ""
+                            }
+                        },
+                        "required": [
+                            "name",
+                            "value"
+                        ]
+                    },
+                    {
+                        "type": "object",
+                        "properties": {
+                            "name": {
+                                "type": "string",
+                                "enum": [
+                                    "COURSE_REGISTER_ENABLED"
+                                ],
+                                "description": ""
+                            },
+                            "value": {
+                                "type": "boolean",
+                                "nullable": true,
+                                "description": ""
+                            }
+                        },
+                        "required": [
+                            "name",
+                            "value"
+                        ]
+                    },
+                    {
+                        "type": "object",
+                        "properties": {
+                            "name": {
+                                "type": "string",
+                                "enum": [
+                                    "RENDER_HTML_ENABLED"
+                                ],
+                                "description": ""
+                            },
+                            "value": {
+                                "type": "boolean",
+                                "nullable": true,
+                                "description": ""
+                            }
+                        },
+                        "required": [
+                            "name",
+                            "value"
+                        ]
+                    },
+                    {
+                        "type": "object",
+                        "properties": {
+                            "name": {
+                                "type": "string",
+                                "enum": [
+                                    "EMAIL_STUDENTS_ENABLED"
+                                ],
+                                "description": ""
+                            },
+                            "value": {
+                                "type": "boolean",
+                                "nullable": true,
+                                "description": ""
+                            }
+                        },
+                        "required": [
+                            "name",
+                            "value"
+                        ]
+                    },
+                    {
+                        "type": "object",
+                        "properties": {
+                            "name": {
+                                "type": "string",
+                                "enum": [
+                                    "PEER_FEEDBACK_ENABLED"
+                                ],
+                                "description": ""
+                            },
+                            "value": {
+                                "type": "boolean",
+                                "nullable": true,
+                                "description": ""
+                            }
+                        },
+                        "required": [
+                            "name",
+                            "value"
+                        ]
+                    }
+                ]
+            },
+            "PatchSite settingsData": {
+                "type": "object",
+                "properties": {
+                    "updates": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/SiteSettingInputAsJSON"
+                        },
+                        "description": "The items you want to update"
+                    }
+                },
+                "required": [
+                    "updates"
+                ]
             },
             "Assignment.AsJSON": {
                 "type": "object",
@@ -3230,6 +4708,231 @@
                     "state"
                 ],
                 "description": "The way this class will be represented in JSON."
+            },
+            "AboutAsJSON": {
+                "allOf": [
+                    {
+                        "$ref": "#/components/schemas/BaseAboutAsJSON"
+                    },
+                    {
+                        "type": "object",
+                        "properties": {
+                            "health": {
+                                "oneOf": [
+                                    {
+                                        "$ref": "#/components/schemas/HealthAsJSON"
+                                    }
+                                ],
+                                "description": "Health information, will only be present when the correct (secret) health key is provided."
+                            }
+                        }
+                    }
+                ],
+                "description": "Information about this CodeGrade instance."
+            },
+            "LegacyFeaturesAsJSON": {
+                "type": "object",
+                "properties": {
+                    "AUTOMATIC_LTI_ROLE": {
+                        "type": "boolean",
+                        "description": "See settings."
+                    },
+                    "AUTO_TEST": {
+                        "type": "boolean",
+                        "description": "See settings."
+                    },
+                    "BLACKBOARD_ZIP_UPLOAD": {
+                        "type": "boolean",
+                        "description": "See settings."
+                    },
+                    "COURSE_REGISTER": {
+                        "type": "boolean",
+                        "description": "See settings."
+                    },
+                    "EMAIL_STUDENTS": {
+                        "type": "boolean",
+                        "description": "See settings."
+                    },
+                    "GROUPS": {
+                        "type": "boolean",
+                        "description": "See settings."
+                    },
+                    "INCREMENTAL_RUBRIC_SUBMISSION": {
+                        "type": "boolean",
+                        "description": "See settings."
+                    },
+                    "LINTERS": {
+                        "type": "boolean",
+                        "description": "See settings."
+                    },
+                    "LTI": {
+                        "type": "boolean",
+                        "description": "See settings."
+                    },
+                    "PEER_FEEDBACK": {
+                        "type": "boolean",
+                        "description": "See settings."
+                    },
+                    "REGISTER": {
+                        "type": "boolean",
+                        "description": "See settings."
+                    },
+                    "RENDER_HTML": {
+                        "type": "boolean",
+                        "description": "See settings."
+                    },
+                    "RUBRICS": {
+                        "type": "boolean",
+                        "description": "See settings."
+                    }
+                },
+                "required": [
+                    "AUTOMATIC_LTI_ROLE",
+                    "AUTO_TEST",
+                    "BLACKBOARD_ZIP_UPLOAD",
+                    "COURSE_REGISTER",
+                    "EMAIL_STUDENTS",
+                    "GROUPS",
+                    "INCREMENTAL_RUBRIC_SUBMISSION",
+                    "LINTERS",
+                    "LTI",
+                    "PEER_FEEDBACK",
+                    "REGISTER",
+                    "RENDER_HTML",
+                    "RUBRICS"
+                ],
+                "description": "The legacy features of CodeGrade.\n\nPlease don't use this object, but instead check for enabled settings."
+            },
+            "ReleaseInfo": {
+                "allOf": [
+                    {
+                        "$ref": "#/components/schemas/BaseReleaseInfo"
+                    },
+                    {
+                        "type": "object",
+                        "properties": {
+                            "version": {
+                                "type": "string",
+                                "description": "What version is running, this key might not be present."
+                            },
+                            "date": {
+                                "type": "string",
+                                "format": "date-time",
+                                "description": "What date was the version released."
+                            },
+                            "message": {
+                                "type": "string",
+                                "description": "A small message about the new features of this release."
+                            },
+                            "ui_preference": {
+                                "oneOf": [
+                                    {
+                                        "$ref": "#/components/schemas/UIPreferenceName"
+                                    }
+                                ],
+                                "description": "What ui\\_preference controls if we should show the release message."
+                            }
+                        }
+                    }
+                ],
+                "description": "Information about the release running on the server."
+            },
+            "BaseReleaseInfo": {
+                "type": "object",
+                "properties": {
+                    "commit": {
+                        "type": "string",
+                        "description": "The commit which is running on this server."
+                    }
+                },
+                "required": [
+                    "commit"
+                ],
+                "description": "The part of the release info that will always be present."
+            },
+            "HealthAsJSON": {
+                "type": "object",
+                "properties": {
+                    "application": {
+                        "type": "boolean",
+                        "description": "Always true."
+                    },
+                    "database": {
+                        "type": "boolean",
+                        "description": "Is the database ok?"
+                    },
+                    "uploads": {
+                        "type": "boolean",
+                        "description": "Is the upload storage system ok?"
+                    },
+                    "broker": {
+                        "type": "boolean",
+                        "description": "Can the broker be reached?"
+                    },
+                    "mirror_uploads": {
+                        "type": "boolean",
+                        "description": "Is the mirror upload storage system ok?"
+                    },
+                    "temp_dir": {
+                        "type": "boolean",
+                        "description": "Is the temporary directory on this server ok?"
+                    }
+                },
+                "required": [
+                    "application",
+                    "database",
+                    "uploads",
+                    "broker",
+                    "mirror_uploads",
+                    "temp_dir"
+                ],
+                "description": "Information about the health of this instance."
+            },
+            "BaseAboutAsJSON": {
+                "type": "object",
+                "properties": {
+                    "version": {
+                        "type": "string",
+                        "nullable": true,
+                        "description": "What version is running on this server. Deprecated, please use version instead."
+                    },
+                    "commit": {
+                        "type": "string",
+                        "description": "The commit this server is running. Deprecated, please use commit instead."
+                    },
+                    "features": {
+                        "oneOf": [
+                            {
+                                "$ref": "#/components/schemas/LegacyFeaturesAsJSON"
+                            }
+                        ],
+                        "description": "The features enabled on this instance. Deprecated, please use settings."
+                    },
+                    "settings": {
+                        "oneOf": [
+                            {
+                                "$ref": "#/components/schemas/Opt.FrontendOptsAsJSON"
+                            }
+                        ],
+                        "description": "The frontend settings and their values for this instance."
+                    },
+                    "release": {
+                        "oneOf": [
+                            {
+                                "$ref": "#/components/schemas/ReleaseInfo"
+                            }
+                        ],
+                        "description": "Information about the release running on this server."
+                    }
+                },
+                "required": [
+                    "version",
+                    "commit",
+                    "features",
+                    "settings",
+                    "release"
+                ],
+                "description": "The base information about this instance."
             },
             "User.AsExtendedJSON": {
                 "allOf": [
