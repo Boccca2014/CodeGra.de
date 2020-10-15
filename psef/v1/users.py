@@ -13,7 +13,7 @@ from sqlalchemy import case, func
 from flask_limiter.util import get_remote_address
 
 from . import api
-from .. import auth, models, helpers, limiter, features, current_user
+from .. import auth, models, helpers, limiter, current_user, site_settings
 from ..models import db
 from ..helpers import (
     JSONResponse, jsonify, ensure_json_dict, ensure_keys_in_dict,
@@ -88,7 +88,7 @@ def search_users() -> JSONResponse[t.Sequence[models.User]]:
 
 
 @api.route('/user', methods=['POST'])
-@features.feature_required(features.Feature.REGISTER)
+@site_settings.Opt.REGISTER_ENABLED.required
 @limiter.limit('5 per minute', key_func=get_remote_address)
 def register_user() -> JSONResponse[t.Mapping[str, str]]:
     """Create a new :class:`.models.User`.

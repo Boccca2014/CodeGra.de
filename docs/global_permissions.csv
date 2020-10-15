@@ -9,3 +9,4 @@ Name,Description
 **Impersonate users**,"Users with this permission can impersonate users, i.e. they can login as other users."
 **Manage LTI providers**,"Users with this permission can edit and list existing, and create new LTI providers."
 **Manage SSO Providers**,Users with this permission can connect new SSO Identity Providers.
+**Manage site settings**,Users with this permission can manage the settings of this CodeGrade instance

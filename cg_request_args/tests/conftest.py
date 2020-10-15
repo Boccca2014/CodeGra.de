@@ -36,10 +36,16 @@ def schema_mock():
         def simple_type_to_open_api_type(self, typ):
             return ('Convert', typ)
 
+        def expand_anyof(self, el):
+            return el
+
         def make_comment(self, comment):
             return ('Comment', comment)
 
         def add_schema(self, schema):
             return ('Add Schema', schema)
+
+        def add_as_schema(self, name, schema):
+            return ('Add As Schema', name, schema)
 
     yield _Mock()

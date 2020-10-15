@@ -3,6 +3,8 @@ import Vue from 'vue';
 // TODO: Remove the axios dependency and move the api requests to the store
 import axios from 'axios';
 
+import { SiteSettingsStore } from '@/store';
+
 import {
     hasAttr,
     deepCopy,
@@ -58,7 +60,11 @@ export class AutoTestSuiteData {
         Vue.set(
             this,
             'commandTimeLimit',
-            getProps(d, UserConfig.autoTest.auto_test_max_command_time, 'command_time_limit'),
+            getProps(
+                d,
+                SiteSettingsStore.getSetting()('AUTO_TEST_MAX_TIME_COMMAND'),
+                'command_time_limit',
+            ),
         );
         Vue.set(this, 'networkDisabled', getProps(d, true, 'network_disabled'));
         Vue.set(this, 'submissionInfo', getProps(d, false, 'submission_info'));

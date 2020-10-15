@@ -64,6 +64,7 @@ extensions = [
     'sphinx_autodoc_typehints',
     'sphinx_fontawesome',
     'example',
+    'json_include',
 ]
 
 # Don't show internal routes in the documenation

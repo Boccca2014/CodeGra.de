@@ -76,7 +76,7 @@ class JsonPatchAutoTest:
 
         fixtures = []
         for fixtures_item_data in d.get("fixtures") or []:
-            fixtures_item = FixtureLike.from_dict(fixtures_item_data)
+            fixtures_item = FixtureLike.from_dict(cast(Dict[str, Any], fixtures_item_data))
 
             fixtures.append(fixtures_item)
 

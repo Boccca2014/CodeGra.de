@@ -21,7 +21,7 @@ from psef import app, current_user
 from cg_sqlalchemy_helpers.types import ColumnProxy
 
 from . import api
-from .. import auth, models, helpers, features
+from .. import auth, models, helpers, site_settings
 from ..models import DbColumn, FileOwner, db
 from ..helpers import (
     JSONResponse, EmptyResponse, ExtendedJSONResponse, jsonify,
@@ -406,7 +406,7 @@ def get_feedback_from_submission(
 
 
 @api.route("/submissions/<int:submission_id>/rubrics/", methods=['GET'])
-@features.feature_required(features.Feature.RUBRICS)
+@site_settings.Opt.RUBRICS_ENABLED.required
 def get_rubric(submission_id: int) -> JSONResponse[t.Mapping[str, t.Any]]:
     """Return full rubric of the :class:`.models.Assignment` of the given
     submission (:class:`.models.Work`).
@@ -443,7 +443,7 @@ def get_rubric(submission_id: int) -> JSONResponse[t.Mapping[str, t.Any]]:
 
 
 @api.route('/submissions/<int:submission_id>/rubricitems/', methods=['PATCH'])
-@features.feature_required(features.Feature.RUBRICS)
+@site_settings.Opt.RUBRICS_ENABLED.required
 def select_rubric_items(submission_id: int
                         ) -> ExtendedJSONResponse[models.Work]:
     """Select the given rubric items for the given submission.
@@ -604,8 +604,8 @@ def select_rubric_items(submission_id: int
     '/submissions/<int:submission_id>/rubricitems/<int:rubric_item_id>',
     methods=['DELETE']
 )
-@features.feature_required(features.Feature.RUBRICS)
-@features.feature_required(features.Feature.INCREMENTAL_RUBRIC_SUBMISSION)
+@site_settings.Opt.RUBRICS_ENABLED.required
+@site_settings.Opt.INCREMENTAL_RUBRIC_SUBMISSION_ENABLED.required
 def unselect_rubric_item(
     submission_id: int, rubric_item_id: int
 ) -> EmptyResponse:
@@ -644,8 +644,8 @@ def unselect_rubric_item(
     "/submissions/<int:submission_id>/rubricitems/<int:rubricitem_id>",
     methods=['PATCH']
 )
-@features.feature_required(features.Feature.RUBRICS)
-@features.feature_required(features.Feature.INCREMENTAL_RUBRIC_SUBMISSION)
+@site_settings.Opt.RUBRICS_ENABLED.required
+@site_settings.Opt.INCREMENTAL_RUBRIC_SUBMISSION_ENABLED.required
 def select_rubric_item(
     submission_id: int, rubricitem_id: int
 ) -> EmptyResponse:
@@ -1117,7 +1117,7 @@ def get_dir_contents(
 
 
 @api.route('/submissions/<int:submission_id>/proxy', methods=['POST'])
-@features.feature_required(features.Feature.RENDER_HTML)
+@site_settings.Opt.RENDER_HTML_ENABLED.required
 def create_proxy(submission_id: int) -> JSONResponse[models.Proxy]:
     """Create a proxy to view the files of the given submission through.
 

@@ -67,7 +67,7 @@ class AutoTestResultAsExtendedJSON(AutoTestResultAsJSON):
 
         step_results = []
         for step_results_item_data in d.get("step_results") or []:
-            step_results_item = AutoTestStepResultAsJSON.from_dict(step_results_item_data)
+            step_results_item = AutoTestStepResultAsJSON.from_dict(cast(Dict[str, Any], step_results_item_data))
 
             step_results.append(step_results_item)
 

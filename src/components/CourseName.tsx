@@ -3,21 +3,32 @@ import { VNode, CreateElement } from 'vue';
 import * as models from '@/models';
 import * as tsx from 'vue-tsx-support';
 import { CoursesStore } from '@/store';
-import { emptyVNode } from '@/utils';
+import { emptyVNode, AssertionError } from '@/utils';
 import { Variant, isVariant } from '@/types';
 import p from 'vue-strict-prop';
 
 const maybeMakeBadge = (h: CreateElement, course: models.Course, variant: string) => {
     const state = course.state;
-    const cls = "text-small-uppercase align-middle ml-2";
+    const cls = 'text-small-uppercase align-middle ml-2';
 
     switch (state) {
         case models.CourseState.visible:
             return emptyVNode();
         case models.CourseState.archived:
-            return <b-badge class={cls} variant={variant}>archived</b-badge>;
+            return (
+                <b-badge class={cls} variant={variant}>
+                    archived
+                </b-badge>
+            );
         case models.CourseState.deleted:
-            return <b-badge class={cls} variant={variant}>deleted</b-badge>;
+            return (
+                <b-badge class={cls} variant={variant}>
+                    deleted
+                </b-badge>
+            );
+        default:
+            AssertionError.typeAssert<never>(state);
+            return emptyVNode();
     }
 };
 
@@ -27,7 +38,10 @@ const CourseName = tsx.component({
     props: {
         course: p(models.Course).required,
         bold: p(Boolean).default(false),
-        badgeVariant: p.ofType<Variant>().validator(isVariant).default('primary'),
+        badgeVariant: p
+            .ofType<Variant>()
+            .validator(isVariant)
+            .default('primary'),
     },
 
     render(h, { props }): VNode {
@@ -49,16 +63,16 @@ const CourseName = tsx.component({
         const badge = maybeMakeBadge(h, course, badgeVariant);
         const title = `${course.name}${extra ?? ''}${course.isArchived ? ' [archived]' : ''}`;
 
-        return <span title={title} class="course-name">
-            <span class={{ 'font-weight-bold': bold, 'align-middle': true }}>
-                {course.name}
+        return (
+            <span title={title} class="course-name">
+                <span class={{ 'font-weight-bold': bold, 'align-middle': true }}>
+                    {course.name}
+                </span>
+                {extra && <i class="align-middle">{extra}</i>}
+                {badge}
             </span>
-            {extra && <i class="align-middle">{extra}</i>}
-            {badge}
-        </span>
-
+        );
     },
 });
-
 
 export default CourseName;

@@ -413,7 +413,9 @@ def test_clone_git_repo(
             now = DatetimeWithTimezone.utcnow()
             stamp = now.timestamp()
 
-            monkeypatch.setitem(app.config, 'MAX_NORMAL_UPLOAD_SIZE', 90000)
+            p.site_settings.Opt.MAX_NORMAL_UPLOAD_SIZE.set_and_commit_value(
+                '90kb'
+            )
             clone_data = {
                 'type': 'github',
                 'url': 'MY_URL',

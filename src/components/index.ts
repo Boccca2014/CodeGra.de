@@ -1,6 +1,7 @@
 /* SPDX-License-Identifier: AGPL-3.0-only */
 // @ts-nocheck
 
+export { default as CgError } from './Error';
 export { default as RelativeTime } from './RelativeTime';
 export { default as AssignmentDate } from './AssignmentDate';
 export { default as AssignmentName } from './AssignmentName';
@@ -86,6 +87,7 @@ export { default as PeerFeedbackSettings } from './PeerFeedbackSettings';
 export { default as PeerFeedbackOverview } from './PeerFeedbackOverview';
 export { default as PeerFeedbackByUser } from './PeerFeedbackByUser';
 export { default as SsoProviders } from './SsoProviders';
-export { default as CgError } from './Error';
+export { default as NumberInput } from './NumberInput';
+export { default as SiteSettingsEditor } from './SiteSettingsEditor';
 export { default as PreferredUI } from './PreferredUI';
 export { default as RubricEditor } from './RubricEditor';

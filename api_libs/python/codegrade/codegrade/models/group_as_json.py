@@ -52,7 +52,7 @@ class GroupAsJSON:
 
         members = []
         for members_item_data in d["members"]:
-            members_item = UserAsJSONWithoutGroup.from_dict(members_item_data)
+            members_item = UserAsJSONWithoutGroup.from_dict(cast(Dict[str, Any], members_item_data))
 
             members.append(members_item)
 

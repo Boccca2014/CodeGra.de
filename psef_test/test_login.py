@@ -123,7 +123,7 @@ def test_login(
 def test_password_strength_on_login(
     test_client, session, app, monkeypatch, password, is_strong
 ):
-    monkeypatch.setitem(app.config, 'MIN_PASSWORD_SCORE', 0)
+    psef.site_settings.Opt.MIN_PASSWORD_SCORE.set_and_commit_value(0)
 
     new_user = m.User(
         name='NEW_USER',
@@ -135,7 +135,7 @@ def test_password_strength_on_login(
     session.add(new_user)
     session.commit()
 
-    monkeypatch.setitem(app.config, 'MIN_PASSWORD_SCORE', 3)
+    psef.site_settings.Opt.MIN_PASSWORD_SCORE.set_and_commit_value(3)
 
     res, rv = test_client.req(
         'post',
@@ -483,6 +483,7 @@ def test_reset_password(
     stubmailer,
 ):
     monkeypatch.setitem(app.config, 'MIN_PASSWORD_SCORE', 0)
+    psef.site_settings.Opt.MIN_PASSWORD_SCORE.set_and_commit_value(0)
 
     stubmailer.do_raise = True
 

@@ -76,7 +76,7 @@ class RubricRowBaseAsJSON:
 
         items = []
         for items_item_data in d["items"]:
-            items_item = RubricItemAsJSON.from_dict(items_item_data)
+            items_item = RubricItemAsJSON.from_dict(cast(Dict[str, Any], items_item_data))
 
             items.append(items_item)
 

@@ -26,7 +26,7 @@ from psef.helpers import (
 from cg_sqlalchemy_helpers import expression as sql_expression
 
 from . import api
-from .. import helpers, limiter, features
+from .. import helpers, limiter, site_settings
 from ..lti.v1_1 import LTICourseRole
 from ..exceptions import (
     APICodes, APIWarnings, APIException, PermissionException
@@ -664,7 +664,7 @@ def get_permissions_for_course(
 
 
 @api.route('/courses/<int:course_id>/group_sets/', methods=['GET'])
-@features.feature_required(features.Feature.GROUPS)
+@site_settings.Opt.GROUPS_ENABLED.required
 @rqa.swaggerize('get_group_sets')
 @auth.login_required
 def get_group_sets(course_id: int
@@ -683,7 +683,7 @@ def get_group_sets(course_id: int
 
 
 @api.route('/courses/<int:course_id>/group_sets/', methods=['PUT'])
-@features.feature_required(features.Feature.GROUPS)
+@site_settings.Opt.GROUPS_ENABLED.required
 @auth.login_required
 def create_group_set(course_id: int) -> JSONResponse[models.GroupSet]:
     """Create or update a :class:`.models.GroupSet` in the given course id.
@@ -1165,7 +1165,7 @@ def get_register_link(course_id: int, link_id: uuid.UUID
     '/courses/<int:course_id>/registration_links/<uuid:link_id>/user',
     methods=['POST']
 )
-@features.feature_required(features.Feature.COURSE_REGISTER)
+@site_settings.Opt.COURSE_REGISTER_ENABLED.required
 @limiter.limit('1 per second', key_func=get_remote_address)
 def register_user_in_course(course_id: int, link_id: uuid.UUID
                             ) -> JSONResponse[t.Mapping[str, str]]:
@@ -1206,7 +1206,7 @@ def register_user_in_course(course_id: int, link_id: uuid.UUID
 @api.route('/courses/<int:course_id>/email', methods=['POST'])
 @limiter.limit('10 per 10 minutes', key_func=lambda: current_user.id)
 @auth.login_required
-@features.feature_required(features.Feature.EMAIL_STUDENTS)
+@site_settings.Opt.EMAIL_STUDENTS_ENABLED.required
 def send_students_an_email(course_id: int) -> JSONResponse[models.TaskResult]:
     """Sent the authors in this course an email.
 

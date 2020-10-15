@@ -59,7 +59,7 @@ class AutoTestStepResultAsJSON:
 
         def _parse_auto_test_step(data: Dict[str, Any]) -> Union[AutoTestStepBaseAsJSON]:
             auto_test_step: Union[AutoTestStepBaseAsJSON] = d["auto_test_step"]
-            auto_test_step = AutoTestStepBaseAsJSON.from_dict(auto_test_step)
+            auto_test_step = AutoTestStepBaseAsJSON.from_dict(cast(Dict[str, Any], auto_test_step))
 
             return auto_test_step
 
