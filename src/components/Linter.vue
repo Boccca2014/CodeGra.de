@@ -209,7 +209,7 @@ export default {
                             t.state.indexOf(f) >= 0 ||
                             nameOfUser(t.work.user)
                                 .toLowerCase()
-                                .indexOf(f) >= 0,
+                                .includes(f),
                     ),
                 );
             }

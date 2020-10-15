@@ -583,7 +583,7 @@ export function userMatches(user: User, filter: string): boolean {
     // The given user might not be an actual user object, as this function is
     // also used by the plagiarism list.
     return [nameOfUser(user), ...groupMembers(user)].some(
-        name => name.toLocaleLowerCase().indexOf(filter) > -1,
+        name => name.toLocaleLowerCase().includes(filter),
     );
 }
 

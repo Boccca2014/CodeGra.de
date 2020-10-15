@@ -40,7 +40,7 @@ export class Search<K extends string> {
             terms.every(term =>
                 term.keys.some(key => {
                     const val = this.prepareTerm(String(item[key] ?? ''));
-                    return val.indexOf(term.q) !== -1;
+                    return val.includes(term.q);
                 }),
             ),
         );

@@ -331,14 +331,14 @@ Promise.all([
             },
 
             isEdge() {
-                return window.navigator.userAgent.indexOf('Edge') > -1;
+                return window.navigator.userAgent.includes('Edge');
             },
 
             isSafari() {
                 const ua = window.navigator.userAgent;
                 // Contains safari and does not contain Chrome as Google Chrome
                 // contains Safari and Chrome.
-                return ua.indexOf('Safari') > -1 && ua.indexOf('Chrome') < 0;
+                return ua.includes('Safari') && !ua.includes('Chrome');
             },
 
             $now() {

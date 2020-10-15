@@ -139,6 +139,8 @@ module.exports = {
 
         '@typescript-eslint/no-unnecessary-type-arguments': 'error',
 
+        '@typescript-eslint/prefer-includes': 'error',
+
         '@typescript-eslint/restrict-template-expressions': [
             'error',
             {
