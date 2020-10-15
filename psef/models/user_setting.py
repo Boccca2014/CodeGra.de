@@ -390,7 +390,7 @@ class UIPreference(Base, SettingBase):
         user: User,
         pref: UIPreferenceName,
     ) -> t.Optional[bool]:
-        """Get the ui preference mapping for a user.
+        """Get the value of the given ui preference mapping for a user.
 
         :param user: User to get the preferences of.
         :param pref: The preference you want to get.

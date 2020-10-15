@@ -94,7 +94,6 @@
 
 
 <script>
-// import moment from 'moment';
 import { mapGetters, mapActions } from 'vuex';
 import Icon from 'vue-awesome/components/Icon';
 import 'vue-awesome/icons/gear';
@@ -171,14 +170,6 @@ export default {
                         c.assignments.some(a => a.name.toLowerCase().indexOf(sub) >= 0),
                 ),
             );
-        },
-
-        showReleaseNote() {
-            return false;
-            // return (
-            //     this.$userConfig.release.message &&
-            //     this.$root.$now.diff(moment(this.$userConfig.release.date), 'days') < 7
-            // );
         },
 
         // Are there more courses available. If this is true we should show the

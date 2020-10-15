@@ -950,6 +950,16 @@ def restart_auto_test_result(auto_test_id: int, run_id: int, result_id: int
 
     auth.AutoTestResultPermissions(result).ensure_may_restart()
 
+    work = result.work
+    if work.assignment.get_latest_submission_for_user(work.user).with_entities(
+        models.Work.id
+    ).scalar() != work.id:
+        raise APIException(
+            'You cannot restart old submissions.',
+            f'The submission {work.id} is not the latest submission.',
+            APICodes.NOT_NEWEST_SUBMSSION, 400
+        )
+
     if result.is_finished or result.runner is None:
         callback_after_this_request(
             lambda: tasks.adjust_amount_runners(run_id)

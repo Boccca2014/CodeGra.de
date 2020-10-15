@@ -99,6 +99,7 @@ module.exports = {
         // 'lines-between-class-members': 'off',
         // '@typescript-eslint/lines-between-class-members': ['error', 'always'],
 
+        'no-continue': 'off',
 
         'prettier-vue/prettier': ['error', {
             'singleQuote': true,
