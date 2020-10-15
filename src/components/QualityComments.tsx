@@ -20,7 +20,7 @@ const groupComments = (comments: ReadonlyArray<models.QualityComment>): MessageG
     utils
         .groupBy(comments, comment => {
             if (comment.code != null) {
-                return `${comment.origin} (${comment.code}): ${comment.msg}`;
+                return `${comment.origin} [${comment.code}]: ${comment.msg}`;
             } else {
                 return `${comment.origin}: ${comment.msg}`;
             }

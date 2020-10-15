@@ -448,7 +448,39 @@
                     <b>{{ stepName }}</b>
 
                     <template v-if="canViewDetails">
-                        Check the code quality using <code>{{ value.data.program }}</code>.
+                        Check the code quality using
+                        <code>{{ value.data.program }}</code>
+                        with penalties:
+
+                        <b-input-group class="w-100 mt-2">
+                            <b-input-group-prepend is-text class="text-danger">
+                                Fatal
+                            </b-input-group-prepend>
+                            <b-input-group-prepend class="flex-grow-1 form-control justify-content-end">
+                                {{ value.data.penalties.fatal }}%
+                            </b-input-group-prepend>
+
+                            <b-input-group-prepend is-text class="text-danger">
+                                Error
+                            </b-input-group-prepend>
+                            <b-input-group-prepend class="flex-grow-1 form-control justify-content-end">
+                                {{ value.data.penalties.error }}%
+                            </b-input-group-prepend>
+
+                            <b-input-group-prepend is-text class="text-warning">
+                                Warning
+                            </b-input-group-prepend>
+                            <b-input-group-prepend class="flex-grow-1 form-control justify-content-end">
+                                {{ value.data.penalties.warning }}%
+                            </b-input-group-prepend>
+
+                            <b-input-group-prepend is-text class="text-info">
+                                Info
+                            </b-input-group-prepend>
+                            <b-input-group-prepend class="flex-grow-1 form-control justify-content-end mr-0">
+                                {{ value.data.penalties.info }}%
+                            </b-input-group-prepend>
+                        </b-input-group>
                     </template>
                 </div>
             </td>
