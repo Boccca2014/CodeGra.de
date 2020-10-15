@@ -270,9 +270,10 @@ export class AutoTestResult {
             this.approxWaitingBefore = result.approx_waiting_before;
         }
         if (hasAttr(result, 'quality_comments')) {
-            this.qualityComments = models.QualityComments.fromServerData(
-                result.quality_comments,
+            Vue.set(
                 this,
+                'qualityComments',
+                models.QualityComments.fromServerData(result.quality_comments, this),
             );
         }
 
