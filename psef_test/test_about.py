@@ -50,7 +50,11 @@ def test_about_health_status(
 
     stub_session_cls = requests_stubs.session_maker()
     stub_broker_ses = stub_function_class(stub_session_cls, with_args=True)
-    monkeypatch.setattr(psef.helpers, 'BrokerSession', stub_broker_ses)
+    monkeypatch.setattr(
+        psef.models.BrokerSetting,
+        'get_session',
+        lambda _, retries: stub_broker_ses(),
+    )
 
     raise_db_error = False
 
