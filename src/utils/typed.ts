@@ -123,11 +123,10 @@ export function zip(...lists: ReadonlyArray<any>[]): any {
 
     const acc = [];
     const end = Math.min(...lists.map(l => l.length));
-    let i = 0;
-    const getter = (l: readonly any[]) => l[i];
+    const getter = (i: number) => (l: readonly any[]) => l[i];
 
-    for (; i < end; i++) {
-        acc.push(lists.map(getter));
+    for (let i = 0; i < end; i++) {
+        acc.push(lists.map(getter(i)));
     }
     return acc;
 }
