@@ -561,7 +561,7 @@ export function last<T>(arr: readonly T[]): T {
 
 export function isEmpty(obj: Object | null | undefined | boolean | string): boolean {
     if (typeof obj !== 'object' || obj == null) {
-        return obj == null || obj === '';
+        return obj === false || obj == null || obj === '';
     } else {
         return Object.keys(obj).length === 0;
     }
