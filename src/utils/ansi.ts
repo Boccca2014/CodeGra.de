@@ -50,16 +50,16 @@ function pushColoredChunk(
 
         if (typeof fg === 'number') {
             classes.push(`${ANSI_COLORS[fg]}-fg`);
-        } else if (fg.length) {
-            styles.push(`color: rgb(${fg})`);
+        } else if (fg.length > 0) {
+            styles.push(`color: rgb(${fg.join(', ')})`);
         } else if (inverse) {
             classes.push('ansi-color-default-inverse-fg');
         }
 
         if (typeof bg === 'number') {
             classes.push(`${ANSI_COLORS[bg]}-bg`);
-        } else if (bg.length) {
-            styles.push(`background-color: rgb(${bg})`);
+        } else if (bg.length > 0) {
+            styles.push(`background-color: rgb(${bg.join(', ')})`);
         } else if (inverse) {
             classes.push('ansi-color-default-inverse-bg');
         }
@@ -72,12 +72,12 @@ function pushColoredChunk(
             classes.push('ansi-color-underline');
         }
 
-        if (classes.length || styles.length) {
+        if (classes.length > 0 || styles.length > 0) {
             addOutput('<span');
-            if (classes.length) {
+            if (classes.length > 0) {
                 addOutput(` class="${classes.join(' ')}"`);
             }
-            if (styles.length) {
+            if (styles.length > 0) {
                 addOutput(` style="${styles.join('; ')}"`);
             }
             addOutput('>');

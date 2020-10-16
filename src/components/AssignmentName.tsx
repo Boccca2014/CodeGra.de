@@ -1,5 +1,5 @@
 /* SPDX-License-Identifier: AGPL-3.0-only */
-import { VNode, CreateElement } from 'vue';
+import { CreateElement } from 'vue';
 import * as tsx from 'vue-tsx-support';
 import p from 'vue-strict-prop';
 import * as models from '@/models';
@@ -24,7 +24,7 @@ const AssignmentName = tsx.component({
             .default('primary'),
     },
 
-    render(h, { data, props, scopedSlots }) {
+    render(h, { data, props }) {
         const { assignment, badgeVariant } = props;
 
         return (

@@ -68,7 +68,7 @@ const CourseName = tsx.component({
                 <span class={{ 'font-weight-bold': bold, 'align-middle': true }}>
                     {course.name}
                 </span>
-                {extra && <i class="align-middle">{extra}</i>}
+                {extra != null && <i class="align-middle">{extra}</i>}
                 {badge}
             </span>
         );

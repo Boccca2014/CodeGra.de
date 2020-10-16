@@ -78,10 +78,12 @@ export const NO_FOOTER_ROUTES = new Set(<const>[
 // the server, e.g. if it does not exist or the user has no permission to see
 // the object.
 export const NONEXISTENT = Symbol('NONEXISTENT');
+// eslint-disable-next-line
 export type NONEXISTENT = typeof NONEXISTENT;
 
 // Indicates that a value has not yet been set (e.g. in a model cache).
 export const UNSET_SENTINEL = Symbol('UNSET_SENTINEL');
+// eslint-disable-next-line
 export type UNSET_SENTINEL = typeof UNSET_SENTINEL;
 
 export const RUBRIC_BADGE_AT =

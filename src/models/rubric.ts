@@ -150,6 +150,8 @@ export class RubricRow<T extends number | undefined | null> {
     static fromServerData(data: RubricRowServerData) {
         // eslint-disable-next-line @typescript-eslint/no-use-before-define
         if (!hasAttr(RubricRowsTypes, data.type)) {
+            AssertionError.typeAssert<never>(data.type);
+            // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
             throw new ReferenceError(`Could not find specified type: ${data.type}`);
         }
         // eslint-disable-next-line @typescript-eslint/no-use-before-define
@@ -172,7 +174,7 @@ export class RubricRow<T extends number | undefined | null> {
     @nonenumerable
     protected _cache = makeCache('maxPoints', 'minPoints');
 
-    constructor(row: IRubricRow<T, T>, trackingId?: number) {
+    constructor(row: IRubricRow<T>, trackingId?: number) {
         // eslint-disable-next-line @typescript-eslint/no-use-before-define
         if (row.type && !(this instanceof RubricRowsTypes[row.type])) {
             throw new Error('You cannot make a base row with a non empty type.');
@@ -304,11 +306,11 @@ export class RubricRow<T extends number | undefined | null> {
         return cls.createEmpty();
     }
 
-    createItem<T extends number | null | undefined>(
-        this: NormalRubricRow<T>,
-    ): NormalRubricRow<T | undefined>;
+    createItem<Y extends number | null | undefined>(
+        this: NormalRubricRow<Y>,
+    ): NormalRubricRow<Y | undefined>;
 
-    createItem<T extends number | null | undefined>(this: RubricRow<T>) {
+    createItem<Y extends number | null | undefined>(this: RubricRow<Y>) {
         return this.update({
             items: [...this.items, RubricItem.createEmpty()],
         });
@@ -359,7 +361,7 @@ export class RubricRow<T extends number | undefined | null> {
                 if (!autoTestResult.finished) {
                     extra.push('the test has finished running');
                 }
-                if (!autoTestResult.isFinal) {
+                if (!(autoTestResult.isFinal as boolean)) {
                     extra.push(
                         'all hidden steps have been run, which will happen after the deadline',
                     );
@@ -556,7 +558,7 @@ type RubricServerData = RubricRowServerData[];
 
 export class Rubric<T extends number | undefined | null> {
     static fromServerData(data: RubricServerData) {
-        const rows = (data || []).map(row => {
+        const rows = (data ?? []).map(row => {
             row.items.sort((x, y) => x.points - y.points);
             return RubricRow.fromServerData(row);
         });
@@ -761,7 +763,7 @@ export class RubricResult {
         const selected = Object.assign({}, this.selected);
         const selectedItem = selected[rowId];
 
-        if (selectedItem && selectedItem.id === item.id) {
+        if (selectedItem != null && selectedItem.id === item.id) {
             delete selected[rowId];
         } else {
             selected[rowId] = Object.assign({}, item, {
@@ -780,7 +782,7 @@ export class RubricResult {
         const selected = Object.assign({}, this.selected);
         const selectedItem = selected[rowId];
 
-        if (selectedItem && selectedItem.id !== item.id) {
+        if (selectedItem != null && selectedItem.id !== item.id) {
             throw new Error(
                 `Item id should not change! Expected ${selectedItem.id} but got ${item.id}.`,
             );

@@ -155,7 +155,7 @@ export function getCapturePointsDiff(
                 // contains trailing whitespace mark it as ignored.
 
                 const [before, after] = line.split(/([\s\0]+)$/);
-                const constainsNewlineChar = /\0/.test(line);
+                const constainsNewlineChar = line.includes('\u0000');
 
                 if (showIgnored) {
                     toAdd = highlight(before) + highlight(after.replace('\0', ''), 'ignored');

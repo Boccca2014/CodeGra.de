@@ -33,7 +33,8 @@ export default tsx.component({
                             // If ``hide`` is ``Nothing`` it means that we have not
                             // yet set a preference, so we want to show the message in
                             // this case.
-                            if (hide.orDefault(false)) {
+                            const shouldShow = hide.orDefault(false);
+                            if (shouldShow) {
                                 return utils.Nothing;
                             }
                             return utils.Just(release);

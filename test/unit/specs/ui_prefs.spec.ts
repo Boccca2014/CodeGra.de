@@ -214,7 +214,6 @@ describe('UI preferences', () => {
                 localVue,
                 propsData: Object.assign({}, {
                     prefName: RubricEditorV2,
-                    componentName: 'rubric editor',
                 }, propsData),
                 slots: {
                     ifUnset: 'unset',

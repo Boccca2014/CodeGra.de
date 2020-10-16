@@ -25,7 +25,9 @@ export class TaskResult {
                     // eslint-disable-next-line
                     reject({ response: { data: response.data.result } });
                 } else {
-                    setTimeout(poll, waitTime);
+                    setTimeout(() => {
+                        poll();
+                    }, waitTime);
                 }
             };
 

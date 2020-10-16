@@ -1,6 +1,5 @@
 /* SPDX-License-Identifier: AGPL-3.0-only */
 import { VNode, CreateElement, RenderContext } from 'vue';
-import { mapGetters } from 'vuex';
 import * as models from '@/models';
 import * as tsx from 'vue-tsx-support';
 import p from 'vue-strict-prop';
@@ -13,7 +12,7 @@ import Icon from 'vue-awesome/components/Icon';
 import 'vue-awesome/icons/gear';
 
 function maybeEmit(ctx: RenderContext<{ course: models.Course }>) {
-    if (ctx.listeners['open-menu']) {
+    if (ctx.listeners['open-menu'] != null) {
         const { course } = ctx.props;
         let listeners = ctx.listeners['open-menu'];
         if (!Array.isArray(listeners)) {
@@ -41,7 +40,7 @@ export default tsx.component({
         routeName: p(String).required,
     },
 
-    render(h, ctx): VNode {
+    render(h: CreateElement, ctx): VNode {
         const { course, routeName, currentId } = ctx.props;
         const selected = course.id === currentId;
         const manageSelected = selected && routeName === 'manage_course';
@@ -66,7 +65,7 @@ export default tsx.component({
         };
 
         let badgeVariant: Variant;
-        if (store.getters['pref/darkMode']) {
+        if (store.getters['pref/darkMode'] as boolean) {
             badgeVariant = selected ? 'dark' : 'light';
         } else {
             badgeVariant = selected ? 'light' : 'primary';

@@ -10,7 +10,7 @@ class Cache<T extends string> {
         Object.freeze(this);
     }
 
-    get<V>(key: T, ifNotPresent: (key: T) => V): V {
+    get<V>(key: T, ifNotPresent: (notPresentKey: T) => V): V {
         AssertionError.assert(hasAttr(this._cache, key));
 
         if (this._cache[key] === UNSET_SENTINEL) {
