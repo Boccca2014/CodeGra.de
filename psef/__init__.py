@@ -100,7 +100,8 @@ class PsefFlask(Flask):
     def max_single_file_size(self) -> cg_object_storage.FileSize:
         """The maximum allowed size for a single file.
         """
-        return cg_object_storage.FileSize(self.config['MAX_FILE_SIZE'])
+        from . import site_settings  # pylint: disable=import-outside-toplevel
+        return site_settings.Opt.MAX_FILE_SIZE.value
 
     @property
     def max_file_size(self) -> cg_object_storage.FileSize:
@@ -108,9 +109,8 @@ class PsefFlask(Flask):
 
         .. note:: An individual file has a different limit!
         """
-        return cg_object_storage.FileSize(
-            self.config['MAX_NORMAL_UPLOAD_SIZE']
-        )
+        from . import site_settings  # pylint: disable=import-outside-toplevel
+        return site_settings.Opt.MAX_NORMAL_UPLOAD_SIZE.value
 
     @property
     def max_large_file_size(self) -> cg_object_storage.FileSize:
@@ -118,7 +118,8 @@ class PsefFlask(Flask):
 
         .. note:: An individual file has a different limit!
         """
-        return cg_object_storage.FileSize(self.config['MAX_LARGE_UPLOAD_SIZE'])
+        from . import site_settings  # pylint: disable=import-outside-toplevel
+        return site_settings.Opt.MAX_LARGE_UPLOAD_SIZE.value
 
     @property
     def do_sanity_checks(self) -> bool:
@@ -205,6 +206,9 @@ def create_app(  # pylint: disable=too-many-statements
                          ] = False
     resulting_app.config['SESSION_COOKIE_SECURE'] = True
     resulting_app.config['SESSION_COOKIE_SAMESITE'] = 'None'
+    # We don't cache responses from the API so it makes no sense to sort the
+    # keys.
+    resulting_app.config['JSON_SORT_KEYS'] = False
 
     if not resulting_app.debug:
         assert not resulting_app.config['AUTO_TEST_DISABLE_ORIGIN_CHECK']
@@ -224,9 +228,6 @@ def create_app(  # pylint: disable=too-many-statements
 
     from . import permissions
     permissions.init_app(resulting_app, skip_perm_check)
-
-    from . import features
-    features.init_app(resulting_app)
 
     from . import auth
     auth.init_app(resulting_app)
@@ -273,6 +274,9 @@ def create_app(  # pylint: disable=too-many-statements
 
     from . import saml2
     saml2.init_app(resulting_app)
+
+    from . import site_settings
+    site_settings.init_app(resulting_app)
 
     # Make sure celery is working
     if not skip_celery:  # pragma: no cover

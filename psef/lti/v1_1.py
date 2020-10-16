@@ -25,7 +25,7 @@ from defusedxml.ElementTree import fromstring as defused_xml_fromstring
 
 from cg_dt_utils import DatetimeWithTimezone
 
-from .. import app, auth, models, helpers, features
+from .. import app, auth, models, helpers, site_settings
 from ..models import db
 from ..helpers import try_for_every
 from .abstract import AbstractLTIConnector
@@ -741,7 +741,7 @@ class LTI(AbstractLTIConnector):  # pylint: disable=too-many-public-methods
             user.enroll_in_course(course_role=crole)
             return None
 
-        if not features.has_feature(features.Feature.AUTOMATIC_LTI_ROLE):
+        if not site_settings.Opt.AUTOMATIC_LTI_ROLE_ENABLED.value:
             raise APIException(
                 'The given LTI role could not be found or was not valid. '
                 'Please ask your instructor or site administrator.',

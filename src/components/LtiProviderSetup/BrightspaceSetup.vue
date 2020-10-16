@@ -69,7 +69,7 @@
 
                     <tr>
                         <td>Domain</td>
-                        <td><code>{{ $userConfig.externalUrl }}</code></td>
+                        <td><code>{{ $utils.getExternalUrl() }}</code></td>
                     </tr>
 
                     <tr>
@@ -392,7 +392,7 @@ export default class BrightspaceSetup extends Vue {
             this.$utils.buildUrl(
                 ['api', 'v1', 'lti1.3', 'launch_to_latest_submission'],
                 {
-                    baseUrl: this.$userConfig.externalUrl,
+                    baseUrl: this.$utils.getExternalUrl(),
                 },
             ),
         ];
@@ -402,7 +402,7 @@ export default class BrightspaceSetup extends Vue {
         return this.$utils.buildUrl(
             ['api', 'v1', 'lti1.3', 'launch'],
             {
-                baseUrl: this.$userConfig.externalUrl,
+                baseUrl: this.$utils.getExternalUrl(),
             },
         );
     }
@@ -411,7 +411,7 @@ export default class BrightspaceSetup extends Vue {
         return this.$utils.buildUrl(
             ['api', 'v1', 'lti1.3', 'login'],
             {
-                baseUrl: this.$userConfig.externalUrl,
+                baseUrl: this.$utils.getExternalUrl(),
             },
         );
     }
@@ -419,7 +419,7 @@ export default class BrightspaceSetup extends Vue {
     get jwksUrl(): string {
         return this.$utils.buildUrl(
             ['api', 'v1', 'lti1.3', 'providers', this.ltiProvider.id, 'jwks'], {
-                baseUrl: this.$userConfig.externalUrl,
+                baseUrl: this.$utils.getExternalUrl(),
             },
         );
     }
@@ -428,7 +428,7 @@ export default class BrightspaceSetup extends Vue {
         return this.$utils.buildUrl(
             ['static', 'favicon', 'android-chrome-512x512.png'],
             {
-                baseUrl: this.$userConfig.externalUrl,
+                baseUrl: this.$utils.getExternalUrl(),
             },
         );
     }

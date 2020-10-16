@@ -211,8 +211,4 @@ object {
 .pdf-viewer.floating-feedback-button .feedback-area-wrapper {
     flex: unset;
 }
-
-.pdf-viewer .Pane {
-    overflow: visible;
-}
 </style>

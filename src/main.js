@@ -4,9 +4,9 @@ import { Vue as VueIntegration } from '@sentry/integrations';
 import Vue from 'vue';
 
 // Some users might want to block sentry which should be just fine.
-if (UserConfig.sentryDsn && Sentry) {
+if (SENTRY_DSN && Sentry) {
     Sentry.init({
-        dsn: UserConfig.sentryDsn,
+        dsn: SENTRY_DSN,
         integrations: [
             new VueIntegration({
                 Vue,
@@ -14,7 +14,7 @@ if (UserConfig.sentryDsn && Sentry) {
                 logErrors: true,
             }),
         ],
-        release: `CodeGra.de@${UserConfig.release.commit}`,
+        release: `CodeGra.de@${COMMIT_HASH}`,
     });
 }
 
@@ -185,7 +185,6 @@ Vue.prototype.$routeParamAsId = function $routeParamAsId(name) {
     const res = utils.parseOrKeepFloat(this.$route.params[name]);
     return Number.isNaN(res) ? undefined : res;
 };
-Vue.prototype.$userConfig = UserConfig;
 
 Vue.prototype.$afterRerender = function doubleRequestAnimationFrame(cb) {
     return new Promise(resolve => {
@@ -392,7 +391,10 @@ Promise.all([
 
         methods: {
             async _loadNotifications() {
-                let sleepTime = UserConfig.notificationPollTime;
+                // The config variable is in seconds but we need to pass ms to
+                // `setTimeout`.
+                let mult = 1000;
+
                 try {
                     if (this.$store.getters['user/loggedIn']) {
                         if (this.$loadFullNotifications) {
@@ -404,12 +406,12 @@ Promise.all([
                 } catch (e) {
                     // eslint-disable-next-line
                     console.log('Loading notifications went wrong', e);
-                    sleepTime += sleepTime;
+                    mult *= 2;
                 }
 
                 setTimeout(() => {
                     this._loadNotifications();
-                }, sleepTime);
+                }, mult * this.$store.getters['siteSettings/getSetting']('NOTIFICATION_POLL_TIME'));
             },
 
             notLoggedInError(message) {
@@ -439,9 +441,9 @@ Promise.all([
                         }),
                     )
                     .catch(() => null);
-                const ourCommit = UserConfig.release.commitHash;
+                const ourCommit = COMMIT_HASH;
                 const remoteCommit = utils.getProps(res, ourCommit, 'data');
-                if (UserConfig.isProduction && ourCommit !== remoteCommit) {
+                if (IS_PRODUCTION && ourCommit !== remoteCommit) {
                     this.$emit('cg::app::toast', {
                         tag: 'UpdateAvailable',
                         title: 'CodeGrade update available!',

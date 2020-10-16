@@ -422,7 +422,10 @@ def test_create_auto_test_suite(basic, test_client, logged_in, describe):
                         'submission_info': False,
                         'steps': [],
                         # This is set in the conftest.py
-                        'command_time_limit': 3,
+                        'command_time_limit': (
+                            psef.site_settings.Opt.AUTO_TEST_MAX_TIME_COMMAND.
+                            value
+                        ).total_seconds(),
                     }],
                 }]
             }
@@ -789,6 +792,9 @@ def test_run_auto_test(
     monkeypatch_for_run, make_function_spy, stub_function_class
 ):
     with describe('setup'):
+        psef.site_settings.Opt.AUTO_TEST_MAX_TIME_COMMAND.set_and_commit_value(
+            'PT4S'
+        )
         course, assig_id, teacher, student1 = basic
         student2 = helpers.create_user_with_role(session, 'Student', [course])
         adjust_spy = make_function_spy(psef.tasks, 'adjust_amount_runners')
@@ -2911,6 +2917,75 @@ def test_submission_info_env_vars(
                 assert output == expected
             else:
                 assert output == {}
+
+
+def test_restart_auto_test_on_old_submission(
+    monkeypatch_celery, monkeypatch_broker, basic, test_client, logged_in,
+    describe, live_server, monkeypatch, app, session, stub_function_class,
+    monkeypatch_for_run
+):
+    course, assig_id, teacher, student = basic
+
+    with describe('setup'), logged_in(teacher):
+        # yapf: disable
+        test = helpers.create_auto_test_from_dict(
+            test_client, assig_id, {
+                'sets': [{
+                    'suites': [{
+                        'submission_info': False,
+                        'steps': [{
+                            'run_p': 'true',
+                            'name': 'true',
+                        }]
+                    }],
+                }],
+            }
+        )
+        # yapf: enable
+
+        url = f'/api/v1/auto_tests/{test["id"]}'
+
+        work = helpers.create_submission(
+            test_client, assig_id, for_user=student.username
+        )
+
+        run_id = test_client.req('post', f'{url}/runs/', 200)['id']
+
+        monkeypatch_broker()
+        live_server_url, stop_server = live_server(get_stop=True)
+        thread = threading.Thread(
+            target=psef.auto_test.start_polling, args=(app.config, )
+        )
+        thread.start()
+        thread.join()
+        session.expire_all()
+
+    with describe('should not be possible to restart old submissions'
+                  ), logged_in(teacher):
+        # Submit new work for student so that previous isn't their latest.
+        work2 = helpers.create_submission(
+            test_client, assig_id, for_user=student.username
+        )
+
+        res = session.query(m.AutoTestResult).filter_by(work_id=work['id']
+                                                        ).one()
+
+        test_client.req(
+            'post',
+            f'{url}/runs/{run_id}/results/{res.id}/restart',
+            400,
+        )
+
+    with describe('should be possible to restart new submission'
+                  ), logged_in(teacher):
+        res2 = session.query(m.AutoTestResult).filter_by(work_id=work2['id']
+                                                         ).one()
+
+        test_client.req(
+            'post',
+            f'{url}/runs/{run_id}/results/{res2.id}/restart',
+            200,
+        )
 
 
 def test_broker_extra_env_vars(describe):

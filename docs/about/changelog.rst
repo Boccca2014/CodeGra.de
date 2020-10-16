@@ -62,12 +62,12 @@ Updates
 Version Mosaic.1
 -----------------
 
-**Released**: September 9th, 2020
+.. json_include:: ../../seed_data/release_notes.json
+   :prepend: **Released**:
+   :path: Mosaic.1/readable_date
 
-CodeGrade now has an Exam mode in which students will be able to log in to
-CodeGrade and only have access to the course of the exam. Other changes
-include course archiving, importing of hand-in requirements, and including even
-more information in the AutoTest Unit Test output.
+.. json_include:: ../../seed_data/release_notes.json
+   :path: Mosaic.1/message
 
 Features
 ^^^^^^^^^^^^^^^^^^^^

@@ -20,6 +20,7 @@ from cg_sqlalchemy_helpers.types import ColumnProxy
 from cg_sqlalchemy_helpers.mixins import IdMixin, TimestampMixin
 
 from . import Base, User, db
+from .. import site_settings
 from ..auth import (
     APICodes, PermissionException, NotificationPermissions, as_current_user
 )
@@ -71,12 +72,13 @@ class SettingBase(TimestampMixin, IdMixin):
         :returns: The user for which this token can change settings.
         """
         try:
+            max_age = site_settings.Opt.SETTING_TOKEN_TIME.value
+            secret = psef.current_app.config['SECRET_KEY']
             user_id: int = URLSafeTimedSerializer(
-                psef.current_app.config['SECRET_KEY'],
-                salt=cls._get_salt(),
+                secret, salt=cls._get_salt()
             ).loads(
                 token,
-                max_age=round(psef.current_app.config['SETTING_TOKEN_TIME']),
+                max_age=round(max_age.total_seconds()),
             )
         except SignatureExpired as exc:
             logger.warning(
@@ -130,9 +132,13 @@ class SettingBase(TimestampMixin, IdMixin):
 class EmailNotificationTypes(enum.Enum):
     """The possible options for preferences for sending email notifications.
     """
+    #: Directly after the notification has been received.
     direct = 1
+    #: A daily digest of all notifications.
     daily = 2
+    #: A weekly digest.
     weekly = 3
+    #: No email at all.
     off = 4
 
     @classmethod
@@ -174,15 +180,20 @@ EnabledEmailNotificationTypes = Literal[EmailNotificationTypes.  # pylint: disab
 class NotificationSettingOptionJSON(TypedDict):
     """The JSON serialization schema for a single notification setting option.
     """
+    #: The notification reason.
     reason: NotificationReasons
+    #: The explanation when these kinds of notifications occur.
     explanation: str
+    #: The current value for this notification reason.
     value: EmailNotificationTypes
 
 
 class NotificationSettingJSON(TypedDict):
     """The JSON serialization schema for :class:`.NotificationsSetting`.
     """
+    #: The possible options to set.
     options: t.List[NotificationSettingOptionJSON]
+    #: The possible values for each option.
     possible_values: t.List[EmailNotificationTypes]
 
 
@@ -341,7 +352,15 @@ class NotificationsSetting(Base, SettingBase):
 
 
 class UIPreferenceName(cg_enum.CGEnum):
+    """The all defined UI preferences.
+    """
+    #: Should we show the new rubric editor.
     rubric_editor_v2 = enum.auto()
+
+    #: Hide the release message for Mosaic.1
+    no_msg_for_mosaic_1 = enum.auto()
+    #: Hide the release message for Mosaic.2
+    no_msg_for_mosaic_2 = enum.auto()
 
 
 class UIPreference(Base, SettingBase):
@@ -364,6 +383,23 @@ class UIPreference(Base, SettingBase):
         'user_id',
         name,
     ), )
+
+    @classmethod
+    def get_preference_for_user(
+        cls,
+        user: User,
+        pref: UIPreferenceName,
+    ) -> t.Optional[bool]:
+        """Get the value of the given ui preference mapping for a user.
+
+        :param user: User to get the preferences of.
+        :param pref: The preference you want to get.
+        :returns: The preference, or ``None`` if it is not set.
+        """
+        return db.session.query(cls.value).filter(
+            cls.user == user,
+            cls.name == pref,
+        ).scalar()
 
     @classmethod
     def get_preferences_for_user(

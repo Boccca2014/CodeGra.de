@@ -157,6 +157,7 @@ export default {
         ...mapActions('courses', ['loadSingleCourse']),
         ...mapActions('assignments', ['loadSingleAssignment']),
         ...mapActions('user', ['verifyLogin']),
+        ...mapActions('siteSettings', ['loadSettings']),
 
         makeForCourseToast(courseName) {
             return {
@@ -188,8 +189,8 @@ export default {
             event => {
                 if (
                     !event.target.closest('.popover-body') &&
-                    !event.target.closest('.sidebar') &&
-                    this.$refs.sidebar
+                        !event.target.closest('.sidebar') &&
+                        this.$refs.sidebar
                 ) {
                     this.$refs.sidebar.$emit('sidebar::close');
                 }
@@ -211,8 +212,9 @@ export default {
     mounted() {
         this.$root.$on('cg::app::toast', this.addToast);
 
-        this.verifyLogin()
-            .then(
+        Promise.all([
+            this.loadSettings(),
+            this.verifyLogin().then(
                 () => {
                     const route = this.$route.name;
 
@@ -228,14 +230,14 @@ export default {
                         this.$router.push({ name: 'login' });
                     }
                 },
-            )
-            .then(async () => {
-                this.loading = false;
-                if (this.showSidebar) {
-                    await this.$afterRerender();
-                }
-                this.showContent = true;
-            });
+            ),
+        ]).then(async () => {
+            this.loading = false;
+            if (this.showSidebar) {
+                await this.$afterRerender();
+            }
+            this.showContent = true;
+        });
     },
 
     destroyed() {

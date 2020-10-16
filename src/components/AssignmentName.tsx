@@ -6,39 +6,37 @@ import * as models from '@/models';
 import { Variant, isVariant } from '@/types';
 import * as utils from '@/utils';
 
-const examBadge = (
-    h: CreateElement,
-    assignment: models.Assignment,
-    variant: string,
-) => {
-    return utils.ifOrEmpty(
-        assignment.isExam,
-        () => <b-badge variant={variant}
-                       class="mr-2 text-small-uppercase align-self-center">
+const examBadge = (h: CreateElement, assignment: models.Assignment, variant: string) =>
+    utils.ifOrEmpty(assignment.isExam, () => (
+        <b-badge variant={variant} class="mr-2 text-small-uppercase align-self-center">
             exam
-        </b-badge>,
-    );
-};
+        </b-badge>
+    ));
 
 const AssignmentName = tsx.component({
     functional: true,
 
     props: {
         assignment: p.ofType<models.Assignment>().required,
-        badgeVariant: p.ofType<Variant>().validator(isVariant).default('primary'),
+        badgeVariant: p
+            .ofType<Variant>()
+            .validator(isVariant)
+            .default('primary'),
     },
 
     render(h, { data, props, scopedSlots }) {
         const { assignment, badgeVariant } = props;
 
-        return <div class={['assignment-name', 'text-nowrap', data.class, data.staticClass]}
-                    style={[data.style, data.staticStyle]}
-                    title={assignment.name}>
-            <span class="mr-2 text-truncate">
-                {assignment.name}
-            </span>
-            {examBadge(h, assignment, badgeVariant)}
-        </div>;
+        return (
+            <div
+                class={['assignment-name', 'text-nowrap', data.class, data.staticClass]}
+                style={[data.style, data.staticStyle]}
+                title={assignment.name}
+            >
+                <span class="mr-2 text-truncate">{assignment.name}</span>
+                {examBadge(h, assignment, badgeVariant)}
+            </div>
+        );
     },
 });
 

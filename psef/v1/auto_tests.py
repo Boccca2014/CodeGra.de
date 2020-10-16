@@ -20,14 +20,16 @@ from cg_json import (
 from cg_maybe import Maybe
 
 from . import api
-from .. import app, auth, files, tasks, models, helpers, registry, exceptions
+from .. import (
+    app, auth, files, tasks, models, helpers, registry, exceptions,
+    site_settings
+)
 from ..models import db
 from ..helpers import (
     EmptyResponse, get_or_404, add_warning, jsonify_options,
     make_empty_response, filter_single_or_404, get_from_map_transaction,
     get_json_dict_from_request, callback_after_this_request
 )
-from ..features import Feature, feature_required
 from ..exceptions import APICodes, APIWarnings, APIException
 from ..permissions import CoursePermission as CPerm
 
@@ -130,7 +132,7 @@ _ATUpdateMap = rqa.FixedMapping(
 def _update_auto_test(
     auto_test: models.AutoTest,
     new_fixtures: t.Sequence[FileStorage],
-    old_fixtures: Maybe[t.List[FixtureLike]],
+    old_fixtures: Maybe[t.Sequence[FixtureLike]],
     setup_script: Maybe[str],
     run_setup_script: Maybe[str],
     has_new_fixtures: Maybe[bool],
@@ -209,7 +211,7 @@ def _update_auto_test(
 
 
 @api.route('/auto_tests/', methods=['POST'])
-@feature_required(Feature.AUTO_TEST)
+@site_settings.Opt.AUTO_TEST_ENABLED.required
 @rqa.swaggerize('create')
 @auth.login_required
 def create_auto_test() -> JSONResponse[models.AutoTest]:
@@ -281,7 +283,7 @@ def create_auto_test() -> JSONResponse[models.AutoTest]:
 
 
 @api.route('/auto_tests/<int:auto_test_id>', methods=['DELETE'])
-@feature_required(Feature.AUTO_TEST)
+@site_settings.Opt.AUTO_TEST_ENABLED.required
 @rqa.swaggerize('delete')
 @auth.login_required
 def delete_auto_test(auto_test_id: int) -> EmptyResponse:
@@ -318,7 +320,7 @@ def delete_auto_test(auto_test_id: int) -> EmptyResponse:
 @api.route(
     '/auto_tests/<int:at_id>/fixtures/<int:fixture_id>', methods=['GET']
 )
-@feature_required(Feature.AUTO_TEST)
+@site_settings.Opt.AUTO_TEST_ENABLED.required
 def get_fixture_contents(
     at_id: int, fixture_id: int
 ) -> werkzeug.wrappers.Response:
@@ -351,7 +353,7 @@ def get_fixture_contents(
     '/auto_tests/<int:at_id>/fixtures/<int:fixture_id>/hide',
     methods=['POST', 'DELETE']
 )
-@feature_required(Feature.AUTO_TEST)
+@site_settings.Opt.AUTO_TEST_ENABLED.required
 def hide_or_open_fixture(at_id: int, fixture_id: int) -> EmptyResponse:
     """Change the visibility of the given fixture.
 
@@ -383,7 +385,7 @@ def hide_or_open_fixture(at_id: int, fixture_id: int) -> EmptyResponse:
 
 
 @api.route('/auto_tests/<int:auto_test_id>', methods=['PATCH'])
-@feature_required(Feature.AUTO_TEST)
+@site_settings.Opt.AUTO_TEST_ENABLED.required
 @rqa.swaggerize('patch')
 @auth.login_required
 def update_auto_test(auto_test_id: int) -> JSONResponse[models.AutoTest]:
@@ -433,7 +435,7 @@ def update_auto_test(auto_test_id: int) -> JSONResponse[models.AutoTest]:
 
 
 @api.route('/auto_tests/<int:auto_test_id>/sets/', methods=['POST'])
-@feature_required(Feature.AUTO_TEST)
+@site_settings.Opt.AUTO_TEST_ENABLED.required
 @rqa.swaggerize('add_set', no_data=True)
 @auth.login_required
 def create_auto_test_set(auto_test_id: int
@@ -465,7 +467,7 @@ def create_auto_test_set(auto_test_id: int
     '/auto_tests/<int:auto_test_id>/sets/<int:auto_test_set_id>',
     methods=['PATCH']
 )
-@feature_required(Feature.AUTO_TEST)
+@site_settings.Opt.AUTO_TEST_ENABLED.required
 @rqa.swaggerize('update_set')
 @auth.login_required
 def update_auto_test_set(auto_test_id: int, auto_test_set_id: int
@@ -522,7 +524,7 @@ def update_auto_test_set(auto_test_id: int, auto_test_set_id: int
     '/auto_tests/<int:auto_test_id>/sets/<int:auto_test_set_id>',
     methods=['DELETE']
 )
-@feature_required(Feature.AUTO_TEST)
+@site_settings.Opt.AUTO_TEST_ENABLED.required
 @rqa.swaggerize('delete_set')
 @auth.login_required
 def delete_auto_test_set(
@@ -552,7 +554,7 @@ def delete_auto_test_set(
     '/auto_tests/<int:auto_test_id>/sets/<int:set_id>/suites/',
     methods=['PATCH']
 )
-@feature_required(Feature.AUTO_TEST)
+@site_settings.Opt.AUTO_TEST_ENABLED.required
 @rqa.swaggerize('update_suite')
 @auth.login_required
 def update_or_create_auto_test_suite(auto_test_id: int, set_id: int
@@ -626,8 +628,13 @@ def update_or_create_auto_test_suite(auto_test_id: int, set_id: int
         suite = get_or_404(models.AutoTestSuite, data.id.value)
     else:
         # Make sure the time_limit is always set when creating a new suite
-        time_limit = data.command_time_limit.or_default(
-            app.config['AUTO_TEST_MAX_TIME_COMMAND']
+        default_time_limit = site_settings.Opt.AUTO_TEST_MAX_TIME_COMMAND
+
+        def get_default_time_limit() -> float:
+            return default_time_limit.value.total_seconds()
+
+        time_limit = data.command_time_limit.or_default_lazy(
+            get_default_time_limit
         )
         suite = models.AutoTestSuite(auto_test_set=auto_test_set)
 
@@ -678,7 +685,7 @@ def update_or_create_auto_test_suite(auto_test_id: int, set_id: int
     '/auto_tests/<int:test_id>/sets/<int:set_id>/suites/<int:suite_id>',
     methods=['DELETE']
 )
-@feature_required(Feature.AUTO_TEST)
+@site_settings.Opt.AUTO_TEST_ENABLED.required
 @rqa.swaggerize('delete_suite')
 @auth.login_required
 def delete_suite(test_id: int, set_id: int, suite_id: int) -> EmptyResponse:
@@ -708,7 +715,7 @@ def delete_suite(test_id: int, set_id: int, suite_id: int) -> EmptyResponse:
 
 
 @api.route('/auto_tests/<int:auto_test_id>', methods=['GET'])
-@feature_required(Feature.AUTO_TEST)
+@site_settings.Opt.AUTO_TEST_ENABLED.required
 @rqa.swaggerize('get')
 @auth.login_required
 def get_auto_test(
@@ -733,7 +740,7 @@ def get_auto_test(
 
 
 @api.route('/auto_tests/<int:auto_test_id>/runs/<int:run_id>', methods=['GET'])
-@feature_required(Feature.AUTO_TEST)
+@site_settings.Opt.AUTO_TEST_ENABLED.required
 def get_auto_test_run(auto_test_id: int,
                       run_id: int) -> ExtendedJSONResponse[models.AutoTestRun]:
     """Get the extended version of an :class:`.models.AutoTestRun`.
@@ -759,7 +766,7 @@ def get_auto_test_run(auto_test_id: int,
 
 
 @api.route('/auto_tests/<int:auto_test_id>/runs/', methods=['POST'])
-@feature_required(Feature.AUTO_TEST)
+@site_settings.Opt.AUTO_TEST_ENABLED.required
 @rqa.swaggerize('start_run', no_data=True)
 @auth.login_required
 def start_auto_test_run(auto_test_id: int) -> t.Union[JSONResponse[
@@ -806,7 +813,7 @@ def start_auto_test_run(auto_test_id: int) -> t.Union[JSONResponse[
 @api.route(
     '/auto_tests/<int:auto_test_id>/runs/<int:run_id>', methods=['DELETE']
 )
-@feature_required(Feature.AUTO_TEST)
+@site_settings.Opt.AUTO_TEST_ENABLED.required
 @rqa.swaggerize('stop_run')
 @auth.login_required
 def delete_auto_test_runs(auto_test_id: int, run_id: int) -> EmptyResponse:
@@ -849,7 +856,7 @@ def delete_auto_test_runs(auto_test_id: int, run_id: int) -> EmptyResponse:
     ),
     methods=['GET']
 )
-@feature_required(Feature.AUTO_TEST)
+@site_settings.Opt.AUTO_TEST_ENABLED.required
 @rqa.swaggerize('get_results_by_user')
 @auth.login_required
 def get_auto_test_results_for_user(
@@ -899,7 +906,7 @@ def get_auto_test_results_for_user(
     '/auto_tests/<int:auto_test_id>/runs/<int:run_id>/results/<int:result_id>',
     methods=['GET']
 )
-@feature_required(Feature.AUTO_TEST)
+@site_settings.Opt.AUTO_TEST_ENABLED.required
 @rqa.swaggerize('get_result')
 @auth.login_required
 def get_auto_test_result(auto_test_id: int, run_id: int, result_id: int
@@ -925,7 +932,7 @@ def get_auto_test_result(auto_test_id: int, run_id: int, result_id: int
     ),
     methods=['POST']
 )
-@feature_required(Feature.AUTO_TEST)
+@site_settings.Opt.AUTO_TEST_ENABLED.required
 @rqa.swaggerize('restart_result', no_data=True)
 @auth.login_required
 def restart_auto_test_result(auto_test_id: int, run_id: int, result_id: int
@@ -942,6 +949,16 @@ def restart_auto_test_result(auto_test_id: int, run_id: int, result_id: int
     result = _get_result_by_ids(auto_test_id, run_id, result_id, lock=True)
 
     auth.AutoTestResultPermissions(result).ensure_may_restart()
+
+    work = result.work
+    if work.assignment.get_latest_submission_for_user(work.user).with_entities(
+        models.Work.id
+    ).scalar() != work.id:
+        raise APIException(
+            'You cannot restart old submissions.',
+            f'The submission {work.id} is not the latest submission.',
+            APICodes.NOT_NEWEST_SUBMSSION, 400
+        )
 
     if result.is_finished or result.runner is None:
         callback_after_this_request(
@@ -962,7 +979,7 @@ def restart_auto_test_result(auto_test_id: int, run_id: int, result_id: int
 
 
 @api.route('/auto_tests/<int:auto_test_id>/copy', methods=['POST'])
-@feature_required(Feature.AUTO_TEST)
+@site_settings.Opt.AUTO_TEST_ENABLED.required
 @rqa.swaggerize('copy')
 @auth.login_required
 def copy_auto_test(auto_test_id: int) -> JSONResponse[models.AutoTest]:
@@ -1032,8 +1049,8 @@ def copy_auto_test(auto_test_id: int) -> JSONResponse[models.AutoTest]:
     ),
     methods=['POST']
 )
-@feature_required(Feature.AUTO_TEST)
-@feature_required(Feature.RENDER_HTML)
+@site_settings.Opt.AUTO_TEST_ENABLED.required
+@site_settings.Opt.RENDER_HTML_ENABLED.required
 def get_auto_test_result_proxy(
     auto_test_id: int,
     run_id: int,
@@ -1086,7 +1103,7 @@ def get_auto_test_result_proxy(
     '/auto_tests/<int:auto_test_id>/runs/<int:run_id>/step_results/<int:step_result_id>/attachment',
     methods=['GET']
 )
-@feature_required(Feature.AUTO_TEST)
+@site_settings.Opt.AUTO_TEST_ENABLED.required
 @auth.login_required
 def get_auto_test_step_result_attachment(
     auto_test_id: int, run_id: int, step_result_id: int

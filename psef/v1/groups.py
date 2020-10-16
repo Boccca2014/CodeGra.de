@@ -10,7 +10,7 @@ from flask import request
 import cg_request_args as rqa
 
 from . import api
-from .. import auth, models, db_locks, features
+from .. import auth, models, db_locks, site_settings
 from ..helpers import (
     EmptyResponse, ExtendedJSONResponse, get_or_404, add_warning,
     readable_join, ensure_json_dict, extended_jsonify, ensure_keys_in_dict,
@@ -22,7 +22,7 @@ from ..exceptions import (
 
 
 @api.route('/groups/<int:group_id>', methods=['GET'])
-@features.feature_required(features.Feature.GROUPS)
+@site_settings.Opt.GROUPS_ENABLED.required
 @rqa.swaggerize('get')
 @auth.login_required
 def get_group(group_id: int) -> ExtendedJSONResponse[models.Group]:
@@ -39,7 +39,7 @@ def get_group(group_id: int) -> ExtendedJSONResponse[models.Group]:
 
 
 @api.route('/groups/<int:group_id>', methods=['DELETE'])
-@features.feature_required(features.Feature.GROUPS)
+@site_settings.Opt.GROUPS_ENABLED.required
 @auth.login_required
 def delete_group(group_id: int) -> EmptyResponse:
     """Delete a group by id.
@@ -72,7 +72,7 @@ def delete_group(group_id: int) -> EmptyResponse:
 
 
 @api.route('/groups/<int:group_id>/member', methods=['POST'])
-@features.feature_required(features.Feature.GROUPS)
+@site_settings.Opt.GROUPS_ENABLED.required
 @auth.login_required
 def add_member_to_group(group_id: int) -> ExtendedJSONResponse[models.Group]:
     """Add a user (member) to a group.
@@ -162,7 +162,7 @@ def add_member_to_group(group_id: int) -> ExtendedJSONResponse[models.Group]:
 
 
 @api.route('/groups/<int:group_id>/members/<int:user_id>', methods=['DELETE'])
-@features.feature_required(features.Feature.GROUPS)
+@site_settings.Opt.GROUPS_ENABLED.required
 @auth.login_required
 def remove_member_from_group(group_id: int, user_id: int
                              ) -> ExtendedJSONResponse[models.Group]:
@@ -206,7 +206,7 @@ def remove_member_from_group(group_id: int, user_id: int
 
 
 @api.route('/groups/<int:group_id>/name', methods=['POST'])
-@features.feature_required(features.Feature.GROUPS)
+@site_settings.Opt.GROUPS_ENABLED.required
 @auth.login_required
 def update_name_of_group(group_id: int) -> ExtendedJSONResponse[models.Group]:
     """Update the name of the group.

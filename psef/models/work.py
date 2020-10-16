@@ -31,7 +31,7 @@ from . import user as user_models
 from . import group as group_models
 from . import _MyQuery
 from . import assignment as assignment_models
-from .. import auth, helpers, signals, features
+from .. import auth, helpers, signals, site_settings
 from .linter import LinterState, LinterComment, LinterInstance
 from .rubric import RubricItem, WorkRubricItem
 from .comment import CommentBase
@@ -284,7 +284,7 @@ class Work(Base):
 
         :returns: Nothing
         """
-        if not features.has_feature(features.Feature.LINTERS):
+        if not site_settings.Opt.LINTERS_ENABLED.value:
             return
 
         for linter in self.assignment.linters:

@@ -25,11 +25,10 @@ export { FeedbackStore } from './modules/feedback';
 export { PeerFeedbackStore } from './modules/peer_feedback';
 export { AssignmentsStore } from './modules/assignments';
 export { CoursesStore } from './modules/courses';
+export { SiteSettingsStore } from './modules/siteSettings';
 export { UIPrefsStore } from './modules/ui_prefs';
 
 Vue.use(Vuex);
-
-const debug = process.env.NODE_ENV !== 'production';
 
 let disabledPersistance = false;
 let localStorageError = false;
@@ -93,7 +92,7 @@ Object.entries({
     builder.vuexModule = () => value;
 });
 
-export const store = rootBuilder.vuexStore({ strict: debug });
+export const store = rootBuilder.vuexStore({ strict: !IS_PRODUCTION });
 
 export function disablePersistance() {
     let error: Error | undefined;

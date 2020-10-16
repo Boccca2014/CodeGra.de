@@ -523,7 +523,7 @@ export function parseOrKeepFloat(num: string | number | null | undefined): numbe
 
 export function mapToObject<T extends Object, Y, KK extends keyof T = keyof T>(
     arr: ReadonlyArray<Y>,
-    mapper: (el: Y, index: number) => [KK, T[KK]],
+    mapper: (el: Y, index: number) => readonly [KK, T[KK]],
     initial: T = <T>{},
 ): T {
     return arr.reduce((acc, el, index) => {
@@ -972,4 +972,12 @@ export function ifJustOrEmpty<A>(
         Just: then,
         Nothing: () => emptyVNode(),
     });
+}
+
+export function getExternalUrl(): string {
+    return window.location.origin;
+}
+
+export function getProxyBaseDomain(): string {
+    return `proxy.${window.location.host}`;
 }

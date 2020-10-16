@@ -33,7 +33,7 @@ from cg_sqlalchemy_helpers.types import DbType, DbColumn, ColumnProxy
 from cg_sqlalchemy_helpers.mixins import IdMixin, TimestampMixin
 
 from . import Base, db
-from .. import auth, helpers, exceptions, current_app
+from .. import auth, helpers, exceptions, current_app, site_settings
 from ..helpers import (
     JSONType, between, safe_div, ensure_json_dict, get_from_map_transaction
 )
@@ -219,7 +219,7 @@ class AutoTestStepBase(Base, TimestampMixin, IdMixin):
         """
         return (
             self.suite.command_time_limit or
-            psef.app.config['AUTO_TEST_MAX_TIME_COMMAND']
+            site_settings.Opt.AUTO_TEST_MAX_TIME_COMMAND.value.total_seconds()
         )
 
     def get_instructions(self) -> 'auto_test_module.StepInstructions':

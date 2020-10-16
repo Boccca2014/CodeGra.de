@@ -56,13 +56,13 @@ class AutoTestSuiteAsJSON:
 
         steps = []
         for steps_item_data in d["steps"]:
-            steps_item = AutoTestStepBaseAsJSON.from_dict(steps_item_data)
+            steps_item = AutoTestStepBaseAsJSON.from_dict(cast(Dict[str, Any], steps_item_data))
 
             steps.append(steps_item)
 
         def _parse_rubric_row(data: Dict[str, Any]) -> Union[RubricRowBaseAsJSON]:
             rubric_row: Union[RubricRowBaseAsJSON] = d["rubric_row"]
-            rubric_row = RubricRowBaseAsJSON.from_dict(rubric_row)
+            rubric_row = RubricRowBaseAsJSON.from_dict(cast(Dict[str, Any], rubric_row))
 
             return rubric_row
 

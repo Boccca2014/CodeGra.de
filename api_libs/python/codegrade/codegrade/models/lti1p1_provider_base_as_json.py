@@ -34,6 +34,8 @@ class LTI1p1ProviderBaseAsJSON(LTIProviderBaseBaseAsJSON):
     def from_dict(d: Dict[str, Any]) -> LTI1p1ProviderBaseAsJSON:
         base = asdict(LTIProviderBaseBaseAsJSON.from_dict(d))
         base.pop("raw_data")
+        if d.get("version") != "lti1.1":
+            raise ValueError("Wrong value for version: " + d.get("version"))
         version = d.get("version")
 
         return LTI1p1ProviderBaseAsJSON(**base, version=version, raw_data=d,)

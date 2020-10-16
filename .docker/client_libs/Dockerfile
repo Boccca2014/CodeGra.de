@@ -8,7 +8,7 @@ COPY ./requirements.txt /requirements.txt
 
 RUN pip install -r requirements.txt
 RUN pip install pypandoc
-RUN pip install git+http://github.com/CodeGra-de/openapi-python-client.git@22bbded08a26913f20a961a4505b621f13fa85b1
+RUN pip install git+http://github.com/CodeGra-de/openapi-python-client.git@711573eedb0d384de0c107a4315bc97cfeeb3eb6
 RUN rm /requirements.txt
 
 ENV DEBUG=true

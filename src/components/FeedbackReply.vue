@@ -214,6 +214,7 @@
                         ref="deleteButton"
                         variant="secondary"
                         name="delete-feedback"
+                        container="window"
                         :submit="deleteFeedback"
                         confirm="Are you sure you want to delete this comment?"
                         invert-colors

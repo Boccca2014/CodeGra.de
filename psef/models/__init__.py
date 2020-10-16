@@ -210,6 +210,7 @@ if True:  # pylint: disable=using-constant-test
         EmailNotificationTypes, NotificationSettingJSON
     )
     from .saml_provider import Saml2Provider, UserSamlProvider
+    from .site_settings import SiteSetting
     from .auto_test_step import (
         AutoTestStepBase, AutoTestStepResult, AutoTestStepResultState
     )

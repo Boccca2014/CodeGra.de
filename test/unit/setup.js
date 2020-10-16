@@ -9,11 +9,6 @@ Vue.prototype.$utils = utils;
 Vue.prototype.$afterRerender = function() {};
 
 config.mocks.$http = axios;
-global.UserConfig = {
-    features: {
-        rubrics: true,
-    },
-};
 
 config.mocks.$htmlEscape = jest.fn(a => a);
 

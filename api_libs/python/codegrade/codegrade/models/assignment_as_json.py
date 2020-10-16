@@ -167,7 +167,7 @@ See the comments in the source code for the meaning of each field."""
             cgignore: Optional[Union[str, SubmissionValidatorInputData]] = d["cgignore"]
             if isinstance(cgignore, str):
                 return cgignore
-            cgignore = SubmissionValidatorInputData.from_dict(cgignore)
+            cgignore = SubmissionValidatorInputData.from_dict(cast(Dict[str, Any], cgignore))
 
             return cgignore
 
@@ -192,7 +192,7 @@ See the comments in the source code for the meaning of each field."""
                 return None
 
             group_set: Optional[Union[GroupSetAsJSON]] = d["group_set"]
-            group_set = GroupSetAsJSON.from_dict(group_set)
+            group_set = GroupSetAsJSON.from_dict(cast(Dict[str, Any], group_set))
 
             return group_set
 
@@ -221,7 +221,9 @@ See the comments in the source code for the meaning of each field."""
                 return None
 
             peer_feedback_settings: Optional[Union[AssignmentPeerFeedbackSettingsAsJSON]] = d["peer_feedback_settings"]
-            peer_feedback_settings = AssignmentPeerFeedbackSettingsAsJSON.from_dict(peer_feedback_settings)
+            peer_feedback_settings = AssignmentPeerFeedbackSettingsAsJSON.from_dict(
+                cast(Dict[str, Any], peer_feedback_settings)
+            )
 
             return peer_feedback_settings
 
