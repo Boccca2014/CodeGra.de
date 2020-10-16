@@ -11,7 +11,7 @@ STUDENT = os.environ['STUDENT']
 
 
 def _npm_root() -> str:
-    return subprocess.check_output(['npm', 'root', '-g']).stdout
+    return subprocess.check_output(['npm', 'root', '-g'])
 
 
 def _file_output(f) -> str:
