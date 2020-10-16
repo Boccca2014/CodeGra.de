@@ -3,12 +3,13 @@ import 'vue';
 import { Moment } from 'moment';
 import { AxiosStatic } from 'axios';
 import * as typedUtils from '@/utils/typed';
+import localforage from 'localforage';
 
 // 2. Specify a file with the types you want to augment
 //    Vue has the constructor type in types/vue.d.ts
 declare module 'vue/types/vue' {
     // 3. Declare augmentation for Vue
-    interface Vue {
+    export interface Vue {
         $afterRerender(): Promise<void>;
         $waitForRef(ref: string, retries?: number): Promise<HTMLElement | Vue | null>;
         $routeParamAsId(name: string): number | undefined;
@@ -20,6 +21,6 @@ declare module 'vue/types/vue' {
         $loadFullNotifications: boolean;
         $isProduction: boolean;
 
-        $hlanguageStore: LocalForage;
+        $hlanguageStore: typeof localforage;
     }
 }

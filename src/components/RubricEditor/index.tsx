@@ -1,7 +1,6 @@
 import * as tsx from 'vue-tsx-support';
 import p from 'vue-strict-prop';
 
-import * as api from '@/api/v1';
 import * as models from '@/models';
 import * as utils from '@/utils';
 import * as comp from '@/components';
@@ -41,7 +40,6 @@ export default tsx.component({
             <comp.PreferredUI
                 hideSwitcher={this.hideSwitcher}
                 prefName={models.UIPreference.RubricEditorV2}
-                componentName="rubric interface"
             >
                 <template slot="ifUnset">
                     {utils.ifExpr(

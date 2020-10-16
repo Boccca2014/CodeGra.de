@@ -1,4 +1,4 @@
-import { VNode, CreateElement } from 'vue';
+import { CreateElement } from 'vue';
 import * as tsx from 'vue-tsx-support';
 import { modifiers as m } from 'vue-tsx-support';
 import p from 'vue-strict-prop';
@@ -11,7 +11,7 @@ type Events = {
     submit: undefined;
 };
 
-const PreviewableMarkdownEditor = tsx.componentFactoryOf<Events, {}>().create({
+const PreviewableMarkdownEditor = tsx.componentFactoryOf<Events>().create({
     props: {
         value: p(String).required,
         rows: p.ofType<number | undefined>().default(undefined),
@@ -28,13 +28,13 @@ const PreviewableMarkdownEditor = tsx.componentFactoryOf<Events, {}>().create({
     methods: {
         renderPreview(h: CreateElement) {
             return this.$utils.ifExpr(
-                !!this.value,
-                () => <InnerMarkdownViewer markdown={this.value} class="px-3 py-2" />,
+                this.value === '',
                 () => (
                     <div class="empty px-3 py-2 text-muted font-italic">
-                        {this.$slots.empty || 'Field is empty...'}
+                        {this.$slots.empty ?? 'Field is empty...'}
                     </div>
                 ),
+                () => <InnerMarkdownViewer markdown={this.value} class="px-3 py-2" />,
             );
         },
 

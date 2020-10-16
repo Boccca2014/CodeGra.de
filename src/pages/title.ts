@@ -4,10 +4,10 @@ let changed = false;
 
 export function setPageTitle(title: string = ''): void {
     changed = true;
-    if (!title) {
-        document.title = 'CodeGrade';
-    } else {
+    if (title) {
         document.title = `${title} ${pageTitleSep} CodeGrade`;
+    } else {
+        document.title = 'CodeGrade';
     }
 }
 

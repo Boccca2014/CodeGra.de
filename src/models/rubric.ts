@@ -55,11 +55,12 @@ export class RubricItem<T = number | undefined> {
         );
     }
 
-    duplicate(): RubricItem<T | undefined> {
+    duplicate(): RubricItem<undefined> {
+        const points: number | '' | null = this.points;
         return new RubricItem(
             {
                 id: undefined,
-                points: this.points,
+                points,
                 header: this.header,
                 description: this.description,
             },
@@ -145,8 +146,10 @@ export interface RubricRow<T> extends IRubricRow<T> {
 export class RubricRow<T extends number | undefined | null> {
     constructor(row: IRubricRow<T>, trackingId?: number) {
         // eslint-disable-next-line @typescript-eslint/no-use-before-define
-        if (row.type && !(this instanceof RubricRowsTypes[row.type])) {
-            throw new Error('You cannot make a base row with a non empty type.');
+        if (row.type !== '' && !utils.hasAttr(RubricRowsTypes, row.type)) {
+            utils.AssertionError.typeAssert<never>(row.type);
+            // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
+            throw new ReferenceError(`Could not find specified type: ${row.type}`);
         }
 
         this.trackingId = trackingId ?? utils.getUniqueId();
@@ -161,26 +164,25 @@ export class RubricRow<T extends number | undefined | null> {
         utils.AssertionError.typeAssert<RubricRowType>(data.type);
         switch (data.type) {
             case 'normal':
+                // eslint-disable-next-line @typescript-eslint/no-use-before-define
                 return NormalRubricRow.fromServerData(data);
             case 'continuous':
+                // eslint-disable-next-line @typescript-eslint/no-use-before-define
                 return ContinuousRubricRow.fromServerData(data);
             default:
-                utils.AssertionError.assertNever(data);
+                return utils.AssertionError.assertNever(data);
         }
     }
 
     updateFromServerData(data: RubricRowServerData): RubricRow<number> {
-        const row = Object.assign({
-            items: data.items.map(RubricItem.fromServerData),
-            descriptionType: RubricDescriptionType[data.description_type],
-        }, utils.pickKeys(
-            data,
-            ['id', 'locked', 'type', 'header', 'description'],
-        ));
-        return new (this.constructor as typeof RubricRow)(
-            row,
-            this.trackingId,
+        const row = Object.assign(
+            {
+                items: data.items.map(RubricItem.fromServerData),
+                descriptionType: RubricDescriptionType[data.description_type],
+            },
+            utils.pickKeys(data, ['id', 'locked', 'type', 'header', 'description']),
         );
+        return new (this.constructor as typeof RubricRow)(row, this.trackingId);
     }
 
     static createEmpty(): RubricRow<undefined> {
@@ -195,18 +197,20 @@ export class RubricRow<T extends number | undefined | null> {
         });
     }
 
-    duplicate(): RubricRow<T | undefined> {
+    duplicate(): RubricRow<undefined> {
         let newHeader = this.header;
         if (newHeader) {
             newHeader += ' (duplicate)';
         }
-        return new (this.constructor as any)(
+        return new (this.constructor as typeof RubricRow)(
             {
                 id: undefined,
                 type: this.type,
                 header: newHeader,
                 description: this.description,
-                descriptionType: this.descriptionType,
+                // New rows always have the description type markdown, as we
+                // cannot create plain text rows on the server.
+                descriptionType: RubricDescriptionType.markdown,
                 locked: false,
                 items: this.items.map(item => item.duplicate()),
             },
@@ -335,11 +339,11 @@ export class RubricRow<T extends number | undefined | null> {
         return cls.createEmpty();
     }
 
-    createItem<T extends number | null | undefined>(
-        this: NormalRubricRow<T>,
-    ): NormalRubricRow<T | undefined>;
+    createItem<Y extends number | null | undefined>(
+        this: NormalRubricRow<Y>,
+    ): NormalRubricRow<Y | undefined>;
 
-    createItem<T extends number | null | undefined>(this: RubricRow<T>) {
+    createItem<Y extends number | null | undefined>(this: RubricRow<Y>) {
         return this.update({
             items: [...this.items, RubricItem.createEmpty()],
         });
@@ -390,7 +394,7 @@ export class RubricRow<T extends number | undefined | null> {
                 if (!autoTestResult.finished) {
                     extra.push('the test has finished running');
                 }
-                if (!autoTestResult.isFinal) {
+                if (!(autoTestResult.isFinal as boolean)) {
                     extra.push(
                         'all hidden steps have been run, which will happen after the deadline',
                     );
@@ -402,11 +406,13 @@ export class RubricRow<T extends number | undefined | null> {
             }
             return msg;
         } else {
-            return `You scored ${autoTestPercentage.toFixed(0)}% in the
-                corresponding AutoTest category, which scores you ${utils.toMaxNDecimals(
+            const amountPoints = utils.toMaxNDecimals(
                 selectedRubricItem.points * selectedRubricItem.multiplier,
                 2,
-            )} points in this rubric category. `;
+            );
+            return `You scored ${autoTestPercentage.toFixed(
+                0,
+            )}% in the corresponding AutoTest category, which scores you ${amountPoints} points in this rubric category. `;
         }
     }
 
@@ -808,7 +814,7 @@ export class RubricResult {
         const selected = Object.assign({}, this.selected);
         const selectedItem = selected[rowId];
 
-        if (selectedItem && selectedItem.id === item.id) {
+        if (selectedItem != null && selectedItem.id === item.id) {
             delete selected[rowId];
         } else {
             selected[rowId] = Object.assign({}, item, {
@@ -827,7 +833,7 @@ export class RubricResult {
         const selected = Object.assign({}, this.selected);
         const selectedItem = selected[rowId];
 
-        if (selectedItem && selectedItem.id !== item.id) {
+        if (selectedItem != null && selectedItem.id !== item.id) {
             throw new Error(
                 `Item id should not change! Expected ${selectedItem.id} but got ${item.id}.`,
             );

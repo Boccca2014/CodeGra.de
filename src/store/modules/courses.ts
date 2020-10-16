@@ -211,7 +211,7 @@ export namespace CoursesStore {
 
     // eslint-disable-next-line
     function _getPermissionsForCourse(state: CoursesState) {
-        return (courseId: number): CPermMap => state.permissions[courseId] || {};
+        return (courseId: number): CPermMap => state.permissions[courseId] ?? {};
     }
 
     export const getPermissionsForCourse = moduleBuilder.read(
@@ -405,7 +405,7 @@ export function onDone(store: Store<RootState>) {
     store.watch(
         // @ts-ignore
         (_: RootState, allGetters: Record<string, any>) => allGetters['user/loggedIn'],
-        loggedIn => {
+        (loggedIn: boolean) => {
             if (!loggedIn) {
                 CoursesStore.commitClearAll();
                 AssignmentsStore.commitClearAll();
