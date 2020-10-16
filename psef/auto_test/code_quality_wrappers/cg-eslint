@@ -11,10 +11,8 @@ STUDENT = os.environ['STUDENT']
 
 
 def handle_file_output(f) -> str:
-    print('comments for file:', f)
     msgs = []
 
-    filename = f['filePath']
     for message in f['messages']:
         if message.get('fatal', False):
             severity = 'fatal'
@@ -36,7 +34,7 @@ def handle_file_output(f) -> str:
                 'start': message['column'],
                 'end': message.get('endColumn', None),
             },
-            'path': filename[len(STUDENT):].split('/')
+            'path': f['filePath'][len(STUDENT):].split('/'),
         })
 
     return msgs
@@ -69,18 +67,19 @@ def main() -> None:
     # were found.
     if proc.returncode not in {0, 1}:
         print('ESLint crashed, stdout:\n', proc.stderr, file=sys.stderr)
-        exit(1)
+    else:
+        output = json.dumps({
+            'op': 'put_comments',
+            'comments': [
+                c
+                for f in json.loads(proc.stdout.decode('utf8'))
+                for c in handle_file_output(f)
+            ],
+        })
 
-    output = json.dumps({
-        'op': 'put_comments',
-        'comments': [
-            c
-            for f in json.loads(proc.stdout.decode('utf8'))
-            for c in handle_file_output(f)
-        ],
-    })
+        subprocess.run(['cg-api'], input=output.encode('utf8'))
 
-    subprocess.run(['cg-api'], input=output.encode('utf8'))
+    exit(proc.returncode)
 
 
 if __name__ == '__main__':

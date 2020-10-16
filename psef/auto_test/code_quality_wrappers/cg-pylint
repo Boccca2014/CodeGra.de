@@ -1,0 +1,70 @@
+#!/usr/bin/env python3
+# SPDX-License-Identifier: AGPL-3.0-only
+
+import os
+import sys
+import json
+import tempfile
+import subprocess
+
+STUDENT = os.environ['STUDENT']
+
+
+def handle_file_output(message) -> str:
+    return {
+        'origin': 'PyLint',
+        'msg': message['message'],
+        'code': message['symbol'],
+        'severity': severity,
+        'line': {
+            'start': message['line'],
+            'end': message['line'],
+        },
+        'column': {
+            'start': message['column'],
+            'end': None,
+        },
+        'path': message['abspath'][len(STUDENT):].split('/'),
+    }
+
+
+def main() -> None:
+    """Run PyLint.
+    """
+
+    # The check for success is something we really don't want here.
+    proc = subprocess.run(  # pylint: disable=subprocess-run-check
+        [
+            'pylint',
+            '--output-format', 'json',
+            *sys.argv[1:],
+            './**/*',
+        ],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+    )
+
+    if proc.returncode == 32:
+        print('PyLint crashed, stdout:\n', proc.stderr, file=sys.stderr)
+    elif proc.returncode == 1:
+        print(
+            'The submission is not a valid python module, it probably lacks'
+            'an `__init__` file.',
+            file=sys.stderr,
+        )
+    else:
+        output = json.dumps({
+            'op': 'put_comments',
+            'comments': [
+                handle_error(err)
+                for err in json.loads(proc.stdout.decode('utf8'))
+            ],
+        })
+
+        subprocess.run(['cg-api'], input=output.encode('utf8'))
+
+    exit(proc.returncode)
+
+
+if __name__ == '__main__':
+    main()
