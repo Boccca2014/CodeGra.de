@@ -365,7 +365,7 @@ export default class BlackboardSetup extends Vue {
             this.$utils.buildUrl(
                 ['api', 'v1', 'lti1.3', 'launch_to_latest_submission', this.ltiProvider.id],
                 {
-                    baseUrl: this.$userConfig.externalUrl,
+                    baseUrl: this.$utils.getExternalUrl(),
                 },
             ),
         ];
@@ -375,7 +375,7 @@ export default class BlackboardSetup extends Vue {
         return this.$utils.buildUrl(
             ['api', 'v1', 'lti1.3', 'launch', this.ltiProvider.id],
             {
-                baseUrl: this.$userConfig.externalUrl,
+                baseUrl: this.$utils.getExternalUrl(),
             },
         );
     }
@@ -384,7 +384,7 @@ export default class BlackboardSetup extends Vue {
         return this.$utils.buildUrl(
             ['api', 'v1', 'lti1.3', 'login', this.ltiProvider.id],
             {
-                baseUrl: this.$userConfig.externalUrl,
+                baseUrl: this.$utils.getExternalUrl(),
             },
         );
     }
@@ -392,13 +392,13 @@ export default class BlackboardSetup extends Vue {
     get jwksUrl(): string {
         return this.$utils.buildUrl(
             ['api', 'v1', 'lti1.3', 'providers', this.ltiProvider.id, 'jwks'], {
-                baseUrl: this.$userConfig.externalUrl,
+                baseUrl: this.$utils.getExternalUrl(),
             },
         );
     }
 
     get externalHostname(): string {
-        return new URL(this.$userConfig.externalUrl).hostname;
+        return new URL(this.$utils.getExternalUrl()).hostname;
     }
 
     get secureIconUrl(): string {

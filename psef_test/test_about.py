@@ -28,6 +28,8 @@ def test_about_health_status(
             'version': object,
             'commit': str,
             'features': dict,
+            'release': dict,
+            'settings': dict,
         },
     )
 
@@ -41,6 +43,8 @@ def test_about_health_status(
             'version': object,
             'commit': str,
             'features': dict,
+            'release': dict,
+            'settings': dict,
         },
     )
 
@@ -71,6 +75,8 @@ def test_about_health_status(
             'version': object,
             'commit': str,
             'features': dict,
+            'release': dict,
+            'settings': dict,
             'health': {
                 'application': True,
                 'database': True,
@@ -96,6 +102,8 @@ def test_about_health_status(
             'version': object,
             'commit': str,
             'features': dict,
+            'release': dict,
+            'settings': dict,
             'health': {
                 'application': True,
                 'database': False,
@@ -127,6 +135,8 @@ def test_about_health_status(
             'version': object,
             'commit': str,
             'features': dict,
+            'release': dict,
+            'settings': dict,
             'health': {
                 'application': True,
                 'database': True,
@@ -152,6 +162,8 @@ def test_about_health_status(
             'version': object,
             'commit': str,
             'features': dict,
+            'release': dict,
+            'settings': dict,
             'health': {
                 'application': True,
                 'database': True,

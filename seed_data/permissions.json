@@ -441,5 +441,11 @@
     "course_permission": true,
     "short_description": "Edit course info",
     "long_description": "Users with this permission can edit general information of a course, for example the name."
+  },
+  "can_manage_site_settings": {
+    "default_value": false,
+    "course_permission": false,
+    "short_description": "Manage site settings",
+    "long_description": "Users with this permission can manage the settings of this CodeGrade instance"
   }
 }

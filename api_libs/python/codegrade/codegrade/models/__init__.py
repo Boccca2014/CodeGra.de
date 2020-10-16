@@ -1,5 +1,6 @@
 """ Contains all the data models used in inputs/outputs """
 
+from .about_as_json import AboutAsJSON
 from .abstract_role_as_json import AbstractRoleAsJSON
 from .api_codes import APICodes
 from .assignment_as_json import AssignmentAsJSON
@@ -20,7 +21,9 @@ from .auto_test_step_base_input_as_json import AutoTestStepBaseInputAsJSON
 from .auto_test_step_result_as_json import AutoTestStepResultAsJSON
 from .auto_test_step_result_state import AutoTestStepResultState
 from .auto_test_suite_as_json import AutoTestSuiteAsJSON
+from .base_about_as_json import BaseAboutAsJSON
 from .base_error import BaseError
+from .base_release_info import BaseReleaseInfo
 from .copy_auto_test_data import CopyAutoTestData
 from .copy_rubric_assignment_data import CopyRubricAssignmentData
 from .course_as_extended_json import CourseAsExtendedJSON
@@ -30,6 +33,7 @@ from .course_role_as_json import CourseRoleAsJSON
 from .course_snippet_as_json import CourseSnippetAsJSON
 from .course_state import CourseState
 from .create_auto_test_data import CreateAutoTestData
+from .email_notification_types import EmailNotificationTypes
 from .file_mixin_as_json import FileMixinAsJSON
 from .file_rule_input_data import FileRuleInputData
 from .file_tree_as_json import FileTreeAsJSON
@@ -39,10 +43,12 @@ from .fixture_like import FixtureLike
 from .group_as_extended_json import GroupAsExtendedJSON
 from .group_as_json import GroupAsJSON
 from .group_set_as_json import GroupSetAsJSON
+from .health_as_json import HealthAsJSON
 from .ignore_version import IgnoreVersion
 from .json_create_auto_test import JsonCreateAutoTest
 from .json_patch_auto_test import JsonPatchAutoTest
 from .key import Key
+from .legacy_features_as_json import LegacyFeaturesAsJSON
 from .login_user_data import LoginUserData
 from .lti1p1_provider_base_as_json import LTI1p1ProviderBaseAsJSON
 from .lti1p1_provider_finalized_as_json import LTI1p1ProviderFinalizedAsJSON
@@ -51,14 +57,24 @@ from .lti1p3_provider_base_as_json import LTI1p3ProviderBaseAsJSON
 from .lti1p3_provider_finalized_as_json import LTI1p3ProviderFinalizedAsJSON
 from .lti1p3_provider_non_finalized_as_json import LTI1p3ProviderNonFinalizedAsJSON
 from .lti_provider_base_base_as_json import LTIProviderBaseBaseAsJSON
+from .notification_reasons import NotificationReasons
+from .notification_setting_json import NotificationSettingJSON
+from .notification_setting_option_json import NotificationSettingOptionJSON
+from .opt_all_opts_as_json import OptAllOptsAsJSON
+from .opt_frontend_opts_as_json import OptFrontendOptsAsJSON
 from .options_input_data import OptionsInputData
 from .patch_assignment_data import PatchAssignmentData
 from .patch_auto_test_data import PatchAutoTestData
 from .patch_course_data import PatchCourseData
+from .patch_notification_setting_user_setting_data import PatchNotificationSettingUserSettingData
+from .patch_sitesettings_data import PatchSitesettingsData
+from .patch_ui_preference_user_setting_data import PatchUiPreferenceUserSettingData
 from .policy import Policy
 from .put_enroll_link_course_data import PutEnrollLinkCourseData
 from .put_rubric_assignment_data import PutRubricAssignmentData
+from .release_info import ReleaseInfo
 from .result_data_get_auto_test_get import ResultDataGetAutoTestGet
+from .result_data_get_user_setting_get_all_ui_preferences import ResultDataGetUserSettingGetAllUiPreferences
 from .result_data_post_user_login import ResultDataPostUserLogin
 from .rubric_description_type import RubricDescriptionType
 from .rubric_item_as_json import RubricItemAsJSON
@@ -69,8 +85,10 @@ from .rubric_row_base_as_json import RubricRowBaseAsJSON
 from .rubric_row_base_input_as_json import RubricRowBaseInputAsJSON
 from .rubric_row_base_input_as_json_base import RubricRowBaseInputAsJSONBase
 from .rule_type import RuleType
+from .site_setting_input_as_json import SiteSettingInputAsJSON
 from .submission_validator_input_data import SubmissionValidatorInputData
 from .types import *
+from .ui_preference_name import UIPreferenceName
 from .update_set_auto_test_data import UpdateSetAutoTestData
 from .update_suite_auto_test_data import UpdateSuiteAutoTestData
 from .user_as_extended_json import UserAsExtendedJSON

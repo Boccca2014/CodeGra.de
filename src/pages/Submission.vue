@@ -345,6 +345,7 @@ export default {
         }),
         ...mapGetters('fileTrees', ['getFileTree']),
         ...mapGetters('feedback', ['getFeedback']),
+        ...mapGetters('siteSettings', { getSiteSetting: 'getSetting' }),
 
         course() {
             return this.$utils.getProps(this.assignment, null, 'course');
@@ -412,7 +413,7 @@ export default {
         },
 
         canEmailStudents() {
-            return (UserConfig.features.email_students &&
+            return (this.getSiteSetting('EMAIL_STUDENTS_ENABLED') &&
                     this.$utils.getProps(this.coursePerms, false, 'can_email_students'));
         },
 

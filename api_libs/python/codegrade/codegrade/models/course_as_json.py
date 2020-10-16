@@ -107,24 +107,24 @@ class CourseAsJSON:
                 ]
             ] = d["lti_provider"]
             try:
-                lti_provider = LTI1p3ProviderFinalizedAsJSON.from_dict(d["lti_provider"])
+                lti_provider = LTI1p3ProviderFinalizedAsJSON.from_dict(cast(Dict[str, Any], d["lti_provider"]))
 
                 return lti_provider
             except:
                 pass
             try:
-                lti_provider = LTI1p3ProviderNonFinalizedAsJSON.from_dict(d["lti_provider"])
+                lti_provider = LTI1p3ProviderNonFinalizedAsJSON.from_dict(cast(Dict[str, Any], d["lti_provider"]))
 
                 return lti_provider
             except:
                 pass
             try:
-                lti_provider = LTI1p1ProviderFinalizedAsJSON.from_dict(d["lti_provider"])
+                lti_provider = LTI1p1ProviderFinalizedAsJSON.from_dict(cast(Dict[str, Any], d["lti_provider"]))
 
                 return lti_provider
             except:
                 pass
-            lti_provider = LTI1p1ProviderNonFinalizedAsJSON.from_dict(lti_provider)
+            lti_provider = LTI1p1ProviderNonFinalizedAsJSON.from_dict(cast(Dict[str, Any], lti_provider))
 
             return lti_provider
 

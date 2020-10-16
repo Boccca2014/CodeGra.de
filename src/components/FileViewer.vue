@@ -81,7 +81,7 @@
 </template>
 
 <script>
-import { mapActions } from 'vuex';
+import { mapActions, mapGetters } from 'vuex';
 
 import {
     CodeViewer,
@@ -155,10 +155,7 @@ export default {
             loadingCode: false,
             fileTypes: [
                 {
-                    cond: () =>
-                        UserConfig.features.render_html &&
-                        this.hasExtension('html', 'htm') &&
-                        this.revision !== 'diff',
+                    cond: () => this.htmlViewerEnabled(),
                     component: HtmlViewer,
                     showLanguage: false,
                     scroller: false,
@@ -211,6 +208,8 @@ export default {
     },
 
     computed: {
+        ...mapGetters('siteSettings', ['getSetting']),
+
         showEmptyFileMessage() {
             return (
                 !this.loading &&
@@ -467,6 +466,12 @@ export default {
 
         showDiff(file) {
             return this.revision === 'diff' && file.ids && file.ids[0] !== file.ids[1];
+        },
+
+        htmlViewerEnabled() {
+            return this.hasExtension('html', 'htm') &&
+                this.revision !== 'diff' &&
+                this.getSetting('RENDER_HTML_ENABLED');
         },
     },
 

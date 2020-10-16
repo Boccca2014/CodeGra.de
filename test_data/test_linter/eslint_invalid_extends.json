@@ -19,7 +19,6 @@
     }
   },
   "globals": {
-    "UserConfig": true,
     "AutoTestBaseSystems": true
   }
 }

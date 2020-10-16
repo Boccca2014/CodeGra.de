@@ -62,6 +62,8 @@
 import Icon from 'vue-awesome/components/Icon';
 import 'vue-awesome/icons/cog';
 
+import { mapGetters } from 'vuex';
+
 import Baby from 'babyparse';
 
 import { downloadFile, nameOfUser } from '@/utils';
@@ -92,69 +94,11 @@ export default {
             default: 0,
             required: true,
         },
-        columns: {
-            type: Array,
-            default() {
-                const cols = [
-                    {
-                        name: 'Id',
-                        enabled: false,
-                        getter: submission => submission.userId,
-                    },
-                    {
-                        name: 'Username',
-                        enabled: true,
-                        getter: submission => submission.user.username,
-                    },
-                    {
-                        name: 'Name',
-                        enabled: true,
-                        getter: submission => nameOfUser(submission.user),
-                    },
-                    {
-                        name: 'Grade',
-                        enabled: true,
-                        getter: submission => submission.grade,
-                    },
-                    {
-                        name: 'Created at',
-                        enabled: true,
-                        getter: submission => this.$utils.readableFormatDate(submission.createdAt),
-                    },
-                    {
-                        name: 'Assigned to',
-                        enabled: true,
-                        getter: submission => nameOfUser(submission.assignee),
-                    },
-                    {
-                        name: 'General feedback',
-                        enabled: false,
-                        getter: (submission, feedback) =>
-                            this.$utils.getProps(feedback, '', 'general'),
-                    },
-                    {
-                        name: 'Line feedback',
-                        enabled: false,
-                        getter: (submission, feedback) =>
-                            this.$utils.getProps(feedback, [], 'user').join('\n'),
-                    },
-                ];
-
-                if (UserConfig.features.linters) {
-                    cols.push({
-                        name: 'Linter feedback',
-                        enabled: false,
-                        getter: (submission, feedback) =>
-                            this.$utils.getProps(feedback, [], 'linter').join('\n'),
-                    });
-                }
-
-                return cols;
-            },
-        },
     },
 
     computed: {
+        ...mapGetters('siteSettings', { getSiteSetting: 'getSetting' }),
+
         items() {
             return this.exportSetting === 'All'
                 ? this.getSubmissions(false)
@@ -167,6 +111,64 @@ export default {
 
         currentFilename() {
             return this.userFilename ? this.userFilename : this.filename;
+        },
+
+        columns() {
+            const cols = [
+                {
+                    name: 'Id',
+                    enabled: false,
+                    getter: submission => submission.userId,
+                },
+                {
+                    name: 'Username',
+                    enabled: true,
+                    getter: submission => submission.user.username,
+                },
+                {
+                    name: 'Name',
+                    enabled: true,
+                    getter: submission => nameOfUser(submission.user),
+                },
+                {
+                    name: 'Grade',
+                    enabled: true,
+                    getter: submission => submission.grade,
+                },
+                {
+                    name: 'Created at',
+                    enabled: true,
+                    getter: submission => this.$utils.readableFormatDate(submission.createdAt),
+                },
+                {
+                    name: 'Assigned to',
+                    enabled: true,
+                    getter: submission => nameOfUser(submission.assignee),
+                },
+                {
+                    name: 'General feedback',
+                    enabled: false,
+                    getter: (submission, feedback) =>
+                        this.$utils.getProps(feedback, '', 'general'),
+                },
+                {
+                    name: 'Line feedback',
+                    enabled: false,
+                    getter: (submission, feedback) =>
+                        this.$utils.getProps(feedback, [], 'user').join('\n'),
+                },
+            ];
+
+            if (this.getSiteSetting('LINTERS_ENABLED')) {
+                cols.push({
+                    name: 'Linter feedback',
+                    enabled: false,
+                    getter: (submission, feedback) =>
+                        this.$utils.getProps(feedback, [], 'linter').join('\n'),
+                });
+            }
+
+            return cols;
         },
     },
 

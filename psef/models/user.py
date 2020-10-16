@@ -10,7 +10,6 @@ from collections import defaultdict
 
 import structlog
 import flask_jwt_extended
-from flask import current_app
 from itsdangerous import BadSignature, URLSafeTimedSerializer
 from werkzeug.local import LocalProxy
 from sqlalchemy_utils import PasswordType
@@ -25,7 +24,7 @@ from cg_sqlalchemy_helpers import CIText, hybrid_property
 
 from . import UUID_LENGTH, Base, DbColumn, db
 from . import course as course_models
-from .. import auth, signals, db_locks
+from .. import auth, signals, db_locks, current_app, site_settings
 from .role import Role, CourseRole
 from ..helpers import (
     NotEqualMixin, validate, handle_none, jsonify_options, maybe_unwrap_proxy,
@@ -124,6 +123,8 @@ class User(NotEqualMixin, Base):
             )
             now = get_request_start_time()
             expires_in = expires_at - now
+        elif expires_in is None:
+            expires_in = site_settings.Opt.JWT_ACCESS_TOKEN_EXPIRES.value
 
         return flask_jwt_extended.create_access_token(
             identity=self.id,
@@ -748,9 +749,10 @@ class User(NotEqualMixin, Base):
             current_app.config['SECRET_KEY']
         )
         try:
+            max_age = site_settings.Opt.RESET_TOKEN_TIME.value
             username = timed_serializer.loads(
                 token,
-                max_age=current_app.config['RESET_TOKEN_TIME'],
+                max_age=round(max_age.total_seconds()),
                 salt=self.reset_token
             )
         except BadSignature as exc:

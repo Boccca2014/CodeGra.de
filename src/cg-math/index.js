@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 import markdownIt from 'markdown-it';
 import Vue from 'vue';
-import { highlightCode, htmlEscape } from '@/utils';
+import { highlightCode, htmlEscape, getExternalUrl } from '@/utils';
 
 /* Much of this code is copied directly from jupyter with little to no
  * changes. All rights remain theirs.
@@ -10,7 +10,7 @@ import { highlightCode, htmlEscape } from '@/utils';
 const MATHSPLIT = /(\$\$?|\\(?:begin|end)\{[a-z]*\*?\}|\\[{}$]|[{}]|(?:\n\s*)+|@@\d+@@|\\\\(?:\(|\)|\[|\]))/i;
 
 const ALLOWED_EXTERNAL_URLS = /^https:\/\/(imgur.com|upload.wikimedia.org)/;
-const THIS_URL = `${UserConfig.externalUrl}/static/img`;
+const THIS_URL = `${getExternalUrl()}/static/img`;
 
 // eslint-disable-next-line
 export class CgMarkdownIt {
@@ -59,7 +59,7 @@ export class CgMarkdownIt {
                         'External images are disallowed by default, you can enable them on top.',
                     );
                     token.attrSet('alt', 'External images are disallowed by default');
-                    token.attrSet('src', `${UserConfig.externalUrl}/static/img/fa-ban.svg`);
+                    token.attrSet('src', `${getExternalUrl()}/static/img/fa-ban.svg`);
                     token.attrSet('style', 'width: 25px; cursor: help;');
                 }
             }

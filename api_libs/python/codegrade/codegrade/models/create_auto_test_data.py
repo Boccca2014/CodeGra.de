@@ -42,7 +42,7 @@ class CreateAutoTestData:
     @staticmethod
     def from_dict(d: Dict[str, Any]) -> CreateAutoTestData:
         base = {}
-        json = JsonCreateAutoTest.from_dict(d["json"])
+        json = JsonCreateAutoTest.from_dict(cast(Dict[str, Any], d["json"]))
 
         fixture = []
         for fixture_item_data in d.get("fixture") or []:
