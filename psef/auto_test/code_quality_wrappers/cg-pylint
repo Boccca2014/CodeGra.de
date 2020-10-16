@@ -7,15 +7,20 @@ import json
 import tempfile
 import subprocess
 
-STUDENT = os.environ['STUDENT']
-
 
 def handle_error(message) -> str:
+    severity = message['type']
+
+    # Pylint has 4 message types: 'error', 'warning', 'convention', and
+    # 'refactor'.
+    if severity == 'convention' or severity == 'refactor':
+        severity = 'info'
+
     return {
         'origin': 'PyLint',
         'msg': message['message'],
         'code': message['symbol'],
-        'severity': 'error',
+        'severity': severity,
         'line': {
             'start': message['line'],
             'end': message['line'],
@@ -24,7 +29,7 @@ def handle_error(message) -> str:
             'start': message['column'],
             'end': None,
         },
-        'path': message['abspath'][len(STUDENT):].split('/'),
+        'path': message['path'].split('/'),
     }
 
 
@@ -45,24 +50,24 @@ def main() -> None:
 
     if proc.returncode == 32:
         print('PyLint crashed, stdout:\n', proc.stderr, file=sys.stderr)
-    elif proc.returncode == 1:
+        exit(32)
+    if proc.returncode == 1:
         print(
             'The submission is not a valid python module, it probably lacks'
             ' an `__init__` file.',
             file=sys.stderr,
         )
-    else:
-        output = json.dumps({
-            'op': 'put_comments',
-            'comments': [
-                handle_error(err)
-                for err in json.loads(proc.stdout.decode('utf8'))
-            ],
-        })
+        exit(1)
 
-        subprocess.run(['cg-api'], input=output.encode('utf8'))
+    output = json.dumps({
+        'op': 'put_comments',
+        'comments': [
+            handle_error(err)
+            for err in json.loads(proc.stdout.decode('utf8'))
+        ],
+    })
 
-    exit(proc.returncode)
+    subprocess.run(['cg-api'], input=output.encode('utf8'))
 
 
 if __name__ == '__main__':
