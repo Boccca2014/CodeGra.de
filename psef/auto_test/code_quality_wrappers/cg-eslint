@@ -73,7 +73,7 @@ def main() -> None:
         'op': 'put_comments',
         'comments': [
             normalize_output(f)
-            for f in json.loads(proc.stdout)
+            for f in json.loads(proc.stdout.decode('utf8'))
         ],
     })
 
