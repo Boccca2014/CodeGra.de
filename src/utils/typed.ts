@@ -558,10 +558,9 @@ export function last<T>(arr: readonly T[]): T {
     return arr[arr.length - 1];
 }
 
-
 export function isEmpty(obj: Object | null | undefined | boolean | string): boolean {
     if (typeof obj !== 'object' || obj == null) {
-        return obj === false || obj == null || obj === '';
+        return !Boolean(obj);
     } else {
         return Object.keys(obj).length === 0;
     }
