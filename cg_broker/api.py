@@ -4,6 +4,7 @@
 
 SPDX-License-Identifier: AGPL-3.0-only
 """
+import re
 import uuid
 import typing as t
 import secrets
@@ -27,6 +28,9 @@ from . import BrokerFlask, app, tasks, models
 from .models import db
 from .exceptions import NotFoundException, PermissionException
 
+if t.TYPE_CHECKING:  # pragma: no cover
+    import cg_cache.inter_request  # pylint: disable=import-unused
+
 logger = structlog.get_logger()
 
 api = Blueprint("api", __name__)  # pylint: disable=invalid-name
@@ -49,6 +53,39 @@ def _download_public_key(instance_url: str, broker_id: str) -> str:
     response = requests.get(url)
     response.raise_for_status()
     return response.json()['public_key']
+
+
+def _verify_public_instance_jwt(
+    cache: 'cg_cache.inter_request.Backend[str]',
+    signature: str,
+    allowed_hosts: re.Pattern,
+) -> str:
+    # First get the url from the jwt without verifying, then get the
+    # public key and do the verification.
+    unsafe_decoded = jwt.decode(signature, verify=False)
+    if allowed_hosts.match(unsafe_decoded.get('url', None)) is None:
+        raise PermissionException(401)
+
+    try:
+        decoded = cache.cached_call(
+            key=unsafe_decoded['url'],
+            get_value=lambda: _download_public_key(
+                unsafe_decoded['url'],
+                unsafe_decoded['id'],
+            ),
+            callback=lambda public_key: jwt.decode(
+                signature,
+                key=public_key,
+                algorithms='RS256',
+                verify=True,
+            )
+        )
+        assert decoded == unsafe_decoded
+    except:  # pylint: disable=bare-except
+        logger.error('Got unauthorized broker request', exc_info=True)
+        raise PermissionException(401)
+    else:
+        return decoded['url']
 
 
 def instance_route(f: T_CAL) -> T_CAL:
@@ -75,34 +112,11 @@ def instance_route(f: T_CAL) -> T_CAL:
             except (KeyError, TypeError) as exc:
                 raise PermissionException(401) from exc
         else:
-            # First get the url from the jwt without verifying, then get the
-            # public key and do the verification.
-            unsafe_decoded = jwt.decode(signature, verify=False)
-            if pattern.match(unsafe_decoded['url']) is None:
-                raise PermissionException(401)
-
-            try:
-                decoded = app.instance_public_key_cache.cached_call(
-                    key=unsafe_decoded['url'],
-                    get_value=lambda: _download_public_key(
-                        unsafe_decoded['url'],
-                        unsafe_decoded['id'],
-                    ),
-                    callback=lambda public_key: jwt.decode(
-                        signature,
-                        key=public_key,
-                        algorithms='RS256',
-                        verify=True,
-                    )
-                )
-            except:  # pylint: disable=bare-except
-                logger.error('Got unauthorized broker request', exc_info=True)
-                raise PermissionException(401)
-
+            g.cg_instance_url = _verify_public_instance_jwt(
+                app.instance_public_key_cache, signature, pattern
+            )
             # We might have changed our cache, so already commit those changes.
             db.session.commit()
-            assert decoded == unsafe_decoded
-            g.cg_instance_url = decoded['url']
 
         return f(*args, **kwargs)
 

@@ -249,7 +249,8 @@ def monkeypatch_broker(monkeypatch, live_server_url, stub_function_class):
     monkeypatch.setattr(runner_ses, 'get', stub_get)
     monkeypatch.setattr(runner_ses, 'post', stub_post)
     monkeypatch.setattr(
-        psef.auto_test, '_BrokerSession', stub_function_class(lambda: runner_ses)
+        psef.auto_test, '_BrokerSession',
+        stub_function_class(lambda: runner_ses)
     )
     monkeypatch.setattr(
         psef.models.BrokerSetting, 'get_session',
@@ -2071,7 +2072,8 @@ def test_output_dir(
                 proxy_url,
                 403,
                 data={
-                    'allow_remote_resources': True, 'allow_remote_scripts': True
+                    'allow_remote_resources': True, 'allow_remote_scripts':
+                        True
                 }
             )
 

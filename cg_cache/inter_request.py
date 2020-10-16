@@ -16,6 +16,7 @@ import structlog
 import sqlalchemy
 from typing_extensions import Literal, Protocol
 
+import cg_dt_utils
 import cg_sqlalchemy_helpers
 import cg_sqlalchemy_helpers.mixins
 from cg_sqlalchemy_helpers.types import MySession, FilterColumn
@@ -392,4 +393,55 @@ class DBBackend(Backend[T], t.Generic[T]):
             namespace=self._namespace,
             value=value,
             ttl=self._ttl,
+        )
+
+
+class MemoryBackend(Backend[T], t.Generic[T]):
+    """A cache backend using an in memory dictionary as backing storage.
+
+
+    .. warning::
+
+        This cache should only be used when testing, not in production!
+    """
+
+    def __init__(self, namespace: str, ttl: timedelta) -> None:
+        """Create a new Redis backend.
+
+        :param namespace: The namespace in which to store the values.
+        :param ttl: The time after which a value set should expire.
+        """
+        super().__init__(namespace=namespace, ttl=ttl)
+        self._storage: t.Dict[str, t.Tuple[T, cg_dt_utils.
+                                           DatetimeWithTimezone]] = {}
+
+    def _make_key(self, key: str) -> str:
+        return f'{self._namespace}/{key}'
+
+    def get(self, key: str) -> T:
+        """Get a value from the backend.
+
+        .. seealso:: method :meth:`Backend.get`
+        """
+        found, expired = self._storage[key]
+        if expired < cg_dt_utils.DatetimeWithTimezone.utcnow():
+            raise KeyError(key)
+
+        return found
+
+    def clear(self, key: str) -> None:
+        """Clear the given ``key`` from the cache.
+
+        .. seealso:: method :meth:`.Backend.clear`
+        """
+        self._storage.pop(key, None)
+
+    def set(self, key: str, value: T) -> None:
+        """Set a value with for a given ``key``.
+
+        .. seealso:: method :meth:`Backend.set`
+        """
+        self._storage[key] = (
+            value,
+            cg_dt_utils.DatetimeWithTimezone.utcnow() + self._ttl,
         )

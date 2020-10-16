@@ -105,8 +105,7 @@ class BrokerSetting(Base, UUIDMixin, TimestampMixin):
                 """Do a request to the AutoTest broker.
                 """
                 url = urllib.parse.urljoin(broker_url, str(url))
-                if 'timeout' not in kwargs:
-                    kwargs['timeout'] = 10
+                kwargs.setdefault('timeout', 10)
                 return super().request(method, url, *args, **kwargs)
 
         return MySession()

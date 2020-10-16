@@ -53,7 +53,8 @@ def test_about_health_status(
     monkeypatch.setattr(
         psef.models.BrokerSetting,
         'get_session',
-        lambda _, retries: stub_broker_ses(),
+        lambda _,
+        retries: stub_broker_ses(),
     )
 
     raise_db_error = False
