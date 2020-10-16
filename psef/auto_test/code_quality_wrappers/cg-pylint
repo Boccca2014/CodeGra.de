@@ -48,8 +48,9 @@ def main() -> None:
         print('PyLint crashed, stdout:\n', proc.stderr, file=sys.stderr)
     elif proc.returncode == 1:
         print(
-            'The submission is not a valid python module, it probably lacks'
-            'an `__init__` file.',
+            proc.stderr,
+            '\nThe submission is not a valid python module, it probably lacks'
+            ' an `__init__` file.',
             file=sys.stderr,
         )
     else:
