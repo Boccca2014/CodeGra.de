@@ -50,13 +50,13 @@ def main() -> None:
     proc = subprocess.run(  # pylint: disable=subprocess-run-check
         [
             'eslint',
-            '--format=json',
+            '--format', 'json',
             '--resolve-plugins-relative-to', _npm_root(),
             # Prevent students from modifying the config.
             '--no-eslintrc',
             '--no-inline-config',
             '--report-unused-disable-directives',
-            './.',
+            STUDENT,
         ],
         text=True,
     )
