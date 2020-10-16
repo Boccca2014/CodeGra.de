@@ -211,7 +211,7 @@ class _IDBStorage(Protocol):
         namespace: str,
         key: str,
     ) -> t.Optional[t.Any]:
-        pass
+        ...
 
     @classmethod
     def delete_non_expired(
@@ -221,7 +221,7 @@ class _IDBStorage(Protocol):
         namespace: str,
         key: str,
     ) -> None:
-        pass
+        ...
 
     @classmethod
     def make_and_add(
@@ -233,7 +233,7 @@ class _IDBStorage(Protocol):
         value: t.Any,
         ttl: timedelta,
     ) -> '_IDBStorage':
-        pass
+        ...
 
 
 # Pylint bug: https://github.com/PyCQA/pylint/issues/2822
@@ -282,9 +282,6 @@ class DBBackend(Backend[T], t.Generic[T]):
             __table_args__ = (
                 sqlalchemy.Index('namespace_key_index', key, namespace),
             )
-
-            def __repr__(self) -> str:
-                return f'_Storage(created_at={self.created_at}, ttl={self.ttl}, key={self.key}, value={self.value})'
 
             @classmethod
             def _get_non_expired_filter(cls) -> FilterColumn:
