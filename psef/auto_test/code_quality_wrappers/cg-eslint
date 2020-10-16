@@ -65,23 +65,15 @@ def main() -> None:
 
     # Exit code 1 means that linting was successful but that errors
     # were found.
-    if out.returncode not in {0, 1}:
+    if proc.returncode not in {0, 1}:
         print('ESLint crashed, stdout:\n', proc.stderr, file=sys.stderr)
         exit(1)
-        raise LinterCrash(
-            error_summary=(
-                'ESLint crashed, stdout: "{}", stderr: "{}"'
-            ).format(
-                out.stdout,
-                out.stderr,
-            )
-        )
 
     output = json.dumps({
         'op': 'put_comments',
         'comments': [
             normalize_output(f)
-            for f in json.loads(out.stdout)
+            for f in json.loads(proc.stdout)
         ],
     })
 
