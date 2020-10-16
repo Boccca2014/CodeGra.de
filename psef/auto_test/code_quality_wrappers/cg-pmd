@@ -1,0 +1,88 @@
+#!/usr/bin/env python3
+# SPDX-License-Identifier: AGPL-3.0-only
+
+import os
+import sys
+import json
+import tempfile
+import subprocess
+
+STUDENT = os.environ['STUDENT']
+
+
+def handle_error(message) -> str:
+    priority = message['Priority']
+
+    # PMD severities can be an integer from 1 to 5, 1 being the highest
+    if priority == 1:
+        severity = 'fatal'
+    elif priority == 2:
+        severity = 'error'
+    elif priority == 2:
+        severity = 'warning'
+    elif priority >= 4:
+        severity = 'info'
+
+    return {
+        'origin': 'PMD',
+        'msg': message['Description'],
+        'code': message['Rule']
+        'severity': severity,
+        'line': {
+            'start': message['Line'],
+            'end': message['Line'],
+        },
+        'column': {
+            'start': 1,
+            'end': None,
+        },
+        'path': message['File'][len(STUDENT):].split('/'),
+    }
+
+
+def main() -> None:
+    """Run PMD.
+
+    Arguments are the same as for :py:meth:`Linter.run`.
+    """
+
+    # The check for success is something we really don't want here.
+    proc = subprocess.run(  # pylint: disable=subprocess-run-check
+        [
+            '/opt/pmd/bin/run.sh',
+            'pmd',
+            '-failOnViolation',
+            'false',
+            '-format',
+            'csv',
+            '-shortnames',
+            *sys.argv[1:],
+            '-dir', '.',
+        ],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+    )
+
+    if proc.returncode != 0:
+        print('PMD crashed, stdout:\n', proc.stderr, file=sys.stderr)
+        exit(proc.returncode)
+
+    output = csv.DictReader(StringIO(proc.stdout))
+
+    if output is None:
+        print('Could not parse PMD output:\n', proc.stdout, file=sys.stderr)
+        exit(1)
+
+    output = json.dumps({
+        'op': 'put_comments',
+        'comments': [
+            handle_error(err)
+            for err in
+        ],
+    })
+
+    subprocess.run(['cg-api'], input=output.encode('utf8'))
+
+
+if __name__ == '__main__':
+    main()

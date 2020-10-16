@@ -18,4 +18,5 @@ import cg_enum
 class CodeQualityWrapper(cg_enum.CGEnum):
     custom = 'custom'
     cg_eslint = 'cg-eslint'
+    cg_pmd = 'cg-pmd'
     cg_pylint = 'cg-pylint'

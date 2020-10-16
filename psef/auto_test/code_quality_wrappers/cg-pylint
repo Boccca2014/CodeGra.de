@@ -10,12 +10,12 @@ import subprocess
 STUDENT = os.environ['STUDENT']
 
 
-def handle_file_output(message) -> str:
+def handle_error(message) -> str:
     return {
         'origin': 'PyLint',
         'msg': message['message'],
         'code': message['symbol'],
-        'severity': severity,
+        'severity': 'error',
         'line': {
             'start': message['line'],
             'end': message['line'],
@@ -38,7 +38,6 @@ def main() -> None:
             'pylint',
             '--output-format', 'json',
             *sys.argv[1:],
-            './**/*',
         ],
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
@@ -48,8 +47,7 @@ def main() -> None:
         print('PyLint crashed, stdout:\n', proc.stderr, file=sys.stderr)
     elif proc.returncode == 1:
         print(
-            proc.stderr,
-            '\nThe submission is not a valid python module, it probably lacks'
+            'The submission is not a valid python module, it probably lacks'
             ' an `__init__` file.',
             file=sys.stderr,
         )
