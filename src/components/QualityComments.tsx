@@ -32,7 +32,7 @@ export default tsx.component({
     functional: true,
 
     props: {
-        comments: p.ofType<ReadonlyArray<models.QualityComment>>().required,
+        comments: p.ofRoArray<models.QualityComment>().required,
         courseId: p(Number).required,
         assignmentId: p(Number).required,
         submissionId: p(Number).required,

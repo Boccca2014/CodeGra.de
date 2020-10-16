@@ -12,7 +12,7 @@ export default tsx.component({
     functional: true,
 
     props: {
-        comments: p.ofType<ReadonlyArray<models.QualityComment>>().required,
+        comments: p.ofRoArray<models.QualityComment>().required,
         width: p(String).required,
     },
 
