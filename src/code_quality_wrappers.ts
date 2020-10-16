@@ -12,5 +12,5 @@ SPDX-License-Identifier: AGPL-3.0-only
 
 export enum CodeQualityWrapper {
     custom = 'custom',
-    cg_pylint = 'cg_pylint'
+    cg_eslint = 'cg_eslint'
 }
