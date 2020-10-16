@@ -1,4 +1,4 @@
-#!/usr/bin/env python3.7
+#!/usr/bin/env python3
 # SPDX-License-Identifier: AGPL-3.0-only
 
 import os
@@ -58,10 +58,11 @@ def main() -> None:
             '--report-unused-disable-directives',
             *sys.argv[1:]
         ],
-        text=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
     )
 
-    print(proc.stdout)
+    print('output:\n', proc.stdout, end='\n\n')
 
     # Exit code 1 means that linting was successful but that errors
     # were found.
