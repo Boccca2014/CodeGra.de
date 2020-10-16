@@ -79,7 +79,7 @@ def main() -> None:
         ],
     })
 
-    subprocess.run(['cg-api'], stdin=output.encode('utf8'))
+    subprocess.run(['cg-api'], input=output.encode('utf8'))
 
 
 if __name__ == '__main__':
