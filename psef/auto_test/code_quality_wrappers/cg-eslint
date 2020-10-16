@@ -10,22 +10,17 @@ import subprocess
 STUDENT = os.environ['STUDENT']
 
 
-def _npm_root() -> str:
-    return subprocess.check_output(['npm', 'root', '-g'])
-
-
-def _file_output(f) -> str:
+def handle_file_output(f) -> str:
     print('comments for file:', f)
     msgs = []
 
     filename = f['filePath']
     for message in f['messages']:
-        line = message['line']
-
         if message.get('fatal', False):
             severity = 'fatal'
-        else:
-            # TODO: support warning, info
+        elif message['severity'] == 1:
+            severity = 'warning'
+        elif message['severity'] == 2:
             severity = 'error'
 
         msgs.append({
@@ -33,9 +28,14 @@ def _file_output(f) -> str:
             'msg': message['message'],
             'code': message['ruleId'],
             'severity': severity,
-            'line': { 'start': line, 'end': line },
-            # TODO: use values from message
-            'column': { 'start': 1, 'end': 1 },
+            'line': {
+                'start': message['line'],
+                'end': message.get('endLine', message['line']),
+            },
+            'column': {
+                'start': message['column'],
+                'end': message.get('endColumn', None),
+            },
             'path': filename[len(STUDENT):].split('/')
         })
 
@@ -46,12 +46,14 @@ def main() -> None:
     """Run ESLint.
     """
 
+    npm_root = subprocess.check_output(['npm', 'root', '-g'])
+
     # The check for success is something we really don't want here.
     proc = subprocess.run(  # pylint: disable=subprocess-run-check
         [
             'eslint',
             '--format', 'json',
-            '--resolve-plugins-relative-to', _npm_root(),
+            '--resolve-plugins-relative-to', npm_root,
             # Prevent students from modifying the config.
             '--no-eslintrc',
             '--no-inline-config',
@@ -62,8 +64,6 @@ def main() -> None:
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
     )
-
-    print('output:\n', proc.stdout, end='\n\n')
 
     # Exit code 1 means that linting was successful but that errors
     # were found.
@@ -76,7 +76,7 @@ def main() -> None:
         'comments': [
             c
             for f in json.loads(proc.stdout.decode('utf8'))
-            for c in _file_output(f)
+            for c in handle_file_output(f)
         ],
     })
 
