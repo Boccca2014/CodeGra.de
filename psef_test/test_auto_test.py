@@ -290,6 +290,27 @@ def basic(logged_in, admin_user, test_client, session):
     yield course, assig_id, teacher, student
 
 
+def test_at_broker_session(describe, stub_function):
+    with describe('setup'):
+        password = 'password_hunter2'
+        session = psef.auto_test._BrokerSession(
+            broker_base='https://base.com', runner_pass=password, retries=2
+        )
+        stub = stub_function(session, 'send')
+
+    with describe('sets correct password'):
+        session.get('/1/2/3')
+        assert stub.called_amount == 1
+        args, = stub.all_args
+        assert args[0].headers['CG-Broker-Runner-Pass'] == password
+
+    with describe('creates correct url'):
+        session.get('/1/2/3')
+        assert stub.called_amount == 1
+        args, = stub.all_args
+        assert args[0].url == 'https://base.com/1/2/3'
+
+
 def test_create_auto_test(test_client, basic, logged_in, describe):
     course, assig_id, teacher, student = basic
 

@@ -774,8 +774,7 @@ class _BrokerSession(requests.Session):
         """Do a request to the AutoTest broker.
         """
         url = urllib.parse.urljoin(self.broker_base, str(url))
-        if 'timeout' not in kwargs:
-            kwargs['timeout'] = 10
+        kwargs.setdefault('timeout', 10)
         return super().request(method, url, *args, **kwargs)
 
 
