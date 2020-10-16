@@ -444,8 +444,7 @@ class MyDb:  # pragma: no cover
         cascade: str = '',
         back_populates: str = None,
         backref: _Backref = None,
-        order_by: t.Union[t.Callable[[], 'DbColumn'], t.
-                          Callable[[], 'ColumnOrder']] = None,
+        order_by: 'RelationshipOrderByClause' = None,
         lazy: Literal['select', 'joined', 'selectin'] = 'select',
         primaryjoin: t.Callable[[], 'DbColumn[bool]'] = None,
     ) -> '_MutableColumnProxy[t.List[T], t.List[T], DbColumn[T]]':
@@ -461,8 +460,7 @@ class MyDb:  # pragma: no cover
         cascade: str = '',
         back_populates: str = None,
         backref: _Backref = None,
-        order_by: t.Union[t.Callable[[], 'DbColumn'], t.
-                          Callable[[], 'ColumnOrder']] = None,
+        order_by: 'RelationshipOrderByClause' = None,
         lazy: Literal['dynamic'],
         primaryjoin: t.Callable[[], 'DbColumn[bool]'] = None,
     ) -> '_ImmutableColumnProxy[MyQuery[T], DbColumn[T]]':
@@ -489,8 +487,7 @@ class MyDb:  # pragma: no cover
         secondary: 'RawTable',
         cascade: str = '',
         lazy: Literal['select', 'join', 'selectin'] = 'select',
-        order_by: t.Union[t.Callable[[], 'DbColumn'], t.
-                          Callable[[], 'ColumnOrder']] = None,
+        order_by: 'RelationshipOrderByClause' = None,
     ) -> '_MutableColumnProxy[t.List[_T_BASE], t.List[_T_BASE], DbColumn[_T_BASE]]':
         ...
 
@@ -796,10 +793,15 @@ class MyNonOrderableQuery(t.Generic[T]):  # pragma: no cover
         ...
 
 
+OrderByClause = t.Union[DbColumn, ColumnOrder]
+RelationshipOrderByClause = t.Union[
+    t.Callable[[], t.Union[OrderByClause, t.List[OrderByClause]]],
+    t.Union[OrderByClause, t.List[OrderByClause]],
+]
+
+
 class MyQuery(t.Generic[T], MyNonOrderableQuery[T]):
-    def order_by(
-        self: QuerySelf, *args: t.Union[DbColumn, ColumnOrder]
-    ) -> 'QuerySelf':
+    def order_by(self: QuerySelf, *args: OrderByClause) -> 'QuerySelf':
         ...
 
     def from_self(self, *args: t.Type[Z]) -> 'MyQuery[Z]':

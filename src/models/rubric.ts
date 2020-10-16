@@ -143,23 +143,44 @@ export interface RubricRow<T> extends IRubricRow<T> {
 }
 
 export class RubricRow<T extends number | undefined | null> {
-    static fromServerData(data: RubricRowServerData) {
+    constructor(row: IRubricRow<T>, trackingId?: number) {
         // eslint-disable-next-line @typescript-eslint/no-use-before-define
-        if (!utils.hasAttr(RubricRowsTypes, data.type)) {
-            throw new ReferenceError(`Could not find specified type: ${data.type}`);
+        if (row.type && !(this instanceof RubricRowsTypes[row.type])) {
+            throw new Error('You cannot make a base row with a non empty type.');
         }
-        // eslint-disable-next-line @typescript-eslint/no-use-before-define
-        const cls = RubricRowsTypes[data.type];
-        return cls.fromServerData(data as any);
+
+        this.trackingId = trackingId ?? utils.getUniqueId();
+
+        Object.assign(this, row);
+        Object.freeze(this.items);
+
+        Object.freeze(this);
+    }
+
+    static fromServerData(data: RubricRowServerData) {
+        utils.AssertionError.typeAssert<RubricRowType>(data.type);
+        switch (data.type) {
+            case 'normal':
+                return NormalRubricRow.fromServerData(data);
+            case 'continuous':
+                return ContinuousRubricRow.fromServerData(data);
+            default:
+                utils.AssertionError.assertNever(data);
+        }
     }
 
     updateFromServerData(data: RubricRowServerData): RubricRow<number> {
-        const row = Object.assign({}, this, {
-            id: data.id,
-            locked: data.locked,
+        const row = Object.assign({
             items: data.items.map(RubricItem.fromServerData),
-        });
-        return new (this.constructor as any)(row) as RubricRow<number>;
+            descriptionType: RubricDescriptionType[data.description_type],
+        }, utils.pickKeys(
+            data,
+            ['id', 'locked', 'type', 'header', 'description'],
+        ));
+        return new (this.constructor as typeof RubricRow)(
+            row,
+            this.trackingId,
+        );
     }
 
     static createEmpty(): RubricRow<undefined> {
@@ -195,20 +216,6 @@ export class RubricRow<T extends number | undefined | null> {
 
     @utils.nonenumerable
     protected _cache = makeCache('maxPoints', 'minPoints');
-
-    constructor(row: IRubricRow<T, T>, trackingId?: number) {
-        // eslint-disable-next-line @typescript-eslint/no-use-before-define
-        if (row.type && !(this instanceof RubricRowsTypes[row.type])) {
-            throw new Error('You cannot make a base row with a non empty type.');
-        }
-
-        this.trackingId = trackingId ?? utils.getUniqueId();
-
-        Object.assign(this, row);
-        Object.freeze(this.items);
-
-        Object.freeze(this);
-    }
 
     get isMarkdown(): boolean {
         return this.descriptionType === RubricDescriptionType.markdown;
@@ -397,9 +404,9 @@ export class RubricRow<T extends number | undefined | null> {
         } else {
             return `You scored ${autoTestPercentage.toFixed(0)}% in the
                 corresponding AutoTest category, which scores you ${utils.toMaxNDecimals(
-                    selectedRubricItem.points * selectedRubricItem.multiplier,
-                    2,
-                )} points in this rubric category. `;
+                selectedRubricItem.points * selectedRubricItem.multiplier,
+                2,
+            )} points in this rubric category. `;
         }
     }
 
@@ -579,8 +586,7 @@ type RubricServerData = RubricRowServerData[];
 
 export class Rubric<T extends number | undefined | null> {
     static fromServerData(data: RubricServerData) {
-        const rows = Rubric.normalizeServerData(data).map(RubricRow.fromServerData);
-        return new Rubric(rows);
+        return new Rubric(data.map(RubricRow.fromServerData));
     }
 
     updateFromServerData(data: RubricServerData): Rubric<number> {
@@ -590,20 +596,9 @@ export class Rubric<T extends number | undefined | null> {
         // created from the data sent back by the server, because then the
         // tracking ids of the rubric rows will change, defeating the point of
         // the tracking ids.
+        const rows = utils.zipWith((r, n) => r.updateFromServerData(n), this.rows, data);
 
-        const norm = Rubric.normalizeServerData(data);
-        const rows = utils.zipWith((r, n) => r.updateFromServerData(n), this.rows, norm);
-
-        return new Rubric<number>(rows);
-    }
-
-    private static normalizeServerData(data: RubricServerData): RubricServerData {
-        return (data || []).map(row => {
-            // Sort on points, or on id if points are equal to guarantee
-            // a stable ordering.
-            row.items = utils.sortBy(row.items, item => [item.points, item.id]);
-            return row;
-        });
+        return new Rubric(rows);
     }
 
     @utils.nonenumerable
@@ -635,8 +630,8 @@ export class Rubric<T extends number | undefined | null> {
     getItemIds() {
         return this.rows.reduce((acc: Record<string, string>, row) => {
             row.items.forEach(item => {
-                if (item.id != null) {
-                    acc[<number>item.id] = `${row.nonEmptyHeader} - ${item.nonEmptyHeader}`;
+                if (typeof item.id === 'number') {
+                    acc[item.id] = `${row.nonEmptyHeader} - ${item.nonEmptyHeader}`;
                 }
             });
             return acc;
