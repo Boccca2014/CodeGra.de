@@ -1,11 +1,8 @@
 /* SPDX-License-Identifier: AGPL-3.0-only */
-import { VNode, CreateElement } from 'vue';
+import { CreateElement } from 'vue';
 import * as tsx from 'vue-tsx-support';
 import p from 'vue-strict-prop';
-import { Moment } from 'moment';
 import * as models from '@/models';
-import { Variant, isVariant } from '@/types';
-import * as utils from '@/utils';
 import * as components from '@/components';
 
 function renderAvailableAt(h: CreateElement, assignment: models.Assignment, relative: boolean) {

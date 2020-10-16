@@ -136,7 +136,7 @@ import ResSplitPane from 'vue-resize-split-pane';
 import 'vue-awesome/icons/exclamation-triangle';
 
 import * as models from '@/models';
-import { Maybe } from '@/utils';
+import { Maybe, AssertionError } from '@/utils';
 
 import { FeedbackStore } from '@/store/modules/feedback';
 import { PeerFeedbackStore } from '@/store/modules/peer_feedback';
@@ -377,37 +377,38 @@ export default class PeerFeedbackByUser extends Vue {
         }
         // eslint-disable-next-line
         this.scrollTop;
+        const scrollDirection = this.scrollDirection;
 
-        const iter = <T, Y>(
+        function iter<T>(
             arr: ReadonlyArray<T>,
             cb: (item: T) => boolean | undefined,
-        ): boolean => {
+        ): boolean {
             const len = arr.length;
-            switch (this.scrollDirection) {
-            case 'up': {
-                for (let i = 0; i < len; ++i) {
-                    const res = cb(arr[i]);
-                    if (res) {
-                        return true;
+            switch (scrollDirection) {
+                case 'up': {
+                    for (let i = 0; i < len; ++i) {
+                        const res = cb(arr[i]);
+                        if (res) {
+                            return true;
+                        }
                     }
+                    break;
                 }
-                break;
-            }
-            case 'down': {
-                for (let i = len - 1; i >= 0; --i) {
-                    const res = cb(arr[i]);
-                    if (res) {
-                        return true;
+                case 'down': {
+                    for (let i = len - 1; i >= 0; --i) {
+                        const res = cb(arr[i]);
+                        if (res) {
+                            return true;
+                        }
                     }
+                    break;
                 }
-                break;
-            }
-            default: {
-                this.$utils.AssertionError.assertNever(this.scrollDirection);
-            }
+                default: {
+                    AssertionError.assertNever(scrollDirection);
+                }
             }
             return false;
-        };
+        }
 
         let found = null;
         let foundHeight = -Infinity;
@@ -552,7 +553,7 @@ export default class PeerFeedbackByUser extends Vue {
         case 'missing-wrapper':
             return `missing-wrapper-${this.uniqueId}`;
         default:
-            return this.$utils.AssertionError.assertNever(option);
+            return AssertionError.assertNever(option);
         }
     }
 }

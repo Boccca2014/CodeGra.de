@@ -151,14 +151,14 @@ export function getOutputCells(
     let curOffset = 0;
     const language = sourceLanguage(ipythonData);
     let cells = ipythonData.cells;
-    if (!cells && ipythonData.worksheets != null) {
+    if (cells == null && ipythonData.worksheets != null) {
         cells = ipythonData.worksheets.reduce(
             (accum: IPythonDataCell[], sheet) => accum.concat(sheet?.cells ?? []),
             [],
         );
     }
 
-    return (cells || []).reduce((res: CGIPythonDataCell[], cell) => {
+    return (cells ?? []).reduce((res: CGIPythonDataCell[], cell) => {
         if (cell.cell_type === 'raw') {
             return res;
         }
@@ -189,7 +189,7 @@ export function getOutputCells(
         } else {
             const genericCell: CGIPythonGenericCell = {
                 ...props,
-                source: maybeJoinText(cell.source || cell.input || ''),
+                source: maybeJoinText(cell.source ?? cell.input ?? ''),
                 feedback_offset: curOffset,
             };
             res.push(processOther(genericCell));

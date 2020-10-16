@@ -46,7 +46,7 @@ export namespace SiteSettingsStore {
                     case null:
                         return AssertionError.assertNever(
                             foundKey,
-                            `Tried to retrieve an unrecognized setting: ${opt}`,
+                            `Tried to retrieve an unrecognized setting: ${opt.toString()}`,
                         );
                     default:
                         break;

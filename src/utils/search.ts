@@ -1,7 +1,7 @@
 interface SearchOptions {
     // TODO: More options? Regex searching? Accept if an object matches some
     // terms but not all?
-    caseInsensitive?: boolean;
+    caseInsensitive: boolean;
 }
 
 interface SearchTerm<K> {
@@ -23,7 +23,7 @@ export class Search<K extends string> {
 
     private options: SearchOptions;
 
-    constructor(private keys: ReadonlyArray<K>, options?: SearchOptions) {
+    constructor(private keys: ReadonlyArray<K>, options?: Partial<SearchOptions>) {
         this.options = Object.assign({}, Search.defaultOptions, options);
     }
 
@@ -40,7 +40,7 @@ export class Search<K extends string> {
             terms.every(term =>
                 term.keys.some(key => {
                     const val = this.prepareTerm(String(item[key] ?? ''));
-                    return val.indexOf(term.q) !== -1;
+                    return val.includes(term.q);
                 }),
             ),
         );

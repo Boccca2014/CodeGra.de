@@ -163,7 +163,7 @@ const mutations = {
                 toAdd = newObject.group.memberIds;
             } else {
                 toRemove = oldObject.group.memberIds.filter(
-                    id => newObject.group.memberIds.indexOf(id) < 0,
+                    id => !newObject.group.memberIds.includes(id),
                 );
                 toAdd = newObject.group.memberIds.filter(
                     id => oldObject.group.memberIds.indexOf(id) < 0,
