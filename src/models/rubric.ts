@@ -592,7 +592,7 @@ type RubricServerData = RubricRowServerData[];
 
 export class Rubric<T extends number | undefined | null> {
     static fromServerData(data: RubricServerData) {
-        return new Rubric(data.map(RubricRow.fromServerData));
+        return new Rubric((data ?? []).map(RubricRow.fromServerData));
     }
 
     updateFromServerData(data: RubricServerData): Rubric<number> {
