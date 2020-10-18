@@ -174,9 +174,11 @@ export class AutoTestSuiteData {
             errs.push('The name may not be empty.');
         }
 
-        const program = getProps(step, null, 'data', 'program');
-        if (program != null && isEmpty(program)) {
-            errs.push('The program may not be empty.');
+        if (step.type !== 'code_quality') {
+            const program = getProps(step, null, 'data', 'program');
+            if (program != null && isEmpty(program)) {
+                errs.push('The program may not be empty.');
+            }
         }
 
         if (step.type !== 'check_points' && Number(step.weight) <= 0) {
