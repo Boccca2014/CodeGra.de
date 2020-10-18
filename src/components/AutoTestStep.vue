@@ -449,7 +449,14 @@
 
                     <template v-if="canViewDetails">
                         Check the code quality using
-                        <code>{{ value.data.program }}</code>
+                        <code v-if="value.data.wrapper == 'custom'">{{
+                            value.data.program
+                        }}</code>
+                        <code v-else>{{
+                            value.data.args
+                                ? `${value.data.wrapper} ${value.data.args}`
+                                : value.data.wrapper
+                        }}</code>
                         with penalties:
 
                         <b-input-group class="w-100 mt-2">
