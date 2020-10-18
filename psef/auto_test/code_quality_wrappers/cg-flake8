@@ -1,0 +1,80 @@
+#!/usr/bin/env python3
+# SPDX-License-Identifier: AGPL-3.0-only
+
+import os
+import sys
+import json
+import uuid
+import tempfile
+import subprocess
+
+
+def handle_error(filename, line, col, code, msg) -> str:
+    if filename.startswith('./'):
+        filename = filename[2:]
+
+    if code.startswith('E') or code.startswith('F'):
+        severity = 'error'
+    elif code.startswith('W'):
+        severity = 'warning'
+    elif code.startswith('C') or code.startswith('N8'):
+        severity = 'info'
+
+    return {
+        'origin': 'Flake8',
+        'msg': msg,
+        'code': code,
+        'severity': severity,
+        'line': {
+            'start': int(line),
+            'end': int(line),
+        },
+        'column': {
+            'start': int(col),
+            'end': None,
+        },
+        'path': filename.split('/'),
+    }
+
+
+def main() -> None:
+    """Run Flake8.
+    """
+
+    # This is not guessable
+    sep = str(uuid.uuid4())
+    fmt = '%(path)s{0}%(row)d{0}%(col)d{0}%(code)s{0}%(text)s'.format(sep)
+
+    # The check for success is something we really don't want here.
+    proc = subprocess.run(  # pylint: disable=subprocess-run-check
+        [
+            'flake8',
+            '--disable-noqa',
+            '--format', fmt,
+            '--exit-zero',
+            *sys.argv[1:],
+        ],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+    )
+
+    if proc.returncode != 0:
+        print('Flake8 crashed, stderr:\n', proc.stderr, file=sys.stderr)
+        exit(proc.returncode)
+
+    comments = [
+        handle_error(*err.split(sep))
+        for err in proc.stdout.decode('utf8').splitlines()
+        if len(err.split(sep)) == 5
+    ]
+
+    if comments:
+        output = json.dumps({
+            'op': 'put_comments',
+            'comments': comments,
+        })
+        subprocess.run(['cg-api'], input=output.encode('utf8'))
+
+
+if __name__ == '__main__':
+    main()

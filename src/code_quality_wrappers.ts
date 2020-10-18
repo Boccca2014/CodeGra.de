@@ -14,6 +14,7 @@ export enum CodeQualityWrapper {
     custom = 'custom',
     cg_checkstyle = 'cg_checkstyle',
     cg_eslint = 'cg_eslint',
+    cg_flake8 = 'cg_flake8',
     cg_pmd = 'cg_pmd',
     cg_pylint = 'cg_pylint'
 }

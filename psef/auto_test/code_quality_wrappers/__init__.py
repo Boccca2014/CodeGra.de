@@ -19,5 +19,6 @@ class CodeQualityWrapper(cg_enum.CGEnum):
     custom = 'custom'
     cg_checkstyle = 'cg-checkstyle'
     cg_eslint = 'cg-eslint'
+    cg_flake8 = 'cg-flake8'
     cg_pmd = 'cg-pmd'
     cg_pylint = 'cg-pylint'
