@@ -10,6 +10,8 @@ import tempfile
 import subprocess
 
 STUDENT = os.environ['STUDENT']
+# {PMD_PATH} is to be substituted by the AT runner.
+PMD_BIN = '{PMD_PATH}/bin/run.sh'
 
 
 def handle_error(message) -> str:
@@ -26,21 +28,21 @@ def handle_error(message) -> str:
     elif priority >= '4':
         severity = 'info'
 
-    return {
-        'origin': 'PMD',
-        'msg': message['Description'],
-        'code': message['Rule'],
-        'severity': severity,
-        'line': {
-            'start': line,
-            'end': line,
-        },
-        'column': {
-            'start': 1,
-            'end': None,
-        },
-        'path': message['File'][len(STUDENT):].split('/'),
-    }
+    return dict(
+        ('origin', 'PMD'),
+        ('msg', message['Description']),
+        ('code', message['Rule']),
+        ('severity', severity),
+        ('line', dict(
+            ('start', line),
+            ('end', line),
+        )),
+        ('column', dict(
+            ('start', 1),
+            ('end', None),
+        )),
+        ('path', message['File'][len(STUDENT):].split('/')),
+    )
 
 
 def main() -> None:
@@ -52,7 +54,7 @@ def main() -> None:
     # The check for success is something we really don't want here.
     proc = subprocess.run(  # pylint: disable=subprocess-run-check
         [
-            '{PMD_PATH}/bin/run.sh',
+            PMD_BIN,
             'pmd',
             '-failOnViolation',
             'false',
@@ -76,15 +78,19 @@ def main() -> None:
         print('Could not parse PMD output:\n', proc.stdout, file=sys.stderr)
         exit(1)
 
-    output = json.dumps({
-        'op': 'put_comments',
-        'comments': [
-            handle_error(err)
-            for err in output
-        ],
-    })
+    comments = [
+        handle_error(err)
+        for err in output
+    ]
 
-    subprocess.run(['cg-api'], input=output.encode('utf8'))
+    if comments:
+        output = json.dumps(
+            dict(
+                ('op', 'put_comments'),
+                ('comments', comments),
+            ),
+        )
+        subprocess.run(['cg-api'], input=output.encode('utf8'))
 
 
 if __name__ == '__main__':

@@ -20,21 +20,21 @@ def handle_error(filename, line, col, code, msg) -> str:
     elif code.startswith('C') or code.startswith('N8'):
         severity = 'info'
 
-    return {
-        'origin': 'Flake8',
-        'msg': msg,
-        'code': code,
-        'severity': severity,
-        'line': {
-            'start': int(line),
-            'end': int(line),
-        },
-        'column': {
-            'start': int(col),
-            'end': None,
-        },
-        'path': filename.split('/'),
-    }
+    return dict(
+        ('origin': 'Flake8'),
+        ('msg': msg),
+        ('code': code),
+        ('severity': severity),
+        ('line': {
+            ('start': int(line)),
+            ('end': int(line)),
+        }),
+        ('column': {
+            ('start': int(col)),
+            ('end': None),
+        }),
+        ('path': filename.split('/')),
+    )
 
 
 def main() -> None:
@@ -69,10 +69,12 @@ def main() -> None:
     ]
 
     if comments:
-        output = json.dumps({
-            'op': 'put_comments',
-            'comments': comments,
-        })
+        output = json.dumps(
+            dict(
+                ('op', 'put_comments'),
+                ('comments', comments),
+            ),
+        )
         subprocess.run(['cg-api'], input=output.encode('utf8'))
 
 

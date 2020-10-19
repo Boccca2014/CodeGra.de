@@ -4,13 +4,14 @@
 import io
 import os
 import sys
-import glob
 import json
 import tempfile
 import subprocess
 import xml.etree.ElementTree as ET
 
 STUDENT = os.environ['STUDENT']
+# {CHECKSTYLE_PATH} is to be substituted by the AT runner.
+CHECKSTYLE_JAR = '{CHECKSTYLE_PATH}/checkstyle.jar'
 
 
 def handle_file_output(file_el) -> str:
@@ -28,21 +29,23 @@ def handle_file_output(file_el) -> str:
         if filename.startswith('./'):
             filename = filename[2:]
 
-        msgs.append({
-            'origin': 'Checkstyle',
-            'msg': attrib['message'],
-            'code': attrib['source'],
-            'severity': attrib.get('severity', 'warning'),
-            'line': {
-                'start': line,
-                'end': line,
-            },
-            'column': {
-                'start': int(attrib.get('column', 1)),
-                'end': None,
-            },
-            'path': filename.split('/'),
-        })
+        msgs.append(
+            dict(
+                ('origin', 'Checkstyle'),
+                ('msg', attrib['message']),
+                ('code', attrib['source']),
+                ('severity', attrib.get('severity', 'warning')),
+                ('line', dict(
+                    ('start', line),
+                    ('end', line),
+                )),
+                ('column', dict(
+                    ('start', int(attrib.get('column', 1))),
+                    ('end', None),
+                )),
+                ('path', filename.split('/')),
+            ),
+        )
 
     return msgs
 
@@ -55,10 +58,8 @@ def main() -> None:
     proc = subprocess.run(  # pylint: disable=subprocess-run-check
         [
             'java',
-            '-jar',
-            '{CHECKSTYLE_PATH}/checkstyle.jar',
-            '-f',
-            'xml',
+            '-jar', CHECKSTYLE_JAR,
+            '-f', 'xml',
             *sys.argv[1:],
             '.',
         ],
@@ -92,10 +93,12 @@ def main() -> None:
     ]
 
     if comments:
-        output = json.dumps({
-            'op': 'put_comments',
-            'comments': comments,
-        })
+        output = json.dumps(
+            dict(
+                ('op', 'put_comments'),
+                ('comments', comments),
+            ),
+        )
         subprocess.run(['cg-api'], input=output.encode('utf8'))
 
 
