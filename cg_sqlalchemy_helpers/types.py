@@ -220,6 +220,7 @@ class MyDb:  # pragma: no cover
         self,
         _name: t.Union[str, 'DbColumn[T]', 'ColumnProxy[T]'],
         *,
+        name: t.Optional[str] = None,
         ondelete: t.Union[None, Literal['SET NULL', 'CASCADE']] = None,
     ) -> _ForeignKey:
         ...
