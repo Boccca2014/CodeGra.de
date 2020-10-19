@@ -386,7 +386,6 @@ class _GitWebhook(WebhookBase):
         target_branches = (
             request.args.getlist('branch', str) or [data.default_branch]
         )
-        print(target_branches)
         current_branch = None
 
         for branch in target_branches:
