@@ -94,6 +94,7 @@ class BrokerSetting(Base, UUIDMixin, TimestampMixin):
         class MySession(requests.Session):
             """The session subclass used to talk to the broker.
             """
+
             def __init__(self) -> None:
                 super().__init__()
                 self.headers.update({'CG-Application-Signature': signed_url})
