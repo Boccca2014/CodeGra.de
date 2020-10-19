@@ -127,6 +127,7 @@ context('FileViewer', () => {
 
                 cy.get('.file-viewer .submit-button[name="delete-feedback"]')
                     .submit('success', { hasConfirm: true, waitForDefault: false });
+                cy.get('.file-viewer .feedback-area').should('not.exist');
             });
         });
     });
@@ -187,7 +188,7 @@ context('FileViewer', () => {
             addComment('.markdown-wrapper .feedback-button');
 
             openFile('venn1.png');
-            addComment('.image-viewer .feedback-button, .image-viewer .btn[name="edit-feedback"]');
+            addComment('.image-viewer .feedback-button');
 
             openFile('thomas-schaper');
             addComment('.pdf-viewer .feedback-button');
