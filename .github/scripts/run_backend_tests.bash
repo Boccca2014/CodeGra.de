@@ -77,7 +77,7 @@ if [[ "$res1" -ne 0 ]]; then
     exit "$res1";
 fi
 
-timeout -k 900 900 \
+timeout -k 1200 1200 \
         pytest \
         --cov psef \
         --cov cg_signals \

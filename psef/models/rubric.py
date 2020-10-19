@@ -308,7 +308,8 @@ class RubricRowBase(helpers.NotEqualMixin, Base):
         lambda: RubricItem,
         backref=db.backref("rubricrow"),
         cascade='delete-orphan, delete, save-update',
-        order_by=RubricItem.points.asc,
+        order_by=[RubricItem.points.asc(),
+                  RubricItem.id.asc()],
         uselist=True,
     )
 
