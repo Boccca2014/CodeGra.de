@@ -16,7 +16,6 @@ import threading
 import contextlib
 import subprocess
 import collections
-import urllib.parse
 import multiprocessing
 from operator import itemgetter
 from functools import wraps
@@ -1532,54 +1531,6 @@ def mount_retry_adapter(
     )
     session.mount('http://', adapter)
     session.mount('https://', adapter)
-
-
-class BrokerSession(requests.Session):
-    """A session to use when doing requests to the AutoTest broker.
-    """
-
-    def __init__(
-        self,
-        broker_pass: str = None,
-        external_url: str = None,
-        broker_base: str = None,
-        runner_pass: str = None,
-        *,
-        retries: int = None,
-    ) -> None:
-        super().__init__()
-        self.broker_base = (
-            broker_base if broker_base is not None else
-            psef.app.config['AUTO_TEST_BROKER_URL']
-        )
-
-        self.headers.update(
-            {
-                'CG-Broker-Pass':
-                    broker_pass if broker_pass is not None else
-                    psef.app.config['AUTO_TEST_BROKER_PASSWORD'],
-                'CG-Broker-Instance':
-                    external_url if external_url is not None else
-                    psef.app.config['EXTERNAL_URL'],
-                'CG-Broker-Runner-Pass': runner_pass or '',
-            }
-        )
-        if retries is not None:
-            mount_retry_adapter(self, retries=retries)
-
-    def request(  # pylint: disable=signature-differs
-        self,
-        method: str,
-        url: t.Union[str, bytes, t.Text],
-        *args: t.Any,
-        **kwargs: t.Any,
-    ) -> requests.Response:
-        """Do a request to the AutoTest broker.
-        """
-        url = urllib.parse.urljoin(self.broker_base, str(url))
-        if 'timeout' not in kwargs:
-            kwargs['timeout'] = 10
-        return super().request(method, url, *args, **kwargs)
 
 
 class NotEqualMixin:

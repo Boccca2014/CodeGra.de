@@ -23,6 +23,7 @@ from botocore.exceptions import ClientError
 import cg_enum
 import cg_broker
 import cg_sqlalchemy_helpers as cgs
+import cg_cache.inter_request
 from cg_logger import bound_to_logger
 from cg_timers import timed_code
 from cg_dt_utils import DatetimeWithTimezone
@@ -903,3 +904,6 @@ class Setting(Base, mixins.TimestampMixin):
             db.session.add(new_setting)
 
         setting.value.after_update()
+
+
+CacheTable = cg_cache.inter_request.DBBackend.make_cache_table(Base, 'cache')

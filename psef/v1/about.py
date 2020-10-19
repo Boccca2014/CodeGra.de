@@ -17,7 +17,7 @@ import cg_request_args as rqa
 from cg_json import JSONResponse
 
 from . import api
-from .. import models, helpers, current_app, permissions, site_settings
+from .. import models, current_app, permissions, site_settings
 from ..permissions import CoursePermission
 
 logger = structlog.get_logger()
@@ -182,7 +182,7 @@ def about() -> JSONResponse[AboutAsJSON]:
             min_free_space=min_free
         )
 
-        with helpers.BrokerSession() as ses:
+        with models.BrokerSetting.get_current().get_session(retries=2) as ses:
             try:
                 # Set a short timeout as the broker really shouldn't take
                 # longer than 2 seconds to answer.
