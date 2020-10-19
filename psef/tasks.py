@@ -192,7 +192,7 @@ def _notify_broker_of_new_job_1(
     if wanted_runners is None:
         wanted_runners = run.get_amount_needed_runners()
 
-    with p.helpers.BrokerSession() as ses:
+    with p.models.BrokerSetting.get_current().get_session() as ses:
         req = ses.put(
             '/api/v1/jobs/',
             json={
@@ -233,7 +233,7 @@ def _notify_broker_kill_single_runner_1(
         logger.warning('Runner could not be found')
         return
 
-    with p.helpers.BrokerSession() as ses:
+    with p.models.BrokerSetting.get_current().get_session() as ses:
         ses.delete(
             f'/api/v1/jobs/{runner.job_id}/runners/',
             json={
@@ -253,7 +253,7 @@ def _notify_broker_end_of_job_1(
     job_id: str, ignore_non_existing: bool = False
 ) -> None:
     ignore = str(ignore_non_existing).lower()
-    with p.helpers.BrokerSession() as ses:
+    with p.models.BrokerSetting.get_current().get_session() as ses:
         ses.delete(f'/api/v1/jobs/{job_id}?ignore_non_existing={ignore}'
                    ).raise_for_status()
 
@@ -363,7 +363,7 @@ def _update_latest_results_in_broker_1(auto_test_run_id: int) -> None:
         logger.info('Run not found', run_id=auto_test_run_id)
         return
 
-    with p.helpers.BrokerSession() as ses:
+    with p.models.BrokerSetting.get_current().get_session() as ses:
         ses.put(
             '/api/v1/jobs/',
             json={
