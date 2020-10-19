@@ -79,7 +79,7 @@ const assignment = deepFreeze({
 });
 
 // A rubric with each item's points equal to the item id.
-const rubric = deepFreeze([
+const createRubric = () => [
     {
         id: 0,
         type: 'normal',
@@ -108,7 +108,7 @@ const rubric = deepFreeze([
             { id: 6, points: 6 },
         ],
     },
-]);
+];
 
 beforeEach(async () => {
     const course = Object.assign({}, assignment.course || {}, {
@@ -122,7 +122,7 @@ beforeEach(async () => {
 
     store.commit(`rubrics/${mutationTypes.SET_RUBRIC}`, {
         assignmentId: assignment.id,
-        rubric,
+        rubric: createRubric(),
     });
 
     for (let i = 0; i < 10; ++i) {

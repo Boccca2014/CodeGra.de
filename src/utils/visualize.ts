@@ -34,7 +34,10 @@ export function visualizeWhitespace(line: string): string {
             let n = i - start;
             const cache = line[start] === ' ' ? spacesCache : tabsCache;
             while (n > 0) {
-                const index = n % cache.length || cache.length;
+                let index = n % cache.length;
+                if (index === 0) {
+                    index = cache.length;
+                }
                 newLine.push(cache[index - 1]);
                 n -= index;
             }

@@ -113,7 +113,7 @@ def get_auto_test_status(
         runner_ip = request.remote_addr
         runs = models.AutoTestRun.get_runs_that_need_runners()
 
-        with helpers.BrokerSession(retries=2) as ses:
+        with models.BrokerSetting.get_current().get_session(retries=2) as ses:
             for run in runs:
                 logger.info(
                     'Trying to register job for runner',

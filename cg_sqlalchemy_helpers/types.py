@@ -5,6 +5,7 @@ about sqlalchemy.
 SPDX-License-Identifier: AGPL-3.0-only
 """
 import enum
+import uuid
 import typing as t
 # pylint: skip-file
 from uuid import UUID
@@ -122,7 +123,10 @@ class MySession:  # pragma: no cover
     def commit(self) -> None:
         ...
 
-    def delete(self, arg: 'Base') -> None:
+    def delete(
+        self,
+        arg: 'Base',
+    ) -> None:
         ...
 
     def expunge(self, arg: 'Base') -> None:
@@ -204,8 +208,7 @@ class _Backref:
     ...
 
 
-class MyDb:  # pragma: no cover
-    session: MySession
+if t.TYPE_CHECKING:
     Float: DbType[float]
     Integer: DbType[int]
     Unicode: DbType[str]
@@ -213,6 +216,22 @@ class MyDb:  # pragma: no cover
     String: t.Callable[[DbSelf, int], DbType[str]]
     LargeBinary: DbType[bytes]
     Interval: DbType[timedelta]
+
+else:
+    from sqlalchemy.types import (
+        Float, String, Boolean, Integer, Unicode, Interval, LargeBinary
+    )
+
+
+class MyDb:  # pragma: no cover
+    Float = Float
+    Integer = Integer
+    Unicode = Unicode
+    Boolean = Boolean
+    String = String
+    LargeBinary = LargeBinary
+    Interval = Interval
+    session: MySession
     init_app: t.Callable
     engine: t.Any
 
@@ -220,6 +239,7 @@ class MyDb:  # pragma: no cover
         self,
         _name: t.Union[str, 'DbColumn[T]', 'ColumnProxy[T]'],
         *,
+        name: t.Optional[str] = None,
         ondelete: t.Union[None, Literal['SET NULL', 'CASCADE']] = None,
     ) -> _ForeignKey:
         ...
@@ -444,8 +464,7 @@ class MyDb:  # pragma: no cover
         cascade: str = '',
         back_populates: str = None,
         backref: _Backref = None,
-        order_by: t.Union[t.Callable[[], 'DbColumn'], t.
-                          Callable[[], 'ColumnOrder']] = None,
+        order_by: 'RelationshipOrderByClause' = None,
         lazy: Literal['select', 'joined', 'selectin'] = 'select',
         primaryjoin: t.Callable[[], 'DbColumn[bool]'] = None,
     ) -> '_MutableColumnProxy[t.List[T], t.List[T], DbColumn[T]]':
@@ -461,8 +480,7 @@ class MyDb:  # pragma: no cover
         cascade: str = '',
         back_populates: str = None,
         backref: _Backref = None,
-        order_by: t.Union[t.Callable[[], 'DbColumn'], t.
-                          Callable[[], 'ColumnOrder']] = None,
+        order_by: 'RelationshipOrderByClause' = None,
         lazy: Literal['dynamic'],
         primaryjoin: t.Callable[[], 'DbColumn[bool]'] = None,
     ) -> '_ImmutableColumnProxy[MyQuery[T], DbColumn[T]]':
@@ -489,8 +507,7 @@ class MyDb:  # pragma: no cover
         secondary: 'RawTable',
         cascade: str = '',
         lazy: Literal['select', 'join', 'selectin'] = 'select',
-        order_by: t.Union[t.Callable[[], 'DbColumn'], t.
-                          Callable[[], 'ColumnOrder']] = None,
+        order_by: 'RelationshipOrderByClause' = None,
     ) -> '_MutableColumnProxy[t.List[_T_BASE], t.List[_T_BASE], DbColumn[_T_BASE]]':
         ...
 
@@ -583,6 +600,12 @@ class DbColumn(t.Generic[T]):  # pragma: no cover
     def __mul__(
         self: 'DbColumn[float]', other: 't.Union[DbColumn[float], float]'
     ) -> 'DbColumn[float]':
+        ...
+
+    def __add__(
+        self: 'DbColumn[DatetimeWithTimezone]',
+        other: 't.Union[DbColumn[timedelta], timedelta]',
+    ) -> 'DbColumn[DatetimeWithTimezone]':
         ...
 
     def __sub__(
@@ -688,7 +711,6 @@ class Base:  # pragma: no cover
 
 
 class MyNonOrderableQuery(t.Generic[T]):  # pragma: no cover
-    delete: t.Callable[[QuerySelf], None]
     subquery: t.Callable[[QuerySelf, str], RawTable]
     limit: t.Callable[[QuerySelf, int], QuerySelf]
     first: t.Callable[[QuerySelf], t.Optional[T]]
@@ -795,11 +817,23 @@ class MyNonOrderableQuery(t.Generic[T]):  # pragma: no cover
     def union(self: QuerySelf, *q: QuerySelf) -> 'QuerySelf':
         ...
 
+    def delete(
+        self,
+        *,
+        synchronize_session: t.Optional[Literal[False, 'fetch']] = None,
+    ) -> int:
+        ...
+
+
+OrderByClause = t.Union[DbColumn, ColumnOrder]
+RelationshipOrderByClause = t.Union[
+    t.Callable[[], t.Union[OrderByClause, t.List[OrderByClause]]],
+    t.Union[OrderByClause, t.List[OrderByClause]],
+]
+
 
 class MyQuery(t.Generic[T], MyNonOrderableQuery[T]):
-    def order_by(
-        self: QuerySelf, *args: t.Union[DbColumn, ColumnOrder]
-    ) -> 'QuerySelf':
+    def order_by(self: QuerySelf, *args: OrderByClause) -> 'QuerySelf':
         ...
 
     def from_self(self, *args: t.Type[Z]) -> 'MyQuery[Z]':
@@ -881,9 +915,9 @@ if t.TYPE_CHECKING and MYPY:
         def __clause_element__(self) -> DbColumn[T]:
             ...
 
-    JSONB = DbType[t.Mapping[str, object]]()
-
-    CIText = DbType[str]()
+    JSONB: DbType[t.Mapping[str, object]]
+    UUIDType: DbType[uuid.UUID]
+    CIText: DbType[str]
 
     def TIMESTAMP(*, timezone: Literal[True]) -> DbType[DatetimeWithTimezone]:
         ...
@@ -935,6 +969,10 @@ if t.TYPE_CHECKING and MYPY:
         def lower(col: DbColumn[str]) -> DbColumn[str]:
             ...
 
+        @staticmethod
+        def now() -> DbColumn[DatetimeWithTimezone]:
+            ...
+
     def distinct(_distinct: T_DB_COLUMN) -> T_DB_COLUMN:
         ...
 
@@ -973,10 +1011,14 @@ if t.TYPE_CHECKING and MYPY:
         ) -> DbColumn[t.Union[T, ZZ]]:
             ...
 
+    Column = MyDb().Column
 else:
     from citext import CIText
-    from sqlalchemy import TIMESTAMP, TypeDecorator, func, tuple_, distinct
+    from sqlalchemy import (
+        TIMESTAMP, Column, TypeDecorator, func, tuple_, distinct
+    )
     from sqlalchemy.sql import expression
+    from sqlalchemy_utils import UUIDType
     from sqlalchemy.ext.hybrid import Comparator as _Comparator
     from sqlalchemy.ext.hybrid import hybrid_property
     from sqlalchemy.dialects.postgresql import ARRAY, JSONB

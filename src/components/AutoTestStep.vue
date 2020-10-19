@@ -1566,9 +1566,9 @@ export default {
         canViewSubStepOutput(i) {
             return (
                 this.canViewDetails &&
-                ['passed', 'failed', 'timed_out'].indexOf(
+                ['passed', 'failed', 'timed_out'].includes(
                     this.ioSubStepProps(i, false, 'state'),
-                ) !== -1
+                )
             );
         },
 

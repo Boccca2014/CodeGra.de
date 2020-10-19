@@ -21,7 +21,7 @@ const moduleBuilder = storeBuilder.module<PeerFeedbackState>('peer_feedback', {
 });
 
 function addOrUpdateUser(
-    context: BareActionContext<any, RootState, any>,
+    context: BareActionContext<any, RootState>,
     user: models.UserServerData,
 ): Promise<unknown> {
     return (context as any).dispatch('users/addOrUpdateUser', { user }, { root: true });
@@ -88,7 +88,7 @@ export namespace PeerFeedbackStore {
                 return null;
             }
 
-            if (force || !loaders.peerFeedbackConnections?.[assignmentId]?.[userId]) {
+            if (force || loaders.peerFeedbackConnections?.[assignmentId]?.[userId] == null) {
                 const loader = api.assignments
                     .getPeerFeedbackSubjects(assignmentId, userId)
                     .then(async ({ data }) => {
