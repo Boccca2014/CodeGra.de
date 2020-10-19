@@ -349,7 +349,6 @@ class AutoTestResult(Base, TimestampMixin, IdMixin, NotEqualMixin):
         back_populates='result',
         cascade='all,delete,delete-orphan',
         uselist=True,
-        lazy='selectin',
         passive_deletes=True,
     )
 
