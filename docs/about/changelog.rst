@@ -58,6 +58,10 @@ Updates
 - The Jupyter Notebook viewer now supports more output types and colors `(#1479)
   <https://github.com/CodeGra-de/CodeGra.de/pull/1479>`__. If a Jupyter Notebook
   contains ANSI colored output we will display these colors in all their glory.
+- When hiding inline feedback this setting is now saved when switching files
+  `(#1486) <https://github.com/CodeGra-de/CodeGra.de/pull/1486>`__. When you
+  hide inline feedback using the preference settings on the submission page,
+  this is now saved when switching between files and submissions.
 
 Version Mosaic.1
 -----------------

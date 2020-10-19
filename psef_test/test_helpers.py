@@ -10,11 +10,6 @@ from psef.helpers import RepeatedTimer, defer, deep_get, try_for_every
 from psef.exceptions import APIException
 
 
-def test_broker_session(monkeypatch):
-    with h.BrokerSession('', '', 'http://www.mocky.io') as ses:
-        assert ses.get('/v2/5d9e5e71320000c532329d38').json() == {'code': 5}
-
-
 def test_defer():
     lst = []
     with defer(lambda: lst.append(2), lambda: lst.append(1)):

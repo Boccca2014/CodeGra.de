@@ -4,11 +4,9 @@ SPDX-License-Identifier: AGPL-3.0-only
 """
 import uuid
 
-from sqlalchemy import TIMESTAMP, Column, Integer
-from sqlalchemy_utils import UUIDType
-
 from cg_dt_utils import DatetimeWithTimezone
 
+from . import TIMESTAMP, Column, Integer, UUIDType
 from .types import ColumnProxy
 
 __all__ = ['IdMixin', 'UUIDMixin', 'TimestampMixin']
@@ -22,15 +20,18 @@ class IdMixin:
     """
     Provides the :attr:`id` primary key column
     """
-    id: ColumnProxy[int] = Column(Integer, primary_key=True)
+    id: ColumnProxy[int] = Column(Integer, primary_key=True, nullable=False)
 
 
 class UUIDMixin:
     """
     Provides the :attr:`id` primary key column as a uuid
     """
-    id: ColumnProxy[uuid.UUID] = Column(
-        UUIDType, primary_key=True, default=_make_uuid
+    id = Column(
+        UUIDType,
+        primary_key=True,
+        default=_make_uuid,
+        nullable=False,
     )
 
 
@@ -39,14 +40,14 @@ class TimestampMixin:
     Provides the :attr:`created_at` and :attr:`updated_at` audit timestamps
     """
     #: Timestamp for when this instance was created.
-    created_at: ColumnProxy[DatetimeWithTimezone] = Column(
+    created_at = Column(
         TIMESTAMP(timezone=True),
         default=DatetimeWithTimezone.utcnow,
         nullable=False
     )
 
     #: Timestamp for when this instance was last updated.
-    updated_at: ColumnProxy[DatetimeWithTimezone] = Column(
+    updated_at = Column(
         TIMESTAMP(timezone=True),
         default=DatetimeWithTimezone.utcnow,
         onupdate=DatetimeWithTimezone.utcnow,

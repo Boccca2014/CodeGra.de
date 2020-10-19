@@ -79,6 +79,7 @@ def test_git_submission_generated_files(
                 'repository_name': 'MY_REPO',
                 'event': 'push',
                 'branch': 'master',
+                'default_branch': 'master',
             }
 
             webhook._ssh_key = private_key

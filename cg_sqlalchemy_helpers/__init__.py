@@ -13,20 +13,18 @@ from flask import Flask, g
 from sqlalchemy import event
 from sqlalchemy.orm import deferred as _deferred
 from flask_sqlalchemy import SQLAlchemy
-from sqlalchemy_utils import UUIDType as _UUIDType
 from sqlalchemy_utils import force_auto_coercion
 
 from cg_dt_utils import DatetimeWithTimezone
 
-from . import types, mixins
+from . import types
 from .types import (
-    ARRAY, JSONB, TIMESTAMP, CIText, DbEnum, DbType, Comparator, TypeDecorator,
-    func, tuple_, distinct, expression, hybrid_property, hybrid_expression
+    ARRAY, JSONB, TIMESTAMP, CIText, Column, DbEnum, DbType, Integer, Unicode,
+    Interval, UUIDType, Comparator, TypeDecorator, func, tuple_, distinct,
+    expression, hybrid_property, hybrid_expression
 )
 
 UUID_LENGTH = len(str(uuid.uuid4()))  # 36
-
-UUIDType: types.DbType[uuid.UUID] = _UUIDType
 
 T = t.TypeVar('T')
 deferred: t.Callable[[T], T] = _deferred
