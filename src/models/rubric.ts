@@ -1,22 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 import { store } from '@/store';
-import {
-    formatGrade,
-    getProps,
-    getUniqueId,
-    toMaxNDecimals,
-    setXor,
-    hasAttr,
-    filterMap,
-    pickKeys,
-    Maybe,
-    Nothing,
-    Just,
-    AssertionError,
-    parseOrKeepFloat,
-    coerceToString,
-    nonenumerable,
-} from '@/utils/typed';
+import * as utils from '@/utils';
 import { makeCache } from '@/utils/cache';
 import { AutoTestRun, AutoTestResult } from '@/models';
 import { RubricResultValidationError, RubricRowValidationError } from './errors';
@@ -67,7 +51,20 @@ export class RubricItem<T = number | undefined> {
                 header: '',
                 description: '',
             },
-            getUniqueId(),
+            utils.getUniqueId(),
+        );
+    }
+
+    duplicate(): RubricItem<undefined> {
+        const points: number | '' | null = this.points;
+        return new RubricItem(
+            {
+                id: undefined,
+                points,
+                header: this.header,
+                description: this.description,
+            },
+            utils.getUniqueId(),
         );
     }
 
@@ -86,7 +83,7 @@ export class RubricItem<T = number | undefined> {
             Object.assign(
                 {},
                 this,
-                pickKeys(props, ['id', 'points', 'header', 'description'], false),
+                utils.pickKeys(props, ['id', 'points', 'header', 'description'], false),
             ),
             this.trackingId,
         );
@@ -147,16 +144,45 @@ export interface RubricRow<T> extends IRubricRow<T> {
 }
 
 export class RubricRow<T extends number | undefined | null> {
-    static fromServerData(data: RubricRowServerData) {
+    constructor(row: IRubricRow<T>, trackingId?: number) {
         // eslint-disable-next-line @typescript-eslint/no-use-before-define
-        if (!hasAttr(RubricRowsTypes, data.type)) {
-            AssertionError.typeAssert<never>(data.type);
+        if (row.type !== '' && !utils.hasAttr(RubricRowsTypes, row.type)) {
+            utils.AssertionError.typeAssert<never>(row.type);
             // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
-            throw new ReferenceError(`Could not find specified type: ${data.type}`);
+            throw new ReferenceError(`Could not find specified type: ${row.type}`);
         }
-        // eslint-disable-next-line @typescript-eslint/no-use-before-define
-        const cls = RubricRowsTypes[data.type];
-        return cls.fromServerData(data as any);
+
+        this.trackingId = trackingId ?? utils.getUniqueId();
+
+        Object.assign(this, row);
+        Object.freeze(this.items);
+
+        Object.freeze(this);
+    }
+
+    static fromServerData(data: RubricRowServerData) {
+        utils.AssertionError.typeAssert<RubricRowType>(data.type);
+        switch (data.type) {
+            case 'normal':
+                // eslint-disable-next-line @typescript-eslint/no-use-before-define
+                return NormalRubricRow.fromServerData(data);
+            case 'continuous':
+                // eslint-disable-next-line @typescript-eslint/no-use-before-define
+                return ContinuousRubricRow.fromServerData(data);
+            default:
+                return utils.AssertionError.assertNever(data);
+        }
+    }
+
+    updateFromServerData(data: RubricRowServerData): RubricRow<number> {
+        const row = Object.assign(
+            {
+                items: data.items.map(RubricItem.fromServerData),
+                descriptionType: RubricDescriptionType[data.description_type],
+            },
+            utils.pickKeys(data, ['id', 'locked', 'type', 'header', 'description']),
+        );
+        return new (this.constructor as typeof RubricRow)(row, this.trackingId);
     }
 
     static createEmpty(): RubricRow<undefined> {
@@ -171,22 +197,29 @@ export class RubricRow<T extends number | undefined | null> {
         });
     }
 
-    @nonenumerable
-    protected _cache = makeCache('maxPoints', 'minPoints');
-
-    constructor(row: IRubricRow<T>, trackingId?: number) {
-        // eslint-disable-next-line @typescript-eslint/no-use-before-define
-        if (row.type && !(this instanceof RubricRowsTypes[row.type])) {
-            throw new Error('You cannot make a base row with a non empty type.');
+    duplicate(): RubricRow<undefined> {
+        let newHeader = this.header;
+        if (newHeader) {
+            newHeader += ' (duplicate)';
         }
-
-        this.trackingId = trackingId ?? getUniqueId();
-
-        Object.assign(this, row);
-        Object.freeze(this.items);
-
-        Object.freeze(this);
+        return new (this.constructor as typeof RubricRow)(
+            {
+                id: undefined,
+                type: this.type,
+                header: newHeader,
+                description: this.description,
+                // New rows always have the description type markdown, as we
+                // cannot create plain text rows on the server.
+                descriptionType: RubricDescriptionType.markdown,
+                locked: false,
+                items: this.items.map(item => item.duplicate()),
+            },
+            utils.getUniqueId(),
+        );
     }
+
+    @utils.nonenumerable
+    protected _cache = makeCache('maxPoints', 'minPoints');
 
     get isMarkdown(): boolean {
         return this.descriptionType === RubricDescriptionType.markdown;
@@ -208,14 +241,14 @@ export class RubricRow<T extends number | undefined | null> {
     get maxPoints(): number {
         return this._cache.get('maxPoints', () => {
             const maxPoints = Math.max(
-                ...filterMap(
+                ...utils.filterMap(
                     this.items,
-                    (item): Maybe<number> => {
+                    (item): utils.Maybe<number> => {
                         const pts: number | null | '' = item.points;
                         if (pts == null || pts === '') {
-                            return Nothing;
+                            return utils.Nothing;
                         } else {
-                            return Just(pts);
+                            return utils.Just(pts);
                         }
                     },
                 ),
@@ -237,7 +270,7 @@ export class RubricRow<T extends number | undefined | null> {
             Object.assign(
                 {},
                 this,
-                pickKeys(
+                utils.pickKeys(
                     props,
                     ['id', 'type', 'header', 'description', 'descriptionType', 'locked', 'items'],
                     false,
@@ -275,7 +308,7 @@ export class RubricRow<T extends number | undefined | null> {
             throw new ReferenceError('Invalid index');
         }
         if (prop === 'points') {
-            const pts = parseOrKeepFloat(<RubricItem[typeof prop]>value);
+            const pts = utils.parseOrKeepFloat(<RubricItem[typeof prop]>value);
             items[idx] = items[idx].update({
                 points: Number.isNaN(pts) ? null : pts,
             });
@@ -340,17 +373,17 @@ export class RubricRow<T extends number | undefined | null> {
         autoTestResult: AutoTestResult,
         rubricResult: RubricResult,
     ) {
-        const selectedRubricItem = getProps(
+        const selectedRubricItem = utils.getProps(
             rubricResult,
             null,
             'selected',
-            coerceToString(this.id),
+            utils.coerceToString(this.id),
         );
-        const autoTestPercentage = getProps(
+        const autoTestPercentage = utils.getProps(
             autoTestResult as any,
             null,
             'rubricResults',
-            coerceToString(this.id),
+            utils.coerceToString(this.id),
             'percentage',
         );
 
@@ -373,12 +406,13 @@ export class RubricRow<T extends number | undefined | null> {
             }
             return msg;
         } else {
-            return `You scored ${autoTestPercentage.toFixed(
-                0,
-            )}% in the corresponding AutoTest category, which scores you ${toMaxNDecimals(
+            const amountPoints = utils.toMaxNDecimals(
                 selectedRubricItem.points * selectedRubricItem.multiplier,
                 2,
-            )} points in this rubric category. `;
+            );
+            return `You scored ${autoTestPercentage.toFixed(
+                0,
+            )}% in the corresponding AutoTest category, which scores you ${amountPoints} points in this rubric category. `;
         }
     }
 
@@ -391,7 +425,7 @@ export class RubricRow<T extends number | undefined | null> {
         if (prevErrors == null) {
             errors = new RubricRowValidationError();
         } else {
-            AssertionError.assert(
+            utils.AssertionError.assert(
                 prevErrors instanceof RubricRowValidationError,
                 'prevErrors should be an instance of RubricRowValidationError',
             );
@@ -413,7 +447,7 @@ export class RubricRow<T extends number | undefined | null> {
                 errors.itemHeader.push(this.nonEmptyHeader);
             }
 
-            if (item.points == null || Number.isNaN(parseOrKeepFloat(item.points))) {
+            if (item.points == null || Number.isNaN(utils.parseOrKeepFloat(item.points))) {
                 errors.itemPoints.push(`'${this.nonEmptyHeader} - ${item.nonEmptyHeader}'`);
             }
         }
@@ -558,15 +592,22 @@ type RubricServerData = RubricRowServerData[];
 
 export class Rubric<T extends number | undefined | null> {
     static fromServerData(data: RubricServerData) {
-        const rows = (data ?? []).map(row => {
-            row.items.sort((x, y) => x.points - y.points);
-            return RubricRow.fromServerData(row);
-        });
+        return new Rubric((data ?? []).map(RubricRow.fromServerData));
+    }
+
+    updateFromServerData(data: RubricServerData): Rubric<number> {
+        // A newly created row has no id yet, but we need to know the id to be
+        // able to update a row. Unfortunately it is not possible to simply
+        // overwrite the old rubric in the store with an entirely new one
+        // created from the data sent back by the server, because then the
+        // tracking ids of the rubric rows will change, defeating the point of
+        // the tracking ids.
+        const rows = utils.zipWith((r, n) => r.updateFromServerData(n), this.rows, data);
 
         return new Rubric(rows);
     }
 
-    @nonenumerable
+    @utils.nonenumerable
     private _cache = makeCache('maxPoints', 'rowsById');
 
     constructor(public readonly rows: ReadonlyArray<RubricRow<T>>) {
@@ -595,8 +636,8 @@ export class Rubric<T extends number | undefined | null> {
     getItemIds() {
         return this.rows.reduce((acc: Record<string, string>, row) => {
             row.items.forEach(item => {
-                if (item.id != null) {
-                    acc[<number>item.id] = `${row.nonEmptyHeader} - ${item.nonEmptyHeader}`;
+                if (typeof item.id === 'number') {
+                    acc[item.id] = `${row.nonEmptyHeader} - ${item.nonEmptyHeader}`;
                 }
             });
             return acc;
@@ -624,6 +665,16 @@ export class Rubric<T extends number | undefined | null> {
 
         const rows = [...this.rows, newRow];
         return new Rubric(rows);
+    }
+
+    duplicateRow(idx: number): Rubric<T | undefined> {
+        // Duplicate the row at the given index and insert it right after the
+        // given index.
+        const rows = this.rows as RubricRow<T | undefined>[];
+        const newRow = this.rows[idx].duplicate();
+        const newRows = rows.slice(0, idx + 1);
+        newRows.push(newRow, ...rows.slice(idx + 1));
+        return new Rubric(newRows);
     }
 
     deleteRow(idx: number) {
@@ -726,7 +777,7 @@ export class RubricResult {
     }
 
     get assignment() {
-        return getProps(this.submission, null, 'assignment');
+        return utils.getProps(this.submission, null, 'assignment');
     }
 
     get rubric(): Rubric<number> | null {
@@ -734,11 +785,11 @@ export class RubricResult {
         return id == null ? null : store.getters['rubrics/rubrics'][id];
     }
 
-    get maxPoints(): Maybe<number> {
-        return Maybe.fromNullable(
+    get maxPoints(): utils.Maybe<number> {
+        return utils.Maybe.fromNullable(
             // eslint-disable-next-line camelcase
             this.assignment?.fixed_max_rubric_points,
-        ).alt(Maybe.fromNullable(this.rubric?.maxPoints));
+        ).alt(utils.Maybe.fromNullable(this.rubric?.maxPoints));
     }
 
     get grade(): string | null {
@@ -748,7 +799,7 @@ export class RubricResult {
             return null;
         } else {
             const grade = (10 * points) / maxPoints;
-            return formatGrade(Math.max(0, Math.min(grade, 10)));
+            return utils.formatGrade(Math.max(0, Math.min(grade, 10)));
         }
     }
 
@@ -756,7 +807,7 @@ export class RubricResult {
         const ownIds = new Set(Object.values(this.selected).map(x => x.id));
         const otherIds = new Set(Object.values(other.selected).map(x => x.id));
 
-        return setXor(ownIds, otherIds);
+        return utils.setXor(ownIds, otherIds);
     }
 
     toggleItem(rowId: number, item: RubricItem & { id: number; points: number }) {
