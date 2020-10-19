@@ -13,12 +13,16 @@ config = context.config
 
 # Interpret the config file for Python logging.
 # This line sets up loggers basically.
-fileConfig(config.config_file_name)
+try:
+    fileConfig(config.config_file_name, disable_existing_loggers=False)
+except:
+    pass
 logger = logging.getLogger('alembic.env')
 
 if config.get_main_option('sqlalchemy.url', None) is None:
-    config.set_main_option('sqlalchemy.url',
-                           current_app.config.get('SQLALCHEMY_DATABASE_URI'))
+    config.set_main_option(
+        'sqlalchemy.url', current_app.config.get('SQLALCHEMY_DATABASE_URI')
+    )
 target_metadata = current_app.extensions['migrate'].db.metadata
 
 # other values from the config, defined by the needs of env.py,
@@ -64,21 +68,28 @@ def run_migrations_online():
                 directives[:] = []
                 logger.info('No changes in schema detected.')
 
-    engine = engine_from_config(config.get_section(config.config_ini_section),
-                                prefix='sqlalchemy.',
-                                poolclass=pool.NullPool)
+    engine = context.config.attributes.get("connection", None)
+    if engine is None:
+        engine = engine_from_config(
+            config.get_section(config.config_ini_section),
+            prefix='sqlalchemy.',
+            poolclass=pool.NullPool
+        )
 
     connection = engine.connect()
-    context.configure(connection=connection,
-                      target_metadata=target_metadata,
-                      process_revision_directives=process_revision_directives,
-                      **current_app.extensions['migrate'].configure_args)
+    context.configure(
+        connection=connection,
+        target_metadata=target_metadata,
+        process_revision_directives=process_revision_directives,
+        **current_app.extensions['migrate'].configure_args
+    )
 
     try:
         with context.begin_transaction():
             context.run_migrations()
     finally:
         connection.close()
+
 
 if context.is_offline_mode():
     run_migrations_offline()

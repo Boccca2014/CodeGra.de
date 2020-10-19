@@ -3,13 +3,14 @@ INSERT INTO "User" (id,
                     username,
                     email,
                     name,
-                    lti_user_id)
-VALUES (1, 'user1', 'email1', 'User 1', 11),
-       (2, 'user2', 'email2', 'User 2', 22),
-       (3, 'user3', 'email3', 'User 3', 33),
-       (4, 'user4', 'email4', 'User 4', 44),
-       (5, 'user5', 'email5', 'User 5', NULL),
-       (6, 'user6', 'email6', 'User 6', 66);
+                    lti_user_id,
+                    active)
+VALUES (1, 'user1', 'email1', 'User 1', 11, true),
+       (2, 'user2', 'email2', 'User 2', 22, true),
+       (3, 'user3', 'email3', 'User 3', 33, true),
+       (4, 'user4', 'email4', 'User 4', 44, true),
+       (5, 'user5', 'email5', 'User 5', NULL, true),
+       (6, 'user6', 'email6', 'User 6', 66, true);
 
 
 INSERT INTO "LTIProvider" (id,
@@ -19,13 +20,14 @@ VALUES ('lti_prov_1', 'key_1'),
 
 
 INSERT INTO "Course" (id,
+                      created_at,
                       name,
                       lti_provider_id,
                       lti_course_id)
-VALUES (1, 'course 1', 'lti_prov_1', 'lti_course_1'),
-       (2, 'course 2', 'lti_prov_1', 'lti_course_2'),
-       (3, 'course 3', 'lti_prov_2', 'lti_course_3'),
-       (4, 'non lti course', NULL, NULL);
+VALUES (1, NOW(), 'course 1', 'lti_prov_1', 'lti_course_1'),
+       (2, NOW(), 'course 2', 'lti_prov_1', 'lti_course_2'),
+       (3, NOW(), 'course 3', 'lti_prov_2', 'lti_course_3'),
+       (4, NOW(), 'non lti course', NULL, NULL);
 
 
 INSERT INTO "Course_Role" (id,
@@ -47,7 +49,7 @@ VALUES (1, 'cr1_1', 1),
 
 
 INSERT INTO "users-courses" (user_id,
-                            course_id)
+                             course_id)
 VALUES (1, 1),
        (1, 12),
        (2, 7),
