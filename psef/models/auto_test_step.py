@@ -24,10 +24,13 @@ import psef
 import cg_enum
 import cg_junit
 import cg_logger
+import cg_helpers
 import cg_object_storage
 from cg_maybe import Maybe, Nothing
 from cg_dt_utils import DatetimeWithTimezone
 from cg_flask_helpers import callback_after_this_request
+from cg_sqlalchemy_helpers import func as sql_func
+from cg_sqlalchemy_helpers import expression as sql_expr
 from cg_sqlalchemy_helpers import hybrid_property, hybrid_expression
 from cg_sqlalchemy_helpers.types import DbType, DbColumn, ColumnProxy
 from cg_sqlalchemy_helpers.mixins import IdMixin, TimestampMixin
@@ -39,10 +42,10 @@ from ..helpers import (
     JSONType, between, safe_div, ensure_json_dict, get_from_map_transaction
 )
 from ..registry import auto_test_handlers
-from ..auto_test.code_quality_wrappers import CodeQualityWrapper
 from ..exceptions import (
     APICodes, APIWarnings, APIException, StopRunningStepsException
 )
+from ..auto_test.code_quality_wrappers import CodeQualityWrapper
 
 logger = structlog.get_logger()
 
@@ -87,7 +90,9 @@ def _ensure_program(program: str) -> None:
         )
 
 
-def _ensure_between(name: str, value: float, lower: float, upper: float) -> None:
+def _ensure_between(
+    name: str, value: float, lower: float, upper: float
+) -> None:
     if value < lower or value > upper:
         raise APIException(
             f'The "{name}" has to be between 0 and 1',
@@ -1058,8 +1063,7 @@ class _QualityTest(AutoTestStepBase):
                 raise APIException(
                     f'Penalty for "{key}" comments must be a number',
                     f'The penalty for "{key}" must be a float but it was'
-                    f'"{value}"',
-                    APICodes.INVALID_PARAM, 400
+                    f'"{value}"', APICodes.INVALID_PARAM, 400
                 )
 
             _ensure_between(key, t.cast(float, value), 0, 100)
@@ -1113,22 +1117,35 @@ class _QualityTest(AutoTestStepBase):
     def get_amount_achieved_points(cls, result: 'AutoTestStepResult') -> float:
         # TODO: we do not have access to the quality comments in the _execute
         # method, so we currently have to recalculate the score by hand.
-        comments = AutoTestQualityComment.query.filter(
-            AutoTestQualityComment.auto_test_step_id == result.auto_test_step_id,
-            AutoTestQualityComment.auto_test_result_id == result.id,
-        ).all()
         penalties = cls._get_penalties(result.step.data)
+        QualityComment = AutoTestQualityComment
+        total_penalty = AutoTestQualityComment.query.filter(
+            QualityComment.auto_test_step_id == result.auto_test_step_id,
+            QualityComment.auto_test_result_id == result.auto_test_result_id,
+            QualityComment.severity.notin_(
+                [
+                    severity for severity, penalty in penalties.items()
+                    if penalty == 0
+                ]
+            )
+        ).with_entities(
+            sql_func.sum(
+                sql_expr.case(
+                    [
+                        (QualityComment.severity == severity, penalty)
+                        for severity, penalty in penalties.items()
+                    ],
+                    else_=0.0,
+                )
+            ).cast(db.Float)
+        )
 
-        score = 100.0
-
-        for comment in comments:
-            penalty = penalties[comment.severity]
-            score -= penalty
-
-        return result.step.weight * score / 100
+        score = 100.0 - cg_helpers.handle_none(total_penalty.scalar(), 0)
+        return result.step.weight * (score / 100.0)
 
     @staticmethod
-    def _get_penalties(step_data: JSONType) -> t.Mapping['QualityCommentSeverity', float]:
+    def _get_penalties(step_data: JSONType
+                       ) -> t.Mapping['QualityCommentSeverity', float]:
         assert isinstance(step_data, dict)
         penalties = t.cast(t.Mapping[str, float], step_data['penalties'])
         return {
@@ -1331,9 +1348,11 @@ class LineRangeAsJSON(TypedDict):
     start: int
     end: int
 
+
 class ColumnRangeAsJSON(TypedDict):
     start: int
     end: t.Optional[int]
+
 
 class AutoTestQualityComment(Base, TimestampMixin, IdMixin):
     auto_test_step_id = db.Column(
