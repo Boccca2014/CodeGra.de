@@ -214,3 +214,4 @@ if True:  # pylint: disable=using-constant-test
     from .auto_test_step import (
         AutoTestStepBase, AutoTestStepResult, AutoTestStepResultState
     )
+    from .broker_settings import BrokerSetting
