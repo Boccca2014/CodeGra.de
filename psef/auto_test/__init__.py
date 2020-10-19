@@ -45,8 +45,7 @@ import cg_worker_pool
 import cg_threading_utils
 from cg_timers import timed_code, timed_function
 
-from . import linter_server
-from . import code_quality_wrappers
+from . import linter_server, code_quality_wrappers
 from .. import models, helpers
 from ..helpers import JSONType, RepeatedTimer, defer
 from ..registry import auto_test_handlers
@@ -71,8 +70,6 @@ FIXTURES_ROOT = f'/.{uuid.uuid4().hex}'
 PRE_STUDENT_FIXTURES_DIR = f'{uuid.uuid4().hex}/'
 
 OUTPUT_DIR = f'/.{uuid.uuid4().hex}/{uuid.uuid4().hex}'
-
-JWT_SECRET = str(uuid.uuid4())
 
 # _Absolute_ path to the bash executable.
 BASH_PATH = '/bin/bash'
