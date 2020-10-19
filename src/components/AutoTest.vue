@@ -1103,6 +1103,9 @@ export default {
 
             return this.$http.post('/api/v1/auto_tests/', {
                 assignment_id: this.assignment.id,
+                grade_calculation: 'full',
+                results_always_visible: true,
+                prefer_teacher_revision: false,
             });
         },
 
