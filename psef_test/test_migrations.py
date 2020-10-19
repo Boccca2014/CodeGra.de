@@ -93,7 +93,7 @@ def test_upgrade_with_data(alembic_runner, migration, alembic_tests_db):
     upgrade_tester.load_data()
 
     # Upgrade to the target
-    alembic_runner.migrate_up_to(migration)
+    alembic_runner.raw_command('upgrade', migration)
 
     # Make sure it applied "cleanly" for some definition of clean
     upgrade_tester.check()
