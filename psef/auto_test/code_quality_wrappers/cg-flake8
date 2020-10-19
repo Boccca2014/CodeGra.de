@@ -25,14 +25,14 @@ def handle_error(filename, line, col, code, msg):
             ('msg', msg),
             ('code', code),
             ('severity', severity),
-            ('line', {
+            ('line', dict([
                 ('start', int(line)),
                 ('end', int(line)),
-            }),
-            ('column', {
+            ])),
+            ('column', dict([
                 ('start', int(col)),
                 ('end', None),
-            }),
+            ])),
             ('path', filename.split('/')),
         ]
     )
@@ -44,7 +44,7 @@ def main() -> None:
 
     # This is not guessable
     sep = str(uuid.uuid4())
-    fmt = '%(path)s{0}%(row)d{0}%(col)d{0}%(code)s{0}%(text)s'.format(sep)
+    fmt = '%(path)s{{0}}%(row)d{{0}}%(col)d{{0}}%(code)s{{0}}%(text)s'.format(sep)
 
     # The check for success is something we really don't want here.
     proc = subprocess.run(  # pylint: disable=subprocess-run-check
@@ -79,7 +79,6 @@ def main() -> None:
         api_proc = subprocess.run(
             ['cg-api'], input=output.encode('utf8'), check=False
         )
-        sys.exit(api_proc.returncode)
 
 
 if __name__ == '__main__':

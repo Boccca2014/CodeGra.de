@@ -877,7 +877,10 @@ def _copy_scripts(
     for tgt, src in scripts.items():
         tgt_abspath = f'/usr/local/bin/{tgt}'
         with open(os.path.join(base_dir, src), 'r') as client_fd:
-            script = client_fd.read().format(config)
+            script = client_fd.read().format(
+                PMD_PATH=config['AUTO_TEST_PMD_PATH'],
+                CHECKSTYLE_PATH=config['AUTO_TEST_CHECKSTYLE_PATH'],
+            )
             cont.run_command(
                 ['dd', f'of={tgt_abspath}'],
                 stdin=script.encode('utf8'),

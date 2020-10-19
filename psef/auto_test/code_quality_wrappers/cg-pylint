@@ -29,10 +29,10 @@ def handle_error(message):
                     ('end', message['line']),
                 ])
             ),
-            ('column', {
+            ('column', dict([
                 ('start', message['column']),
                 ('end', None),
-            }),
+            ])),
             ('path', message['path'].split('/')),
         ]
     )
