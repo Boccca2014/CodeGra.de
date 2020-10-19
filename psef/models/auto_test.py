@@ -40,6 +40,7 @@ logger = structlog.get_logger()
 GradeCalculator = t.Callable[[t.Sequence['psef.models.RubricItem'], float],
                              'psef.models.RubricItem']
 
+
 class AutoTestSuite(Base, TimestampMixin, IdMixin):
     """This class represents a Suite (also known as category) in an AutoTest.
     """
@@ -349,6 +350,7 @@ class AutoTestResult(Base, TimestampMixin, IdMixin, NotEqualMixin):
         cascade='all,delete,delete-orphan',
         uselist=True,
         lazy='selectin',
+        passive_deletes=True,
     )
 
     # This variable is generated from the backref from all files
@@ -426,7 +428,13 @@ class AutoTestResult(Base, TimestampMixin, IdMixin, NotEqualMixin):
 
         .. note:: This also clears the rubric
         """
-        self.step_results = []
+        atm = auto_test_step_models
+        atm.AutoTestStepResult.query.filter(
+            atm.AutoTestStepResult.result == self
+        ).delete()
+        atm.AutoTestQualityComment.query.filter(
+            atm.AutoTestQualityComment.result == self
+        ).delete()
         self.state = auto_test_step_models.AutoTestStepResultState.not_started
         self.setup_stderr = None
         self.setup_stdout = None
