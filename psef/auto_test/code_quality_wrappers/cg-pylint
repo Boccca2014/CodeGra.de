@@ -8,28 +8,33 @@ import tempfile
 import subprocess
 
 
-def handle_error(message) -> str:
+def handle_error(message):
     severity = message['type']
 
     # Pylint has 4 message types: 'error', 'warning', 'convention', and
     # 'refactor'.
-    if severity == 'convention' or severity == 'refactor':
+    if severity in ('convention', 'refactor'):
         severity = 'info'
 
     return dict(
-        ('origin', 'PyLint'),
-        ('msg', message['message']),
-        ('code', message['symbol']),
-        ('severity', severity),
-        ('line', dict(
-            ('start', message['line']),
-            ('end', message['line']),
-        )),
-        ('column', {
-            ('start', message['column']),
-            ('end', None),
-        }),
-        ('path', message['path'].split('/')),
+        [
+            ('origin', 'PyLint'),
+            ('msg', message['message']),
+            ('code', message['symbol']),
+            ('severity', severity),
+            (
+                'line',
+                dict([
+                    ('start', message['line']),
+                    ('end', message['line']),
+                ])
+            ),
+            ('column', {
+                ('start', message['column']),
+                ('end', None),
+            }),
+            ('path', message['path'].split('/')),
+        ]
     )
 
 
@@ -50,28 +55,30 @@ def main() -> None:
 
     if proc.returncode == 32:
         print('PyLint crashed, stdout:\n', proc.stderr, file=sys.stderr)
-        exit(32)
+        sys.exit(32)
     if proc.returncode == 1:
         print(
             'The submission is not a valid python module, it probably lacks'
             ' an `__init__` file.',
             file=sys.stderr,
         )
-        exit(1)
+        sys.exit(1)
 
     comments = [
-        handle_error(err)
-        for err in json.loads(proc.stdout.decode('utf8'))
+        handle_error(err) for err in json.loads(proc.stdout.decode('utf8'))
     ]
 
     if comments:
         output = json.dumps(
-            dict(
+            dict([
                 ('op', 'put_comments'),
                 ('comments', comments),
-            ),
+            ]),
         )
-        subprocess.run(['cg-api'], input=output.encode('utf8'))
+        api_proc = subprocess.run(
+            ['cg-api'], input=output.encode('utf8'), check=False
+        )
+        sys.exit(api_proc.returncode)
 
 
 if __name__ == '__main__':

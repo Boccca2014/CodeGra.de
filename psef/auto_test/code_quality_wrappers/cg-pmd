@@ -6,7 +6,6 @@ import os
 import csv
 import sys
 import json
-import tempfile
 import subprocess
 
 STUDENT = os.environ['STUDENT']
@@ -14,34 +13,43 @@ STUDENT = os.environ['STUDENT']
 PMD_BIN = '{PMD_PATH}/bin/run.sh'
 
 
-def handle_error(message) -> str:
-    priority = message['Priority']
+def handle_error(message):
+    try:
+        priority = int(message['Priority'])
+    except ValueError:
+        print(
+            'Unknown priority %s encountered!' % message['Priority'],
+            file=sys.stderr
+        )
+        sys.exit(2)
     line = int(message['Line'])
 
     # PMD severities can be an integer from 1 to 5, 1 being the highest
-    if priority == '1':
+    if priority == 1:
         severity = 'fatal'
-    elif priority == '2':
+    elif priority == 2:
         severity = 'error'
-    elif priority == '3':
+    elif priority == 3:
         severity = 'warning'
-    elif priority >= '4':
+    elif priority >= 4:
         severity = 'info'
 
     return dict(
-        ('origin', 'PMD'),
-        ('msg', message['Description']),
-        ('code', message['Rule']),
-        ('severity', severity),
-        ('line', dict(
-            ('start', line),
-            ('end', line),
-        )),
-        ('column', dict(
-            ('start', 1),
-            ('end', None),
-        )),
-        ('path', message['File'][len(STUDENT):].split('/')),
+        [
+            ('origin', 'PMD'),
+            ('msg', message['Description']),
+            ('code', message['Rule']),
+            ('severity', severity),
+            ('line', dict([
+                ('start', line),
+                ('end', line),
+            ])),
+            ('column', dict([
+                ('start', 1),
+                ('end', None),
+            ])),
+            ('path', message['File'][len(STUDENT):].split('/')),
+        ]
     )
 
 
@@ -70,27 +78,27 @@ def main() -> None:
 
     if proc.returncode != 0:
         print('PMD crashed, stdout:\n', proc.stderr, file=sys.stderr)
-        exit(proc.returncode)
+        sys.exit(proc.returncode)
 
     output = csv.DictReader(io.StringIO(proc.stdout.decode('utf8')))
 
     if output is None:
         print('Could not parse PMD output:\n', proc.stdout, file=sys.stderr)
-        exit(1)
+        sys.exit(1)
 
-    comments = [
-        handle_error(err)
-        for err in output
-    ]
+    comments = [handle_error(err) for err in output]
 
     if comments:
-        output = json.dumps(
-            dict(
+        api_input = json.dumps(
+            dict([
                 ('op', 'put_comments'),
                 ('comments', comments),
-            ),
+            ]),
         )
-        subprocess.run(['cg-api'], input=output.encode('utf8'))
+        api_proc = subprocess.run(
+            ['cg-api'], input=api_input.encode('utf8'), check=False
+        )
+        sys.exit(api_proc.returncode)
 
 
 if __name__ == '__main__':

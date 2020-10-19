@@ -5,11 +5,10 @@ import os
 import sys
 import json
 import uuid
-import tempfile
 import subprocess
 
 
-def handle_error(filename, line, col, code, msg) -> str:
+def handle_error(filename, line, col, code, msg):
     if filename.startswith('./'):
         filename = filename[2:]
 
@@ -21,19 +20,21 @@ def handle_error(filename, line, col, code, msg) -> str:
         severity = 'info'
 
     return dict(
-        ('origin': 'Flake8'),
-        ('msg': msg),
-        ('code': code),
-        ('severity': severity),
-        ('line': {
-            ('start': int(line)),
-            ('end': int(line)),
-        }),
-        ('column': {
-            ('start': int(col)),
-            ('end': None),
-        }),
-        ('path': filename.split('/')),
+        [
+            ('origin', 'Flake8'),
+            ('msg', msg),
+            ('code', code),
+            ('severity', severity),
+            ('line', {
+                ('start', int(line)),
+                ('end', int(line)),
+            }),
+            ('column', {
+                ('start', int(col)),
+                ('end', None),
+            }),
+            ('path', filename.split('/')),
+        ]
     )
 
 
@@ -60,7 +61,7 @@ def main() -> None:
 
     if proc.returncode != 0:
         print('Flake8 crashed, stderr:\n', proc.stderr, file=sys.stderr)
-        exit(proc.returncode)
+        sys.exit(proc.returncode)
 
     comments = [
         handle_error(*err.split(sep))
@@ -70,12 +71,15 @@ def main() -> None:
 
     if comments:
         output = json.dumps(
-            dict(
+            dict([
                 ('op', 'put_comments'),
                 ('comments', comments),
-            ),
+            ]),
         )
-        subprocess.run(['cg-api'], input=output.encode('utf8'))
+        api_proc = subprocess.run(
+            ['cg-api'], input=output.encode('utf8'), check=False
+        )
+        sys.exit(api_proc.returncode)
 
 
 if __name__ == '__main__':
