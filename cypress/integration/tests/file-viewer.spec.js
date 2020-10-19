@@ -187,7 +187,7 @@ context('FileViewer', () => {
             addComment('.markdown-wrapper .feedback-button');
 
             openFile('venn1.png');
-            addComment('.image-viewer .feedback-button');
+            addComment('.image-viewer .feedback-button, .image-viewer .btn[name="edit-feedback"]');
 
             openFile('thomas-schaper');
             addComment('.pdf-viewer .feedback-button');
