@@ -1012,11 +1012,11 @@ export default {
             this.showWhitespace = val;
         },
 
-        inlineFeedbackChanged(val) {
-            this.showInlineFeedback = val;
+        inlineFeedbackChanged({ show, freshChange }) {
+            this.showInlineFeedback = show;
             // When manually hiding the inline feedback it is not necessary
             // to show the warning immediately.
-            this.inlineFeedbackWarningDismissed = true;
+            this.inlineFeedbackWarningDismissed = freshChange;
         },
 
         openSidebarTab(idx) {

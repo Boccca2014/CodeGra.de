@@ -64,7 +64,7 @@
                     <td>Inline feedback</td>
                     <td>
                         <toggle :value="inlineFeedback"
-                                @input="emitInlineFeedback"
+                                @input="value => emitInlineFeedback(value, true)"
                                 label-on="Show"
                                 label-off="Hide"/>
                     </td>
@@ -226,6 +226,7 @@ export default {
 
         loadValues(fileId) {
             this.loading = true;
+            this.emitInlineFeedback(this.inlineFeedback, false);
 
             return Promise.all([this.loadWhitespace(fileId), this.loadLanguage(fileId)]).then(
                 () => {
@@ -275,8 +276,8 @@ export default {
             });
         },
 
-        emitInlineFeedback(show) {
-            this.$emit('inline-feedback', show);
+        emitInlineFeedback(show, freshChange) {
+            this.$emit('inline-feedback', { show, freshChange });
             const query = {
                 showInlineFeedback: show ? undefined : false,
             };
