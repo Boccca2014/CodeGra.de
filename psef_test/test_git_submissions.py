@@ -428,6 +428,7 @@ def test_clone_git_repo(
                 'repository_name': 'MY_REPO',
                 'event': 'push',
                 'branch': 'master',
+                'default_branch': 'master',
             }
 
         def get_sub(user=student):
