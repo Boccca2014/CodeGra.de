@@ -29,7 +29,7 @@ from .models import db
 from .exceptions import NotFoundException, PermissionException
 
 if t.TYPE_CHECKING:  # pragma: no cover
-    import cg_cache.inter_request  # pylint: disable=import-unused
+    import cg_cache.inter_request  # pylint: disable=unused-import
 
 logger = structlog.get_logger()
 
@@ -81,9 +81,9 @@ def _verify_public_instance_jwt(
             )
         )
         assert decoded == unsafe_decoded
-    except:  # pylint: disable=bare-except
+    except BaseException as exc:  # pylint: disable=broad-except
         logger.error('Got unauthorized broker request', exc_info=True)
-        raise PermissionException(401)
+        raise PermissionException(401) from exc
     else:
         return decoded['url']
 

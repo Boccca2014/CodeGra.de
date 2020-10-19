@@ -1,10 +1,9 @@
-"""This module defines the tables needed for the site settings.
+"""This module defines the tables needed for broker settings.
 
 SPDX-License-Identifier: AGPL-3.0-only
 """
 import uuid
 import typing as t
-import contextlib
 import urllib.parse
 
 import jwt
@@ -30,6 +29,8 @@ class BrokerSetting(Base, UUIDMixin, TimestampMixin):
 
     @classmethod
     def get_current(cls, commit: bool = True) -> 'BrokerSetting':
+        """Get the settings for the current broker.
+        """
         url = current_app.config['AUTO_TEST_BROKER_URL']
         return cls._get_or_create(url, commit=commit)
 
@@ -85,10 +86,14 @@ class BrokerSetting(Base, UUIDMixin, TimestampMixin):
         ).decode('utf8')
 
     def get_session(self, retries: t.Optional[int] = None) -> requests.Session:
+        """Get a requests session to talk to this broker.
+        """
         broker_url = self._url
         signed_url = self._get_signed_url()
 
         class MySession(requests.Session):
+            """The session subclass used to talk to the broker.
+            """
             def __init__(self) -> None:
                 super().__init__()
                 self.headers.update({'CG-Application-Signature': signed_url})

@@ -17,7 +17,7 @@ import cg_request_args as rqa
 from cg_json import JSONResponse
 
 from . import api
-from .. import models, helpers, current_app, permissions, site_settings
+from .. import models, current_app, permissions, site_settings
 from ..permissions import CoursePermission
 
 logger = structlog.get_logger()

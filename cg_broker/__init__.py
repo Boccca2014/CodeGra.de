@@ -84,16 +84,6 @@ class BrokerFlask(flask.Flask):
 
         _parser = make_parser(False)
 
-        self.heartbeat_interval = _parser['Testers'].getint(
-            'INTERVAL', fallback=15
-        )
-        self.heartbeat_max_missed = _parser['Testers'].getint(
-            'MAX_MISSED', fallback=5
-        )
-        self.auto_test_max_duration = timedelta(
-            minutes=int(_parser['Testers'].get('MAX_DURATION', str(24 * 60)))
-        )
-
         self.config['DEBUG'] = _parser['General'].getboolean(
             'DEBUG', fallback=False
         )
@@ -194,6 +184,9 @@ class BrokerFlask(flask.Flask):
     def instance_public_key_cache(
         self
     ) -> 'cg_cache.inter_request.Backend[str]':
+        """Get the cache used for caching the public keys of application
+        servers.
+        """
         return cg_cache.inter_request.DBBackend(
             namespace='instance_public_keys',
             ttl=timedelta(weeks=4),

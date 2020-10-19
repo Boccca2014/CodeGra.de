@@ -137,6 +137,16 @@ class Backend(abc.ABC, t.Generic[T]):
         get_value: t.Callable[[], T],
         callback: t.Callable[[T], Y],
     ) -> Y:
+        """Call a function with a cached value, or a fresh value if the method
+        raises.
+
+        :param key: They under which the cache should be stored.
+        :param get_value: The callable to call to get a fresh value.
+        :param callback: The callback to call with the cached and/or fresh
+            value.
+
+        :returns: The value returned by ``callback`` if it doesn't raise.
+        """
         value = self.get_or_set(key=key, get_value=get_value, force=False)
         try:
             return callback(value)
@@ -211,6 +221,12 @@ class _IDBStorage(Protocol):
         namespace: str,
         key: str,
     ) -> t.Optional[t.Any]:
+        """Get the value of the latest non expired cache entry, or ``None``.
+
+        :param session: The session to the database.
+        :param namespace: The namespace from which the entry should retrieved.
+        :param key: The key of the entry that should be retrieved.
+        """
         ...
 
     @classmethod
@@ -221,6 +237,13 @@ class _IDBStorage(Protocol):
         namespace: str,
         key: str,
     ) -> None:
+        """Delete all non expired entries with a given key.
+
+        :param session: The session to the database.
+        :param namespace: The namespace from which the entries should be
+            deleted.
+        :param key: The key of the entries that should be deleted.
+        """
         ...
 
     @classmethod
@@ -233,6 +256,14 @@ class _IDBStorage(Protocol):
         value: t.Any,
         ttl: timedelta,
     ) -> '_IDBStorage':
+        """Create a cache entry and add it to the given session.
+
+        :param session: The session to which the cache entry should be added.
+        :param namespace: The namespace the entry is in.
+        :param key: The key of the entry.
+        :param value: The value of the entry.
+        :param ttl: The time from now the entry should be valid.
+        """
         ...
 
 
@@ -247,6 +278,8 @@ class DBBackend(Backend[T], t.Generic[T]):
         base: t.Type[cg_sqlalchemy_helpers.types.Base],
         tablename: str,
     ) -> t.Type[_IDBStorage]:
+        """Make a cache table.
+        """
         if not t.TYPE_CHECKING:
             _DBBase = base  # pylint: disable=invalid-name
 
@@ -297,6 +330,10 @@ class DBBackend(Backend[T], t.Generic[T]):
                 namespace: str,
                 key: str,
             ) -> t.Optional[t.Any]:
+                """Get non expired entry.
+
+                .. seealso:: method :meth:`._IDBStorage.get_non_expired`
+                """
                 return session.query(cls).filter(
                     cls._get_non_expired_filter(),
                     cls.namespace == namespace,
@@ -315,6 +352,10 @@ class DBBackend(Backend[T], t.Generic[T]):
                 namespace: str,
                 key: str,
             ) -> None:
+                """Delete non expired entries.
+
+                .. seealso:: method :meth:`._IDBStorage.delete_non_expired`
+                """
                 session.query(cls).filter(
                     cls._get_non_expired_filter(),
                     cls.namespace == namespace,
@@ -332,6 +373,10 @@ class DBBackend(Backend[T], t.Generic[T]):
                 value: t.Any,
                 ttl: timedelta,
             ) -> '_IDBStorage':
+                """Create new entry.
+
+                .. seealso:: method :meth:`._IDBStorage.make_and_add`
+                """
                 res = cls(namespace=namespace, key=key, value=value, ttl=ttl)
                 session.add(res)
                 session.flush()
