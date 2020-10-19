@@ -46,7 +46,6 @@ const renderMimeType = (
         for (const typ of IPythonV4MimeDataString) {
             const rawData = mimebundle.data[typ];
             if (rawData == null) {
-                // eslint-disable-next-line no-continue
                 continue;
             }
 
@@ -78,7 +77,6 @@ const renderMimeType = (
         for (const typ of IPythonV3MimeDataString) {
             const rawData = mimebundle[typ];
             if (rawData == null) {
-                // eslint-disable-next-line no-continue
                 continue;
             }
 
