@@ -1756,6 +1756,24 @@ class PlagiarismCasePermissions(CoursePermissionChecker):
             WorkPermissions(other_sub).ensure_may_see()
 
 
+class SiteSettingsPermissions(GlobalPermissionChecker):
+    """The permission checker for :class:`psef.models.SiteSetting`
+    """
+    __slots__ = ()
+
+    @GlobalPermissionChecker.as_ensure_function
+    def ensure_may_see(self) -> None:
+        """Check if the current user may see this setting.
+        """
+        self._ensure(GPerm.can_manage_site_settings)
+
+    @GlobalPermissionChecker.as_ensure_function
+    def ensure_may_edit(self) -> None:
+        """Check if the current user may edit this setting.
+        """
+        self._ensure(GPerm.can_manage_site_settings)
+
+
 class TaskResultPermissions(GlobalPermissionChecker):
     """The permission checker for :class:`psef.models.TaskResult`
     """

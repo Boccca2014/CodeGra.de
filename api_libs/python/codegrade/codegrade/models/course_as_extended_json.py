@@ -68,19 +68,19 @@ class CourseAsExtendedJSON(CourseAsJSON):
         base.pop("raw_data")
         assignments = []
         for assignments_item_data in d.get("assignments") or []:
-            assignments_item = AssignmentAsJSON.from_dict(assignments_item_data)
+            assignments_item = AssignmentAsJSON.from_dict(cast(Dict[str, Any], assignments_item_data))
 
             assignments.append(assignments_item)
 
         group_sets = []
         for group_sets_item_data in d.get("group_sets") or []:
-            group_sets_item = GroupSetAsJSON.from_dict(group_sets_item_data)
+            group_sets_item = GroupSetAsJSON.from_dict(cast(Dict[str, Any], group_sets_item_data))
 
             group_sets.append(group_sets_item)
 
         snippets = []
         for snippets_item_data in d.get("snippets") or []:
-            snippets_item = CourseSnippetAsJSON.from_dict(snippets_item_data)
+            snippets_item = CourseSnippetAsJSON.from_dict(cast(Dict[str, Any], snippets_item_data))
 
             snippets.append(snippets_item)
 

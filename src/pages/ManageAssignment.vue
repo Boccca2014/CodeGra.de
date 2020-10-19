@@ -270,7 +270,6 @@ export default {
 
     data() {
         return {
-            UserConfig,
             loadingInner: true,
             selectedCat: '',
             visibleCats: {},
@@ -279,6 +278,7 @@ export default {
 
     computed: {
         ...mapGetters('assignments', ['getAssignment']),
+        ...mapGetters('siteSettings', ['getSetting']),
 
         formattedAvailableAt() {
             return (this.assignment && this.assignment.getFormattedAvailableAt()) || '';
@@ -321,12 +321,12 @@ export default {
         },
 
         canEditGroups() {
-            return UserConfig.features.groups &&
+            return this.getSetting('GROUPS_ENABLED') &&
                 this.assignment.hasPermission(CPerm.canEditGroupAssignment);
         },
 
         canEditPeerFeedbackSettings() {
-            return UserConfig.features.peer_feedback &&
+            return this.getSetting('PEER_FEEDBACK_ENABLED') &&
                 this.assignment.hasPermission(CPerm.canEditPeerFeedbackSettings);
         },
 
@@ -335,7 +335,7 @@ export default {
         },
 
         canSubmitBbZip() {
-            return UserConfig.features.blackboard_zip_upload &&
+            return this.getSetting('BLACKBOARD_ZIP_UPLOAD_ENABLED') &&
                 this.assignment.hasPermission(CPerm.canUploadBbZip);
         },
 
@@ -348,7 +348,7 @@ export default {
         },
 
         canUseLinters() {
-            return UserConfig.features.linters && this.assignment.hasPermission(CPerm.canUseLinter);
+            return this.getSetting('LINTERS_ENABLED') && this.assignment.hasPermission(CPerm.canUseLinter);
         },
 
         canManagePlagiarism() {
@@ -364,12 +364,12 @@ export default {
         },
 
         canUseRubrics() {
-            return UserConfig.features.rubrics &&
+            return this.getSetting('RUBRICS_ENABLED') &&
                 this.assignment.hasPermission(CPerm.manageRubrics);
         },
 
         canUseAutoTest() {
-            return UserConfig.features.auto_test && (
+            return this.getSetting('AUTO_TEST_ENABLED') && (
                 this.assignment.hasPermission(CPerm.canRunAutotest) ||
                 this.assignment.hasPermission(CPerm.canEditAutotest) ||
                 this.assignment.hasPermission(CPerm.canDeleteAutotestRun)

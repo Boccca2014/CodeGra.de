@@ -1,18 +1,11 @@
 /* SPDX-License-Identifier: AGPL-3.0-only */
-import { VNode, CreateElement } from 'vue';
+import { CreateElement } from 'vue';
 import * as tsx from 'vue-tsx-support';
 import p from 'vue-strict-prop';
-import { Moment } from 'moment';
 import * as models from '@/models';
-import { Variant, isVariant } from '@/types';
-import * as utils from '@/utils';
 import * as components from '@/components';
 
-function renderAvailableAt(
-    h: CreateElement,
-    assignment: models.Assignment,
-    relative: boolean,
-) {
+function renderAvailableAt(h: CreateElement, assignment: models.Assignment, relative: boolean) {
     // We know that this is never `null` (because of the check in `render`) but
     // we cannot guarentee it to typescript.
     if (relative && assignment.availableAt != null) {
@@ -22,11 +15,7 @@ function renderAvailableAt(
     }
 }
 
-function renderDeadline(
-    h: CreateElement,
-    assignment: models.Assignment,
-    relative: boolean,
-) {
+function renderDeadline(h: CreateElement, assignment: models.Assignment, relative: boolean) {
     if (relative) {
         return ['Due ', <components.RelativeTime date={assignment.deadline} />];
     } else {
@@ -56,10 +45,8 @@ const AssignmentDate = tsx.component({
             content = <i class="text-muted">No deadline</i>;
         }
 
-        return <Tag class={['assignment-date', data.staticClass, data.class]}>
-            {content}
-        </Tag>;
-    }
+        return <Tag class={['assignment-date', data.staticClass, data.class]}>{content}</Tag>;
+    },
 });
 
 export default AssignmentDate;

@@ -1,5 +1,4 @@
-import UserConfig from '@/userConfig';
-import { buildUrl } from '@/utils/typed';
+import { buildUrl, getExternalUrl } from '@/utils/typed';
 
 /* eslint-disable camelcase */
 interface LogoData {
@@ -41,18 +40,18 @@ class Saml2Provider {
 
     get loginUrl(): string {
         return buildUrl(['api', 'sso', 'saml2', 'login', this.id], {
-            baseUrl: UserConfig.externalUrl,
+            baseUrl: getExternalUrl(),
         });
     }
 
     get metadataUrl(): string {
         return buildUrl(['api', 'sso', 'saml2', 'metadata', this.id], {
-            baseUrl: UserConfig.externalUrl,
+            baseUrl: getExternalUrl(),
         });
     }
 
     get logoUrl(): string {
-        if (this.logo) {
+        if (this.logo != null) {
             return this.logo.url;
         }
         return buildUrl(['api', 'v1', 'sso_providers', this.id, 'default_logo']);

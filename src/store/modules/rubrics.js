@@ -60,16 +60,16 @@ const actions = {
             });
     },
 
-    updateRubric({ commit }, { assignmentId, rows, maxPoints }) {
+    updateRubric({ commit }, { assignmentId, rubric, maxPoints }) {
         return axios
             .put(`/api/v1/assignments/${assignmentId}/rubrics/`, {
-                rows,
+                rows: rubric.rows,
                 max_points: maxPoints,
             })
             .then(async response => {
                 commit(types.SET_RUBRIC, {
                     assignmentId,
-                    rubric: response.data,
+                    rubric: rubric.updateFromServerData(response.data),
                 });
                 await AssignmentsStore.updateAssignment({
                     assignmentId,

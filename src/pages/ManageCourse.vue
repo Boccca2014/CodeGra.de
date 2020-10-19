@@ -99,6 +99,7 @@ export default {
 
     computed: {
         ...mapGetters('courses', ['getCourse']),
+        ...mapGetters('siteSettings', ['getSetting']),
         ...mapGetters('user', {
             userPerms: 'permissions',
         }),
@@ -121,7 +122,7 @@ export default {
 
         groupsEnabled() {
             return (
-                UserConfig.features.groups &&
+                this.getSetting('GROUPS_ENABLED') &&
                 this.course &&
                 this.course.permissions.can_edit_group_set
             );
@@ -137,7 +138,7 @@ export default {
 
         contactEnabled() {
             return (
-                UserConfig.features.email_students &&
+                this.getSetting('EMAIL_STUDENTS_ENABLED') &&
                     this.$utils.getProps(this.course, false, 'permissions', 'can_email_students')
             );
         },

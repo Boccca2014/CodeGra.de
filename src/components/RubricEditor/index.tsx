@@ -1,7 +1,6 @@
 import * as tsx from 'vue-tsx-support';
 import p from 'vue-strict-prop';
 
-import * as api from '@/api/v1';
 import * as models from '@/models';
 import * as utils from '@/utils';
 import * as comp from '@/components';
@@ -37,27 +36,32 @@ export default tsx.component({
     },
 
     render(h) {
-        return <comp.PreferredUI hideSwitcher={this.hideSwitcher}
-                                 prefName={models.UIPreference.RubricEditorV2}
-                                 componentName="rubric interface">
-            <template slot="ifUnset">
-                {utils.ifExpr(
-                    this.editable,
-                    () => 'An improved version of the rubric editor is available!',
-                    () => 'An improved version of the rubric overview is available!',
-                )}
-            </template>
+        return (
+            <comp.PreferredUI
+                hideSwitcher={this.hideSwitcher}
+                prefName={models.UIPreference.RubricEditorV2}
+            >
+                <template slot="ifUnset">
+                    {utils.ifExpr(
+                        this.editable,
+                        () => 'An improved version of the rubric editor is available!',
+                        () => 'An improved version of the rubric overview is available!',
+                    )}
+                </template>
 
-            <RubricEditorV2
-                slot="ifTrue"
-                assignment={this.assignment}
-                editable={this.editable} />
+                <RubricEditorV2
+                    slot="ifTrue"
+                    assignment={this.assignment}
+                    editable={this.editable}
+                />
 
-            <RubricEditorV1
-                slot="ifFalse"
-                assignment={this.assignment}
-                editable={this.editable}
-                grow={this.grow} />
-        </comp.PreferredUI>
+                <RubricEditorV1
+                    slot="ifFalse"
+                    assignment={this.assignment}
+                    editable={this.editable}
+                    grow={this.grow}
+                />
+            </comp.PreferredUI>
+        );
     },
 });

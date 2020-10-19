@@ -1439,7 +1439,8 @@ def test_upload_archive_with_many_files(
     student_user, test_client, error_template, logged_in, assignment,
     monkeypatch, app, ext
 ):
-    monkeypatch.setitem(app.config, 'MAX_NUMBER_OF_FILES', 4)
+    psef.site_settings.Opt.MAX_NUMBER_OF_FILES.set_and_commit_value(4)
+
     with logged_in(student_user):
         res = test_client.req(
             'post',

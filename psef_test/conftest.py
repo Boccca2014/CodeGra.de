@@ -95,9 +95,6 @@ def make_app_settings(request):
                 'BROKER_URL': 'redis:///', 'BACKEND_URL': 'redis:///'
             },
             'MIRROR_UPLOAD_DIR': f'/tmp/psef/mirror_uploads',
-            'MAX_FILE_SIZE': 2 ** 20,  # 1mb
-            'MAX_NORMAL_UPLOAD_SIZE': 4 * 2 ** 20,  # 4 mb
-            'MAX_LARGE_UPLOAD_SIZE': 100 * 2 ** 20,  # 100mb
             'LTI_SECRET_KEY': 'hunter123',
             'SECRET_KEY': 'hunter321',
             'HEALTH_KEY': 'uuyahdsdsdiufhaiwueyrriu2h3',
@@ -129,13 +126,11 @@ def make_app_settings(request):
                 '-rulesets',
                 '{config}',
             ],
-            'MIN_PASSWORD_SCORE': 3,
             'AUTO_TEST_PASSWORD': auto_test_password,
             'AUTO_TEST_CF_EXTRA_AMOUNT': 2,
             'AUTO_TEST_CF_SLEEP_TIME': 5.0,
             'AUTO_TEST_RUNNER_INSTANCE_PASS': auto_test_password,
             'AUTO_TEST_DISABLE_ORIGIN_CHECK': True,
-            'AUTO_TEST_MAX_TIME_COMMAND': 3,
             'ADMIN_USER': None,
             'CELERY_CONFIG': {
                 'CELERY_TASK_ALWAYS_EAGER': True,
@@ -148,10 +143,8 @@ def make_app_settings(request):
             pdb, _ = get_database_name(request)
 
             settings_override['SQLALCHEMY_DATABASE_URI'] = pdb
-            settings_override['_USING_SQLITE'] = False
         else:
             settings_override['SQLALCHEMY_DATABASE_URI'] = TEST_DATABASE_URI
-            settings_override['_USING_SQLITE'] = True
 
         return settings_override
 
@@ -166,24 +159,6 @@ def app(request, make_app_settings):
     app = psef.create_app(
         settings_override, skip_celery=True, skip_perm_check=True
     )
-    app.config['__S_FEATURES']['GROUPS'] = True
-    app.config['FEATURES'][psef.features.Feature.GROUPS] = True
-
-    app.config['__S_FEATURES']['AUTO_TEST'] = True
-    app.config['FEATURES'][psef.features.Feature.AUTO_TEST] = True
-
-    app.config['__S_FEATURES']['INCREMENTAL_RUBRIC_SUBMISSION'] = True
-    app.config['FEATURES'][psef.features.Feature.INCREMENTAL_RUBRIC_SUBMISSION
-                           ] = True
-
-    app.config['__S_FEATURES']['COURSE_REGISTER'] = True
-    app.config['FEATURES'][psef.features.Feature.COURSE_REGISTER] = True
-
-    app.config['__S_FEATURES']['RENDER_HTML'] = True
-    app.config['FEATURES'][psef.features.Feature.RENDER_HTML] = True
-
-    app.config['__S_FEATURES']['PEER_FEEDBACK'] = True
-    app.config['FEATURES'][psef.features.Feature.PEER_FEEDBACK] = True
 
     psef.tasks.celery.conf.update({
         'task_always_eager': False,
@@ -540,6 +515,24 @@ def get_fresh_database(keep=False):
 
 
 @pytest.fixture
+def alembic_tests_db():
+    with get_fresh_database() as db:
+        yield db
+
+
+@pytest.fixture
+def alembic_engine(alembic_tests_db, make_app_settings):
+    app = psef.create_app(
+        make_app_settings(database=alembic_tests_db.name),
+        skip_all=True,
+    )
+    from flask_migrate import Migrate
+    Migrate(app, psef.models.db, compare_type=True)
+    with app.app_context():
+        yield alembic_tests_db.engine
+
+
+@pytest.fixture
 def db(_db, fresh_db, monkeypatch, app):
     if fresh_db:
         with get_fresh_database(keep=True) as fresh:
@@ -621,6 +614,34 @@ def session(app, db, fresh_db, monkeypatch):
 def monkeypatch_celery(app, monkeypatch):
     monkeypatch.setattr(psef.tasks.celery.conf, 'task_always_eager', True)
     monkeypatch.setattr(psef.tasks.celery.conf, 'task_eager_propagates', True)
+    yield
+
+
+@pytest.fixture(autouse=True)
+def setup_config_values(session):
+    for feature in [
+        'BLACKBOARD_ZIP_UPLOAD_ENABLED',
+        'RUBRICS_ENABLED',
+        'AUTOMATIC_LTI_ROLE_ENABLED',
+        'LTI_ENABLED',
+        'LINTERS_ENABLED',
+        'INCREMENTAL_RUBRIC_SUBMISSION_ENABLED',
+        'REGISTER_ENABLED',
+        'GROUPS_ENABLED',
+        'AUTO_TEST_ENABLED',
+        'COURSE_REGISTER_ENABLED',
+        'RENDER_HTML_ENABLED',
+        'EMAIL_STUDENTS_ENABLED',
+        'PEER_FEEDBACK_ENABLED',
+    ]:
+        opt = getattr(psef.site_settings.Opt, feature)
+        session.add(psef.models.SiteSetting.set_option(opt, True))
+
+    session.commit()
+    psef.site_settings.Opt.MAX_FILE_SIZE.set_and_commit_value('1mb')
+    psef.site_settings.Opt.MAX_NORMAL_UPLOAD_SIZE.set_and_commit_value('4mb')
+    psef.site_settings.Opt.MAX_NORMAL_UPLOAD_SIZE.set_and_commit_value('4mb')
+
     yield
 
 

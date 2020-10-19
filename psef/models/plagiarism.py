@@ -351,14 +351,22 @@ _PlagiarismRunOldAssignment = db.Table(
     db.Column(
         'old_assignment_id',
         db.Integer,
-        db.ForeignKey('Assignment.id'),
+        db.ForeignKey(
+            'Assignment.id',
+            name='plagiarism_run_old_assignment_old_assignment_id_fkey',
+            ondelete='CASCADE',
+        ),
         nullable=False,
         primary_key=True,
     ),
     db.Column(
         'plagiarism_run_id',
         db.Integer,
-        db.ForeignKey('PlagiarismRun.id'),
+        db.ForeignKey(
+            'PlagiarismRun.id',
+            name='plagiarism_run_old_assignment_plagiarism_run_id_fkey',
+            ondelete='CASCADE',
+        ),
         nullable=False,
         primary_key=True,
     )

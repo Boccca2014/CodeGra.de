@@ -274,7 +274,7 @@ export class Assignment extends AssignmentData {
 
     getFormattedAvailableAt(): string | null {
         const availableAt = this.availableAt;
-        if (availableAt && availableAt.isValid()) {
+        if (availableAt != null && availableAt.isValid()) {
             return utils.readableFormatDate(availableAt);
         }
         return null;
@@ -298,7 +298,7 @@ export class Assignment extends AssignmentData {
 
     isNotStartedExam(now: moment.Moment): boolean {
         const availableAt = this.availableAt;
-        if (availableAt) {
+        if (availableAt != null) {
             return this.isExam && availableAt.isAfter(now);
         }
         return false;

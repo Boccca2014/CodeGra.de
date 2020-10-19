@@ -748,7 +748,7 @@ export default {
 
             return this.storeUpdateRubric({
                 assignmentId: this.assignmentId,
-                rows: this.rubricRows,
+                rubric: this.rubric,
                 maxPoints: this.internalFixedMaxPoints,
             });
         },

@@ -15,8 +15,8 @@ from datetime import timedelta
 from typing_extensions import Literal, Protocol
 
 import cg_enum
-import cg_dt_utils
 import cg_register
+from cg_dt_utils import DatetimeWithTimezone
 
 T = t.TypeVar('T')
 ZZ = t.TypeVar('ZZ')
@@ -220,12 +220,13 @@ class MyDb:  # pragma: no cover
         self,
         _name: t.Union[str, 'DbColumn[T]', 'ColumnProxy[T]'],
         *,
+        name: t.Optional[str] = None,
         ondelete: t.Union[None, Literal['SET NULL', 'CASCADE']] = None,
     ) -> _ForeignKey:
         ...
 
-    def TIMESTAMP(self, *, timezone: Literal[True]
-                  ) -> DbType[cg_dt_utils.DatetimeWithTimezone]:
+    def TIMESTAMP(self, *,
+                  timezone: Literal[True]) -> DbType[DatetimeWithTimezone]:
         ...
 
     def Table(self, name: str, *args: T) -> RawTable:
@@ -444,8 +445,7 @@ class MyDb:  # pragma: no cover
         cascade: str = '',
         back_populates: str = None,
         backref: _Backref = None,
-        order_by: t.Union[t.Callable[[], 'DbColumn'], t.
-                          Callable[[], 'ColumnOrder']] = None,
+        order_by: 'RelationshipOrderByClause' = None,
         lazy: Literal['select', 'joined', 'selectin'] = 'select',
         primaryjoin: t.Callable[[], 'DbColumn[bool]'] = None,
     ) -> '_MutableColumnProxy[t.List[T], t.List[T], DbColumn[T]]':
@@ -461,8 +461,7 @@ class MyDb:  # pragma: no cover
         cascade: str = '',
         back_populates: str = None,
         backref: _Backref = None,
-        order_by: t.Union[t.Callable[[], 'DbColumn'], t.
-                          Callable[[], 'ColumnOrder']] = None,
+        order_by: 'RelationshipOrderByClause' = None,
         lazy: Literal['dynamic'],
         primaryjoin: t.Callable[[], 'DbColumn[bool]'] = None,
     ) -> '_ImmutableColumnProxy[MyQuery[T], DbColumn[T]]':
@@ -489,8 +488,7 @@ class MyDb:  # pragma: no cover
         secondary: 'RawTable',
         cascade: str = '',
         lazy: Literal['select', 'join', 'selectin'] = 'select',
-        order_by: t.Union[t.Callable[[], 'DbColumn'], t.
-                          Callable[[], 'ColumnOrder']] = None,
+        order_by: 'RelationshipOrderByClause' = None,
     ) -> '_MutableColumnProxy[t.List[_T_BASE], t.List[_T_BASE], DbColumn[_T_BASE]]':
         ...
 
@@ -585,6 +583,12 @@ class DbColumn(t.Generic[T]):  # pragma: no cover
     ) -> 'DbColumn[float]':
         ...
 
+    def __sub__(
+        self: 'DbColumn[DatetimeWithTimezone]',
+        other: 't.Union[DbColumn[DatetimeWithTimezone], DatetimeWithTimezone]',
+    ) -> 'DbColumn[timedelta]':
+        ...
+
     def __eq__(  # type: ignore
         self, other: Union[t.Optional[T], 'DbColumn[T]', 'DbColumn[t.Optional[T]]',
                            'MyNonOrderableQuery[T]']
@@ -598,17 +602,20 @@ class DbColumn(t.Generic[T]):  # pragma: no cover
         ...
 
     def __ge__(
-        self, other: t.Union[T, 'DbColumn[T]', 'DbColumn[t.Optional[T]]']
+        self, other: t.Union[T, 'DbColumn[T]', 'DbColumn[t.Optional[T]]',
+                             'MyNonOrderableQuery[T]']
     ) -> 'DbColumn[bool]':
         ...
 
     def __gt__(
-        self, other: t.Union[T, 'DbColumn[T]', 'DbColumn[t.Optional[T]]']
+        self, other: t.Union[T, 'DbColumn[T]', 'DbColumn[t.Optional[T]]',
+                             'MyNonOrderableQuery[T]']
     ) -> 'DbColumn[bool]':
         ...
 
     def __lt__(
-        self, other: t.Union[T, 'DbColumn[T]', 'DbColumn[t.Optional[T]]']
+        self, other: t.Union[T, 'DbColumn[T]', 'DbColumn[t.Optional[T]]',
+                             'MyNonOrderableQuery[T]']
     ) -> 'DbColumn[bool]':
         ...
 
@@ -787,10 +794,15 @@ class MyNonOrderableQuery(t.Generic[T]):  # pragma: no cover
         ...
 
 
+OrderByClause = t.Union[DbColumn, ColumnOrder]
+RelationshipOrderByClause = t.Union[
+    t.Callable[[], t.Union[OrderByClause, t.List[OrderByClause]]],
+    t.Union[OrderByClause, t.List[OrderByClause]],
+]
+
+
 class MyQuery(t.Generic[T], MyNonOrderableQuery[T]):
-    def order_by(
-        self: QuerySelf, *args: t.Union[DbColumn, ColumnOrder]
-    ) -> 'QuerySelf':
+    def order_by(self: QuerySelf, *args: OrderByClause) -> 'QuerySelf':
         ...
 
     def from_self(self, *args: t.Type[Z]) -> 'MyQuery[Z]':
@@ -876,8 +888,7 @@ if t.TYPE_CHECKING and MYPY:
 
     CIText = DbType[str]()
 
-    def TIMESTAMP(*, timezone: Literal[True]
-                  ) -> DbType[cg_dt_utils.DatetimeWithTimezone]:
+    def TIMESTAMP(*, timezone: Literal[True]) -> DbType[DatetimeWithTimezone]:
         ...
 
     class ARRAY(t.Generic[T], DbType[t.Tuple[T, ...]]):

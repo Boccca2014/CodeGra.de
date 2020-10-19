@@ -10,7 +10,7 @@ from .types import File
 
 
 @dataclass
-class LoginUserData_1:
+class LoginUserData1:
     """The data required when you want to login"""
 
     username: "str"
@@ -29,17 +29,17 @@ class LoginUserData_1:
         return res
 
     @staticmethod
-    def from_dict(d: Dict[str, Any]) -> LoginUserData_1:
+    def from_dict(d: Dict[str, Any]) -> LoginUserData1:
         base = {}
         username = d["username"]
 
         password = d["password"]
 
-        return LoginUserData_1(**base, username=username, password=password, raw_data=d,)
+        return LoginUserData1(**base, username=username, password=password, raw_data=d,)
 
 
 @dataclass
-class LoginUserData_2:
+class LoginUserData2:
     """The data required when you want to impersonate a user"""
 
     username: "str"
@@ -58,15 +58,15 @@ class LoginUserData_2:
         return res
 
     @staticmethod
-    def from_dict(d: Dict[str, Any]) -> LoginUserData_2:
+    def from_dict(d: Dict[str, Any]) -> LoginUserData2:
         base = {}
         username = d["username"]
 
         own_password = d["own_password"]
 
-        return LoginUserData_2(**base, username=username, own_password=own_password, raw_data=d,)
+        return LoginUserData2(**base, username=username, own_password=own_password, raw_data=d,)
 
 
 LoginUserData = Union[
-    LoginUserData_1, LoginUserData_2,
+    LoginUserData1, LoginUserData2,
 ]

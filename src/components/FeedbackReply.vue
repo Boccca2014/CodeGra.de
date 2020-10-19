@@ -214,6 +214,7 @@
                         ref="deleteButton"
                         variant="secondary"
                         name="delete-feedback"
+                        container="window"
                         :submit="deleteFeedback"
                         confirm="Are you sure you want to delete this comment?"
                         invert-colors
@@ -453,9 +454,9 @@ Do you want to overwrite it?`;
             const course = snip.course ? 'course' : '';
 
             return terms.every(
-                term => key.indexOf(term) >= 0 ||
-                    value.indexOf(term) >= 0 ||
-                    course.indexOf(term) >= 0,
+                term => key.includes(term) ||
+                    value.includes(term) ||
+                    course.includes(term),
             );
         });
     }

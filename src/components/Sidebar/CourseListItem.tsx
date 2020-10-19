@@ -1,6 +1,5 @@
 /* SPDX-License-Identifier: AGPL-3.0-only */
 import { VNode, CreateElement, RenderContext } from 'vue';
-import { mapGetters } from 'vuex';
 import * as models from '@/models';
 import * as tsx from 'vue-tsx-support';
 import p from 'vue-strict-prop';
@@ -13,21 +12,23 @@ import Icon from 'vue-awesome/components/Icon';
 import 'vue-awesome/icons/gear';
 
 function maybeEmit(ctx: RenderContext<{ course: models.Course }>) {
-    if (ctx.listeners['open-menu']) {
+    if (ctx.listeners['open-menu'] != null) {
         const { course } = ctx.props;
         let listeners = ctx.listeners['open-menu'];
         if (!Array.isArray(listeners)) {
             listeners = [listeners];
         }
 
-        listeners.forEach(listener => listener({
-            header: course.name,
-            component: 'assignment-list',
-            data: { course },
-            reload: true,
-        }));
+        listeners.forEach(listener =>
+            listener({
+                header: course.name,
+                component: 'assignment-list',
+                data: { course },
+                reload: true,
+            }),
+        );
     }
-};
+}
 
 export default tsx.component({
     name: 'course-list-item',
@@ -39,7 +40,7 @@ export default tsx.component({
         routeName: p(String).required,
     },
 
-    render(h, ctx): VNode {
+    render(h: CreateElement, ctx): VNode {
         const { course, routeName, currentId } = ctx.props;
         const selected = course.id === currentId;
         const manageSelected = selected && routeName === 'manage_course';
@@ -55,7 +56,7 @@ export default tsx.component({
             'light-selected': selected,
             'sidebar-list-item': true,
             'course-list-item': true,
-        }
+        };
 
         const aStyle = {
             textDecoration: 'none',
@@ -64,7 +65,7 @@ export default tsx.component({
         };
 
         let badgeVariant: Variant;
-        if (store.getters['pref/darkMode']) {
+        if (store.getters['pref/darkMode'] as boolean) {
             badgeVariant = selected ? 'dark' : 'light';
         } else {
             badgeVariant = selected ? 'light' : 'primary';
@@ -73,21 +74,27 @@ export default tsx.component({
         let manageLink;
         if (course.canManage) {
             manageLink = (
-                <router-link style={aStyle}
-                             class={['sidebar-item manage-link', { selected: manageSelected }]}
-                             to={manageRoute}>
+                <router-link
+                    style={aStyle}
+                    class={['sidebar-item manage-link', { selected: manageSelected }]}
+                    to={manageRoute}
+                >
                     <Icon name="gear" />
                 </router-link>
             );
         }
 
-        return <li class={classes}>
-            <a class="sidebar-item course-name flex-grow-1 text-truncate"
-               style={aStyle}
-               onClick={() => maybeEmit(ctx)}>
-                <CourseName course={course} badge-variant={badgeVariant} />
-            </a>
-            {manageLink}
-        </li>;
+        return (
+            <li class={classes}>
+                <a
+                    class="sidebar-item course-name flex-grow-1 text-truncate"
+                    style={aStyle}
+                    onClick={() => maybeEmit(ctx)}
+                >
+                    <CourseName course={course} badge-variant={badgeVariant} />
+                </a>
+                {manageLink}
+            </li>
+        );
     },
 });

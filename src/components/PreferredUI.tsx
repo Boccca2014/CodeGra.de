@@ -5,8 +5,6 @@ import { modifiers as m } from 'vue-tsx-support';
 
 // @ts-ignore
 import * as comp from '@/components';
-import * as api from '@/api/v1';
-import * as types from '@/types';
 import * as utils from '@/utils';
 import * as models from '@/models';
 import { store, UIPrefsStore } from '@/store';
@@ -16,7 +14,6 @@ export default tsx.component({
 
     props: {
         prefName: p.ofType<models.UIPreference>().required,
-        componentName: p(String).required,
         defaultValue: p(Boolean).default(false),
         hideSwitcher: p(Boolean).default(false),
     },
@@ -32,11 +29,7 @@ export default tsx.component({
             return store.getters['user/id'];
         },
 
-        allPrefs(): utils.Maybe<models.UIPreferenceMap> {
-            return UIPrefsStore.uiPrefs();
-        },
-
-        prefValue(): utils.Maybe<boolean> {
+        prefValue(): utils.Maybe<utils.Maybe<boolean>> {
             return UIPrefsStore.getUIPref()(this.prefName);
         },
     },
@@ -45,61 +38,69 @@ export default tsx.component({
         userId: {
             immediate: true,
             handler() {
-                store.dispatch('ui_prefs/loadUIPreferences').then(
-                    () => { this.error = utils.Nothing; },
-                    err => { this.error = err; },
+                UIPrefsStore.loadUIPreference({ preference: this.prefName }).then(
+                    () => {
+                        this.error = utils.Nothing;
+                    },
+                    err => {
+                        this.error = err;
+                    },
                 );
             },
         },
     },
 
     render(h: CreateElement) {
-        return <div class="preferred-ui">
-            {this.renderError(h)}
-            {this.renderMessage(h)}
-            {this.allPrefs.caseOf({
-                Just: () => this.renderContent(h),
-                Nothing: () => [<comp.Loader page-loader />],
-            })}
-            {this.renderSwitcher(h)}
-        </div>;
+        return (
+            <div class="preferred-ui">
+                {this.renderError(h)}
+                {this.renderMessage(h)}
+                {this.prefValue.caseOf({
+                    Just: prefValue => this.renderContent(h, prefValue),
+                    Nothing: () => <comp.Loader page-loader />,
+                })}
+                {this.renderSwitcher(h)}
+            </div>
+        );
     },
 
     methods: {
         renderError(h: CreateElement): VNode {
-            return utils.ifJustOrEmpty(
-                this.error,
-                e => <comp.CgError error={e} />,
-            );
+            return utils.ifJustOrEmpty(this.error, e => <comp.CgError error={e} />);
         },
 
         renderMessage(h: CreateElement): VNode {
-            const shouldRender = (
-                !this.hideSwitcher &&
-                this.allPrefs.isJust() &&
-                this.prefValue.isNothing()
-            );
+            const shouldRender =
+                !this.hideSwitcher && this.prefValue.map(v => v.isNothing()).orDefault(false);
 
-            return utils.ifOrEmpty(
-                shouldRender,
-                () => <b-alert show
-                               dismissible
-                               variant={store.getters['pref/darkMode'] ? 'dark' : 'light'}
-                               class="mb-3"
-                               onDismissed={() => this.updatePreference(false)}>
-                    {this.$slots.ifUnset}
-                    {' '}
-                    <a href="#"
-                       class="inline-link"
-                       onClick={m.prevent(() => this.updatePreference(true))}>
-                        Click here to try the new version.
-                    </a>
-                </b-alert>,
-            );
+            return utils.ifOrEmpty(shouldRender, () => {
+                const darkMode: boolean = store.getters['pref/darkMode'];
+                return (
+                    <b-alert
+                        show
+                        dismissible
+                        variant={darkMode ? 'dark' : 'light'}
+                        class="mb-3"
+                        onDismissed={() => this.updatePreference(false)}
+                    >
+                        {this.$slots.ifUnset}{' '}
+                        <a
+                            href="#"
+                            class="inline-link"
+                            onClick={m.prevent(() => this.updatePreference(true))}
+                        >
+                            Click here to try the new version.
+                        </a>
+                    </b-alert>
+                );
+            });
         },
 
-        renderContent(h: CreateElement): VNode[] | undefined {
-            const value = this.prefValue.orDefault(this.defaultValue);
+        renderContent(
+            h: CreateElement,
+            prefValue: utils.Maybe<boolean>,
+        ): VNode | VNode[] | undefined {
+            const value = prefValue.orDefault(this.defaultValue);
             return value ? this.$slots.ifTrue : this.$slots.ifFalse;
         },
 
@@ -108,34 +109,33 @@ export default tsx.component({
                 return utils.emptyVNode();
             }
 
-            const compName = this.componentName;
-
-            return utils.ifJustOrEmpty(
-                this.prefValue,
-                value => <div class="mt-3 text-right">
-                    <a href="#"
-                       onClick={m.prevent(this.togglePreference)}
-                       class="ui-switcher inline-link">
-                        {value
-                        ? 'Switch back to the old interface'
-                        : 'Switch to the new interface'
-                        }
+            return utils.ifJustOrEmpty(this.prefValue.join(), value => (
+                <div class="mt-3 text-right">
+                    <a
+                        href="#"
+                        onClick={m.prevent(this.togglePreference)}
+                        class="ui-switcher inline-link"
+                    >
+                        {value ? 'Switch back to the old interface' : 'Switch to the new interface'}
                     </a>
-                </div>,
-            );
+                </div>
+            ));
         },
 
         updatePreference(value: boolean) {
-            return UIPrefsStore.patchUIPreference({
+            UIPrefsStore.patchUIPreference({
                 name: this.prefName,
                 value,
             });
         },
 
-        togglePreference() {
-            return this.prefValue.caseOf({
+        togglePreference(): void {
+            this.prefValue.join().caseOf({
                 Just: value => this.updatePreference(!value),
-                Nothing: () => Promise.reject(new Error('No value set.')),
+                Nothing: () =>
+                    utils.withSentry(Sentry => {
+                        Sentry.captureMessage('Tried to toggle preference without value');
+                    }),
             });
         },
     },

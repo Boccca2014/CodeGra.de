@@ -199,7 +199,7 @@ probably be "${url.origin}".`;
             extraPath => this.$utils.buildUrl(
                 ['api', 'v1', 'lti1.3', extraPath],
                 {
-                    baseUrl: this.$userConfig.externalUrl,
+                    baseUrl: this.$utils.getExternalUrl(),
                 },
             ),
         ).join('\n');
@@ -209,7 +209,7 @@ probably be "${url.origin}".`;
         return this.$utils.buildUrl(
             ['api', 'v1', 'lti1.3', 'providers', this.ltiProvider.id, 'config'],
             {
-                baseUrl: this.$userConfig.externalUrl,
+                baseUrl: this.$utils.getExternalUrl(),
             },
         );
     }

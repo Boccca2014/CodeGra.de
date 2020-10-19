@@ -30,7 +30,9 @@ from cg_helpers import assert_never
 from cg_dt_utils import DatetimeWithTimezone
 
 from . import api
-from .. import auth, errors, models, helpers, features, registry, exceptions
+from .. import (
+    auth, errors, models, helpers, registry, exceptions, site_settings
+)
 from ..lti import LTIVersion
 from ..lti import v1_1 as lti_v1_1
 from ..lti import v1_3 as lti_v1_3
@@ -110,7 +112,7 @@ def _make_blob_and_redirect(
 
 
 @api.route('/lti/launch/1', methods=['POST'])
-@features.feature_required(features.Feature.LTI)
+@site_settings.Opt.LTI_ENABLED.required
 def launch_lti() -> t.Any:
     """Do a LTI launch.
     """
@@ -280,7 +282,7 @@ def _get_second_phase_lti_launch_data(blob_id: str) -> _LTILaunchResult:
 
 
 @api.route('/lti/launch/2', methods=['POST'])
-@features.feature_required(features.Feature.LTI)
+@site_settings.Opt.LTI_ENABLED.required
 def second_phase_lti_launch(
 ) -> helpers.JSONResponse[t.Union[_LTILaunchResult, t.Dict[str, t.Any]]]:
     """Do the second part of an LTI launch.

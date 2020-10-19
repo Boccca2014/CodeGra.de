@@ -145,7 +145,7 @@ abstract class DocumentBackend {
 
     constructor(public doc: DocumentRoot) {}
 
-    abstract renderToBuffer(): Promise<Buffer>;
+    abstract renderToBuffer(): Promise<ArrayBuffer>;
 }
 
 class LatexDocument extends DocumentBackend {
@@ -175,7 +175,7 @@ class LatexDocument extends DocumentBackend {
     });
 
     private static escape(input: string): string {
-        if (input && LatexDocument.reHasUnescapedLatex.test(input)) {
+        if (input !== '' && LatexDocument.reHasUnescapedLatex.test(input)) {
             const map = LatexDocument.latexEscapes;
             return input.replace(LatexDocument.reUnescapedLatex, ent => map[ent]);
         }
@@ -211,7 +211,7 @@ class LatexDocument extends DocumentBackend {
         }
     }
 
-    renderToBuffer(): Promise<Buffer> {
+    renderToBuffer(): Promise<Uint8Array> {
         const [lines, highlights] = unzip2(this.doc.children.map(child => this.renderLines(child)));
 
         const base = `\\documentclass{article}
@@ -283,7 +283,7 @@ ${this.defineColors(flat1(highlights)).join('\n')}
 ${flat1(lines).join('\n')}
 \\end{document}`;
 
-        return Promise.resolve(Buffer.from(base, 'utf8'));
+        return Promise.resolve(new TextEncoder().encode(base));
     }
 
     // eslint-disable-next-line class-methods-use-this
@@ -363,7 +363,7 @@ ${flat1(lines).join('\n')}
         // TODO: don't render caption when none given.
         let caption: string = '';
         let highlights: Highlight[] = [];
-        if (code.caption) {
+        if (code.caption != null) {
             [[caption], highlights] = this.renderContentBlock(code.caption);
         }
 
@@ -457,7 +457,7 @@ class DocxDocument extends DocumentBackend {
         super(doc);
     }
 
-    renderToBuffer(): Promise<Buffer> {
+    async renderToBuffer(): Promise<ArrayBuffer> {
         const doc = new this.docxType.Document({
             numbering: {
                 config: [...this.codeBlockNumberings()],
@@ -466,7 +466,8 @@ class DocxDocument extends DocumentBackend {
 
         this.doc.children.forEach(child => this.renderDocument(child, doc));
 
-        return this.docxType.Packer.toBuffer(doc);
+        const blob = await this.docxType.Packer.toBlob(doc);
+        return blob.arrayBuffer();
     }
 
     renderDocument(child: DocumentNode, document: docx.Document) {
@@ -703,8 +704,9 @@ export const backends = {
 export async function render(
     backendName: keyof typeof backends,
     document: DocumentRoot,
-): Promise<Buffer> {
+): Promise<ArrayBuffer> {
     if (!hasAttr(backends, backendName)) {
+        // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
         throw new Error(`Invalid backend: ${backendName} `);
     }
     const backend = await backends[backendName].make(document);

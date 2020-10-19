@@ -53,7 +53,7 @@ from . import analytics as analytics_models
 from . import auto_test as auto_test_models
 from . import validator
 from . import task_result as task_result_models
-from .. import auth, ignore, helpers, signals, db_locks
+from .. import auth, ignore, helpers, signals, db_locks, site_settings
 from .role import CourseRole
 from .permission import Permission, PermissionComp
 from ..exceptions import (
@@ -1425,7 +1425,7 @@ class Assignment(helpers.NotEqualMixin, Base):  # pylint: disable=too-many-publi
                 APICodes.INVALID_STATE, 409
             )
 
-        max_time = psef.current_app.config['EXAM_LOGIN_MAX_LENGTH']
+        max_time = site_settings.Opt.EXAM_LOGIN_MAX_LENGTH.value
         if (self.deadline - self.available_at) > max_time:
             raise APIException(
                 (
@@ -1769,7 +1769,8 @@ class Assignment(helpers.NotEqualMixin, Base):  # pylint: disable=too-many-publi
         assig_id = self.id
 
         tasks = []
-        for offset in psef.current_app.config['LOGIN_TOKEN_BEFORE_TIME']:
+        offsets = site_settings.Opt.LOGIN_TOKEN_BEFORE_TIME.value
+        for offset in sorted(offsets, reverse=True):
             task = task_result_models.TaskResult(user=None)
             db.session.add(task)
             tasks.append((offset, task))
