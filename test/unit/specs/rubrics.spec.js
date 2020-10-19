@@ -4,7 +4,13 @@ import { store } from '@/store';
 import * as mutationTypes from '@/store/mutation-types';
 import { actions, mutations } from '@/store/modules/rubrics';
 import { NONEXISTENT, UNSET_SENTINEL } from '@/constants';
-import { Rubric, ContinuousRubricRow, NormalRubricRow, RubricRow, RubricResult } from '@/models/rubric';
+import {
+    Rubric,
+    ContinuousRubricRow,
+    NormalRubricRow,
+    RubricRow,
+    RubricResult,
+} from '@/models/rubric';
 import { AutoTestResult } from '@/models/auto_test';
 import { CoursesStore, AssignmentsStore } from '@/store';
 
@@ -42,19 +48,25 @@ describe('The rubric store', () => {
             {
                 id: 0,
                 type: 'normal',
+                header: 'row 0',
+                description: 'row 0',
+                description_type: 'markdown',
                 items: [
-                    { id: 0, points: 0 },
-                    { id: 1, points: 1 },
-                    { id: 2, points: 2 },
+                    { id: 0, points: 0, header: 'item 0', description: '' },
+                    { id: 1, points: 1, header: 'item 1', description: '' },
+                    { id: 2, points: 2, header: 'item 2', description: '' },
                 ],
             },
             {
                 id: 1,
                 type: 'normal',
+                header: 'row 1',
+                description: 'row 1',
+                description_type: 'markdown',
                 items: [
-                    { id: 3, points: 4 },
-                    { id: 4, points: 8 },
-                    { id: 5, points: 16 },
+                    { id: 5, points: 16, header: 'item 2', description: '' },
+                    { id: 3, points: 4,  header: 'item 0', description: '' },
+                    { id: 4, points: 8,  header: 'item 1', description: '' },
                 ],
             },
         ];
@@ -141,13 +153,14 @@ describe('The rubric store', () => {
 
         describe('updateRubric', () => {
             it('should send a request to the server and update the store', async () => {
+                const mockRubricModel = Rubric.fromServerData(mockRubric);
                 const mockPut = jest.fn(() => Promise.resolve({ data: mockRubric }));
                 axios.put = mockPut;
 
                 const maxPoints = 3;
                 await store.dispatch('rubrics/updateRubric', {
                     assignmentId,
-                    rows: mockRubric,
+                    rubric: mockRubricModel,
                     maxPoints,
                 });
 
@@ -155,13 +168,13 @@ describe('The rubric store', () => {
                 expect(mockPut).toHaveBeenCalledWith(
                     `/api/v1/assignments/${assignmentId}/rubrics/`,
                     {
-                        rows: mockRubric,
+                        rows: mockRubricModel.rows,
                         max_points: maxPoints,
                     },
                 );
 
                 state.rubrics[assignmentId].rows.forEach((row, i) => {
-                    expect(row).toEqual(expect.objectContaining(mockRubric[i]));
+                    expect(row).toEqual(expect.objectContaining(mockRubricModel.rows[i]));
                 });
                 expect(AssignmentsStore.getAssignment()(assignmentId)).toBeJust();
                 expect(AssignmentsStore.getAssignment()(assignmentId).extract().fixed_max_rubric_points).toBe(maxPoints);
@@ -317,14 +330,13 @@ describe('The rubric store', () => {
             });
 
             it('should sort items in a row by points, ascendingly', () => {
-                const rows = [...mockRubric];
-                rows[0].items = [...rows[0].items].reverse();
+                const reversed = [...mockRubric];
+                reversed[0].items = [...reversed[0].items].reverse();
 
                 const rubric = Rubric.fromServerData(mockRubric);
+                const rubricReversed = Rubric.fromServerData(reversed);
 
-                expect(rubric.rows[0]).toEqual(
-                    expect.objectContaining({ ...mockRubric[0] }),
-                );
+                expect(rubric.equals(rubricReversed)).toBeTrue();
             });
 
             it('should instantiate a NormalRubricRow model for each row', () => {

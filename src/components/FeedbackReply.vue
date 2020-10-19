@@ -454,9 +454,9 @@ Do you want to overwrite it?`;
             const course = snip.course ? 'course' : '';
 
             return terms.every(
-                term => key.indexOf(term) >= 0 ||
-                    value.indexOf(term) >= 0 ||
-                    course.indexOf(term) >= 0,
+                term => key.includes(term) ||
+                    value.includes(term) ||
+                    course.includes(term),
             );
         });
     }

@@ -32,7 +32,7 @@ export function epoch(): moment.Moment {
 export function coerceToString(obj: Object | null | undefined): string {
     if (obj == null) return '';
     else if (typeof obj === 'string') return obj;
-    return `${obj}`;
+    return obj.toString();
 }
 
 const reUnescapedHtml = /[&<>"'`]/g;
@@ -48,7 +48,7 @@ const htmlEscapes: Record<string, string> = {
 };
 export function htmlEscape(inputString: string) {
     const str = coerceToString(inputString);
-    if (str && reHasUnescapedHtml.test(str)) {
+    if (str !== '' && reHasUnescapedHtml.test(str)) {
         return str.replace(reUnescapedHtml, ent => htmlEscapes[ent]);
     }
     return str;
@@ -115,21 +115,24 @@ export function flatMap1<T, TT>(
     return arr.reduce((acc: TT[], elem: T, index: number) => acc.concat(mapper(elem, index)), []);
 }
 
-export function zip<T, Y>(a: T[], b: Y[]): [T, Y][];
-export function zip(...lists: any[][]): any {
+export function zip<T, Y>(a: readonly T[], b: readonly Y[]): [T, Y][];
+export function zip(...lists: ReadonlyArray<any>[]): any {
     if (lists.length === 0) {
         return [];
     }
 
     const acc = [];
     const end = Math.min(...lists.map(l => l.length));
-    let i = 0;
-    const getter = (l: any[]) => l[i];
+    const getter = (i: number) => (l: readonly any[]) => l[i];
 
-    for (; i < end; i++) {
-        acc.push(lists.map(getter));
+    for (let i = 0; i < end; i++) {
+        acc.push(lists.map(getter(i)));
     }
     return acc;
+}
+
+export function zipWith<T, Y, Z>(f: (a: T, b: Y) => Z, a: readonly T[], b: readonly Y[]): Z[] {
+    return zip(a, b).map(([x, y]) => f(x, y));
 }
 
 export function unzip2<T, Y>(arr: readonly (readonly [T, Y])[]): [T[], Y[]] {
@@ -170,6 +173,7 @@ export class AssertionError extends Error {
     }
 
     static assertNever(value: never, msg?: string): never {
+        // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
         throw new AssertionError(msg ?? `The value ${value} was never expected to exist`);
     }
 
@@ -198,7 +202,7 @@ export function buildUrl(
         initialSlash = '/';
         mainPart = parts.map(part => encodeURIComponent(coerceToString(part))).join('/');
     }
-    if (args.addTrailingSlash) {
+    if (args.addTrailingSlash ?? false) {
         mainPart = `${mainPart}/`;
     }
 
@@ -218,7 +222,7 @@ export function buildUrl(
     }
 
     let query = '';
-    if (args.query) {
+    if (args.query != null) {
         const queryEntries = Object.entries(args.query);
         if (queryEntries.length > 0) {
             const params = queryEntries
@@ -232,7 +236,7 @@ export function buildUrl(
     }
 
     let hash = '';
-    if (args.hash) {
+    if (args.hash != null && args.hash !== '') {
         hash = `#${encodeURIComponent(args.hash)}`;
     }
 
@@ -344,21 +348,16 @@ export function ensureArray<T>(obj: T | ReadonlyArray<T>): T[] {
 // https://stackoverflow.com/questions/13405129/javascript-create-and-save-file
 export function downloadFile(data: string, filename: string, contentType: string) {
     const file = new Blob([data], { type: contentType });
-    if (window.navigator.msSaveOrOpenBlob) {
-        // IE10+
-        window.navigator.msSaveOrOpenBlob(file, filename);
-    } else {
-        const url = URL.createObjectURL(file);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = filename;
-        document.body.appendChild(a);
-        a.click();
-        setTimeout(() => {
-            document.body.removeChild(a);
-            URL.revokeObjectURL(url);
-        }, 0);
-    }
+    const url = URL.createObjectURL(file);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(() => {
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+    }, 0);
 }
 
 export function highlightCode(
@@ -562,9 +561,9 @@ export function last<T>(arr: readonly T[]): T {
     return arr[arr.length - 1];
 }
 
-
 export function isEmpty(obj: Object | null | undefined | boolean | string): boolean {
     if (typeof obj !== 'object' || obj == null) {
+        // eslint-disable-next-line @typescript-eslint/strict-boolean-expressions
         return !obj;
     } else {
         return Object.keys(obj).length === 0;
@@ -572,14 +571,14 @@ export function isEmpty(obj: Object | null | undefined | boolean | string): bool
 }
 
 export function nameOfUser(user: User | null) {
-    if (!user) return '';
-    else if (user.group) return `Group "${user.group.name}"`;
-    else if (user.readableName) return user.readableName;
-    else return user.name || '';
+    if (user == null) return '';
+    else if (user.group != null) return `Group "${user.group.name}"`;
+    else if (user.readableName != null) return user.readableName;
+    else return user.name ?? '';
 }
 
 export function groupMembers(user: User | null) {
-    if (!user || !user.group) return [];
+    if (user == null || user.group == null) return [];
     return user.group.members.map(nameOfUser);
 }
 
@@ -587,7 +586,7 @@ export function userMatches(user: User, filter: string): boolean {
     // The given user might not be an actual user object, as this function is
     // also used by the plagiarism list.
     return [nameOfUser(user), ...groupMembers(user)].some(
-        name => name.toLocaleLowerCase().indexOf(filter) > -1,
+        name => name.toLocaleLowerCase().includes(filter),
     );
 }
 
@@ -682,7 +681,7 @@ export function getNoNull<T, K extends keyof T>(
 export function getNoNull<T>(prop: keyof T, ...objs: (T | null)[]) {
     for (let i = 0; i < objs.length; ++i) {
         const obj = objs[i];
-        if (obj && obj[prop] != null) {
+        if (obj != null && obj[prop] != null) {
             return obj[prop];
         }
     }
@@ -698,17 +697,18 @@ export function deepCopy<T>(value: T | readonly T[], maxDepth = 10, depth = 1): 
 
     if (Array.isArray(value)) {
         return value.map(v => deepCopy(v, maxDepth, depth + 1));
-    } else if (value && typeof value === 'object') {
-        return Object.entries(value).reduce((res, [k, v]) => {
+    } else if (value != null && typeof value === 'object') {
+        return Object.entries(value).reduce<any>((res, [k, v]) => {
             res[k] = deepCopy(v, maxDepth, depth + 1);
             return res;
-        }, <any>{});
+        }, {});
     } else {
         return value;
     }
 }
 
 export function nonenumerable(target: Object, propertyKey: string) {
+    // eslint-disable-next-line
     const descriptor = Object.getOwnPropertyDescriptor(target, propertyKey) || {};
     if (descriptor.enumerable !== false) {
         Object.defineProperty(target, propertyKey, {
@@ -798,12 +798,13 @@ export function sortBy<
             reversePerKey?: FixedLengthArray<boolean, Len>,
         } = {},
 ): T[] {
+    const { reverse = false } = opts;
     return xs.map((x, idx) => {
         // @ts-ignore
         const res: (T | string | number | boolean | moment.Moment)[] = makeKey(x);
         // Add idx to make sure we have a unique item and to make sure the
         // sorting is stable.
-        res.push(opts?.reverse ? -idx : idx);
+        res.push(reverse ? -idx : idx);
         res.push(x);
         return res;
     }).sort(
@@ -835,7 +836,7 @@ export function sortBy<
             }
             let rev: boolean | null | undefined;
 
-            if (opts?.reversePerKey) {
+            if (opts?.reversePerKey != null) {
                 rev = opts.reversePerKey[i - 1];
             }
             if (rev == null) {
@@ -933,12 +934,12 @@ export function pickKeys<T, K extends keyof T>(
     keys: readonly K[],
     strict = true,
 ) {
-    return keys.reduce((acc, key) => {
+    return keys.reduce<Partial<Pick<T, K>>>((acc, key) => {
         if (strict || hasAttr(obj, key)) {
             acc[key] = obj[key];
         }
         return acc;
-    }, {} as Partial<Pick<T, K>>);
+    }, {});
 }
 
 type EmptyVNode = VNode & { isRootInsert: false, isComment: true };

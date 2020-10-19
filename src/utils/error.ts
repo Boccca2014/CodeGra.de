@@ -33,7 +33,7 @@ export function getErrorMessage(
         if (errData != null && hasAttr(errData, msgAttr)) {
             msg = errData[msgAttr];
         } else if (errData != null) {
-            msg = `Something unknown went wrong: "${errData}"`;
+            msg = `Something unknown went wrong: "${errData.toString()}"`;
         } else {
             msg = null;
         }

@@ -5,8 +5,6 @@ import { modifiers as m } from 'vue-tsx-support';
 
 // @ts-ignore
 import * as comp from '@/components';
-import * as api from '@/api/v1';
-import * as types from '@/types';
 import * as utils from '@/utils';
 import * as models from '@/models';
 import { store, UIPrefsStore } from '@/store';
@@ -16,7 +14,6 @@ export default tsx.component({
 
     props: {
         prefName: p.ofType<models.UIPreference>().required,
-        componentName: p(String).required,
         defaultValue: p(Boolean).default(false),
         hideSwitcher: p(Boolean).default(false),
     },
@@ -76,24 +73,27 @@ export default tsx.component({
             const shouldRender =
                 !this.hideSwitcher && this.prefValue.map(v => v.isNothing()).orDefault(false);
 
-            return utils.ifOrEmpty(shouldRender, () => (
-                <b-alert
-                    show
-                    dismissible
-                    variant={store.getters['pref/darkMode'] ? 'dark' : 'light'}
-                    class="mb-3"
-                    onDismissed={() => this.updatePreference(false)}
-                >
-                    {this.$slots.ifUnset}{' '}
-                    <a
-                        href="#"
-                        class="inline-link"
-                        onClick={m.prevent(() => this.updatePreference(true))}
+            return utils.ifOrEmpty(shouldRender, () => {
+                const darkMode: boolean = store.getters['pref/darkMode'];
+                return (
+                    <b-alert
+                        show
+                        dismissible
+                        variant={darkMode ? 'dark' : 'light'}
+                        class="mb-3"
+                        onDismissed={() => this.updatePreference(false)}
                     >
-                        Click here to try the new version.
-                    </a>
-                </b-alert>
-            ));
+                        {this.$slots.ifUnset}{' '}
+                        <a
+                            href="#"
+                            class="inline-link"
+                            onClick={m.prevent(() => this.updatePreference(true))}
+                        >
+                            Click here to try the new version.
+                        </a>
+                    </b-alert>
+                );
+            });
         },
 
         renderContent(
@@ -109,8 +109,6 @@ export default tsx.component({
                 return utils.emptyVNode();
             }
 
-            const compName = this.componentName;
-
             return utils.ifJustOrEmpty(this.prefValue.join(), value => (
                 <div class="mt-3 text-right">
                     <a
@@ -125,16 +123,19 @@ export default tsx.component({
         },
 
         updatePreference(value: boolean) {
-            return UIPrefsStore.patchUIPreference({
+            UIPrefsStore.patchUIPreference({
                 name: this.prefName,
                 value,
             });
         },
 
-        togglePreference() {
-            return this.prefValue.join().caseOf({
+        togglePreference(): void {
+            this.prefValue.join().caseOf({
                 Just: value => this.updatePreference(!value),
-                Nothing: () => Promise.reject(new Error('No value set.')),
+                Nothing: () =>
+                    utils.withSentry(Sentry => {
+                        Sentry.captureMessage('Tried to toggle preference without value');
+                    }),
             });
         },
     },

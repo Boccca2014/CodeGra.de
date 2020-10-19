@@ -84,7 +84,7 @@ export function onDone(store: Store<RootState>) {
     store.watch(
         // @ts-ignore
         (_: RootState, allGetters: Record<string, any>) => allGetters['user/loggedIn'],
-        loggedIn => {
+        (loggedIn: boolean) => {
             if (!loggedIn) {
                 UIPrefsStore.commitClear();
             }

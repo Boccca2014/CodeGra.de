@@ -61,12 +61,12 @@ export namespace GradersStore {
 
     export const loadGraders = moduleBuilder.dispatch(
         (context, payload: { assignmentId: number; force?: boolean }) => {
-            const { assignmentId, force } = payload;
-            if (!force && _getGraders(context.state)(assignmentId)) {
+            const { assignmentId, force = false } = payload;
+            if (!force && _getGraders(context.state)(assignmentId) != null) {
                 return null;
             }
 
-            if (force || !loaders.graders[assignmentId]) {
+            if (force || loaders.graders[assignmentId] == null) {
                 loaders.graders[assignmentId] = api.assignments
                     .getGraders(assignmentId)
                     .then(res => {

@@ -15,7 +15,6 @@ import {
     Left,
     filterMap,
     mapToObject,
-    mapFilterObject,
 } from '@/utils';
 import { SiteSettingsStore } from '@/store';
 import * as api from '@/api/v1';
@@ -29,7 +28,7 @@ import 'vue-awesome/icons/plus';
 const numberOrError = (
     val: Either<Error, Maybe<number>>,
     onError: (err: string) => void,
-    onNumber: (val: number) => void,
+    onNumber: (value: number) => void,
 ) => {
     val.caseOf({
         Right(maybe) {
@@ -219,7 +218,7 @@ const MB = KB << 10;
 const GB = MB << 10;
 const POSSIBLE_UNITS = ['gb', 'mb', 'kb', 'b'] as const;
 type PossibleUnit = typeof POSSIBLE_UNITS[number];
-const FileSizeEditor = tsx.componentFactoryOf<EditEvent<number>, {}>().create({
+const FileSizeEditor = tsx.componentFactoryOf<EditEvent<number>>().create({
     props: {
         value: p(Number).required,
     },
@@ -288,7 +287,7 @@ const FileSizeEditor = tsx.componentFactoryOf<EditEvent<number>, {}>().create({
     },
 });
 
-const NumberEditor = tsx.componentFactoryOf<EditEvent<number>, {}>().create({
+const NumberEditor = tsx.componentFactoryOf<EditEvent<number>>().create({
     props: {
         value: p(Number).required,
     },
@@ -369,8 +368,6 @@ export default tsx.component({
         },
 
         renderEditor(h: CreateElement, item: Setting, settings: SettingsLookup): VNode {
-            const updatedSettings = this.updatedSettings;
-
             if (item.list) {
                 AssertionError.typeAssert<'number'>(item.typ);
                 AssertionError.typeAssert<readonly number[]>(settings[item.name]);

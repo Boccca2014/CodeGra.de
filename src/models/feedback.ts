@@ -103,7 +103,7 @@ export class FeedbackReplyEdit {
                 }
 
                 let innerTxt = txt;
-                if (cls) {
+                if (cls !== '') {
                     const innerReplace = (match: string) =>
                         match.replace(/\n/g, `${NEWLINE_CHAR}\n`);
 
@@ -119,7 +119,7 @@ export class FeedbackReplyEdit {
 // This should really be kept track of in the store, but that isn't really
 // possible for now without rewriting that entire store unfortunately.
 // This contains a mapping between serverId and trackingId.
-const trackingIdLookup = new Map();
+const trackingIdLookup: Map<number, number> = new Map();
 
 export class FeedbackReply {
     public readonly trackingId: number;
@@ -139,7 +139,7 @@ export class FeedbackReply {
         public readonly deleted = false,
     ) {
         const foundTrackingId = trackingIdLookup.get(id ?? -1);
-        if (foundTrackingId) {
+        if (foundTrackingId != null) {
             this.trackingId = foundTrackingId;
         } else {
             if (this.id != null) {
@@ -155,7 +155,7 @@ export class FeedbackReply {
         feedbackLineId: number,
         trackingId: number = getUniqueId(),
     ): FeedbackReply {
-        if (serverData.author) {
+        if (serverData.author != null) {
             store.dispatch('users/addOrUpdateUser', { user: serverData.author });
         }
 
@@ -175,6 +175,11 @@ export class FeedbackReply {
     }
 
     async fetchEdits(): Promise<SubmitButtonResult<FeedbackReplyEdit[]>> {
+        if (this.id == null) {
+            return Promise.reject(
+                new Error("Cannot get edits of feedback that hasn't been saved."),
+            );
+        }
         const url = `/api/v1/comments/${this.feedbackLineId}/replies/${this.id}/edits/`;
         const response: AxiosResponse<FeedbackReplyEditServerData[]> = await axios.get(url);
 
@@ -190,7 +195,7 @@ export class FeedbackReply {
 
     canSeeEdits(assignment: Assignment): boolean {
         const author = this.author;
-        if (author?.isEqualOrMemberOf(NormalUser.getCurrentUser())) {
+        if (author?.isEqualOrMemberOf(NormalUser.getCurrentUser()) ?? false) {
             return true;
         }
         return assignment.hasPermission(CPerm.canViewOthersCommentEdits);
@@ -198,7 +203,7 @@ export class FeedbackReply {
 
     canEdit(assignment: Assignment): boolean {
         const author = this.author;
-        if (author?.isEqualOrMemberOf(NormalUser.getCurrentUser())) {
+        if (author?.isEqualOrMemberOf(NormalUser.getCurrentUser()) ?? false) {
             return true;
         }
         return assignment.hasPermission(CPerm.canEditOthersComments);
@@ -248,6 +253,11 @@ export class FeedbackReply {
         let meth = axios.post;
         if (!approved) {
             meth = axios.delete;
+        }
+        if (this.id == null) {
+            return Promise.reject(
+                new Error("Cannot change approval of feedback that hasn't been saved."),
+            );
         }
         return meth(`/api/v1/comments/${this.feedbackLineId}/replies/${this.id}/approval`).then(
             response => ({
@@ -391,7 +401,7 @@ export class FeedbackLine {
             return false;
         }
 
-        if (assignment.peer_feedback_settings) {
+        if (assignment.peer_feedback_settings != null) {
             const userId = store.getters['user/id'];
             const connections = PeerFeedbackStore.getConnectionsForUser()(assignment.id, userId);
 
@@ -481,7 +491,7 @@ export class Feedback {
     }
 
     static fromServerData(feedback?: FeedbackServerData): Feedback {
-        if (feedback?.authors) {
+        if (feedback?.authors != null) {
             feedback.authors.forEach(author => {
                 store.dispatch('users/addOrUpdateUser', { user: author });
             });
