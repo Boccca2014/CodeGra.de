@@ -52,7 +52,7 @@ python3-saml==1.9.0
 python-dateutil==2.8.1
 redis==3.5.3
 regex==2020.10.15
-sentry-sdk[flask]==0.17.1
+sentry-sdk[flask]==0.19.1
 six==1.15.0
 Sphinx==3.2.1
 sphinx-rtd-theme==0.5.0
