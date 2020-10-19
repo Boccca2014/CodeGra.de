@@ -20,8 +20,13 @@ def handle_file_output(file_el) -> str:
         if error_el.tag != 'error':  # pragma: no cover
             continue
 
+        filename = file_el.attrib['name']
         attrib = error_el.attrib
         line = int(attrib['line'])
+
+        filename = filename[len(STUDENT):]
+        if filename.startswith('./'):
+            filename = filename[2:]
 
         msgs.append({
             'origin': 'Checkstyle',
@@ -33,10 +38,10 @@ def handle_file_output(file_el) -> str:
                 'end': line,
             },
             'column': {
-                'start': attrib['column'],
+                'start': int(attrib.get('column', 1)),
                 'end': None,
             },
-            'path': file_el.attrib['name'][len(STUDENT):].split('/'),
+            'path': filename.split('/'),
         })
 
     return msgs
@@ -51,11 +56,11 @@ def main() -> None:
         [
             'java',
             '-jar',
-            '/opt/checkstyle/checkstyle.jar',
+            '{CHECKSTYLE_PATH}/checkstyle.jar',
             '-f',
             'xml',
             *sys.argv[1:],
-            *glob.glob('**/*.java', recursive=True),
+            '.',
         ],
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
@@ -63,7 +68,7 @@ def main() -> None:
 
     if proc.returncode == 254:
         print(
-            'The given submission could not be parsed as Java, stderr:\n',
+            'The given submission could not be parsed as Java:\n',
             proc.stderr,
             file=sys.stderr,
         )
@@ -71,25 +76,27 @@ def main() -> None:
 
     try:
         output = ET.fromstring(proc.stdout.decode('utf8'))
-    except ET.ParseError as e:
+    except ET.ParseError:
         print(
             'The output could not be parsed as XML:\n',
-            str(e),
+            proc.stderr,
             file=sys.stderr,
         )
         exit(1)
 
-    output = json.dumps({
-        'op': 'put_comments',
-        'comments': [
-            err
-            for el in output
-            for err in handle_file_output(el)
-            if el.tag == 'file'
-        ],
-    })
+    comments = [
+        err
+        for el in output
+        for err in handle_file_output(el)
+        if el.tag == 'file'
+    ]
 
-    subprocess.run(['cg-api'], input=output.encode('utf8'))
+    if comments:
+        output = json.dumps({
+            'op': 'put_comments',
+            'comments': comments,
+        })
+        subprocess.run(['cg-api'], input=output.encode('utf8'))
 
 
 if __name__ == '__main__':

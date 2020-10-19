@@ -52,7 +52,7 @@ def main() -> None:
     # The check for success is something we really don't want here.
     proc = subprocess.run(  # pylint: disable=subprocess-run-check
         [
-            '/opt/pmd/bin/run.sh',
+            '{PMD_PATH}/bin/run.sh',
             'pmd',
             '-failOnViolation',
             'false',

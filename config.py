@@ -95,6 +95,8 @@ FlaskConfig = TypedDict(
         'AUTO_TEST_STARTUP_COMMAND': t.Optional[str],
         'AUTO_TEST_RUNNER_INSTANCE_PASS': str,
         'AUTO_TEST_RUNNER_CONTAINER_URL': t.Optional[str],
+        'AUTO_TEST_PMD_PATH': str,
+        'AUTO_TEST_CHECKSTYLE_PATH': str,
         'TESTING': bool,
         'RELEASE_INFO': ReleaseInfo,
         'Celery': CeleryConfig,
@@ -727,6 +729,9 @@ set_str(CONFIG, auto_test_ops, 'AUTO_TEST_BROKER_URL', '')
 set_str(CONFIG, auto_test_ops, 'AUTO_TEST_BROKER_PASSWORD', None)
 set_str(CONFIG, auto_test_ops, 'AUTO_TEST_PASSWORD', None)
 set_bool(CONFIG, auto_test_ops, 'AUTO_TEST_DISABLE_ORIGIN_CHECK', False)
+
+set_str(CONFIG, auto_test_ops, 'AUTO_TEST_PMD_PATH', '/opt/pmd')
+set_str(CONFIG, auto_test_ops, 'AUTO_TEST_CHECKSTYLE_PATH', '/opt/checkstyle')
 
 if CONFIG['IS_AUTO_TEST_RUNNER']:
     assert CONFIG['SQLALCHEMY_DATABASE_URI'] == 'postgresql:///codegrade_dev'

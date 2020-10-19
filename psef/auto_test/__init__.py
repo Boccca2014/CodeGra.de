@@ -837,18 +837,20 @@ def _try_to_run_job(
         return False
 
 
-def _copy_executables(
+def _copy_scripts(
     cont: 'StartedContainer',
-    exes: t.Mapping[str, str],
+    scripts: t.Mapping[str, str],
+    config: 'psef.FlaskConfig',
 ) -> None:
     base_dir = os.path.dirname(__file__)
 
-    for tgt, src in exes.items():
+    for tgt, src in scripts.items():
         tgt_abspath = f'/usr/local/bin/{tgt}'
-        with open(os.path.join(base_dir, src), 'rb') as client_fd:
+        with open(os.path.join(base_dir, src), 'r') as client_fd:
+            script = client_fd.read().format(config)
             cont.run_command(
                 ['dd', f'of={tgt_abspath}'],
-                stdin=client_fd.read(),
+                stdin=script.encode('utf8'),
             )
         cont.run_command(['chmod', '+x', tgt_abspath])
 
@@ -882,14 +884,14 @@ def start_polling(config: 'psef.FlaskConfig') -> None:
         )
 
     with _get_base_container(config).started_container() as cont:
-        _copy_executables(cont, {
-            'cg-api': 'linter_client.py',
-            **{
-                w.value: os.path.join('code_quality_wrappers', w.value)
-                for w in code_quality_wrappers.CodeQualityWrapper
-                if w.value != 'custom'
-            },
+        scripts = { 'cg-api': 'linter_client.py' }
+        scripts.update({
+            w.value: os.path.join('code_quality_wrappers', w.value)
+            for w in code_quality_wrappers.CodeQualityWrapper
+            if w.value != 'custom'
         })
+
+        _copy_scripts(cont, scripts, config)
 
         if config['AUTO_TEST_TEMPLATE_CONTAINER'] is None:
             cont.run_command(['apt', 'update'])
