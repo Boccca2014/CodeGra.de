@@ -176,7 +176,7 @@ def test_creating_webhooks(basic, test_client, logged_in, describe, session):
                 'assignment_id': assig.id,
                 'user_id': student.id,
                 'secret': str,
-                'default_branch': 'master',
+                'default_branch': '',
             }
         )
         assert test_client.req(
@@ -428,6 +428,7 @@ def test_clone_git_repo(
                 'repository_name': 'MY_REPO',
                 'event': 'push',
                 'branch': 'master',
+                'default_branch': 'master',
             }
 
         def get_sub(user=student):
