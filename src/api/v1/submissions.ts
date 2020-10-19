@@ -10,7 +10,7 @@ export function getFeedbacks(
 export function update(
     submissionId: number,
     payload: { feedback: string },
-): Promise<AxiosResponse<any>> {
+): Promise<AxiosResponse> {
     return axios.patch(`/api/v1/submissions/${submissionId}`, {
         feedback: payload.feedback,
     });

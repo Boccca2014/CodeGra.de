@@ -42,7 +42,7 @@ const renderMimeType = (
     mimebundle: IPythonMimeData,
     showCodeWhitespace: boolean,
 ): VNode => {
-    if (mimebundle.data) {
+    if (mimebundle.data != null) {
         for (const typ of IPythonV4MimeDataString) {
             const rawData = mimebundle.data[typ];
             if (rawData == null) {

@@ -51,7 +51,7 @@ class Saml2Provider {
     }
 
     get logoUrl(): string {
-        if (this.logo) {
+        if (this.logo != null) {
             return this.logo.url;
         }
         return buildUrl(['api', 'v1', 'sso_providers', this.id, 'default_logo']);
