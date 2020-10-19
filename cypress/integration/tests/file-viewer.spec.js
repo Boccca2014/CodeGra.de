@@ -2,6 +2,7 @@ context('FileViewer', () => {
     const uniqueName = `FileViewer ${Math.floor(Math.random() * 100000)}`;
     let course;
     let assignment;
+    let submission;
     let submissionURL;
 
     before(() => {
@@ -20,11 +21,21 @@ context('FileViewer', () => {
             assignment = res;
             return cy.createSubmission(
                 assignment.id,
+                'test_submissions/hello.py',
+                { author: 'student1' },
+            );
+        }).then(res => {
+            return cy.createSubmission(
+                assignment.id,
                 'test_submissions/all_filetypes.zip',
                 { author: 'student1' },
             );
         }).then(res => {
-            submissionURL = `/courses/${course.id}/assignments/${assignment.id}/submissions/${res.id}`;
+            submission = res;
+            submissionURL = `/courses/${course.id}/assignments/${assignment.id}/submissions/${submission.id}`;
+            cy.login('admin', 'admin');
+            cy.visit(submissionURL);
+            toggleDirectory('nested');
         });
     });
 
@@ -116,6 +127,7 @@ context('FileViewer', () => {
 
                 cy.get('.file-viewer .submit-button[name="delete-feedback"]')
                     .submit('success', { hasConfirm: true, waitForDefault: false });
+                cy.get('.file-viewer .feedback-area').should('not.exist');
             });
         });
     });
@@ -166,6 +178,25 @@ context('FileViewer', () => {
             closeSettings();
         }
 
+        before(() => {
+            openFile('timer.c')
+            addComment('.inner-code-viewer .line');
+
+            openFile('Graaf vinden');
+            addComment('.inner-code-viewer .line');
+            addComment('.result-cell .feedback-button');
+            addComment('.markdown-wrapper .feedback-button');
+
+            openFile('venn1.png');
+            addComment('.image-viewer .feedback-button');
+
+            openFile('thomas-schaper');
+            addComment('.pdf-viewer .feedback-button');
+
+            openFile('README.md');
+            addComment('.markdown-viewer .feedback-button');
+        });
+
         it('should hide feedback when disabled', () => {
             function hideCommentsCheck() {
                 hideComments();
@@ -175,35 +206,60 @@ context('FileViewer', () => {
             }
 
             openFile('timer.c')
-            addComment('.inner-code-viewer .line');
             hideCommentsCheck();
 
             openFile('Graaf vinden');
-            addComment('.inner-code-viewer .line');
-            addComment('.result-cell .feedback-button');
-            addComment('.markdown-wrapper .feedback-button');
             hideCommentsCheck();
 
             openFile('venn1.png');
-            addComment('.image-viewer .feedback-button');
             hideCommentsCheck();
 
             openFile('thomas-schaper');
-            addComment('.pdf-viewer .feedback-button');
             hideCommentsCheck();
 
             openFile('README.md');
-            addComment('.markdown-viewer .feedback-button');
             hideCommentsCheck();
         });
 
-        it('should be reset when going to another file', () => {
+        it('should not show a warning when toggled manually', () => {
             openFile('timer.c');
             hideComments();
-            openFile('lemon.c');
-            getSettingsToggle('Inline feedback')
-                .should('have.attr', 'checked')
-                .should('eq', 'checked');
+            cy.get('.file-viewer')
+                .contains('.alert', 'Inline feedback is currently hidden')
+                .should('not.exist');
+        });
+
+        it('should show a warning after reloading the page', () => {
+            openFile('timer.c');
+            hideComments();
+            cy.reload();
+            cy.get('.file-viewer')
+                .contains('.alert', 'Inline feedback is currently hidden')
+                .should('exist');
+        });
+
+        it('should be remembered when going to another submission', () => {
+            hideComments();
+            cy.get('.submission-nav-bar').within(() => {
+                cy.get('.dropdown').click();
+                cy.get('.dropdown-menu .loader').should('not.exist');
+                cy.get('.dropdown-menu li:last').click();
+            });
+            cy.url().should('not.contain', `/submissions/${submission.id}`);
+            cy.get('.file-viewer')
+                .contains('.alert', 'Inline feedback is currently hidden')
+                .should('exist');
+        });
+
+        it('should be remembered when going back to the submissions list', () => {
+            hideComments();
+            cy.get('.local-header .back-button').click();
+            cy.get('.submission-list')
+                .contains('tr', 'Student1')
+                .click();
+            cy.get('.file-viewer')
+                .contains('.alert', 'Inline feedback is currently hidden')
+                .should('exist');
         });
 
         it('should make it impossible to add comments', () => {

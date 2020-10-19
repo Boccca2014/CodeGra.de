@@ -63,7 +63,8 @@
                 <tr v-if="showInlineFeedback">
                     <td>Inline feedback</td>
                     <td>
-                        <toggle v-model="inlineFeedback"
+                        <toggle :value="inlineFeedback"
+                                @input="value => emitInlineFeedback(value, true)"
                                 label-on="Show"
                                 label-off="Hide"/>
                     </td>
@@ -185,7 +186,6 @@ export default {
             langLoading: false,
             whiteLoading: false,
             selectedLanguage: -1,
-            inlineFeedback: true,
             minLoadTime: 200,
             popoverDisabled: false,
         };
@@ -193,6 +193,14 @@ export default {
 
     computed: {
         ...mapGetters('pref', ['fontSize', 'contextAmount', 'darkMode']),
+
+        inlineFeedback() {
+            return this.$utils.parseBool(this.$utils.getProps(
+                this.$route.query,
+                true,
+                'showInlineFeedback',
+            ));
+        },
     },
 
     methods: {
@@ -218,11 +226,7 @@ export default {
 
         loadValues(fileId) {
             this.loading = true;
-
-            // Reset the inline feedback option each time the current file changes,
-            // so users can't hide feedback, forget about it, and wonder where all
-            // their feedback has gone.
-            this.inlineFeedback = true;
+            this.emitInlineFeedback(this.inlineFeedback, false);
 
             return Promise.all([this.loadWhitespace(fileId), this.loadLanguage(fileId)]).then(
                 () => {
@@ -271,6 +275,16 @@ export default {
                 this.popoverDisabled = false;
             });
         },
+
+        emitInlineFeedback(show, freshChange) {
+            this.$emit('inline-feedback', { show, freshChange });
+            const query = {
+                showInlineFeedback: show ? undefined : false,
+            };
+            this.$router.replace(
+                this.$utils.deepExtend({}, this.$route, { query }),
+            );
+        },
     },
 
     mounted() {
@@ -294,10 +308,6 @@ export default {
             if (newVal != null && newVal !== oldVal) {
                 this.loadValues(newVal);
             }
-        },
-
-        inlineFeedback(show) {
-            this.$emit('inline-feedback', show);
         },
 
         selectedLanguage(lang, old) {
