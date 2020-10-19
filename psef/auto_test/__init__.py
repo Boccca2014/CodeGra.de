@@ -45,7 +45,7 @@ import cg_worker_pool
 import cg_threading_utils
 from cg_timers import timed_code, timed_function
 
-from . import linter_server, code_quality_wrappers
+from . import api_server, code_quality_wrappers
 from .. import models, helpers
 from ..helpers import JSONType, RepeatedTimer, defer
 from ..registry import auto_test_handlers
@@ -881,12 +881,14 @@ def start_polling(config: 'psef.FlaskConfig') -> None:
         )
 
     with _get_base_container(config).started_container() as cont:
-        scripts = { 'cg-api': 'linter_client.py' }
-        scripts.update({
-            w.value: os.path.join('code_quality_wrappers', w.value)
-            for w in code_quality_wrappers.CodeQualityWrapper
-            if w.value != 'custom'
-        })
+        scripts = {'cg-api': 'api_client.py'}
+        scripts.update(
+            {
+                w.value: os.path.join('code_quality_wrappers', w.value)
+                for w in code_quality_wrappers.CodeQualityWrapper
+                if w.value != 'custom'
+            }
+        )
 
         _copy_scripts(cont, scripts, config)
 
@@ -2117,7 +2119,7 @@ class AutoTestRunner:
         result_id: int,
         test_suite: SuiteInstructions,
         cpu_core: CpuCores.Core,
-        api_handler: linter_server.APIHandler,
+        api_handler: api_server.APIHandler,
     ) -> t.Tuple[float, float]:
         total_points = 0.0
         possible_points = 0.0
@@ -2332,7 +2334,7 @@ class AutoTestRunner:
         cont: StartedContainer,
         cpu: CpuCores.Core,
             result_id: int,
-        api_handler: linter_server.APIHandler,
+        api_handler: api_server.APIHandler,
     ) -> bool:
         # TODO: Split this function
         result_url = f'{self.base_url}/results/{result_id}'
@@ -2434,7 +2436,7 @@ class AutoTestRunner:
             finally:
                 opts.retry_work(work)
 
-        with linter_server.APIHandler.running_handler(
+        with api_server.APIHandler.running_handler(
             self._get_req, self.base_url
         ) as api_handler:
             student_container.append_config_item(
