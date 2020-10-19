@@ -55,7 +55,8 @@
                     :comments="qualityComments"
                     :course-id="assignment.courseId"
                     :assignment-id="assignment.id"
-                    :submission-id="submission.id" />
+                    :submission-id="submission.id"
+                    :render-links="false" />
             </div>
         </collapse>
     </template>

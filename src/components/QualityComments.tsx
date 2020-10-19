@@ -36,6 +36,7 @@ export default tsx.component({
         courseId: p(Number).required,
         assignmentId: p(Number).required,
         submissionId: p(Number).required,
+        renderLinks: p(Boolean).default(false),
     },
 
     render(h, ctx) {
@@ -100,21 +101,30 @@ export default tsx.component({
             );
 
             return (
-                <span class="text-muted">
+                <small class="text-muted">
                     {lineText}, {columnText}
-                </span>
+                </small>
             );
         };
 
         const renderComment = (comment: models.QualityComment): VNode => {
             // TODO: Handle case when AutoTest is run on teacher revision
             const file = fileTree.search('student', comment.fileId);
+            const name = <code>{file.name}</code>;
+            const loc = renderLocation(comment.line, comment.column);
 
-            return (
-                <router-link to={getFileRoute(file)} class="d-block inline-link">
-                    <code>{file.name}</code>{' '}
-                    <small>{renderLocation(comment.line, comment.column)}</small>
-                </router-link>
+            return utils.ifExpr(
+                props.renderLinks,
+                () => (
+                    <router-link to={getFileRoute(file)} class="d-block inline-link">
+                        {name} {loc}
+                    </router-link>
+                ),
+                () => (
+                    <div class="d-block">
+                        {name} {loc}
+                    </div>
+                ),
             );
         };
 
