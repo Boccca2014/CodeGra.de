@@ -515,6 +515,24 @@ def get_fresh_database(keep=False):
 
 
 @pytest.fixture
+def alembic_tests_db():
+    with get_fresh_database() as db:
+        yield db
+
+
+@pytest.fixture
+def alembic_engine(alembic_tests_db, make_app_settings):
+    app = psef.create_app(
+        make_app_settings(database=alembic_tests_db.name),
+        skip_all=True,
+    )
+    from flask_migrate import Migrate
+    Migrate(app, psef.models.db, compare_type=True)
+    with app.app_context():
+        yield alembic_tests_db.engine
+
+
+@pytest.fixture
 def db(_db, fresh_db, monkeypatch, app):
     if fresh_db:
         with get_fresh_database(keep=True) as fresh:
