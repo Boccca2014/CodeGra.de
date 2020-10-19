@@ -102,7 +102,7 @@
                     class="category-list flex-grow-1">
             <transition-group name="rubric-row">
                 <slick-item v-for="row, i in rubricRows"
-                            :key="`rubric-editor-${id}-row-${i}`"
+                            :key="`rubric-editor-${id}-row-${row.trackingId}`"
                             :index="i"
                             class="category-item d-flex flex-row mb-3"
                             :class="{
@@ -119,8 +119,7 @@
                             class="rubric-category flex-grow-1 mb-0">
                         <collapse :collapsed="collapsedCategories[row.trackingId]"
                                   :disabled="!canCollapseCategories"
-                                  @change="collapsedCategories[row.trackingId] = $event"
-                                  :key="row.trackingId">
+                                  @change="collapsedCategories[row.trackingId] = $event">
                             <b-card-header slot="handle"
                                            class="d-flex flex-row align-items-center pl-3"
                                            :class="{ 'pr-1 py-1': editable }">
@@ -162,31 +161,40 @@
                                     </template>
                                 </b-popover>
 
-                                <div :id="`rubric-lock-${id}-${i}`"
-                                     class="flex-grow-0">
+                                <b-button-group
+                                    v-if="editable"
+                                    class="flex-grow-0">
                                     <cg-submit-button
-                                        v-if="editable"
-                                        v-b-popover.top.hover="'Remove category'"
-                                        variant="danger"
-                                        class="delete-category"
-                                        :wait-at-least="0"
-                                        :submit="() => {}"
-                                        @after-success="() => deleteRow(i)"
-                                        :disabled="!!row.locked"
-                                        confirm="Do you really want to delete this category?">
-                                        <fa-icon v-if="row.locked"
-                                                 name="lock"
-                                                 style="width: 0.9rem"
-                                                 class="lock" />
-                                        <fa-icon v-else
-                                                 name="times"
-                                                 style="width: 0.9rem" />
+                                        v-b-popover.top.hover="'Duplicate category'"
+                                        class="duplicate-category"
+                                        :submit="() => duplicateRow(i)">
+                                        <fa-icon name="copy" />
                                     </cg-submit-button>
 
-                                    <fa-icon v-else-if="row.locked"
-                                             name="lock"
-                                             class="lock" />
-                                </div>
+                                    <b-button-group :id="`rubric-lock-${id}-${i}`">
+                                        <cg-submit-button
+                                            v-b-popover.top.hover="'Remove category'"
+                                            variant="danger"
+                                            class="delete-category"
+                                            :wait-at-least="0"
+                                            :submit="() => {}"
+                                            @after-success="() => deleteRow(i)"
+                                            :disabled="!!row.locked"
+                                            confirm="Do you really want to delete this category?">
+                                            <fa-icon v-if="row.locked"
+                                                     name="lock"
+                                                     style="width: 0.9rem"
+                                                     class="lock" />
+                                            <fa-icon v-else
+                                                     name="times"
+                                                     style="width: 0.9rem" />
+                                        </cg-submit-button>
+                                    </b-button-group>
+                                </b-button-group>
+
+                                <fa-icon v-else-if="row.locked"
+                                         name="lock"
+                                         class="lock" />
                             </b-card-header>
 
                             <component
@@ -550,7 +558,7 @@ export default {
             newVal.forEach(courseId => this.loadSingleCourse({ courseId }));
         },
 
-        rubric(newVal, oldVal) {
+        rubric(newVal) {
             // We may need to recalculate which categories should be collapsed
             // when the rubric changes because we either
             // * may reload the rubric, causing the tracking ids of rows to
@@ -563,25 +571,11 @@ export default {
             }
 
             const newRows = newVal.rows;
-            const oldRows = oldVal && oldVal.rows;
 
             this.collapsedCategories = this.$utils.mapToObject(
                 newRows,
                 newRow => {
                     let collapse = this.collapsedCategories[newRow.trackingId];
-
-                    // The tracking id may have changed, so check if we can
-                    // find a row with the same id, or otherwise a row with the
-                    // same content because newly added rows previously had no
-                    // id but now do have an id.
-                    if (collapse == null && oldRows != null) {
-                        const oldRow = oldRows.find(r =>
-                            r.id === newRow.id || r.equals(newRow),
-                        );
-                        if (oldRow != null) {
-                            collapse = this.collapsedCategories[oldRow.trackingId];
-                        }
-                    }
 
                     // Added but not yet submitted rows have no id and should
                     // start expanded.
@@ -990,7 +984,7 @@ export default {
 
             return this.storeUpdateRubric({
                 assignmentId: this.assignmentId,
-                rows: this.rubricRows,
+                rubric: this.rubric,
                 maxPoints: this.internalFixedMaxPoints,
             });
         },
@@ -1028,6 +1022,10 @@ export default {
             this.rubric = this.rubric.deleteRow(idx);
 
             return Promise.resolve();
+        },
+
+        duplicateRow(idx) {
+            this.rubric = this.rubric.duplicateRow(idx);
         },
 
         rowChanged(idx, rowData) {

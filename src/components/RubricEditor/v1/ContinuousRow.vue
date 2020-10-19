@@ -153,7 +153,7 @@ export default {
         },
 
         updatePoints(event) {
-            const item = Object.assign({}, this.onlyItem, {
+            const item = this.onlyItem.update({
                 points: parseFloat(event.target.value),
             });
             this.$emit(
