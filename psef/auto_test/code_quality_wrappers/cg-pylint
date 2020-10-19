@@ -49,12 +49,12 @@ def main() -> None:
             '--output-format', 'json',
             *sys.argv[1:],
         ],
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
+        capture_output=True,
+        text=True,
     )
 
     if proc.returncode == 32:
-        print('PyLint crashed, stdout:\n', proc.stderr, file=sys.stderr)
+        print('PyLint crashed:\n', proc.stdout, file=sys.stderr)
         sys.exit(32)
     if proc.returncode == 1:
         print(
@@ -65,7 +65,7 @@ def main() -> None:
         sys.exit(1)
 
     comments = [
-        handle_error(err) for err in json.loads(proc.stdout.decode('utf8'))
+        handle_error(err) for err in json.loads(proc.stdout)
     ]
 
     if comments:

@@ -68,9 +68,8 @@ def main() -> None:
             *sys.argv[1:],
             '.',
         ],
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-        check=False,
+        capture_output=True,
+        text=True,
     )
 
     if proc.returncode == 254:
@@ -82,7 +81,7 @@ def main() -> None:
         sys.exit(proc.returncode)
 
     try:
-        output = ET.fromstring(proc.stdout.decode('utf8'))
+        output = ET.fromstring(proc.stdout)
     except ET.ParseError:
         print(
             'The output could not be parsed as XML:\n',

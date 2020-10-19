@@ -71,18 +71,18 @@ def main() -> None:
             '--report-unused-disable-directives',
             *sys.argv[1:],
         ],
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
+        capture_output=True,
+        text=True,
     )
 
     # Exit code 1 means that linting was successful but that errors
     # were found.
     if proc.returncode not in (0, 1):
-        print('ESLint crashed, stdout:\n', proc.stderr, file=sys.stderr)
+        print('ESLint crashed:\n', proc.stderr, file=sys.stderr)
         sys.exit(proc.returncode)
 
     comments = [
-        c for f in json.loads(proc.stdout.decode('utf8'))
+        c for f in json.loads(proc.stdout)
         for c in handle_file_output(f)
     ]
 
@@ -96,7 +96,6 @@ def main() -> None:
         api_proc = subprocess.run(
             ['cg-api'], input=output.encode('utf8'), check=False
         )
-        sys.exit(api_proc.returncode)
 
 
 if __name__ == '__main__':
