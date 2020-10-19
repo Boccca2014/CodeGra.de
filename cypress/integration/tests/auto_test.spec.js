@@ -244,67 +244,6 @@ context('Manage assignment page', () => {
                 .submit('success', { waitForDefault: false, hasConfirm: true });
         });
 
-        it('should not be possible if no "results visible" option is selected', () => {
-            cy.get('.auto-test')
-                .contains('.card-header', 'Configuration')
-                .contains('.submit-button', 'Start')
-                .should('be.disabled');
-
-            // TODO: Check that the popover on the start button mentions the
-            // "results visible" option. But we can't do that because there is
-            // no way to trigger a hover in cypress.
-
-            cy.get('.auto-test .results-visible-option')
-                .contains('.label', 'Immediately')
-                .click();
-            cy.get('.auto-test .results-visible-option .promise-loader .fa-icon')
-                .should('have.class', 'text-success')
-                .should('have.css', 'opacity', '1');
-
-            // TODO: Check that the popover on the start button does not
-            // mention the "results visible" option.
-        });
-
-        it('should not be possible if no "rubric calculation" option is selected', () => {
-            cy.get('.auto-test')
-                .contains('.card-header', 'Configuration')
-                .contains('.submit-button', 'Start')
-                .should('be.disabled');
-
-            // TODO: Check that the popover on the start button mentions the
-            // "results visible" option.
-
-            cy.get('.auto-test .rubric-calculation-option')
-                .contains('.label', 'Minimum percentage')
-                .click();
-            cy.get('.auto-test .rubric-calculation-option .promise-loader .fa-icon')
-                .should('have.class', 'text-success')
-                .should('have.css', 'opacity', '1');
-
-            // TODO: Check that the popover on the start button does not
-            // mention the "results visible" option.
-        });
-
-        it('should not be possible if no "preferred revision" option is selected', () => {
-            cy.get('.auto-test')
-                .contains('.card-header', 'Configuration')
-                .contains('.submit-button', 'Start')
-                .should('be.disabled');
-
-            // TODO: Check that the popover on the start button mentions the
-            // "results visible" option.
-
-            cy.get('.auto-test .teacher-revision-option')
-                .contains('.label', 'Student')
-                .click();
-            cy.get('.auto-test .teacher-revision-option .promise-loader .fa-icon')
-                .should('have.class', 'text-success')
-                .should('have.css', 'opacity', '1');
-
-            // TODO: Check that the popover on the start button does not
-            // mention the "results visible" option.
-        });
-
         it('should not be possible if no categories have been created', () => {
             cy.get('.auto-test')
                 .contains('.card-header', 'Configuration')
