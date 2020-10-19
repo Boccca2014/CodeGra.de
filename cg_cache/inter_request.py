@@ -465,7 +465,7 @@ class MemoryBackend(Backend[T], t.Generic[T]):
 
         .. seealso:: method :meth:`Backend.get`
         """
-        found, expired = self._storage[key]
+        found, expired = self._storage[self._make_key(key)]
         if expired < cg_dt_utils.DatetimeWithTimezone.utcnow():
             raise KeyError(key)
 
@@ -476,14 +476,14 @@ class MemoryBackend(Backend[T], t.Generic[T]):
 
         .. seealso:: method :meth:`.Backend.clear`
         """
-        self._storage.pop(key, None)
+        self._storage.pop(self._make_key(key), None)
 
     def set(self, key: str, value: T) -> None:
         """Set a value with for a given ``key``.
 
         .. seealso:: method :meth:`Backend.set`
         """
-        self._storage[key] = (
+        self._storage[self._make_key(key)] = (
             value,
             cg_dt_utils.DatetimeWithTimezone.utcnow() + self._ttl,
         )
