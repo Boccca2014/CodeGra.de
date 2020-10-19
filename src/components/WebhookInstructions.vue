@@ -222,9 +222,9 @@
 
         <advanced-collapse>
             By default the Payload URL will make sure that when you push to the
-            master branch a submission will be created in CodeGrade. If you want
-            to use another branch to create submissions, you can change
-            <code>?branch={{ data.default_branch}}</code> in the above url. For
+            default branch a submission will be created in CodeGrade. If you want
+            to use another branch to create submissions, you can add
+            <code>?branch=$BRANCH_NAME</code> to the above url. For
             example <code>?branch=stable</code> will create submissions when you
             push to the <code>stable</code> branch.
             <br>
@@ -240,8 +240,8 @@
             {{ providerName }} should now be successfully configured. Now, the
             content of your repository will be automatically uploaded for this
             CodeGrade assignment every time you perform a <code>git push</code>.
-            You can test this by pushing to the {{ data.default_branch }}
-            branch and checking if a new submission was created.
+            You can test this by pushing to the default branch and checking if a
+            new submission was created.
         </p>
         <p>
             A good practice is to set up the {{ providerName }} CodeGrade
@@ -251,10 +251,11 @@
             commit.
             You can run
             <code class="d-block p-3">git commit --allow-empty -m "Create a CodeGrade submission" &amp;&amp; git push</code>
-            while the {{ data.default_branch }} branch is checked out. If you
-            are using a GUI for Git that does not support empty commits, simply
-            making an arbitrary change in a tracked file will allow you to
-            still do a <code>git push</code>.
+            while the default branch (which is probably <code>master</code>
+            or <code>main</code>) is checked out. If you are using a GUI for Git
+            that does not support empty commits, simply making an arbitrary
+            change in a tracked file will allow you to still do a <code>git
+            push</code>.
         </p>
         <p>
             You have now successfully setup your {{ providerName }} CodeGrade
@@ -374,10 +375,8 @@ export default {
 
         webhookURL() {
             // TODO: Maybe this can/should be done using the router?
-            const { host, protocol } = window.location;
-            return `${protocol}//${host}/api/v1/webhooks/${this.data.id}?branch=${
-                this.data.default_branch
-            }`;
+            const externalUrl = this.$utils.getExternalUrl();
+            return `${externalUrl}/api/v1/webhooks/${this.data.id}`;
         },
     },
 

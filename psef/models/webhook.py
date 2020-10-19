@@ -169,7 +169,7 @@ class WebhookBase(Base, UUIDMixin, TimestampMixin):
             'assignment_id': self.assignment_id,
             'user_id': self.user_id,
             'secret': self.secret,
-            'default_branch': 'master',
+            'default_branch': '',
         }
 
 
@@ -185,6 +185,7 @@ class _PartialGitCloneData:
     clone_url: str
     repository_name: str
     event: str
+    default_branch: str
 
 
 @dataclasses.dataclass
@@ -293,6 +294,7 @@ class _GitWebhook(WebhookBase):
                 webhook_id=str(self.id),
                 clone_url=repo['ssh_url'],
                 event=request.headers['X-GitHub-Event'],
+                default_branch=repo['default_branch']
             ),
         )
 
@@ -323,6 +325,7 @@ class _GitWebhook(WebhookBase):
                 webhook_id=str(self.id),
                 clone_url=project['git_ssh_url'],
                 event=data['object_kind'],
+                default_branch=project['default_branch'],
             ),
         )
 
@@ -332,31 +335,32 @@ class _GitWebhook(WebhookBase):
         event: str,
         get_data: t.Callable[[], _PartialGitCloneData],
     ) -> None:
-        if self.user.group:
-            users = self.user.group.members
-        else:
-            users = [self.user]
-
-        exc = Exception()
-
-        for user in users:
-            # If one user of the group can hand-in submissions we continue,
-            # otherwise we raise the last exception.
-            try:
-                with auth.as_current_user(user):
-                    auth.ensure_can_submit_work(
-                        self.assignment,
-                        author=self.user,
-                        for_user=user,
-                    )
-            except exceptions.PermissionException as e:
-                logger.info('User cannot submit work', exc_info=True)
-                exc = e
+        if not self.user.is_test_student:
+            if self.user.group:
+                users = self.user.group.members
             else:
-                break
-        else:
-            logger.info('No user can submit work')
-            raise exc
+                users = [self.user]
+
+            exc = Exception()
+
+            for user in users:
+                # If one user of the group can hand-in submissions we continue,
+                # otherwise we raise the last exception.
+                try:
+                    with auth.as_current_user(user):
+                        auth.ensure_can_submit_work(
+                            self.assignment,
+                            author=self.user,
+                            for_user=user,
+                        )
+                except exceptions.PermissionException as e:
+                    logger.info('User cannot submit work', exc_info=True)
+                    exc = e
+                else:
+                    break
+            else:
+                logger.info('No user can submit work')
+                raise exc
 
         group_set = self.assignment.group_set
         if (
@@ -378,8 +382,11 @@ class _GitWebhook(WebhookBase):
                 APICodes.WEBHOOK_UNKNOWN_EVENT_TYPE, 400
             )
 
-        target_branches = request.args.getlist('branch', str) or ['master']
         data = get_data()
+        target_branches = (
+            request.args.getlist('branch', str) or [data.default_branch]
+        )
+        print(target_branches)
         current_branch = None
 
         for branch in target_branches:

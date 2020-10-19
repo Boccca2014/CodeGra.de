@@ -176,7 +176,7 @@ def test_creating_webhooks(basic, test_client, logged_in, describe, session):
                 'assignment_id': assig.id,
                 'user_id': student.id,
                 'secret': str,
-                'default_branch': 'master',
+                'default_branch': '',
             }
         )
         assert test_client.req(
