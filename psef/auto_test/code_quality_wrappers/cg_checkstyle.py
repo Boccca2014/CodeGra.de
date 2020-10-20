@@ -75,7 +75,7 @@ def main(argv: t.Sequence[str]) -> int:
             'java',
             '-jar', CHECKSTYLE_JAR,
             '-f', 'xml',
-            '-c', config
+            '-c', config,
             *args,
             '.',
         ],

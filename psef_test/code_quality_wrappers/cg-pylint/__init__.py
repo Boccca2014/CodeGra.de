@@ -7,7 +7,7 @@ from code_quality_wrappers import Tester
 
 class PyLintTester(Tester):
     def run_test(self):
-        self.run_wrapper('pylint_test_dir')
+        self.run_wrapper('', 'pylint_test_dir')
         return self.get_cgapi_output()
 
     @property

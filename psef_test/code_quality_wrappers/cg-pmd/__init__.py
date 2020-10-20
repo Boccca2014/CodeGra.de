@@ -11,7 +11,7 @@ BASE_DIR = os.path.realpath(
 
 class PMDTester(Tester):
     def run_test(self):
-        self.run_wrapper('-rulesets', self.config_file)
+        self.run_wrapper(self.config_file)
         return self.get_cgapi_output()
 
     @property

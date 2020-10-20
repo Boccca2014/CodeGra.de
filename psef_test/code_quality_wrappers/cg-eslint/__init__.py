@@ -7,7 +7,7 @@ from code_quality_wrappers import Tester
 
 class ESLintTester(Tester):
     def run_test(self):
-        self.run_wrapper('**/*.js')
+        self.run_wrapper('', '**/*.js')
         return self.get_cgapi_output()
 
     @property

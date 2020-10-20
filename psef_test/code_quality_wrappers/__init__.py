@@ -139,13 +139,14 @@ cat >"{self.prefix}/cgapi.out"
             try:
                 assert ret == status
             except:
+                print('return code:', ret)
                 print('stdout:')
-                print(stdout.read())
+                print(stdout.getvalue())
                 print('stderr:')
-                print(stderr.read())
+                print(stderr.getvalue())
                 raise
 
-        return ret, stdout.read(), stderr.read()
+        return ret, stdout.getvalue(), stderr.getvalue()
 
     def get_cgapi_output(self):
         with open(os.path.join(self.prefix, 'cgapi.out')) as f:
