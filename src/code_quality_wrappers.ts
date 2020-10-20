@@ -10,11 +10,19 @@ SPDX-License-Identifier: AGPL-3.0-only
 */
 /* eslint-disable */
 
-export enum CodeQualityWrapper {
-    custom = 'custom',
-    cg_checkstyle = 'cg_checkstyle',
-    cg_eslint = 'cg_eslint',
-    cg_flake8 = 'cg_flake8',
-    cg_pmd = 'cg_pmd',
-    cg_pylint = 'cg_pylint'
+export class CodeQualityWrapper {
+    constructor(public key: string, public name: string) {
+        Object.freeze(this);
+    }
 }
+
+export type CodeQualityWrappers = keyof typeof codeQualityWrappers;
+
+export const codeQualityWrappers = Object.freeze({
+    custom: new CodeQualityWrapper('custom', 'custom'),
+    cg_checkstyle: new CodeQualityWrapper('cg_checkstyle', 'checkstyle'),
+    cg_eslint: new CodeQualityWrapper('cg_eslint', 'eslint'),
+    cg_flake8: new CodeQualityWrapper('cg_flake8', 'flake8'),
+    cg_pmd: new CodeQualityWrapper('cg_pmd', 'pmd'),
+    cg_pylint: new CodeQualityWrapper('cg_pylint', 'pylint')
+} as const);

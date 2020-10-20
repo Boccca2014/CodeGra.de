@@ -13,12 +13,23 @@ SPDX-License-Identifier: AGPL-3.0-only
 # flake8: noqa=E501
 # yapf: disable
 
+import typing as t
+import dataclasses
+
 import cg_enum
 
+
+@dataclasses.dataclass
+class _CodeQualityWrapper:
+    name: str
+    source: t.Optional[str]
+    executable: t.Optional[str]
+
+
 class CodeQualityWrapper(cg_enum.CGEnum):
-    custom = 'custom'
-    cg_checkstyle = 'cg-checkstyle'
-    cg_eslint = 'cg-eslint'
-    cg_flake8 = 'cg-flake8'
-    cg_pmd = 'cg-pmd'
-    cg_pylint = 'cg-pylint'
+    custom = _CodeQualityWrapper(name='custom', source=None, executable=None)
+    cg_checkstyle = _CodeQualityWrapper(name='checkstyle', source='cg_checkstyle.py', executable='cg_checkstyle')
+    cg_eslint = _CodeQualityWrapper(name='eslint', source='cg_eslint.py', executable='cg_eslint')
+    cg_flake8 = _CodeQualityWrapper(name='flake8', source='cg_flake8.py', executable='cg_flake8')
+    cg_pmd = _CodeQualityWrapper(name='pmd', source='cg_pmd.py', executable='cg_pmd')
+    cg_pylint = _CodeQualityWrapper(name='pylint', source='cg_pylint.py', executable='cg_pylint')

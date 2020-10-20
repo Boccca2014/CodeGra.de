@@ -5,6 +5,7 @@ import os
 import sys
 import json
 import tempfile
+import typing as t
 import subprocess
 
 STUDENT = os.environ['STUDENT']
@@ -53,7 +54,7 @@ def handle_file_output(f):
     return msgs
 
 
-def main() -> None:
+def main(argv: t.Sequence[str]) -> int:
     """Run ESLint.
     """
 
@@ -69,17 +70,18 @@ def main() -> None:
             '--no-eslintrc',
             '--no-inline-config',
             '--report-unused-disable-directives',
-            *sys.argv[1:],
+            *argv,
         ],
-        capture_output=True,
-        text=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        encoding='utf8',
     )
 
     # Exit code 1 means that linting was successful but that errors
     # were found.
     if proc.returncode not in (0, 1):
         print('ESLint crashed:\n', proc.stderr, file=sys.stderr)
-        sys.exit(proc.returncode)
+        return proc.returncode
 
     comments = [
         c for f in json.loads(proc.stdout)
@@ -96,7 +98,10 @@ def main() -> None:
         api_proc = subprocess.run(
             ['cg-api'], input=output.encode('utf8'), check=False
         )
+        return api_proc.returncode
+
+    return 0
 
 
 if __name__ == '__main__':
-    main()
+    sys.exit(main(sys.argv[1:]))

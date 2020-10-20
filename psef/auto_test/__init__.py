@@ -524,12 +524,17 @@ def _setup_base_container(
     scripts = {'cg-api': 'api_client.py'}
     scripts.update(
         {
-            w.value: os.path.join('code_quality_wrappers', w.value)
+            w.value.executable: os.path.join('code_quality_wrappers', w.value.source)
             for w in code_quality_wrappers.CodeQualityWrapper
-            if w.value != 'custom'
+            if w.value.name != 'custom'
         }
     )
-    _copy_scripts(cont, scripts, config)
+    _copy_scripts(
+        cont,
+        scripts,
+        PMD_PATH=config['AUTO_TEST_PMD_PATH'],
+        CHECKSTYLE_PATH=config['AUTO_TEST_CHECKSTYLE_PATH'],
+    )
 
     template_name = config['AUTO_TEST_TEMPLATE_CONTAINER']
     if template_name is None:
@@ -901,17 +906,19 @@ def _try_to_run_job(
 def _copy_scripts(
     cont: 'StartedContainer',
     scripts: t.Mapping[str, str],
-    config: 'psef.FlaskConfig',
+    **replacements: str,
 ) -> None:
     base_dir = os.path.dirname(__file__)
+
+    def replace_paths(haystack: str) -> str:
+        for needle, replacement in replacements.items():
+            haystack = haystack.replace(f"os.getenv('{needle}')", f'"{replacement}"')
+        return haystack
 
     for tgt, src in scripts.items():
         tgt_abspath = f'/usr/local/bin/{tgt}'
         with open(os.path.join(base_dir, src), 'r') as client_fd:
-            script = client_fd.read().format(
-                PMD_PATH=config['AUTO_TEST_PMD_PATH'],
-                CHECKSTYLE_PATH=config['AUTO_TEST_CHECKSTYLE_PATH'],
-            )
+            script = replace_paths(client_fd.read())
             cont.run_command(
                 ['dd', f'of={tgt_abspath}'],
                 stdin=script.encode('utf8'),

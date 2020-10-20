@@ -11,23 +11,24 @@ BASE_DIR = os.path.realpath(
 
 class PMDTester(Tester):
     def run_test(self):
-        return self.run_wrapper('-rulesets', self.config_file)
+        self.run_wrapper('-rulesets', self.config_file)
+        return self.get_cgapi_output()
 
     @property
     def wrapper_name(self):
-        return 'cg-pmd'
+        return 'cg_pmd.py'
 
     @property
     @abc.abstractmethod
     def config_file(self):
         raise NotImplementedError
 
-
-class PMDValidTester(PMDTester):
     @property
     def submission_archive(self):
         return 'test_pmd.tar.gz'
 
+
+class PMDValidTester(PMDTester):
     @property
     def config_file(self):
         return os.path.join(

@@ -1513,11 +1513,15 @@ export default {
         },
 
         async updateCodeQualityWrapper({ wrapper, program, args }) {
-            this.updateValue('wrapper', wrapper);
-            await this.$nextTick();
-            this.updateValue('program', program);
-            await this.$nextTick();
-            this.updateValue('args', args);
+            this.$emit('input', {
+                ...this.valueCopy,
+                data: {
+                    ...this.valueCopy.data,
+                    wrapper,
+                    program,
+                    args,
+                },
+            });
         },
 
         updatePenalty(name, maybeValue) {

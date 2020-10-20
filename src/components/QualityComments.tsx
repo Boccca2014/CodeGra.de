@@ -184,7 +184,7 @@ export default tsx.component({
             );
 
             return (
-                <div class={`quality-comments mt-n3 ${data.class ?? ''} ${data.staticClass ?? ''}`}>
+                <div class={['quality-comments mt-n3', data.class, data.staticClass]}>
                     {sorted.map(renderCommentGroup)}
                 </div>
             );

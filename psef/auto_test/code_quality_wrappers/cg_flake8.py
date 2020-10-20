@@ -5,10 +5,11 @@ import os
 import sys
 import json
 import uuid
+import typing as t
 import subprocess
 
 
-def handle_error(filename, line, col, code, msg):
+def handle_error(filename: str, line: str, col: str, code: str, msg: str):
     if filename.startswith('./'):
         filename = filename[2:]
 
@@ -38,13 +39,13 @@ def handle_error(filename, line, col, code, msg):
     )
 
 
-def main() -> None:
+def main(argv: t.Sequence[str]) -> int:
     """Run Flake8.
     """
 
     # This is not guessable
     sep = str(uuid.uuid4())
-    fmt = '%(path)s{{0}}%(row)d{{0}}%(col)d{{0}}%(code)s{{0}}%(text)s'.format(sep)
+    fmt = '%(path)s{0}%(row)d{0}%(col)d{0}%(code)s{0}%(text)s'.format(sep)
 
     # The check for success is something we really don't want here.
     proc = subprocess.run(  # pylint: disable=subprocess-run-check
@@ -53,15 +54,16 @@ def main() -> None:
             '--disable-noqa',
             '--format', fmt,
             '--exit-zero',
-            *sys.argv[1:],
+            *argv,
         ],
-        capture_output=True,
-        text=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        encoding='utf8',
     )
 
     if proc.returncode != 0:
         print('Flake8 crashed:\n', proc.stderr, file=sys.stderr)
-        sys.exit(proc.returncode)
+        return proc.returncode
 
     comments = [
         handle_error(*err.split(sep))
@@ -79,7 +81,10 @@ def main() -> None:
         api_proc = subprocess.run(
             ['cg-api'], input=output.encode('utf8'), check=False
         )
+        return api_proc.returncode
+
+    return 0
 
 
 if __name__ == '__main__':
-    main()
+    sys.exit(main(sys.argv[1:]))

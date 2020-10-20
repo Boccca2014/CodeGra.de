@@ -4,13 +4,21 @@ import p from 'vue-strict-prop';
 
 import * as utils from '@/utils';
 
-import { CodeQualityWrapper } from '@/code_quality_wrappers';
+import {
+    codeQualityWrappers,
+    CodeQualityWrapper,
+    CodeQualityWrappers,
+} from '@/code_quality_wrappers';
 
 interface SelectedWrapper {
-    wrapper?: CodeQualityWrapper;
+    wrapper?: CodeQualityWrappers | undefined;
     program: string;
     args: string;
 }
+
+type Events = {
+    input: SelectedWrapper;
+};
 
 const inputToString = (value: string | number | string[] | undefined) => {
     if (value === undefined) {
@@ -24,18 +32,19 @@ const inputToString = (value: string | number | string[] | undefined) => {
     }
 };
 
-export default tsx.component({
+export default tsx.componentFactoryOf<Events>().create({
     name: 'code-quality-program-selector',
     functional: true,
 
     props: {
-        wrapper: p.ofType<CodeQualityWrapper | undefined>().required,
+        wrapper: p.ofType<CodeQualityWrappers | undefined>().required,
         program: p(String).required,
         args: p(String).required,
     },
 
     render(h, { props, listeners }) {
-        const inputHandlers = utils.ensureArray(listeners.input);
+        const inputHandlers =
+            listeners.input == null ? [() => {}] : utils.ensureArray(listeners.input);
 
         const emit = (event: Partial<SelectedWrapper>) => {
             const data = Object.assign(
@@ -52,7 +61,7 @@ export default tsx.component({
             }
         };
 
-        const updateWrapper = (wrapper: CodeQualityWrapper) => {
+        const updateWrapper = (wrapper: CodeQualityWrappers) => {
             emit({ wrapper });
         };
 
@@ -65,12 +74,12 @@ export default tsx.component({
         };
 
         const renderOption = (opt: CodeQualityWrapper) => (
-            <b-form-select-option value={opt}>{opt}</b-form-select-option>
+            <b-form-select-option value={opt.key}>{opt.name}</b-form-select-option>
         );
 
         const renderSelect = (wrapper: CodeQualityWrapper | undefined) => (
-            <b-form-select value={wrapper} onInput={updateWrapper}>
-                {Object.values(CodeQualityWrapper).map(renderOption)}
+            <b-form-select value={wrapper?.key} onInput={updateWrapper}>
+                {Object.values(codeQualityWrappers).map(renderOption)}
             </b-form-select>
         );
 
@@ -96,13 +105,21 @@ export default tsx.component({
             </b-form-group>
         );
 
+        const getSelectedWrapper = () => {
+            if (props.wrapper == null) {
+                return undefined;
+            } else {
+                return codeQualityWrappers[props.wrapper];
+            }
+        };
+
         return (
             <div class="mb-3">
-                <b-form-group label="Wrapper script">{renderSelect(props.wrapper)}</b-form-group>
+                <b-form-group label="Linter">{renderSelect(getSelectedWrapper())}</b-form-group>
 
                 {utils.ifOrEmpty(props.wrapper != null, () =>
                     utils.ifExpr(
-                        props.wrapper === CodeQualityWrapper.custom,
+                        props.wrapper === codeQualityWrappers.custom.name,
                         () => renderCustomInput(props.program),
                         () => renderArgsInput(props.args),
                     ),

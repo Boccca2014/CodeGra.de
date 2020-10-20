@@ -11,24 +11,24 @@ BASE_DIR = os.path.realpath(
 
 class CheckstyleTester(Tester):
     def run_test(self):
-        return self.run_wrapper('-c', self.config_file)
+        self.run_wrapper('-c', self.config_file)
+        return self.get_cgapi_output()
 
     @property
     def wrapper_name(self):
-        return 'cg-checkstyle'
+        return 'cg_checkstyle.py'
 
     @property
     @abc.abstractmethod
     def config_file(self):
         raise NotImplementedError
 
-
-
-class CheckstyleValidTester(CheckstyleTester):
     @property
     def submission_archive(self):
         return 'test_checkstyle.tar.gz'
 
+
+class CheckstyleValidTester(CheckstyleTester):
     @property
     def config_file(self):
         return os.path.join(
