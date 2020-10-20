@@ -43,12 +43,21 @@ def main(argv: t.Sequence[str]) -> int:
     """Run PyLint.
     """
 
+    # If the first argument is nonempty, it is the path to a config file, so
+    # insert `--config` right before it. Otherwise drop the argument.
+    if not argv:
+        args = []
+    elif argv[0]:
+        args = ['--rcfile', *argv]
+    else:
+        args = argv[1:]
+
     # The check for success is something we really don't want here.
     proc = subprocess.run(  # pylint: disable=subprocess-run-check
         [
             'pylint',
             '--output-format', 'json',
-            *argv,
+            *args,
         ],
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,

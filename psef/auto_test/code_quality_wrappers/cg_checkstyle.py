@@ -60,13 +60,23 @@ def main(argv: t.Sequence[str]) -> int:
     """Run Checkstyle
     """
 
+    if not argv or not argv[0]:
+        print(
+            'Checkstyle requires a config file to be able to run',
+            file=sys.stderr,
+        )
+        return 1
+
+    config, *args = argv
+
     # The check for success is something we really don't want here.
     proc = subprocess.run(  # pylint: disable=subprocess-run-check
         [
             'java',
             '-jar', CHECKSTYLE_JAR,
             '-f', 'xml',
-            *argv,
+            '-c', config
+            *args,
             '.',
         ],
         stdout=subprocess.PIPE,

@@ -58,6 +58,15 @@ def main(argv: t.Sequence[str]) -> int:
     """Run ESLint.
     """
 
+    # If the first argument is nonempty, it is the path to a config file, so
+    # insert `--config` right before it. Otherwise drop the argument.
+    if not argv:
+        args = []
+    elif argv[0]:
+        args = ['--config', *argv]
+    else:
+        args = argv[1:]
+
     npm_root = subprocess.check_output(['npm', 'root', '-g'])
 
     # The check for success is something we really don't want here.
@@ -70,7 +79,7 @@ def main(argv: t.Sequence[str]) -> int:
             '--no-eslintrc',
             '--no-inline-config',
             '--report-unused-disable-directives',
-            *argv,
+            *args,
         ],
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,

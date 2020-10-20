@@ -43,6 +43,15 @@ def main(argv: t.Sequence[str]) -> int:
     """Run Flake8.
     """
 
+    # If the first argument is nonempty, it is the path to a config file, so
+    # insert `--config` right before it. Otherwise drop the argument.
+    if not argv:
+        args = []
+    elif argv[0]:
+        args = ['--config', *argv]
+    else:
+        args = argv[1:]
+
     # This is not guessable
     sep = str(uuid.uuid4())
     fmt = '%(path)s{0}%(row)d{0}%(col)d{0}%(code)s{0}%(text)s'.format(sep)
@@ -54,7 +63,7 @@ def main(argv: t.Sequence[str]) -> int:
             '--disable-noqa',
             '--format', fmt,
             '--exit-zero',
-            *argv,
+            *args,
         ],
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,

@@ -60,7 +60,7 @@ export class CodeQualityWrapper {{
     }}
 }}
 
-export type CodeQualityWrappers = keyof typeof codeQualityWrappers;
+export type CodeQualityWrapperName = keyof typeof codeQualityWrappers;
 
 """.format(
     header=HEADER,
@@ -111,8 +111,8 @@ def render_ts_enum_entry(info: WrapperInfo) -> str:
 
 def render_ts_enum(scripts: t.Iterable[WrapperInfo]) -> str:
     return """export const codeQualityWrappers = Object.freeze({{
+    {},
     custom: new CodeQualityWrapper('custom', 'custom'),
-    {}
 }} as const);
 """.format(
     ',\n    '.join(render_ts_enum_entry(s) for s in scripts),

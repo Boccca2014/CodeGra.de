@@ -7,12 +7,13 @@ import * as utils from '@/utils';
 import {
     codeQualityWrappers,
     CodeQualityWrapper,
-    CodeQualityWrappers,
+    CodeQualityWrapperName,
 } from '@/code_quality_wrappers';
 
 interface SelectedWrapper {
-    wrapper?: CodeQualityWrappers | undefined;
+    wrapper?: CodeQualityWrapperName | undefined;
     program: string;
+    config: string;
     args: string;
 }
 
@@ -37,8 +38,9 @@ export default tsx.componentFactoryOf<Events>().create({
     functional: true,
 
     props: {
-        wrapper: p.ofType<CodeQualityWrappers | undefined>().required,
+        wrapper: p.ofType<CodeQualityWrapperName | undefined>().required,
         program: p(String).required,
+        config: p(String).required,
         args: p(String).required,
     },
 
@@ -51,6 +53,7 @@ export default tsx.componentFactoryOf<Events>().create({
                 {
                     wrapper: props.wrapper,
                     program: props.program,
+                    config: props.config,
                     args: props.args,
                 },
                 event,
@@ -61,12 +64,16 @@ export default tsx.componentFactoryOf<Events>().create({
             }
         };
 
-        const updateWrapper = (wrapper: CodeQualityWrappers) => {
+        const updateWrapper = (wrapper: CodeQualityWrapperName) => {
             emit({ wrapper });
         };
 
         const updateProgram = (program?: string | number | string[]) => {
             emit({ program: inputToString(program) });
+        };
+
+        const updateConfig = (config?: string | number | string[]) => {
+            emit({ config: inputToString(config) });
         };
 
         const updateArgs = (args?: string | number | string[]) => {
@@ -83,7 +90,7 @@ export default tsx.componentFactoryOf<Events>().create({
             </b-form-select>
         );
 
-        const renderCustomInput = (program: string) => (
+        const renderCustomProgramInput = (program: string) => (
             <b-form-group label="Custom program">
                 <input
                     class="form-control"
@@ -94,15 +101,25 @@ export default tsx.componentFactoryOf<Events>().create({
             </b-form-group>
         );
 
-        const renderArgsInput = (args: string) => (
-            <b-form-group label="Extra arguments">
-                <input
-                    class="form-control"
-                    placeholder="Extra arguments"
-                    value={args}
-                    onInput={ev => updateArgs(ev.target.value)}
-                />
-            </b-form-group>
+        const renderExtraArgsInputs = (config: string, args: string) => (
+            <span>
+                <b-form-group label="Config file">
+                    <input
+                        class="form-control"
+                        placeholder="Path to your configuration"
+                        value={config}
+                        onInput={ev => updateConfig(ev.target.value)}
+                    />
+                </b-form-group>
+                <b-form-group label="Extra arguments">
+                    <input
+                        class="form-control"
+                        placeholder="Extra arguments"
+                        value={args}
+                        onInput={ev => updateArgs(ev.target.value)}
+                    />
+                </b-form-group>
+            </span>
         );
 
         const getSelectedWrapper = () => {
@@ -120,8 +137,8 @@ export default tsx.componentFactoryOf<Events>().create({
                 {utils.ifOrEmpty(props.wrapper != null, () =>
                     utils.ifExpr(
                         props.wrapper === codeQualityWrappers.custom.name,
-                        () => renderCustomInput(props.program),
-                        () => renderArgsInput(props.args),
+                        () => renderCustomProgramInput(props.program),
+                        () => renderExtraArgsInputs(props.config, props.args),
                     ),
                 )}
             </div>

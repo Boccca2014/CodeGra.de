@@ -1043,6 +1043,7 @@ class _QualityTest(AutoTestStepBase):
         ) as [get, _]:
             wrapper = get('wrapper', CodeQualityWrapper)
             program = get('program', str)
+            config = get('config', str)
             args = get('args', str)
             penalties = get('penalties', dict)
 
@@ -1087,7 +1088,7 @@ class _QualityTest(AutoTestStepBase):
         if wrapper == CodeQualityWrapper.custom:
             program = t.cast(str, data['program'])
         else:
-            program = f'{wrapper.value.executable} {data["args"]}'
+            program = f'{wrapper.value.executable} {data["config"]} {data["args"]}'
 
         command_res = container.run_student_command(
             program,

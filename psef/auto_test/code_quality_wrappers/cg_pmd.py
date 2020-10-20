@@ -60,6 +60,16 @@ def main(argv: t.Sequence[str]) -> int:
     Arguments are the same as for :py:meth:`Linter.run`.
     """
 
+    if not argv or not argv[0]:
+        print(
+            'PMD requires a config file to be able to run',
+            file=sys.stderr,
+        )
+        return 1
+
+    config, *args = argv
+
+
     # The check for success is something we really don't want here.
     proc = subprocess.run(  # pylint: disable=subprocess-run-check
         [
@@ -70,6 +80,7 @@ def main(argv: t.Sequence[str]) -> int:
             '-format',
             'csv',
             '-shortnames',
+            '-rulesets', config,
             *argv,
             '-dir', '.',
         ],

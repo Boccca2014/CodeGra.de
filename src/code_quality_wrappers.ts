@@ -16,13 +16,13 @@ export class CodeQualityWrapper {
     }
 }
 
-export type CodeQualityWrappers = keyof typeof codeQualityWrappers;
+export type CodeQualityWrapperName = keyof typeof codeQualityWrappers;
 
 export const codeQualityWrappers = Object.freeze({
-    custom: new CodeQualityWrapper('custom', 'custom'),
     cg_checkstyle: new CodeQualityWrapper('cg_checkstyle', 'checkstyle'),
     cg_eslint: new CodeQualityWrapper('cg_eslint', 'eslint'),
     cg_flake8: new CodeQualityWrapper('cg_flake8', 'flake8'),
     cg_pmd: new CodeQualityWrapper('cg_pmd', 'pmd'),
-    cg_pylint: new CodeQualityWrapper('cg_pylint', 'pylint')
+    cg_pylint: new CodeQualityWrapper('cg_pylint', 'pylint'),
+    custom: new CodeQualityWrapper('custom', 'custom'),
 } as const);
