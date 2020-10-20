@@ -458,9 +458,8 @@
             <td class="shrink">{{ index }}</td>
             <td class="overflowable">
                 <div class="overflow-auto">
-                    <b>{{ stepName }}</b>
-
                     <p class="mb-1">
+                        <b>{{ stepName }}</b>
                         Check the code quality using
                         <code>{{ codeQualityProgram }}</code>.
                     </p>
@@ -469,28 +468,26 @@
                         Points will be deducted for each comment.
                     </p>
 
-                    <ul class="mb-1">
-                        <li>
-                            Per <b-badge variant="danger">fatal</b-badge>
-                            comment you will lose {{ value.data.penalties.fatal
-                            }}% of the points.
-                        </li>
-                        <li>
-                            Per <b-badge variant="danger">error</b-badge>
-                            comment you will lose {{ value.data.penalties.error
-                            }}% of the points.
-                        </li>
-                        <li>
-                            Per <b-badge variant="warning">warning</b-badge>
-                            comment you will lose {{
-                            value.data.penalties.warning }}% of the points.
-                        </li>
-                        <li>
-                            Per <b-badge variant="info">info</b-badge> comment
-                            you will lose {{ value.data.penalties.info }}% of
-                            the points.
-                        </li>
-                    </ul>
+                    <p class="mb-0">
+                        Per <b-badge variant="danger">fatal</b-badge>
+                        comment you will lose {{ value.data.penalties.fatal
+                        }}% of the points.
+                    </p>
+                    <p class="mb-0">
+                        Per <b-badge variant="danger">error</b-badge>
+                        comment you will lose {{ value.data.penalties.error
+                        }}% of the points.
+                    </p>
+                    <p class="mb-0">
+                        Per <b-badge variant="warning">warning</b-badge>
+                        comment you will lose {{
+                        value.data.penalties.warning }}% of the points.
+                    </p>
+                    <p class="mb-0">
+                        Per <b-badge variant="info">info</b-badge> comment
+                        you will lose {{ value.data.penalties.info }}% of
+                        the points.
+                    </p>
                 </div>
             </td>
             <td class="shrink text-center">
