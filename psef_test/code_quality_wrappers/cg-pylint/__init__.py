@@ -7,17 +7,19 @@ from code_quality_wrappers import Tester
 
 class PyLintTester(Tester):
     def run_test(self):
-        return self.run_wrapper('pylint_test_dir')
+        self.run_wrapper('pylint_test_dir')
+        return self.get_cgapi_output()
 
     @property
     def wrapper_name(self):
-        return 'cg-pylint'
+        return 'cg_pylint.py'
 
-class PyLintValidTester(PyLintTester):
     @property
     def submission_archive(self):
         return 'test_pylint.tar.gz'
 
+
+class PyLintValidTester(PyLintTester):
     @property
     def expected_output(self):
         return [

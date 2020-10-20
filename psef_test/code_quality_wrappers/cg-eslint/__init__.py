@@ -7,17 +7,19 @@ from code_quality_wrappers import Tester
 
 class ESLintTester(Tester):
     def run_test(self):
-        return self.run_wrapper('**/*.js')
+        self.run_wrapper('**/*.js')
+        return self.get_cgapi_output()
 
     @property
     def wrapper_name(self):
-        return 'cg-eslint'
+        return 'cg_eslint.py'
 
-class ESLintValidTester(ESLintTester):
     @property
     def submission_archive(self):
         return 'test_eslint.tar.gz'
 
+
+class ESLintValidTester(ESLintTester):
     @property
     def expected_output(self):
         return [

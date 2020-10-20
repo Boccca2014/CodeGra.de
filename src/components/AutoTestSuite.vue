@@ -71,7 +71,8 @@
                 </SlickItem>
             </transition-group>
 
-            <icon class="expand-all-btn text-muted mt-3 ml-3"
+            <icon v-if="internalValue.steps.length > 0"
+                  class="expand-all-btn text-muted mt-3 ml-3"
                   :name="expandedSteps.length ? 'compress' : 'expand'"
                   @click.native="toggleAllSteps"
                   v-b-popover.hover.top="`${expandedSteps.length ? 'Collapse' : 'Expand'} all steps.`" />
@@ -549,8 +550,9 @@ export default {
                     res.data.program = '';
                     break;
                 case 'code_quality':
-                    res.data.wrapper = null;
+                    res.data.wrapper = undefined;
                     res.data.program = '';
+                    res.data.config = '';
                     res.data.args = '';
                     res.data.penalties = {
                         fatal: 0,

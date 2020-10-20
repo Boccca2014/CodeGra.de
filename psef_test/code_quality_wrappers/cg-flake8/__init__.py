@@ -7,18 +7,19 @@ from code_quality_wrappers import Tester
 
 class Flake8Tester(Tester):
     def run_test(self):
-        return self.run_wrapper()
+        self.run_wrapper()
+        return self.get_cgapi_output()
 
     @property
     def wrapper_name(self):
-        return 'cg-flake8'
+        return 'cg_flake8.py'
 
-
-class Flake8ValidTester(Flake8Tester):
     @property
     def submission_archive(self):
         return 'test_flake8.tar.gz'
 
+
+class Flake8ValidTester(Flake8Tester):
     @property
     def expected_output(self):
         return [

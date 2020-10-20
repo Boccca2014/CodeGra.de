@@ -243,44 +243,57 @@
                 <code-quality-wrapper-selector
                     :wrapper="value.data.wrapper"
                     :program="value.data.program"
+                    :config="value.data.config"
                     :args="value.data.args"
                     @input="updateCodeQualityWrapper" />
 
-                <b-form-group label="Penalties">
-                    <b-input-group>
-                        <b-input-group-prepend is-text variant="danger">
-                            Fatal
-                        </b-input-group-prepend>
-                        <cg-number-input
-                            name="Fatal penalty"
-                            :value="numberInputValue(value.data.penalties.fatal)"
-                            @input="updatePenalty('fatal', $event)"/>
+                <hr style="margin: 1rem -1.25rem;" />
 
-                        <b-input-group-prepend is-text variant="danger">
-                            Error
-                        </b-input-group-prepend>
-                        <cg-number-input
-                            name="Error penalty"
-                            :value="numberInputValue(value.data.penalties.error)"
-                            @input="updatePenalty('error', $event)"/>
+                <label>
+                    Penalties
+                </label>
 
-                        <b-input-group-prepend is-text variant="warning">
-                            Warning
-                        </b-input-group-prepend>
-                        <cg-number-input
-                            name="Warning penalty"
-                            :value="numberInputValue(value.data.penalties.warning)"
-                            @input="updatePenalty('warning', $event)"/>
+                <div class="row">
+                    <b-form-group label="Per message of level &quot;fatal&quot;"
+                                  class="col-6">
+                        <b-input-group append="%">
+                            <cg-number-input
+                                name="Fatal penalty"
+                                :value="numberInputValue(value.data.penalties.fatal)"
+                                @input="updatePenalty('fatal', $event)"/>
+                        </b-input-group>
+                    </b-form-group>
 
-                        <b-input-group-prepend is-text variant="info">
-                            Info
-                        </b-input-group-prepend>
-                        <cg-number-input
-                            name="Info penalty"
-                            :value="numberInputValue(value.data.penalties.info)"
-                            @input="updatePenalty('info', $event)"/>
-                    </b-input-group>
-                </b-form-group>
+                    <b-form-group label="Per message of level &quot;error&quot;"
+                                  class="col-6">
+                        <b-input-group append="%">
+                            <cg-number-input
+                                name="Error penalty"
+                                :value="numberInputValue(value.data.penalties.error)"
+                                @input="updatePenalty('error', $event)"/>
+                        </b-input-group>
+                    </b-form-group>
+
+                    <b-form-group label="Per message of level &quot;warning&quot;"
+                                  class="col-6">
+                        <b-input-group append="%">
+                            <cg-number-input
+                                name="Warning penalty"
+                                :value="numberInputValue(value.data.penalties.warning)"
+                                @input="updatePenalty('warning', $event)"/>
+                        </b-input-group>
+                    </b-form-group>
+
+                    <b-form-group label="Per message of level &quot;info&quot;"
+                                  class="col-6">
+                        <b-input-group append="%">
+                            <cg-number-input
+                                name="Info penalty"
+                                :value="numberInputValue(value.data.penalties.info)"
+                                @input="updatePenalty('info', $event)"/>
+                        </b-input-group>
+                    </b-form-group>
+                </div>
             </template>
         </b-card-body>
     </collapse>
@@ -445,50 +458,36 @@
             <td class="shrink">{{ index }}</td>
             <td class="overflowable">
                 <div class="overflow-auto">
-                    <b>{{ stepName }}</b>
-
-                    <template v-if="canViewDetails">
+                    <p class="mb-1">
+                        <b>{{ stepName }}</b>
                         Check the code quality using
-                        <code v-if="value.data.wrapper == 'custom'">{{
-                            value.data.program
-                        }}</code>
-                        <code v-else>{{
-                            value.data.args
-                                ? `${value.data.wrapper} ${value.data.args}`
-                                : value.data.wrapper
-                        }}</code>
-                        with penalties:
+                        <code>{{ codeQualityProgram }}</code>.
+                    </p>
 
-                        <b-input-group class="w-100 mt-2">
-                            <b-input-group-prepend is-text class="text-danger">
-                                Fatal
-                            </b-input-group-prepend>
-                            <b-input-group-prepend class="flex-grow-1 form-control justify-content-end">
-                                {{ value.data.penalties.fatal }}%
-                            </b-input-group-prepend>
+                    <p class="mb-1">
+                        Points will be deducted for each comment.
+                    </p>
 
-                            <b-input-group-prepend is-text class="text-danger">
-                                Error
-                            </b-input-group-prepend>
-                            <b-input-group-prepend class="flex-grow-1 form-control justify-content-end">
-                                {{ value.data.penalties.error }}%
-                            </b-input-group-prepend>
-
-                            <b-input-group-prepend is-text class="text-warning">
-                                Warning
-                            </b-input-group-prepend>
-                            <b-input-group-prepend class="flex-grow-1 form-control justify-content-end">
-                                {{ value.data.penalties.warning }}%
-                            </b-input-group-prepend>
-
-                            <b-input-group-prepend is-text class="text-info">
-                                Info
-                            </b-input-group-prepend>
-                            <b-input-group-prepend class="flex-grow-1 form-control justify-content-end mr-0">
-                                {{ value.data.penalties.info }}%
-                            </b-input-group-prepend>
-                        </b-input-group>
-                    </template>
+                    <p class="mb-0">
+                        Per <b-badge variant="danger">fatal</b-badge>
+                        comment you will lose {{ value.data.penalties.fatal
+                        }}% of the points.
+                    </p>
+                    <p class="mb-0">
+                        Per <b-badge variant="danger">error</b-badge>
+                        comment you will lose {{ value.data.penalties.error
+                        }}% of the points.
+                    </p>
+                    <p class="mb-0">
+                        Per <b-badge variant="warning">warning</b-badge>
+                        comment you will lose {{
+                        value.data.penalties.warning }}% of the points.
+                    </p>
+                    <p class="mb-0">
+                        Per <b-badge variant="info">info</b-badge> comment
+                        you will lose {{ value.data.penalties.info }}% of
+                        the points.
+                    </p>
                 </div>
             </td>
             <td class="shrink text-center">
@@ -1127,6 +1126,7 @@ import 'vue-awesome/icons/ban';
 import { visualizeWhitespace } from '@/utils/visualize';
 import { getCapturePointsDiff } from '@/utils/diff';
 import { CGJunit } from '@/utils/junit';
+import { codeQualityWrappers } from '@/code_quality_wrappers';
 import { mapGetters, mapActions } from 'vuex';
 
 import Collapse from './Collapse';
@@ -1447,6 +1447,33 @@ export default {
         shouldShowProgramInput() {
             return !this.stepType.meta && this.value.type !== 'code_quality';
         },
+
+        codeQualityProgram() {
+            const { wrapper, program, args } = this.value.data;
+            const wrapperInfo = codeQualityWrappers[wrapper];
+
+            if (wrapperInfo == null) {
+                return '<unknown linter>';
+            }
+
+            if (wrapperInfo.name === 'custom') {
+                if (this.canViewDetails) {
+                    return program;
+                } else {
+                    return program.trim().split(/\s/)[0];
+                }
+            }
+
+            if (!this.canViewDetails) {
+                return wrapperInfo.name;
+            }
+
+            let cmd = wrapperInfo.name;
+            if (args !== '') {
+                cmd += ` ${args}`;
+            }
+            return cmd;
+        },
     },
 
     async mounted() {
@@ -1512,12 +1539,17 @@ export default {
             this.$emit('input', Object.assign(this.valueCopy, { collapsed }));
         },
 
-        async updateCodeQualityWrapper({ wrapper, program, args }) {
-            this.updateValue('wrapper', wrapper);
-            await this.$nextTick();
-            this.updateValue('program', program);
-            await this.$nextTick();
-            this.updateValue('args', args);
+        async updateCodeQualityWrapper({ wrapper, program, config, args }) {
+            this.$emit('input', {
+                ...this.valueCopy,
+                data: {
+                    ...this.valueCopy.data,
+                    wrapper,
+                    program,
+                    config,
+                    args,
+                },
+            });
         },
 
         updatePenalty(name, maybeValue) {

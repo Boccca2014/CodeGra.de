@@ -5,6 +5,7 @@ import os
 import sys
 import json
 import tempfile
+import typing as t
 import subprocess
 
 
@@ -38,31 +39,42 @@ def handle_error(message):
     )
 
 
-def main() -> None:
+def main(argv: t.Sequence[str]) -> int:
     """Run PyLint.
     """
+
+    # If the first argument is nonempty, it is the path to a config file, so
+    # insert `--config` right before it. Otherwise drop the argument.
+    if not argv:
+        args = []
+    elif argv[0]:
+        args = ['--rcfile', *argv]
+    else:
+        args = argv[1:]
 
     # The check for success is something we really don't want here.
     proc = subprocess.run(  # pylint: disable=subprocess-run-check
         [
             'pylint',
             '--output-format', 'json',
-            *sys.argv[1:],
+            *args,
         ],
-        capture_output=True,
-        text=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        encoding='utf8',
     )
 
     if proc.returncode == 32:
         print('PyLint crashed:\n', proc.stdout, file=sys.stderr)
-        sys.exit(32)
+        return 32
+
     if proc.returncode == 1:
         print(
             'The submission is not a valid python module, it probably lacks'
             ' an `__init__` file.',
             file=sys.stderr,
         )
-        sys.exit(1)
+        return 1
 
     comments = [
         handle_error(err) for err in json.loads(proc.stdout)
@@ -78,8 +90,10 @@ def main() -> None:
         api_proc = subprocess.run(
             ['cg-api'], input=output.encode('utf8'), check=False
         )
-        sys.exit(api_proc.returncode)
+        return api_proc.returncode
+
+    return 0
 
 
 if __name__ == '__main__':
-    main()
+    sys.exit(main(sys.argv[1:]))

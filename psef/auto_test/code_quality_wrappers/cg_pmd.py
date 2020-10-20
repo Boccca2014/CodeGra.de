@@ -6,11 +6,12 @@ import os
 import csv
 import sys
 import json
+import typing as t
 import subprocess
 
 STUDENT = os.environ['STUDENT']
-# {PMD_PATH} is to be substituted by the AT runner.
-PMD_BIN = '{PMD_PATH}/bin/run.sh'
+PMD_PATH = os.environ['PMD_PATH']
+PMD_BIN = f'{PMD_PATH}/bin/run.sh'
 
 
 def handle_error(message):
@@ -53,11 +54,21 @@ def handle_error(message):
     )
 
 
-def main() -> None:
+def main(argv: t.Sequence[str]) -> int:
     """Run PMD.
 
     Arguments are the same as for :py:meth:`Linter.run`.
     """
+
+    if not argv or not argv[0]:
+        print(
+            'PMD requires a config file to be able to run',
+            file=sys.stderr,
+        )
+        return 1
+
+    config, *args = argv
+
 
     # The check for success is something we really don't want here.
     proc = subprocess.run(  # pylint: disable=subprocess-run-check
@@ -69,22 +80,24 @@ def main() -> None:
             '-format',
             'csv',
             '-shortnames',
-            *sys.argv[1:],
+            '-rulesets', config,
+            *argv,
             '-dir', '.',
         ],
-        capture_output=True,
-        text=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        encoding='utf8',
     )
 
     if proc.returncode != 0:
         print('PMD crashed, stdout:\n', proc.stderr, file=sys.stderr)
-        sys.exit(proc.returncode)
+        return proc.returncode
 
     output = csv.DictReader(io.StringIO(proc.stdout))
 
     if output is None:
         print('Could not parse PMD output:\n', proc.stdout, file=sys.stderr)
-        sys.exit(1)
+        return 1
 
     comments = [handle_error(err) for err in output]
 
@@ -98,8 +111,10 @@ def main() -> None:
         api_proc = subprocess.run(
             ['cg-api'], input=api_input.encode('utf8'), check=False
         )
-        sys.exit(api_proc.returncode)
+        return api_proc.returncode
+
+    return 0
 
 
 if __name__ == '__main__':
-    main()
+    sys.exit(main(sys.argv[1:]))

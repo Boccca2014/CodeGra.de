@@ -1,8 +1,10 @@
+import io
 import os
 import abc
 import json
-import uuid
 import shutil
+import importlib
+import contextlib
 import subprocess
 
 import cg_junit
@@ -17,6 +19,27 @@ def mkdirp(tgt):
     """
     os.makedirs(tgt, exist_ok=True)
     return tgt
+
+
+@contextlib.contextmanager
+def temp_cwd(dir):
+    old_cwd = os.getcwd()
+    os.chdir(dir)
+    try:
+        yield
+    finally:
+        os.chdir(old_cwd)
+
+
+@contextlib.contextmanager
+def temp_env(new_env):
+    old_env = { **os.environ }
+    os.environ.update(new_env)
+    try:
+        yield
+    finally:
+        os.environ.clear()
+        os.environ.update(old_env)
 
 
 class Tester(abc.ABC):
@@ -37,27 +60,17 @@ class Tester(abc.ABC):
         # Directory containing binaries.
         self.bin_dir = mkdirp(f'{prefix}/bin')
 
-        # Substitute paths to the linters in the script where needed.
-        with open(wrapper_src, 'r') as f:
-            self.write_executable(
-                self.wrapper_name,
-                f.read().format(
-                    PMD_PATH=os.path.join(BASE_DIR, 'pmd'),
-                    CHECKSTYLE_PATH=BASE_DIR,
-                ),
-            )
-
-        self.uuid = str(uuid.uuid4())
-
-        # Stub cg-api with a program that writes its stdin to stdout wrapped
-        # between two lines containing the same uuid.
+        # Stub cg-api with a program that writes its stdin to
+        # {self.prefix}/cgapi.out
         self.write_executable('cg-api', f'''#!/bin/sh
-echo {self.uuid}
-cat
-# ensure uuid starts on new line
-echo
-echo {self.uuid}
+cat >"{self.prefix}/cgapi.out"
 ''')
+
+    def write_file(self, name, content):
+        path = os.path.join(self.prefix, name)
+        with open(path, 'w') as f:
+            f.write(content)
+        return path
 
     def write_executable(self, name, content):
         path = os.path.join(self.bin_dir, name)
@@ -68,8 +81,7 @@ echo {self.uuid}
     @classmethod
     def run_tests(cls, assert_similar, *args, **kwargs):
         self = cls(*args, **kwargs)
-        proc = self.run_test()
-        output = self.get_cgapi_output(proc)
+        output = self.run_test()
 
         assert_similar(output, self.expected_output)
 
@@ -101,43 +113,42 @@ echo {self.uuid}
     def run_wrapper(self, *args, status=0):
         """Run the wrapper script with the given arguments.
         """
-        return self.run_shell(self.wrapper_name, *args, status=status)
+        stdout = io.StringIO()
+        stderr = io.StringIO()
 
-    def run_shell(self, *cmd, status=0):
         env = {
-            **os.environ,
             'PATH': f'{self.bin_dir}:{os.environ["PATH"]}',
             'STUDENT': self.submission_dir + os.path.sep,
+            'PMD_PATH': os.path.join(BASE_DIR, 'pmd'),
+            'CHECKSTYLE_PATH': BASE_DIR,
         }
 
-        proc = subprocess.run(
-            " ".join(cmd),
-            capture_output=True,
-            cwd=self.submission_dir,
-            env=env,
-            shell=True,
-            text=True,
-        )
+        with temp_cwd(self.submission_dir), temp_env(env), contextlib.redirect_stdout(stdout), contextlib.redirect_stderr(stderr):
+            spec = importlib.util.spec_from_file_location(
+                'wrapper',
+                os.path.join(
+                    BASE_DIR, 'psef', 'auto_test', 'code_quality_wrappers',
+                    self.wrapper_name
+                )
+            )
+            mod = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(mod)
+            ret = mod.main(args)
 
         if status is not None:
             try:
-                assert proc.returncode == status
+                assert ret == status
             except:
                 print('stdout:')
-                print(proc.stdout)
+                print(stdout.read())
                 print('stderr:')
-                print(proc.stderr)
+                print(stderr.read())
                 raise
 
-        return proc
+        return ret, stdout.read(), stderr.read()
 
-    def get_cgapi_output(self, proc):
-        lines = proc.stdout.splitlines()
-
-        idcs = iter(range(len(lines)))
-        start = next(i for i in idcs if lines[i] == self.uuid)
-        end = next(i for i in idcs if lines[i] == self.uuid)
-
-        output = json.loads('\n'.join(lines[start + 1 : end]))
+    def get_cgapi_output(self):
+        with open(os.path.join(self.prefix, 'cgapi.out')) as f:
+            output = json.loads(f.read())
         assert output['op'] == 'put_comments'
         return output['comments']

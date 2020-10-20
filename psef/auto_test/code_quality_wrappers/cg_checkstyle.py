@@ -4,12 +4,13 @@
 import os
 import sys
 import json
+import typing as t
 import subprocess
 import xml.etree.ElementTree as ET
 
 STUDENT = os.environ['STUDENT']
-# {CHECKSTYLE_PATH} is to be substituted by the AT runner.
-CHECKSTYLE_JAR = '{CHECKSTYLE_PATH}/checkstyle.jar'
+CHECKSTYLE_PATH = os.getenv('CHECKSTYLE_PATH')
+CHECKSTYLE_JAR = f'{CHECKSTYLE_PATH}/checkstyle.jar'
 
 
 def handle_file_output(file_el):
@@ -55,9 +56,18 @@ def handle_file_output(file_el):
     return msgs
 
 
-def main() -> None:
+def main(argv: t.Sequence[str]) -> int:
     """Run Checkstyle
     """
+
+    if not argv or not argv[0]:
+        print(
+            'Checkstyle requires a config file to be able to run',
+            file=sys.stderr,
+        )
+        return 1
+
+    config, *args = argv
 
     # The check for success is something we really don't want here.
     proc = subprocess.run(  # pylint: disable=subprocess-run-check
@@ -65,11 +75,13 @@ def main() -> None:
             'java',
             '-jar', CHECKSTYLE_JAR,
             '-f', 'xml',
-            *sys.argv[1:],
+            '-c', config
+            *args,
             '.',
         ],
-        capture_output=True,
-        text=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        encoding='utf8',
     )
 
     if proc.returncode == 254:
@@ -78,7 +90,7 @@ def main() -> None:
             proc.stderr,
             file=sys.stderr,
         )
-        sys.exit(proc.returncode)
+        return proc.returncode
 
     try:
         output = ET.fromstring(proc.stdout)
@@ -88,7 +100,7 @@ def main() -> None:
             proc.stderr,
             file=sys.stderr,
         )
-        sys.exit(1)
+        return proc.returncode
 
     comments = [
         err for el in output for err in handle_file_output(el)
@@ -105,8 +117,10 @@ def main() -> None:
         api_proc = subprocess.run(
             ['cg-api'], input=api_input.encode('utf8'), check=False
         )
-        sys.exit(api_proc.returncode)
+        return api_proc.returncode
+
+    return 0
 
 
 if __name__ == '__main__':
-    main()
+    sys.exit(main(sys.argv[1:]))
