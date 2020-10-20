@@ -518,6 +518,37 @@ def _get_amount_cpus() -> int:
     return os.cpu_count() or 1
 
 
+def _setup_base_container(
+    config: 'psef.FlaskConfig', cont: 'StartedContainer'
+) -> 'AutoTestContainer':
+    scripts = {'cg-api': 'api_client.py'}
+    scripts.update(
+        {
+            w.value: os.path.join('code_quality_wrappers', w.value)
+            for w in code_quality_wrappers.CodeQualityWrapper
+            if w.value != 'custom'
+        }
+    )
+    _copy_scripts(cont, scripts, config)
+
+    template_name = config['AUTO_TEST_TEMPLATE_CONTAINER']
+    if template_name is None:
+        cont.run_command(['apt', 'update'])
+        cont.run_command(
+            ['apt', 'install', '-y', 'wget', 'curl', 'unzip', 'flake8'],
+            retry_amount=4,
+        )
+
+    if config['AUTO_TEST_STARTUP_COMMAND'] is not None:
+        cont.run_command(
+            [
+                'bash',
+                '-c',
+                config['AUTO_TEST_STARTUP_COMMAND'],
+            ]
+        )
+
+
 def _get_base_container(config: 'psef.FlaskConfig') -> 'AutoTestContainer':
     helpers.ensure_on_test_server()
     template_name = config['AUTO_TEST_TEMPLATE_CONTAINER']
@@ -919,31 +950,7 @@ def start_polling(config: 'psef.FlaskConfig') -> None:
         )
 
     with _get_base_container(config).started_container() as cont:
-        scripts = {'cg-api': 'api_client.py'}
-        scripts.update(
-            {
-                w.value: os.path.join('code_quality_wrappers', w.value)
-                for w in code_quality_wrappers.CodeQualityWrapper
-                if w.value != 'custom'
-            }
-        )
-
-        _copy_scripts(cont, scripts, config)
-
-        if config['AUTO_TEST_TEMPLATE_CONTAINER'] is None:
-            cont.run_command(['apt', 'update'])
-            cont.run_command(
-                ['apt', 'install', '-y', 'wget', 'curl', 'unzip'],
-                retry_amount=4,
-            )
-        if config['AUTO_TEST_STARTUP_COMMAND'] is not None:
-            cont.run_command(
-                [
-                    'bash',
-                    '-c',
-                    config['AUTO_TEST_STARTUP_COMMAND'],
-                ]
-            )
+        _setup_base_container(config, cont)
 
         for _ in helpers.retry_loop(
             sys.maxsize,
