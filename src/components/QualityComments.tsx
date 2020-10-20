@@ -16,6 +16,10 @@ type MessageGroup = {
     severity: models.QualityCommentSeverity;
 };
 
+type Penalties = {
+    [K in models.QualityCommentSeverity]: number;
+};
+
 const groupComments = (
     comments: ReadonlyArray<models.QualityComment>,
 ): ReadonlyArray<MessageGroup> => {
@@ -61,6 +65,13 @@ export default tsx.component({
         assignmentId: p(Number).required,
         submissionId: p(Number).required,
         renderLinks: p(Boolean).default(false),
+        penalties: p.ofType<Penalties>().default(() => ({
+            fatal: 8,
+            error: 4,
+            warning: 2,
+            info: 1,
+            old_linter: 0,
+        })),
     },
 
     render(h, ctx) {
@@ -153,15 +164,23 @@ export default tsx.component({
             const sorted = utils.sortBy(
                 grouped,
                 group => [
-                    group.severity === models.QualityCommentSeverity.fatal,
-                    group.severity === models.QualityCommentSeverity.error,
-                    group.severity === models.QualityCommentSeverity.warning,
-                    group.severity === models.QualityCommentSeverity.info,
+                    props.penalties[group.severity] * group.comments.length,
                     group.comments.length,
-                    group.msg,
                     group.origin,
+                    group.msg,
                 ],
-                { reversePerKey: [false, false, false, false, true, false, false] },
+                {
+                    reversePerKey: [
+                        // With highest penalty first.
+                        true,
+                        // Comments with highest impact per comment next.
+                        false,
+                        // Next sort keys are here to make sure sorting is
+                        // stable even if input data isn't sorted.
+                        false,
+                        false,
+                    ],
+                },
             );
 
             return (

@@ -523,6 +523,7 @@
                                         v-else
                                         render-links
                                         :comments="qualityComments"
+                                        :penalties="value.data.penalties"
                                         :course-id="courseId"
                                         :assignment-id="assignmentId"
                                         :submission-id="submissionId"
