@@ -1,5 +1,4 @@
 /* SPDX-License-Identifier: AGPL-3.0-only */
-import { CreateElement, VNode } from 'vue';
 import * as tsx from 'vue-tsx-support';
 import p from 'vue-strict-prop';
 
@@ -36,7 +35,7 @@ export default tsx.component({
     },
 
     render(h, { props, listeners }) {
-        const inputHandlers = utils.ensureArray(listeners.input) || [() => {}];
+        const inputHandlers = utils.ensureArray(listeners.input);
 
         const emit = (event: Partial<SelectedWrapper>) => {
             const data = Object.assign(

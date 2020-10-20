@@ -1,5 +1,5 @@
 /* SPDX-License-Identifier: AGPL-3.0-only */
-import { CreateElement, VNode } from 'vue';
+import { VNode } from 'vue';
 import * as tsx from 'vue-tsx-support';
 import p from 'vue-strict-prop';
 
@@ -7,7 +7,7 @@ import * as comp from '@/components';
 import * as models from '@/models';
 import * as utils from '@/utils';
 import { DefaultMap } from '@/utils/defaultdict';
-import { store, AssignmentsStore } from '@/store';
+import { store } from '@/store';
 
 type SeverityGroup = DefaultMap<
     models.QualityCommentSeverity,
@@ -169,7 +169,7 @@ export default tsx.component({
             );
 
             return (
-                <div class={`quality-comments mt-n3 ${data.class || ''} ${data.staticClass || ''}`}>
+                <div class={`quality-comments mt-n3 ${data.class ?? ''} ${data.staticClass ?? ''}`}>
                     {sorted.map(renderCommentGroup)}
                 </div>
             );

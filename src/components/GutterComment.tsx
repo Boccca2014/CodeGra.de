@@ -1,10 +1,9 @@
 /* SPDX-License-Identifier: AGPL-3.0-only */
-import { CreateElement, VNode } from 'vue';
+import { VNode } from 'vue';
 import * as tsx from 'vue-tsx-support';
 import p from 'vue-strict-prop';
 
 import * as models from '@/models';
-import * as types from '@/types';
 import * as utils from '@/utils';
 
 export default tsx.component({
@@ -31,7 +30,7 @@ export default tsx.component({
                             <b-badge variant={comment.badgeVariant}>{comment.severity}</b-badge>
                         ),
                     )}{' '}
-                    {comment.code ? `[${comment.code}] ` : ''}
+                    {comment.code != null && comment.code !== '' && `[${comment.code}] `}
                     {comment.msg}
                 </td>
             </tr>
