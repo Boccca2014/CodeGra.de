@@ -104,9 +104,30 @@ class PMDInvalidNoConfigTester(PMDInvalidTester):
         assert 'PMD requires a config file' in err
 
 
+class PMDInvalidArgsTester(PMDInvalidTester):
+    def run_test(self):
+        _, _, err = self.run_wrapper(
+            self.maven_config,
+            '-invalid-arg',
+            status=1,
+        )
+
+        assert 'PMD crashed' in err
+
+
+class PMDInvalidConfigTester(PMDInvalidTester):
+    def run_test(self):
+        config = self.get_fixture('test_linter', 'pmd_xpath.xml')
+        _, _, err = self.run_wrapper(config, status=1)
+
+        assert 'PMD crashed' in err
+
+
 wrapper_testers = [
     PMDValidConfigTester,
     PMDValidFatalTester,
     PMDInvalidNoArgsTester,
     PMDInvalidNoConfigTester,
+    PMDInvalidArgsTester,
+    PMDInvalidConfigTester,
 ]

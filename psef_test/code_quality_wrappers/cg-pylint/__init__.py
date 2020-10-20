@@ -6,9 +6,6 @@ from code_quality_wrappers import Tester
 
 
 class PyLintTester(Tester):
-    def run_test(self):
-        self.run_wrapper('', 'pylint_test_dir')
-
     @property
     def wrapper_name(self):
         return 'cg_pylint.py'
@@ -88,6 +85,67 @@ class PyLintValidTester(PyLintTester):
         ]
 
 
+class PyLintValidNoConfigTester(PyLintValidTester):
+    def run_test(self):
+        self.run_wrapper('', 'pylint_test_dir')
+
+
+class PyLintValidConfigTester(PyLintValidTester):
+    def run_test(self):
+        config = self.write_file('config', '''[pylint]
+disable = unused-argument
+''')
+        self.run_wrapper(config, 'pylint_test_dir')
+
+    @property
+    def expected_output(self):
+        return [
+            c
+            for c in super().expected_output
+            if c['code'] != 'unused-argument'
+        ]
+
+
+class PyLintValidNoCommentsTester(PyLintTester):
+    def run_test(self):
+        self.run_wrapper('', 'pylint_test_dir')
+
+    @property
+    def submission_archive(self):
+        return 'test_pylint_no_comments.tar.gz'
+
+    @property
+    def expected_output(self):
+        return None
+
+
+class PyLintInvalidTester(PyLintTester):
+    @property
+    def expected_output(self):
+        return None
+
+
+class PyLintInvalidNoArgsTester(PyLintInvalidTester):
+    def run_test(self):
+        _, _, err = self.run_wrapper(status=32)
+
+        assert 'PyLint crashed' in err
+
+class PyLintInvalidModuleTester(PyLintInvalidTester):
+    def run_test(self):
+        _, _, err = self.run_wrapper('', 'pylint_test_dir', status=1)
+
+        assert 'The submission is not a valid python module' in err
+
+    @property
+    def submission_archive(self):
+        return 'test_pylint_invalid_module.tar.gz'
+
+
 wrapper_testers = [
-    PyLintValidTester,
+    PyLintValidNoConfigTester,
+    PyLintValidConfigTester,
+    PyLintValidNoCommentsTester,
+    PyLintInvalidNoArgsTester,
+    PyLintInvalidModuleTester,
 ]

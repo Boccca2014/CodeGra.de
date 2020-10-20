@@ -68,7 +68,7 @@ class Flake8ValidNoConfigTester(Flake8ValidTester):
         self.run_wrapper('')
 
 
-class Flake8ValidWithConfigTester(Flake8ValidTester):
+class Flake8ValidConfigTester(Flake8ValidTester):
     def run_test(self):
         config = self.write_file('config', '''[flake8]
 ignore = E202
@@ -116,7 +116,7 @@ disable_noqa=Trues # This should crash
 wrapper_testers = [
     Flake8ValidNoArgsTester,
     Flake8ValidNoConfigTester,
-    Flake8ValidWithConfigTester,
+    Flake8ValidConfigTester,
     Flake8ValidNoCommentsTester,
     Flake8InvalidConfigTester,
 ]

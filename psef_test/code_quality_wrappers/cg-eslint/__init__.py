@@ -24,7 +24,7 @@ class ESLintValidNoConfigTester(ESLintTester):
         return None
 
 
-class ESLintValidWithConfigTester(ESLintTester):
+class ESLintValidConfigTester(ESLintTester):
     def run_test(self):
         config = self.write_file('config', '''{
     "root": true,
@@ -142,7 +142,7 @@ class ESLintInvalidNoFilesTester(ESLintInvalidTester):
 
 wrapper_testers = [
     ESLintValidNoConfigTester,
-    ESLintValidWithConfigTester,
+    ESLintValidConfigTester,
     ESLintValidFatalTester,
     ESLintInvalidExtendsTester,
     ESLintInvalidPluginTester,
