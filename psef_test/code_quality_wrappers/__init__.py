@@ -60,30 +60,14 @@ class Tester(abc.ABC):
         # Directory containing binaries.
         self.bin_dir = mkdirp(f'{prefix}/bin')
 
+        # Directory to store arbitrary files.
+        self.tmp_dir = mkdirp(f'{prefix}/tmp')
+
         # Stub cg-api with a program that writes its stdin to
         # {self.prefix}/cgapi.out
         self.write_executable('cg-api', f'''#!/bin/sh
 cat >"{self.prefix}/cgapi.out"
 ''')
-
-    def write_file(self, name, content):
-        path = os.path.join(self.prefix, name)
-        with open(path, 'w') as f:
-            f.write(content)
-        return path
-
-    def write_executable(self, name, content):
-        path = os.path.join(self.bin_dir, name)
-        with open(path, 'w') as f:
-            f.write(content)
-        os.chmod(path, 0o755)
-
-    @classmethod
-    def run_tests(cls, assert_similar, *args, **kwargs):
-        self = cls(*args, **kwargs)
-        output = self.run_test()
-
-        assert_similar(output, self.expected_output)
 
     @abc.abstractmethod
     def run_test(self):
@@ -109,6 +93,18 @@ cat >"{self.prefix}/cgapi.out"
         """Expected results.
         """
         raise NotImplementedError
+
+    def write_file(self, name, content):
+        path = os.path.join(self.tmp_dir, name)
+        with open(path, 'w') as f:
+            f.write(content)
+        return path
+
+    def write_executable(self, name, content):
+        path = os.path.join(self.bin_dir, name)
+        with open(path, 'w') as f:
+            f.write(content)
+        os.chmod(path, 0o755)
 
     def run_wrapper(self, *args, status=0):
         """Run the wrapper script with the given arguments.
@@ -136,20 +132,30 @@ cat >"{self.prefix}/cgapi.out"
             ret = mod.main(args)
 
         if status is not None:
-            try:
-                assert ret == status
-            except:
-                print('return code:', ret)
-                print('stdout:')
-                print(stdout.getvalue())
-                print('stderr:')
-                print(stderr.getvalue())
-                raise
+            assert ret == status
 
         return ret, stdout.getvalue(), stderr.getvalue()
 
     def get_cgapi_output(self):
-        with open(os.path.join(self.prefix, 'cgapi.out')) as f:
-            output = json.loads(f.read())
+        try:
+            with open(os.path.join(self.prefix, 'cgapi.out')) as f:
+                output = json.loads(f.read())
+        except FileNotFoundError:
+            return None
+
         assert output['op'] == 'put_comments'
         return output['comments']
+
+    @staticmethod
+    def get_fixture(*path):
+        return os.path.join(BASE_DIR, 'test_data', *path)
+
+    @classmethod
+    def run_tests(cls, assert_similar, *args, **kwargs):
+        self = cls(*args, **kwargs)
+        self.run_test()
+
+        if self.expected_output is None:
+            assert self.get_cgapi_output() is None
+        else:
+            assert_similar(self.get_cgapi_output(), self.expected_output)

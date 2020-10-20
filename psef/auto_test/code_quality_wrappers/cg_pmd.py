@@ -17,7 +17,7 @@ PMD_BIN = f'{PMD_PATH}/bin/run.sh'
 def handle_error(message):
     try:
         priority = int(message['Priority'])
-    except ValueError:
+    except ValueError:  # pragma: no cover
         print(
             'Unknown priority %s encountered!' % message['Priority'],
             file=sys.stderr
@@ -93,7 +93,7 @@ def main(argv: t.Sequence[str]) -> int:
 
     output = csv.DictReader(io.StringIO(proc.stdout))
 
-    if output is None:
+    if output is None:  # pragma: no cover
         print('Could not parse PMD output:\n', proc.stdout, file=sys.stderr)
         return 1
 
@@ -114,5 +114,5 @@ def main(argv: t.Sequence[str]) -> int:
     return 0
 
 
-if __name__ == '__main__':
+if __name__ == '__main__':  # pragma: no cover
     sys.exit(main(sys.argv[1:]))

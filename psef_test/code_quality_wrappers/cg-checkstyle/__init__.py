@@ -10,30 +10,22 @@ BASE_DIR = os.path.realpath(
 
 
 class CheckstyleTester(Tester):
-    def run_test(self):
-        self.run_wrapper(self.config_file)
-        return self.get_cgapi_output()
+    google_config = os.path.join(
+        BASE_DIR, 'resources', 'checkstyle', 'google.xml'
+    )
 
     @property
     def wrapper_name(self):
         return 'cg_checkstyle.py'
 
     @property
-    @abc.abstractmethod
-    def config_file(self):
-        raise NotImplementedError
-
-    @property
     def submission_archive(self):
         return 'test_checkstyle.tar.gz'
 
 
-class CheckstyleValidTester(CheckstyleTester):
-    @property
-    def config_file(self):
-        return os.path.join(
-            BASE_DIR, 'resources', 'checkstyle', 'google.xml'
-        )
+class CheckstyleValidConfigTester(CheckstyleTester):
+    def run_test(self):
+        self.run_wrapper(self.google_config)
 
     @property
     def expected_output(self):
@@ -122,6 +114,56 @@ class CheckstyleValidTester(CheckstyleTester):
     ]
 
 
+class CheckstyleValidNoCommentsTester(CheckstyleTester):
+    @property
+    def submission_archive(self):
+        return 'test_checkstyle_no_comments.tar.gz'
+
+    def run_test(self):
+        self.run_wrapper(self.google_config)
+
+        assert self.get_cgapi_output() is None
+
+    @property
+    def expected_output(self):
+        return None
+
+
+class CheckstyleInvalidTester(CheckstyleTester):
+    @property
+    def expected_output(self):
+        return None
+
+
+class CheckstyleInvalidNoArgsTester(CheckstyleInvalidTester):
+    def run_test(self):
+        _, _, err = self.run_wrapper(status=1)
+
+        assert 'Checkstyle requires a config file' in err
+
+
+class CheckstyleInvalidNoConfigTester(CheckstyleInvalidTester):
+    def run_test(self):
+        _, _, err = self.run_wrapper('', status=1)
+
+        assert 'Checkstyle requires a config file' in err
+
+
+class CheckstyleInvalidSubmissionTester(CheckstyleInvalidTester):
+    def run_test(self):
+        _, _, err = self.run_wrapper(self.google_config, status=254)
+
+        assert 'The given submission could not be parsed' in err
+
+    @property
+    def submission_archive(self):
+        return 'test_checkstyle_invalid_java.tar.gz'
+
+
 wrapper_testers = [
-    CheckstyleValidTester
+    CheckstyleValidConfigTester,
+    CheckstyleValidNoCommentsTester,
+    CheckstyleInvalidNoArgsTester,
+    CheckstyleInvalidNoConfigTester,
+    CheckstyleInvalidSubmissionTester,
 ]

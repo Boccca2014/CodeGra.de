@@ -92,8 +92,14 @@ def main(argv: t.Sequence[str]) -> int:
         print('ESLint crashed:\n', proc.stderr, file=sys.stderr)
         return proc.returncode
 
+    try:
+        output = json.loads(proc.stdout)
+    except json.decoder.JSONDecodeError:
+        print('ESLint crashed:\n', proc.stdout, file=sys.stderr)
+        return 1
+
     comments = [
-        c for f in json.loads(proc.stdout)
+        c for f in output
         for c in handle_file_output(f)
     ]
 
@@ -112,5 +118,5 @@ def main(argv: t.Sequence[str]) -> int:
     return 0
 
 
-if __name__ == '__main__':
+if __name__ == '__main__':  # pragma: no cover
     sys.exit(main(sys.argv[1:]))

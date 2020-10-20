@@ -94,7 +94,7 @@ def main(argv: t.Sequence[str]) -> int:
 
     try:
         output = ET.fromstring(proc.stdout)
-    except ET.ParseError:
+    except ET.ParseError:  # pragma: no cover
         print(
             'The output could not be parsed as XML:\n',
             proc.stderr,
@@ -122,5 +122,5 @@ def main(argv: t.Sequence[str]) -> int:
     return 0
 
 
-if __name__ == '__main__':
+if __name__ == '__main__':  # pragma: no cover
     sys.exit(main(sys.argv[1:]))

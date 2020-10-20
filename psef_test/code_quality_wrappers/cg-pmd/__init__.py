@@ -10,30 +10,22 @@ BASE_DIR = os.path.realpath(
 
 
 class PMDTester(Tester):
-    def run_test(self):
-        self.run_wrapper(self.config_file)
-        return self.get_cgapi_output()
+    maven_config = os.path.join(
+        BASE_DIR, 'resources', 'pmd', 'maven.xml'
+    )
 
     @property
     def wrapper_name(self):
         return 'cg_pmd.py'
 
     @property
-    @abc.abstractmethod
-    def config_file(self):
-        raise NotImplementedError
-
-    @property
     def submission_archive(self):
         return 'test_pmd.tar.gz'
 
 
-class PMDValidTester(PMDTester):
-    @property
-    def config_file(self):
-        return os.path.join(
-            BASE_DIR, 'resources', 'pmd', 'maven.xml'
-        )
+class PMDValidConfigTester(PMDTester):
+    def run_test(self):
+        self.run_wrapper(self.maven_config)
 
     @property
     def expected_output(self):
@@ -77,6 +69,44 @@ class PMDValidTester(PMDTester):
         ]
 
 
+class PMDValidFatalTester(PMDTester):
+    def run_test(self):
+        ret, stdout, err = self.run_wrapper(self.maven_config)
+
+        print(ret, stdout, err)
+
+    @property
+    def submission_archive(self):
+        return 'test_pmd_invalid_java.tar.gz'
+
+    @property
+    def expected_output(self):
+        return []
+
+
+class PMDInvalidTester(PMDTester):
+    @property
+    def expected_output(self):
+        return None
+
+
+class PMDInvalidNoArgsTester(PMDInvalidTester):
+    def run_test(self):
+        _, _, err = self.run_wrapper(status=1)
+
+        assert 'PMD requires a config file' in err
+
+
+class PMDInvalidNoConfigTester(PMDInvalidTester):
+    def run_test(self):
+        _, _, err = self.run_wrapper('', status=1)
+
+        assert 'PMD requires a config file' in err
+
+
 wrapper_testers = [
-    PMDValidTester
+    PMDValidConfigTester,
+    PMDValidFatalTester,
+    PMDInvalidNoArgsTester,
+    PMDInvalidNoConfigTester,
 ]
