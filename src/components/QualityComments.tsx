@@ -86,11 +86,9 @@ export default tsx.component({
             hash: '#code',
         });
 
-        const renderLocation = (line: models.LineRange, column: models.ColumnRange): VNode => {
+        const renderLocation = (line: models.LineRange): VNode => {
             const lStart = line.start;
             const lEnd = line.end;
-            const cStart = column.start;
-            const cEnd = column.end;
 
             const lineText = utils.ifExpr(
                 lStart === lEnd,
@@ -106,32 +104,14 @@ export default tsx.component({
                 ),
             );
 
-            const columnText = utils.ifExpr(
-                cEnd == null || cStart === cEnd,
-                () => (
-                    <span>
-                        column <b>{cStart}</b>
-                    </span>
-                ),
-                () => (
-                    <span>
-                        column <b>{cStart}</b> to column <b>{cEnd}</b>
-                    </span>
-                ),
-            );
-
-            return (
-                <small class="text-muted">
-                    {lineText}, {columnText}
-                </small>
-            );
+            return <small class="text-muted">{lineText}</small>;
         };
 
         const renderComment = (comment: models.QualityComment): VNode => {
             // TODO: Handle case when AutoTest is run on teacher revision
             const file = utils.Maybe.fromNullable(fileTree.search('student', comment.fileId));
             const name = <code>{file.map(f => f.getFullName()).orDefault('…')}</code>;
-            const loc = renderLocation(comment.line, comment.column);
+            const loc = renderLocation(comment.line);
 
             return utils.ifExpr(
                 props.renderLinks,
