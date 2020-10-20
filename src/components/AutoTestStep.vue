@@ -403,7 +403,7 @@
                                 <b-tab title="Output" class="mb-3 flex-wrap">
                                     <p class="col-12 mb-1">
                                         <label>Exit code</label>
-                                        <code>{{ $utils.getProps(stepResult.log, '(unknown)', 'exit_code') }}</code>
+                                        <code>{{ stepExitCode }}</code>
                                     </p>
 
                                     <div class="col-12 mb-1">
@@ -529,14 +529,16 @@
                                         class="flex-grow-1" />
                                 </b-tab>
 
-                                <b-tab title="Results" class="p-3" v-else>
+                                <b-tab title="Results"
+                                       class="p-3"
+                                       v-else-if="stepExitCode === 0">
                                     No code quality issues were reported!
                                 </b-tab>
 
                                 <b-tab title="Output" class="mb-3 flex-wrap">
                                     <p class="col-12 mb-1">
                                         <label>Exit code</label>
-                                        <code>{{ $utils.getProps(stepResult.log, '(unknown)', 'exit_code') }}</code>
+                                        <code>{{ stepExitCode }}</code>
                                     </p>
 
                                     <div class="col-12 mb-1">
@@ -613,7 +615,7 @@
                             <b-tab title="Output" class="mb-3 flex-wrap">
                                 <p class="col-12 mb-1">
                                     <label>Exit code</label>
-                                    <code>{{ $utils.getProps(stepResult.log, '(unknown)', 'exit_code') }}</code>
+                                    <code>{{ stepExitCode }}</code>
                                 </p>
 
                                 <div class="col-12">
@@ -705,7 +707,7 @@
 
                                     <p class="col-6 mb-1" v-if="canViewDetails">
                                         <label>Exit code</label>
-                                        <code>{{ $utils.getProps(stepResult.log, '(unknown)', 'exit_code') }}</code>
+                                        <code>{{ stepExitCode }}</code>
                                     </p>
 
                                     <div class="col-12">
@@ -1408,6 +1410,10 @@ export default {
             } else {
                 return this.$utils.getProps(this, false, 'stepResult', 'finished');
             }
+        },
+
+        stepExitCode() {
+            return this.$utils.getProps(this, '(unknown)', 'stepResult', 'log', 'exit_code');
         },
 
         stepStdout() {
