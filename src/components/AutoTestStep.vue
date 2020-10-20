@@ -521,6 +521,7 @@
                                               class="mb-0 flex-grow-1" />
                                     <quality-comments
                                         v-else
+                                        render-links
                                         :comments="qualityComments"
                                         :course-id="courseId"
                                         :assignment-id="assignmentId"

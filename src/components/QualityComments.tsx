@@ -9,23 +9,47 @@ import * as utils from '@/utils';
 import { DefaultMap } from '@/utils/defaultdict';
 import { store } from '@/store';
 
-type SeverityGroup = DefaultMap<
-    models.QualityCommentSeverity,
-    ReadonlyArray<models.QualityComment>
->;
+type MessageGroup = {
+    comments: ReadonlyArray<models.QualityComment>;
+    origin: string;
+    msg: string;
+    severity: models.QualityCommentSeverity;
+};
 
-type MessageGroup = Map<string, SeverityGroup>;
-
-const groupComments = (comments: ReadonlyArray<models.QualityComment>): MessageGroup =>
-    utils
-        .groupBy(comments, comment => {
-            if (comment.code != null) {
-                return `${comment.origin} [${comment.code}]: ${comment.msg}`;
-            } else {
-                return `${comment.origin}: ${comment.msg}`;
+const groupComments = (
+    comments: ReadonlyArray<models.QualityComment>,
+): ReadonlyArray<MessageGroup> => {
+    const nested = comments.reduce(
+        (acc, comment) => {
+            acc.get(comment.origin)
+                .get(comment.msg)
+                .get(comment.severity)
+                .comments.push(comment);
+            return acc;
+        },
+        new DefaultMap(
+            (origin: string) =>
+                new DefaultMap(
+                    (msg: string) =>
+                        new DefaultMap((severity: models.QualityCommentSeverity) => ({
+                            comments: [] as models.QualityComment[],
+                            origin,
+                            msg,
+                            severity,
+                        })),
+                ),
+        ),
+    );
+    const res = [];
+    for (const perOrigin of nested.values()) {
+        for (const perMsg of perOrigin.values()) {
+            for (const perSev of perMsg.values()) {
+                res.push(perSev);
             }
-        })
-        .map(group => utils.groupBy(group, comment => comment.severity));
+        }
+    }
+    return res;
+};
 
 export default tsx.component({
     name: 'quality-comments',
@@ -41,7 +65,7 @@ export default tsx.component({
 
     render(h, ctx) {
         const { data, props } = ctx;
-        const fileTree = store.getters['fileTrees/getFileTree'](
+        const fileTree: models.FileTree = store.getters['fileTrees/getFileTree'](
             props.assignmentId,
             props.submissionId,
         );
@@ -50,7 +74,7 @@ export default tsx.component({
             return <comp.Loader />;
         }
 
-        const getFileRoute = (file: models.BaseFile) => ({
+        const getFileRoute = (file: models.BaseFile<string>) => ({
             name: 'submission_file',
             params: {
                 courseId: props.courseId,
@@ -61,10 +85,6 @@ export default tsx.component({
             query: ctx.parent.$route.query,
             hash: '#code',
         });
-
-        const qualityBadge = (comment: models.QualityComment): VNode => (
-            <b-badge variant={comment.badgeVariant}>{comment.severity}</b-badge>
-        );
 
         const renderLocation = (line: models.LineRange, column: models.ColumnRange): VNode => {
             const lStart = line.start;
@@ -109,14 +129,14 @@ export default tsx.component({
 
         const renderComment = (comment: models.QualityComment): VNode => {
             // TODO: Handle case when AutoTest is run on teacher revision
-            const file = fileTree.search('student', comment.fileId);
-            const name = <code>{file.name}</code>;
+            const file = utils.Maybe.fromNullable(fileTree.search('student', comment.fileId));
+            const name = <code>{file.map(f => f.getFullName()).orDefault('…')}</code>;
             const loc = renderLocation(comment.line, comment.column);
 
             return utils.ifExpr(
                 props.renderLinks,
                 () => (
-                    <router-link to={getFileRoute(file)} class="d-block inline-link">
+                    <router-link to={file.map(getFileRoute).extract()} class="d-block inline-link">
                         {name} {loc}
                     </router-link>
                 ),
@@ -128,44 +148,40 @@ export default tsx.component({
             );
         };
 
-        const renderSeverityGroup = (comments?: ReadonlyArray<models.QualityComment>): VNode => {
-            if (comments != null && comments.length > 0) {
-                return (
-                    <div class="mt-2">
-                        {qualityBadge(comments[0])} messages
-                        {comments.map(renderComment)}
-                    </div>
-                );
-            } else {
-                return utils.emptyVNode();
-            }
-        };
-
-        const renderCommentGroup = ([message, comments]: [string, SeverityGroup]): VNode => (
+        const renderCommentGroup = (group: MessageGroup): VNode => (
             <div class="mt-3 p-3 border rounded">
-                {message}
-
-                {[
-                    models.QualityCommentSeverity.fatal,
-                    models.QualityCommentSeverity.error,
-                    models.QualityCommentSeverity.warning,
-                    models.QualityCommentSeverity.info,
-                ].map(severity => renderSeverityGroup(comments.get(severity)))}
+                <div class="d-flex align-items-center">
+                    <b-badge
+                        class="mr-1"
+                        variant={models.QualityComment.getBadgeVariant(group.severity)}
+                    >
+                        {group.severity}
+                    </b-badge>
+                    <span class="mr-1">
+                        <b>{group.origin}</b>:
+                    </span>
+                    <span>{group.msg}</span>
+                </div>
+                <div style={{ 'max-height': '12rem', overflow: 'auto' }}>
+                    {group.comments.map(renderComment)}
+                </div>
             </div>
         );
 
         const renderComments = (comments: ReadonlyArray<models.QualityComment>): VNode => {
             const grouped = groupComments(comments);
             const sorted = utils.sortBy(
-                [...grouped],
-                ([msg, group]) => [
-                    group.get(models.QualityCommentSeverity.fatal).length,
-                    group.get(models.QualityCommentSeverity.error).length,
-                    group.get(models.QualityCommentSeverity.warning).length,
-                    group.get(models.QualityCommentSeverity.info).length,
-                    msg,
+                grouped,
+                group => [
+                    group.severity === models.QualityCommentSeverity.fatal,
+                    group.severity === models.QualityCommentSeverity.error,
+                    group.severity === models.QualityCommentSeverity.warning,
+                    group.severity === models.QualityCommentSeverity.info,
+                    group.comments.length,
+                    group.msg,
+                    group.origin,
                 ],
-                { reversePerKey: [true, true, true, true, false] },
+                { reversePerKey: [false, false, false, false, true, false, false] },
             );
 
             return (

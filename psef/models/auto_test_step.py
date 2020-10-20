@@ -1140,7 +1140,9 @@ class _QualityTest(AutoTestStepBase):
             ).cast(db.Float)
         )
 
-        score = 100.0 - cg_helpers.handle_none(total_penalty.scalar(), 0)
+        score = 100.0 - min(
+            cg_helpers.handle_none(total_penalty.scalar(), 0), 100.0
+        )
         return result.step.weight * (score / 100.0)
 
     @staticmethod
