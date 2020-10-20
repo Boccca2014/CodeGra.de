@@ -22,7 +22,7 @@
                  show
                  dismissible
                  variant="warning"
-                 class="mb-0 border-bottom rounded-bottom-0">
+                 class="mb-0 rounded-0">
             You are viewing the source of a file that can be rendered.
             <a href="#" @click.capture.prevent.stop="forcedFileComponent = null">Click here</a>
             to show the rendered version.
@@ -59,6 +59,14 @@
                     :render-links="false" />
             </div>
         </collapse>
+        <b-alert v-if="!showInlineFeedback"
+                 :show="!inlineFeedbackWarningDismissed"
+                 dismissible
+                 @dismissed="$emit('inline-feedback-warning-dismissed')"
+                 variant="warning"
+                 class="mb-0 rounded-0">
+            Inline feedback is currently hidden.
+        </b-alert>
     </template>
 
     <div class="wrapper"
@@ -160,6 +168,10 @@ export default {
             required: true,
         },
         resizing: {
+            type: Boolean,
+            default: false,
+        },
+        inlineFeedbackWarningDismissed: {
             type: Boolean,
             default: false,
         },
