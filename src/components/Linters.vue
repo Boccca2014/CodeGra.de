@@ -5,6 +5,13 @@
     <loader/>
 </div>
 <div v-else class="linters">
+    <b-alert show variant="warning">
+        Linters are now integrated with AutoTest, which allows for more
+        flexibility, and you can now also assign grades based on the linter
+        output. The new linters can be found under the “Code Quality” step. This
+        linter tab is deprecated and will be removed at the end of 2020.
+    </b-alert>
+
     <b-tabs no-fade
             content-class="p-3 border border-top-0 rounded-bottom">
         <b-tab :title="linter.name"
