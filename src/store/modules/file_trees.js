@@ -3,7 +3,7 @@ import Vue from 'vue';
 import axios from 'axios';
 
 import * as utils from '@/utils';
-import { FileTree } from '@/models/submission';
+import { FileTree } from '@/models';
 import * as types from '../mutation-types';
 
 const getters = {

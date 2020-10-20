@@ -20,3 +20,4 @@ export * from './course';
 export * from './siteSettings';
 export * from './ui_prefs';
 export * from './quality_comments';
+export * from './fileTree';

@@ -45,11 +45,8 @@ export interface IQualityCommentData extends IQualityCommentBase {
 }
 
 export interface IQualityComment extends IQualityCommentBase {
-    // eslint-disable-next-line camelcase
     stepId: number;
-    // eslint-disable-next-line camelcase
     resultId: number;
-    // eslint-disable-next-line camelcase
     fileId: string;
 }
 
@@ -98,9 +95,8 @@ export class QualityComment implements IQualityComment {
         Object.freeze(this);
     }
 
-    // eslint-disable-next-line consistent-return,getter-return
-    get badgeVariant(): types.Variant {
-        switch (this.severity) {
+    static getBadgeVariant(severity: QualityCommentSeverity) {
+        switch (severity) {
             case QualityCommentSeverity.old_linter:
             case QualityCommentSeverity.fatal:
             case QualityCommentSeverity.error:
@@ -110,8 +106,12 @@ export class QualityComment implements IQualityComment {
             case QualityCommentSeverity.info:
                 return 'info';
             default:
-                utils.AssertionError.assertNever(this.severity);
+                return utils.AssertionError.assertNever(severity);
         }
+    }
+
+    get badgeVariant(): types.Variant {
+        return QualityComment.getBadgeVariant(this.severity);
     }
 }
 
